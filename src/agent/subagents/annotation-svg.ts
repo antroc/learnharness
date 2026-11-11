@@ -1,8 +1,8 @@
 import { DOMParser } from "linkedom";
 import { embedLearnerImage, LEARNER_IMAGE_HREF } from "../../core/learner-image-svg.ts";
 
-/** Structural annotation protocol, not a claim to prove visibility or mark accuracy.
- * Annotation rendering keeps strict native input, without ordinary figure repairs.
+/** Protocolo estructural de anotación, no una afirmación que pruebe la visibilidad o la precisión de las marcas.
+ * El renderizado de anotaciones mantiene la entrada nativa estricta, sin las reparaciones de las figuras normales.
  */
 export function annotationPlacementProblem(svg: string, width: number, height: number): string | null {
 	if (/<!DOCTYPE|<!ENTITY/i.test(svg)) return "annotation SVGs cannot declare entities or a document type";
@@ -18,8 +18,8 @@ export function annotationPlacementProblem(svg: string, width: number, height: n
 	if (embedLearnerImage(svg, { mimeType: "image/png", data: "", width, height }) === svg) return "use the literal learner-image placeholder in the image href";
 	if (Number(image.getAttribute("width")) !== width || Number(image.getAttribute("height")) !== height) return `place the image at its natural ${width}×${height} pixel size`;
 	for (const element of elements) {
-		// LinkeDOM preserves qualified names in localName. Keep the protocol's
-		// ordinary SVG spelling instead of trusting namespace identity resolution.
+		// LinkeDOM conserva los nombres calificados en localName. Mantener la grafía SVG normal
+		// del protocolo en lugar de fiarse de la resolución de identidad de espacios de nombres.
 		if (element.localName.includes(":")) return "annotation SVG elements cannot use namespace prefixes";
 		if (["script", "foreignobject", "style", "animate", "animatemotion", "animatetransform", "set", "discard"].includes(element.localName.toLowerCase())) return "annotation SVGs must use static SVG marks and inline styling";
 		for (const attr of Array.from(element.attributes)) {

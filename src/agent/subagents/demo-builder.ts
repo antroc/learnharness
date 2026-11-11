@@ -9,20 +9,20 @@ import { getHeadless, type DemoRunResult, type HeadlessApi } from "./headless.ts
 import { healToolRecord } from "../tools/heal.ts";
 
 /**
- * The demo-builder sub-agent (vision §2 interactive demos + §2.5 "sub-agents
- * verify; they never one-shot"): given a brief it writes a self-contained
- * single-file HTML/JS demo, TESTS IT HEADLESSLY (run_demo), and iterates
- * fix → re-run until clean — before anything reaches the lesson.
+ * El subagente demo-builder (visión §2, demos interactivas + §2.5, «los subagentes
+ * verifican; nunca lo hacen a la primera»): a partir de un encargo escribe una demo HTML/JS
+ * autocontenida en un solo fichero, LA PRUEBA SIN INTERFAZ (run_demo) e itera
+ * corregir → volver a ejecutar hasta que quede limpia, antes de que nada llegue a la lección.
  *
- * Shape: a ToolLoopAgent with two executable tools (write_demo / run_demo) —
- * the engine is injectable (tests use a scripted faux engine) and the headless
- * API is injectable (tests use a fake; production uses the app's own
- * Chromium browser service, system Chrome as fallback).
+ * Forma: un ToolLoopAgent con dos herramientas ejecutables (write_demo / run_demo):
+ * el motor es inyectable (las pruebas usan un motor falso con guion) y la API
+ * sin interfaz es inyectable (las pruebas usan una falsa; producción usa el propio
+ * servicio de navegador Chromium de la app, con Chrome del sistema como respaldo).
  *
- * Failure semantics (decided in the W6 brief): `tested: true` means "the
- * verify loop ran"; on failure the result is { title, html: "", tested: true,
- * notes: "FAILED: <reason>" } — the card renders the failure note, no iframe.
- * The job wrapper treats html === "" as failure and marks the job error.
+ * Semántica de fallo (decidida en el encargo de W6): `tested: true` significa «el
+ * bucle de verificación se ejecutó»; si falla, el resultado es { title, html: "", tested: true,
+ * notes: "FAILED: <reason>" }: la tarjeta renderiza la nota de fallo, sin iframe.
+ * El envoltorio de la tarea trata html === "" como fallo y marca la tarea como error.
  */
 
 export interface DemoBuilderInput {
@@ -31,18 +31,18 @@ export interface DemoBuilderInput {
 }
 
 export interface DemoBuilderOptions {
-	/** Test seam: scripted engine; production uses the demoBuilder role. */
+	/** Punto de inyección para pruebas: motor con guion; producción usa el rol demoBuilder. */
 	engine?: PiEngine;
 	headless?: HeadlessApi;
-	/** Max agent steps (each write/run/fix is one step). Default 24 ≈ 6 cycles. */
+	/** Máximo de pasos del agente (cada escribir/ejecutar/corregir es un paso). Por defecto 24 ≈ 6 ciclos. */
 	maxSteps?: number;
-	/** Live activity-line callback (updates the job record). */
+	/** Callback de la línea de actividad en vivo (actualiza el registro de la tarea). */
 	onActivity?: (line: string) => void;
-	/** Kills the run mid-model-call (2026-09 real-kill abort semantics). */
+	/** Mata la ejecución a mitad de una llamada al modelo (semántica de aborto real de 2026-09). */
 	abortSignal?: AbortSignal;
-	/** Money channel: one call per agent step, folded into JobRecord.usage. */
+	/** Canal del dinero: una llamada por paso del agente, plegada en JobRecord.usage. */
 	onUsage?: (usage: Usage) => void;
-	/** Debug: raw provider-event recording key (LH_PROVIDER_EVENTS=1). */
+	/** Depuración: clave de grabación de eventos crudos del proveedor (LH_PROVIDER_EVENTS=1). */
 	chatId?: string;
 }
 
@@ -77,7 +77,7 @@ Never claim success you did not see: a PASSED run_demo is the only definition of
 
 interface BuilderState {
 	html: string | null;
-	/** The html that the last run_demo tested (null = never tested). */
+	/** El html que probó el último run_demo (null = nunca probado). */
 	testedHtml: string | null;
 	lastResult: DemoRunResult | null;
 }
@@ -174,7 +174,7 @@ function formatRunResult(result: DemoRunResult): string {
 	return sections.join("\n");
 }
 
-/** Short summary of a run for failure notes. */
+/** Resumen breve de una ejecución para las notas de fallo. */
 function failureSummary(result: DemoRunResult | null): string {
 	if (!result) return "never tested";
 	const details = [...result.consoleErrors, ...result.pageErrors, ...result.failedRequests].slice(0, 5);
@@ -221,7 +221,7 @@ export async function runDemoBuilder(input: DemoBuilderInput, opts: DemoBuilderO
 		return { title, html: "", tested: true, notes: `FAILED: the builder crashed — ${msg}` };
 	}
 
-	// The model produced nothing.
+	// El modelo no produjo nada.
 	if (!state.html) {
 		return {
 			title,
@@ -231,8 +231,8 @@ export async function runDemoBuilder(input: DemoBuilderInput, opts: DemoBuilderO
 		};
 	}
 
-	// The verify gate: the delivered html must have a clean headless run —
-	// even when the model claims success or forgets the final run_demo.
+	// La barrera de verificación: el html entregado debe tener una ejecución sin interfaz limpia,
+	// aunque el modelo diga que ha tenido éxito o se olvide del run_demo final.
 	if (state.testedHtml !== state.html || !state.lastResult?.ok) {
 		opts.onActivity?.("final verification");
 		let verify: DemoRunResult;
