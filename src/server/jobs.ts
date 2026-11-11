@@ -1,60 +1,70 @@
 /**
- * THE WAKE PIPELINE (contracts.ts "THE ASYNC PROTOCOL" §4) — server-side
- * steer delivery for finished sub-agent jobs. Wave C (2026-09-26):
- * delivery rides pi's OWN steering queue when a run is live, and the
- * idle wake otherwise. One registry, two vehicles.
+ * EL PROCESO DE DESPERTAR (contracts.ts, "THE ASYNC PROTOCOL" §4): entrega
+ * en el servidor de las reorientaciones de las tareas de subagente
+ * terminadas. Oleada C (2026-09-26): la entrega va por la PROPIA cola de
+ * reorientación de pi cuando hay una ejecución viva y, si no, por el
+ * despertar en reposo. Un registro, dos vehículos.
  *
- *   deliverJobResult(steer) — the runner calls this on job completion.
- *     The steer joins a per-chat serialized registry and the pump drives
- *     it along ONE of two paths:
+ *   deliverJobResult(steer): el ejecutor lo llama al terminar una tarea. La
+ *     reorientación entra en un registro serializado por chat y la bomba la
+ *     lleva por UNA de dos rutas:
  *
- *       1. LIVE RUN → pi steering: the marker is handed to the LIVE
- *          agent's steering queue (agent.steer). pi polls that queue at
- *          TURN BOUNDARIES — after a completed assistant message AND its
- *          tool results (never between a toolCall and its result), and
- *          again at the run's start (a continuation drains the queue
- *          BEFORE its first LLM call) — and CONTINUES THE SAME RUN: the
- *          marker joins the context mid-lesson, rides the live event
- *          stream (message_start/message_end), and lands in the record
- *          at that run's persist. This is the owner's 2026-09-26
- *          correction: a real lesson is one continuous teach→quiz→teach
- *          loop, so delivery must happen BETWEEN messages inside the
- *          run — waiting for the run to stop (follow-ups) only ever
- *          fires at a stopper exit, which is exactly when it must not.
- *          The question stopper runs BEFORE the post-turn poll and
- *          exits the loop, so a quiz-terminated run never injects: the
- *          handed marker strands (see settleSteers) and waits — the
- *          ANSWER run then picks it up at its start poll. probe-handoff
- *          markers NEVER take this path (owner ruling: the handoff must
- *          start the TEACHER's run — a record-level branch only a fresh
- *          wake can make).
- *       2. IDLE WAKE: no live turn. WAIT FOR IDLE (turn-liveness OR a
- *          dangling question — an unanswered client-side tool call breaks
- *          provider conversion), then fire ONE server-side wake turn
- *          carrying EVERY queued marker as its input appends (write-ahead
- *          persist, liveness, extraction — one code path, the same
- *          composition as a client request). A 409 means a client turn
- *          raced in — re-queue and retry with backoff. Idempotent per
- *          jobId (steerDelivered): a crashed wake or a duplicate deliver
- *          is skipped, not duplicated.
+ *       1. EJECUCIÓN VIVA → reorientación de pi: el marcador se pasa a la
+ *          cola de reorientación del agente VIVO (agent.steer). pi consulta
+ *          esa cola en las FRONTERAS DE TURNO (tras un mensaje del asistente
+ *          completado Y sus resultados de herramientas, nunca entre un
+ *          toolCall y su resultado, y de nuevo al inicio de la ejecución: una
+ *          continuación vacía la cola ANTES de su primera llamada al LLM) y
+ *          CONTINÚA LA MISMA EJECUCIÓN: el marcador entra en el contexto a
+ *          mitad de lección, viaja por el flujo de eventos en vivo
+ *          (message_start/message_end) y llega al registro cuando esa
+ *          ejecución persiste. Es la corrección del responsable del
+ *          2026-09-26: una lección real es un único bucle continuo
+ *          enseñar→quiz→enseñar, así que la entrega debe ocurrir ENTRE
+ *          mensajes dentro de la ejecución; esperar a que la ejecución se
+ *          detenga (seguimientos) solo dispara en una salida por parada, que
+ *          es justo cuando no debe. La parada por pregunta se ejecuta ANTES
+ *          de la consulta posterior al turno y sale del bucle, así que una
+ *          ejecución terminada en quiz nunca inyecta: el marcador pasado se
+ *          queda varado (ver settleSteers) y espera; la ejecución de la
+ *          RESPUESTA lo recoge después en su consulta inicial. Los
+ *          marcadores probe-handoff NUNCA toman esta ruta (decisión del
+ *          responsable: el traspaso debe iniciar la ejecución del PROFESOR,
+ *          una bifurcación a nivel de registro que solo un despertar nuevo
+ *          puede hacer).
+ *       2. DESPERTAR EN REPOSO: no hay turno vivo. ESPERAR AL REPOSO
+ *          (turn-liveness O una pregunta colgada: una llamada a herramienta
+ *          del cliente sin responder rompe la conversión del proveedor) y
+ *          después disparar UN turno de despertar en el servidor que lleva
+ *          TODOS los marcadores en cola como añadidos de su entrada
+ *          (persistencia anticipada, vida del turno, extracción: una sola
+ *          ruta de código, la misma composición que una petición del
+ *          cliente). Un 409 significa que se coló un turno del cliente: se
+ *          vuelve a encolar y se reintenta con espera creciente. Idempotente
+ *          por jobId (steerDelivered): un despertar caído o una entrega
+ *          duplicada se omiten, no se duplican.
  *
- *   settleSteers(chatId, persisted) — the handler calls this at turn
- *     settlement (after unregisterLiveAgent): entries the run DELIVERED
- *     resolve + acknowledge delivery; entries handed to the dying
- *     run but never injected (stopper exit, abort, a missed final poll)
- *     return to pending and the pump restarts — no stranding, no loss.
+ *   settleSteers(chatId, persisted): el handler lo llama al asentarse el
+ *     turno (tras unregisterLiveAgent): las entradas que la ejecución
+ *     ENTREGÓ se resuelven y acusan la entrega; las entradas pasadas a la
+ *     ejecución moribunda pero nunca inyectadas (salida por parada,
+ *     cancelación, una consulta final perdida) vuelven a pendientes y la
+ *     bomba se reinicia: nada varado, nada perdido.
  *
- *   Worker status ends at computation completion; JobRecord.delivery owns
- *     pending notices independently. Registry entries survive in-flight
- *     wakes, so duplicates share one promise. Failed starts remain pending
- *     without worker errors. Recovery restores known pending deliveries and
- *     re-spawns unfinished BUILTIN workers only. Plugin recovery reads
- *     canonical task records through an injected seam, never replaying
- *     plugin code. Legacy terminal jobs without delivery metadata are not replayed.
+ *   El estado del worker termina cuando acaba el cálculo; JobRecord.delivery
+ *     gestiona de forma independiente los avisos pendientes. Las entradas
+ *     del registro sobreviven a los despertares en curso, así que los
+ *     duplicados comparten una promesa. Los inicios fallidos siguen
+ *     pendientes sin errores de worker. La recuperación restaura las
+ *     entregas pendientes conocidas y solo vuelve a lanzar los workers
+ *     INTEGRADOS sin terminar. La recuperación de plugins lee los registros
+ *     canónicos de tareas mediante una frontera inyectada, sin volver a
+ *     ejecutar nunca código de plugins. Las tareas terminales heredadas sin
+ *     metadatos de entrega no se vuelven a reproducir.
  *
- * All mutable state lives on globalThis (the turn-liveness lesson: Next dev
- * gives each route entry its own module instances — a module-level Map would
- * be a different object in each).
+ * Todo el estado mutable vive en globalThis (la lección de turn-liveness: en
+ * desarrollo, Next da a cada entrada de ruta sus propias instancias de
+ * módulo; un Map a nivel de módulo sería un objeto distinto en cada una).
  */
 
 import {
@@ -76,13 +86,14 @@ import { connectionBackgroundAllowed, isSubscriptionProvider, onSubscriptionChan
 import { isTurnRunning } from "./turn-liveness.ts";
 import type { Agent } from "@earendil-works/pi-agent-core";
 
-/** Fires one server-side teacher turn: (chatId, input) → HTTP-ish status.
- *  Wave C: the input is the IDLE WAKE — every queued marker as the turn's
- *  input appends (the handler appends them natively under the wake's own
- *  turn claim; one composition for every turn). */
+/** Dispara un turno del profesor en el servidor: (chatId, input) → estado
+ *  tipo HTTP. Oleada C: la entrada es el DESPERTAR EN REPOSO, con todos los
+ *  marcadores en cola como añadidos de la entrada del turno (el handler los
+ *  añade de forma nativa bajo la propia reclamación del turno del despertar;
+ *  una composición para todos los turnos). */
 export type TurnRunner = (chatId: string, input: TurnInput) => Promise<number>;
 
-/** Re-runs a job's sub-agent loop (crash recovery for orphaned jobs). */
+/** Vuelve a ejecutar el bucle del subagente de una tarea (recuperación de tareas huérfanas tras una caída). */
 export type JobRespawn = (jobId: string) => void;
 export type PluginJobRecovery = (job: JobRecord) => Promise<void>;
 export function setPluginJobRecovery(recover: PluginJobRecovery): void {
@@ -92,19 +103,21 @@ export function setPluginJobRecovery(recover: PluginJobRecovery): void {
 interface QueuedSteer {
 	steer: SteerMessage;
 	promise: Promise<void>;
-	/** Wake cargo remains owned here, but must not steer into its own run. */
+	/** La carga del despertar sigue siendo propiedad de aquí, pero no debe reorientarse hacia su propia ejecución. */
 	waking?: boolean;
-	/** The constructed vehicle, once startup claims a turn. Until then only
-	 * the pump owns waking: an unrelated foreground settlement cannot free it. */
+	/** El vehículo construido, una vez que el arranque reclama un turno. Hasta
+	 * entonces solo la bomba controla el despertar: un asentamiento ajeno en
+	 * primer plano no puede liberarlo. */
 	wakeAgent?: Agent;
-	/** A failed start waits for a learner run or process restart, not a timer. */
+	/** Un inicio fallido espera a una ejecución del alumno o a un reinicio del proceso, no a un temporizador. */
 	deferred?: boolean;
 	resolve: () => void;
 	reject: (reason: Error) => void;
-	/** The live agent this marker was steered into (agent.steer) — set by
-	 *  the hand-off helper. Guards double-handoff (a re-pumped loop or a
-	 *  re-registered run must not re-queue what a run already holds) and is
-	 *  CLEARED at settlement for markers the dying run never injected. */
+	/** El agente vivo al que se reorientó este marcador (agent.steer); lo fija el
+	 *  auxiliar de traspaso. Protege contra el doble traspaso (un bucle bombeado
+	 *  de nuevo o una ejecución registrada de nuevo no deben volver a encolar lo
+	 *  que ya tiene una ejecución) y se BORRA al asentarse en los marcadores que
+	 *  la ejecución moribunda nunca inyectó. */
 	handedTo?: Agent;
 }
 
@@ -112,23 +125,25 @@ interface WakeState {
 	turnRunner?: TurnRunner;
 	respawn?: JobRespawn;
 	recoverPlugin?: PluginJobRecovery;
-	/** chatId → steers awaiting delivery, in arrival order. The single
-	 *  delivery registry (Wave C: the agent's own follow-up queue is a
-	 *  per-run VEHICLE, not the registry — settlement reconciles here). */
+	/** chatId → reorientaciones pendientes de entrega, en orden de llegada. El
+	 *  único registro de entregas (oleada C: la propia cola de seguimiento del
+	 *  agente es un VEHÍCULO por ejecución, no el registro; el asentamiento
+	 *  concilia aquí). */
 	queues: Map<string, QueuedSteer[]>;
-	/** chatId → user-steered messages awaiting drain (composer steering,
-	 *  2026-10-03). Same deliver-or-requeue lifecycle as job markers: the
-	 *  live agent's steering queue is the VEHICLE, this is the registry —
-	 *  a steer stranded behind a question or an abort stays parked here
-	 *  and rides the chat's NEXT run (handOffEligible). */
+	/** chatId → mensajes reorientados por el usuario pendientes de vaciar
+	 *  (reorientación desde el compositor, 2026-10-03). El mismo ciclo de vida de
+	 *  entregar o volver a encolar que los marcadores de tareas: la cola de
+	 *  reorientación del agente vivo es el VEHÍCULO y esto es el registro; una
+	 *  reorientación varada tras una pregunta o una cancelación se queda aparcada
+	 *  aquí y viaja en la SIGUIENTE ejecución del chat (handOffEligible). */
 	userSteers: Map<string, UserSteerEntry[]>;
-	/** chatId → the agent of the CURRENTLY streaming turn (cleared at
-	 *  settlement, before settleSteers). The pump's live path hands
-	 *  markers to this agent's follow-up queue. */
+	/** chatId → el agente del turno que se está emitiendo AHORA (se borra al
+	 *  asentarse, antes de settleSteers). La ruta viva de la bomba pasa los
+	 *  marcadores a la cola de seguimiento de este agente. */
 	liveAgents: Map<string, Agent>;
-	/** Chats whose pump loop is currently active (serialization per chat). */
+	/** Chats cuyo bucle de bomba está activo ahora mismo (serialización por chat). */
 	pumping: Set<string>;
-	/** Throttle bookkeeping for the stale-job sweep. */
+	/** Contabilidad de la limitación del barrido de tareas obsoletas. */
 	lastSweepAt: number;
 	stopConnectionWatch?: () => void;
 	automaticDeferred: WeakSet<Agent>;
@@ -143,49 +158,53 @@ function state(): WakeState {
 	return (g.__lhWakePipeline ??= { queues: new Map(), liveAgents: new Map(), userSteers: new Map(), pumping: new Set(), lastSweepAt: 0, automaticDeferred: new WeakSet() });
 }
 
-/** chat-handler wires this at module init: its adapter around handleChatRequest. */
+/** chat-handler lo conecta al iniciar el módulo: su adaptador alrededor de handleChatRequest. */
 export function setTurnRunner(run: TurnRunner): void {
 	state().turnRunner = run;
 }
 
-/** chat-handler wires this at module init: its job runner's runJob. */
+/** chat-handler lo conecta al iniciar el módulo: el runJob de su ejecutor de tareas. */
 export function setJobRespawn(respawn: JobRespawn): void {
 	state().respawn = respawn;
 }
 
 const POLL_MS = 400;
-/** After the gates open, wait a beat before firing — a client that just
- *  answered a question is about to send its continuation; don't 409 it.
+/** Cuando se abren las barreras, se espera un momento antes de disparar: un
+ *  cliente que acaba de responder una pregunta está a punto de enviar su
+ *  continuación; no hay que darle un 409.
  *
- *  Evidence for 750: the race window is exactly the learner's answer→POST
- *  flight — sendAutomaticallyWhen dispatches synchronously on addToolOutput,
- *  the answer hits the record only at the write-ahead persist, and beginTurn
- *  flips the turn registry immediately after, all before the grace can fire
- *  (measured localhost RTT ~10ms; typical LAN/production RTT <300ms). 750ms
- *  is 2.5× the worst realistic flight. A miss self-heals: the pump rechecks
- *  the gates after the grace AND the wake pipeline retries 409s with a
- *  backoff ramp — and since the transport's merge-retry (chat-transport.ts)
- *  made client 409s non-fatal, even a pathological RTT degrades gracefully.
- *  (Was 1500 — pure guess; 750 claws back 750ms of post-answer delivery
- *  latency without weakening the guard.) */
+ *  Justificación de los 750: la ventana de carrera es exactamente el trayecto
+ *  respuesta→POST del alumno: sendAutomaticallyWhen despacha de forma síncrona
+ *  en addToolOutput, la respuesta solo llega al registro en la persistencia
+ *  anticipada y beginTurn cambia el registro de turnos justo después, todo
+ *  antes de que pueda vencer el margen (RTT medido en localhost ~10 ms; RTT
+ *  típico en LAN/producción <300 ms). 750 ms son 2,5× el peor trayecto
+ *  realista. Un fallo se autorrepara: la bomba vuelve a comprobar las
+ *  barreras tras el margen Y el proceso de despertar reintenta los 409 con una
+ *  rampa de espera creciente; y como el reintento por fusión del transporte
+ *  (chat-transport.ts) hizo que los 409 del cliente no fueran fatales, incluso
+ *  un RTT patológico se degrada con elegancia. (Eran 1500, una suposición sin
+ *  más; 750 recupera 750 ms de latencia de entrega tras la respuesta sin
+ *  debilitar la protección). */
 const GRACE_MS = 750;
-/** 409 backoff: capped ramp so a busy client can't spin the pump. */
+/** Espera ante un 409: rampa con tope para que un cliente ocupado no pueda hacer girar la bomba. */
 const RETRY_BACKOFF_MS = [500, 1000, 2000, 5000] as const;
 
 function delay(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** The job a steer belongs to, if it is a job steer (result/abort);
- *  probe-handoff steers have no job — null. */
+/** La tarea a la que pertenece una reorientación, si es de tarea (result/abort);
+ *  las reorientaciones probe-handoff no tienen tarea: null. */
 function jobIdOf(steer: SteerMessage): string | null {
 	const details = steer.details as { jobId?: string } | undefined;
 	return typeof details?.jobId === "string" ? details.jobId : null;
 }
 
-/** Call only after canonical conversation persistence. Streaming visibility
- * is not durable acceptance. The saved marker wins over delivery-bookkeeping
- * failures; acknowledging delivery never changes the worker's outcome. */
+/** Llámalo solo tras la persistencia canónica de la conversación. La visibilidad
+ * en streaming no es una aceptación duradera. El marcador guardado gana a los
+ * fallos de contabilidad de la entrega; acusar la entrega nunca cambia el
+ * resultado del worker. */
 export function noteSteersDurable(chatId: string, persisted: readonly LhMessage[]): void {
 	for (const message of persisted) {
 		if (message.role === "custom") finalizeSteer(message);
@@ -207,7 +226,7 @@ function completeEntry(chatId: string, entry: QueuedSteer): void {
 	entry.resolve();
 }
 
-/** Deletion discards the session's obligations, never wakes a deleted chat. */
+/** El borrado descarta las obligaciones de la sesión; nunca despierta un chat borrado. */
 export function discardChatDeliveries(chatId: string): void {
 	const s = state();
 	const queue = s.queues.get(chatId) ?? [];
@@ -216,16 +235,18 @@ export function discardChatDeliveries(chatId: string): void {
 	for (const entry of queue) entry.resolve();
 }
 
-/** Finalize a delivered steer's job bookkeeping — job steers only. */
+/** Cierra la contabilidad de la tarea de una reorientación entregada; solo reorientaciones de tarea. */
 function finalizeSteer(steer: SteerMessage): void {
 	const jobId = jobIdOf(steer);
 	if (jobId) finalizeJob(jobId);
 }
 
-/** Queue one logical delivery per ID, including in-flight wake cargo.
- * Job promises resolve on durable marker acceptance (or session deletion);
- * failed starts stay pending. Non-job probe handoffs keep their existing
- * wake-acceptance/error semantics. Workers never await this promise. */
+/** Encola una entrega lógica por ID, incluida la carga de un despertar en
+ * curso. Las promesas de las tareas se resuelven con la aceptación duradera
+ * del marcador (o con el borrado de la sesión); los inicios fallidos siguen
+ * pendientes. Los traspasos de sondeo que no son de tarea mantienen su
+ * semántica existente de aceptación/error del despertar. Los workers nunca
+ * esperan esta promesa. */
 export function deliverJobResult(steer: SteerMessage): Promise<void> {
 	const chatId = chatIdOf(steer);
 	const entry = queueSteer(chatId, steer);
@@ -240,7 +261,7 @@ function queueSteer(chatId: string, steer: SteerMessage): QueuedSteer {
 	let resolve!: () => void;
 	let reject!: (error: Error) => void;
 	const promise = new Promise<void>((res, rej) => { resolve = res; reject = rej; });
-	// Recovery/registration may own an entry with no waiting caller.
+	// La recuperación/el registro pueden tener una entrada sin ningún llamante esperando.
 	void promise.catch(() => undefined);
 	const entry: QueuedSteer = { steer, promise, resolve, reject };
 	queue.push(entry);
@@ -248,14 +269,15 @@ function queueSteer(chatId: string, steer: SteerMessage): QueuedSteer {
 	return entry;
 }
 
-/** Hand every eligible pending marker to a live agent's steering queue
- *  (idempotent per agent via handedTo). Called from BOTH the pump's live
- *  path and registerLiveAgent — a parked marker (stranded behind a quiz)
- *  must not wait for the pump loop to notice the new run: the handler
- *  registers the answer run's agent BEFORE runPiTurn, so this hand-off
- *  beats the loop's synchronous start-poll drain and the marker rides the
- *  run's FIRST LLM call (the native equivalent of the old continuation
- *  coalescing). */
+/** Pasa todos los marcadores pendientes admisibles a la cola de reorientación
+ *  de un agente vivo (idempotente por agente gracias a handedTo). Se llama
+ *  TANTO desde la ruta viva de la bomba como desde registerLiveAgent: un
+ *  marcador aparcado (varado tras un quiz) no debe esperar a que el bucle de
+ *  la bomba se dé cuenta de la nueva ejecución: el handler registra el agente
+ *  de la ejecución de la respuesta ANTES de runPiTurn, así que este traspaso
+ *  se adelanta al vaciado síncrono de la consulta inicial del bucle y el
+ *  marcador viaja en la PRIMERA llamada al LLM de la ejecución (el equivalente
+ *  nativo de la antigua unión de continuaciones). */
 export function automaticFollowUpAllowed(chatId: string, agent?: Agent): boolean {
 	if (agent && state().automaticDeferred.has(agent)) return false;
 	const provider = agent?.state?.model?.provider ?? resolveConversationSpec(stores.chatStore.getChat(chatId)?.settings, effectiveSettings().models.strong)?.provider;
@@ -264,9 +286,9 @@ export function automaticFollowUpAllowed(chatId: string, agent?: Agent): boolean
 
 function handOffEligible(chatId: string, agent: Agent): void {
 	const queue = state().queues.get(chatId);
-	// Keep automatic results in their owning registry. Never mix them into a
-	// foreground batch without express account consent. Learner steers below
-	// remain deliverable, including the first poll of an answer run.
+	// Los resultados automáticos se quedan en su registro propietario. Nunca se mezclan en
+	// un lote en primer plano sin consentimiento expreso de la cuenta. Las reorientaciones
+	// del alumno de abajo siguen siendo entregables, incluida la primera consulta de una ejecución de respuesta.
 	if (automaticFollowUpAllowed(chatId, agent) && queue && queue.length > 0) {
 		for (const entry of queue) {
 			if (!entry.waking && !entry.deferred && entry.handedTo !== agent && entry.steer.customType !== "probe-handoff") {
@@ -275,10 +297,10 @@ function handOffEligible(chatId: string, agent: Agent): void {
 			}
 		}
 	}
-	// User steers (2026-10-03): same hand-off, any live run — a steer
-	// stranded behind a question or abort rides the chat's next run's
-	// first boundary. No probe-handoff exclusion: these are learner
-	// words, owed to whatever run is live.
+	// Reorientaciones del usuario (2026-10-03): el mismo traspaso, a cualquier ejecución
+	// viva; una reorientación varada tras una pregunta o una cancelación viaja en la
+	// primera frontera de la siguiente ejecución del chat. Sin exclusión de probe-handoff:
+	// son palabras del alumno, que se deben a la ejecución que esté viva.
 	const userQueue = state().userSteers.get(chatId);
 	if (userQueue && userQueue.length > 0) {
 		for (const entry of userQueue) {
@@ -290,12 +312,13 @@ function handOffEligible(chatId: string, agent: Agent): void {
 	}
 }
 
-/** The chat-handler registers the CURRENTLY STREAMING turn's agent BEFORE
- *  runPiTurn (the loop's start steering-poll drains synchronously inside
- *  that call — a later registration would miss it). Pending registry
- *  markers are steered into the run right here. The settle seam cannot
- *  beat the registration: settlement needs a streamed response, which
- *  never happens inside the constructor call. */
+/** chat-handler registra el agente del turno que se está emitiendo AHORA
+ *  ANTES de runPiTurn (la consulta de reorientación al inicio del bucle se
+ *  vacía de forma síncrona dentro de esa llamada; un registro posterior se la
+ *  perdería). Los marcadores pendientes del registro se reorientan hacia la
+ *  ejecución justo aquí. La frontera de asentamiento no puede adelantarse al
+ *  registro: el asentamiento necesita una respuesta en streaming, que nunca
+ *  ocurre dentro de la llamada al constructor. */
 export function registerLiveAgent(chatId: string, agent: Agent, allowDeferred = true, wakeSteerIds?: ReadonlySet<string>): void {
 	state().liveAgents.set(chatId, agent);
 	restorePendingDeliveries(chatId);
@@ -306,17 +329,18 @@ export function registerLiveAgent(chatId: string, agent: Agent, allowDeferred = 
 	handOffEligible(chatId, agent);
 }
 
-/** A parked user steer: the message plus the agent it was last handed to
- *  (the double-handoff guard — a reconcile keeps it only when its id
- *  never landed in the persisted record). */
+/** Una reorientación del usuario aparcada: el mensaje más el agente al que se
+ *  pasó por última vez (la protección contra el doble traspaso: una
+ *  conciliación la conserva solo si su id nunca llegó al registro persistido). */
 export interface UserSteerEntry {
 	message: LhMessage;
 	handedTo?: Agent;
 }
 
-/** Async composer admission keeps the live agent private. Future chat settings
- * are deliberately irrelevant: this steer belongs to the captured live run.
- * Settling keeps the existing send fallback; replacements must never retarget. */
+/** La admisión asíncrona del compositor mantiene privado el agente vivo. Los ajustes
+ * futuros del chat son irrelevantes a propósito: esta reorientación pertenece a la
+ * ejecución viva capturada. Al asentarse se mantiene la alternativa de envío existente;
+ * los sustitutos nunca deben redirigirla. */
 export async function prepareAndSteerChat(chatId: string, input: UserSteerInput): Promise<"accepted" | "settled" | "stale"> {
 	const agent = state().liveAgents.get(chatId);
 	if (!agent) return "settled";
@@ -331,13 +355,14 @@ export async function prepareAndSteerChat(chatId: string, input: UserSteerInput)
 	const current = state().liveAgents.get(chatId);
 	if (!current) return "settled";
 	if (current !== agent || current.state.model !== model || submissionImagePolicyKey({ model }) !== policy) return "stale";
-	// No await may separate the identity/policy check from this registry handoff.
+	// Ningún await puede separar la comprobación de identidad/política de este traspaso al registro.
 	return steerLiveChat(chatId, newUserSteer(text, id, images)) ? "accepted" : "settled";
 }
 
-/** Synchronous live handoff. The registry copy preserves the existing
- * memory-only stranding safety net: undelivered steers ride the next run.
- * No live agent means the caller may fall back to an ordinary send. */
+/** Traspaso vivo síncrono. La copia del registro mantiene la red de seguridad
+ * existente, solo en memoria, contra los varados: las reorientaciones no
+ * entregadas viajan en la siguiente ejecución. Sin agente vivo, el llamante
+ * puede recurrir a un envío normal. */
 export function steerLiveChat(chatId: string, message: LhMessage): boolean {
 	const agent = state().liveAgents.get(chatId);
 	if (!agent) return false;
@@ -350,10 +375,12 @@ export function steerLiveChat(chatId: string, message: LhMessage): boolean {
 	return true;
 }
 
-/** TURN SETTLEMENT RECONCILIATION for user steers: delivered ids drop
- *  (the record holds them); undelivered stay parked for the next run.
- *  Memory-only by design (same tradeoff as job markers): a server
- *  restart drops parked steers — and the whole turn dies with it anyway. */
+/** CONCILIACIÓN AL ASENTARSE EL TURNO para las reorientaciones del usuario: los
+ *  ids entregados se descartan (el registro los contiene); los no entregados
+ *  se quedan aparcados para la siguiente ejecución. Solo en memoria por diseño
+ *  (el mismo compromiso que con los marcadores de tareas): un reinicio del
+ *  servidor pierde las reorientaciones aparcadas, y de todos modos todo el
+ *  turno muere con él. */
 export function reconcileUserSteers(chatId: string, persisted: readonly LhMessage[]): void {
 	const q = state().userSteers.get(chatId);
 	if (!q || q.length === 0) return;
@@ -363,16 +390,16 @@ export function reconcileUserSteers(chatId: string, persisted: readonly LhMessag
 	else state().userSteers.set(chatId, kept);
 }
 
-/** Clear the live agent at settlement — MUST run before settleSteers so the
- *  reconciliation's re-pump can never hand a marker to the dying agent. */
+/** Borra el agente vivo al asentarse; DEBE ejecutarse antes de settleSteers para
+ *  que el nuevo bombeo de la conciliación nunca pase un marcador al agente moribundo. */
 export function unregisterLiveAgent(chatId: string): void {
 	const agent = state().liveAgents.get(chatId);
 	if (agent) state().automaticDeferred.delete(agent);
 	state().liveAgents.delete(chatId);
 }
 
-/** Restore exact registry objects after native drain but before dispatch.
- * The vehicle is disposable; result ownership/promises are not. */
+/** Restaura los objetos exactos del registro tras el vaciado nativo pero antes del despacho.
+ * El vehículo es desechable; la propiedad de los resultados y sus promesas no. */
 export function restoreUncommittedAutomatic(chatId: string, agent: Agent, automaticIds: ReadonlySet<string>, retainedIds: ReadonlySet<string>): void {
 	const s = state();
 	s.automaticDeferred.add(agent);
@@ -385,19 +412,23 @@ export function restoreUncommittedAutomatic(chatId: string, agent: Agent, automa
 	}
 }
 
-/** TURN SETTLEMENT RECONCILIATION (Wave C): the handler calls this AFTER
- * unregisterLiveAgent, with the run's persisted messages. Two jobs:
+/** CONCILIACIÓN AL ASENTARSE EL TURNO (oleada C): el handler lo llama DESPUÉS
+ * de unregisterLiveAgent, con los mensajes persistidos de la ejecución. Dos
+ * cometidos:
  *
- *   - entries whose marker the run DELIVERED (in-run follow-up injection —
- *     their ids are in the persisted slice) resolve and acknowledge delivery;
- *   - entries handed to the dying run but never injected (the question
- *     stopper exited before the follow-up poll; an abort; a delivery that
- *     raced the final poll) return to PENDING (handedTo cleared) and the
- *     pump restarts — the idle wake delivers them once the gates open.
+ *   - las entradas cuyo marcador ENTREGÓ la ejecución (inyección de
+ *     seguimiento durante la ejecución: sus ids están en el tramo persistido)
+ *     se resuelven y acusan la entrega;
+ *   - las entradas pasadas a la ejecución moribunda pero nunca inyectadas (la
+ *     parada por pregunta salió antes de la consulta de seguimiento; una
+ *     cancelación; una entrega que compitió con la consulta final) vuelven a
+ *     PENDIENTES (se borra handedTo) y la bomba se reinicia; el despertar en
+ *     reposo las entrega cuando se abren las barreras.
  *
- * This is what makes the live hand-off safe: pi owns no retry for a marker
- * stranded in a settled agent's queue, so the registry stays the truth and
- * the dead agent's copy is simply abandoned (GC'd with the agent). */
+ * Esto es lo que hace seguro el traspaso en vivo: pi no reintenta un marcador
+ * varado en la cola de un agente ya asentado, así que el registro sigue siendo
+ * la verdad y la copia del agente muerto simplemente se abandona (el
+ * recolector de basura se la lleva con el agente). */
 export function settleSteers(chatId: string, persisted: { id?: string }[], failed = false, settledAgent?: Agent): void {
 	const queue = state().queues.get(chatId);
 	if (!queue || queue.length === 0) return;
@@ -423,25 +454,28 @@ export function settleSteers(chatId: string, persisted: { id?: string }[], faile
 	}
 }
 
-/** Result of an abort attempt — the endpoint maps these to HTTP. */
+/** Resultado de un intento de cancelación; el endpoint lo traduce a HTTP. */
 export interface AbortOutcome {
 	ok: boolean;
 	reason?: "not_found" | "not_running";
 }
 
 /**
- * ABORT (2026-09 dock semantics, user-decided): real kill, error with
- * reason, the teacher still learns. The dock's END button reaches this
- * through POST /api/activity/abort (body {kind: "job", id: jobId}); the
- * route is master's thin composition — this is the job-side mechanism.
- * Completed computation cannot be aborted: its pending result belongs to
- * the session. For unfinished computation, save error "Aborted by learner"
- * and its pending abort notice BEFORE firing synchronous worker callbacks.
- * Then kill the registered worker and queue the deterministic abort marker.
- * Delivery acknowledgement never overwrites the computation outcome.
+ * CANCELACIÓN (semántica del dock de 2026-09, decidida por el usuario):
+ * terminación real, error con motivo, y el profesor sigue enterándose. El
+ * botón END del dock llega aquí mediante POST /api/activity/abort (cuerpo
+ * {kind: "job", id: jobId}); la ruta es la composición mínima de master; este
+ * es el mecanismo del lado de las tareas. Un cálculo completado no se puede
+ * cancelar: su resultado pendiente pertenece a la sesión. Para un cálculo sin
+ * terminar, se guardan el error "Aborted by learner" y su aviso de
+ * cancelación pendiente ANTES de disparar los callbacks síncronos del worker.
+ * Después se mata el worker registrado y se encola el marcador de
+ * cancelación determinista. El acuse de entrega nunca sobrescribe el
+ * resultado del cálculo.
  *
- * The runner writes the usage folded so far in its finally (merge patch),
- * so an aborted job's money record survives the kill.
+ * El ejecutor escribe en su finally el uso acumulado hasta el momento (parche
+ * de fusión), así que el registro de dinero de una tarea cancelada sobrevive a
+ * la terminación.
  */
 export function abortJob(jobId: string): AbortOutcome {
 	const job = stores.jobStore.getJob(jobId);
@@ -458,33 +492,34 @@ export function abortJob(jobId: string): AbortOutcome {
 	});
 	fireJobAbort(jobId);
 	void deliverJobResult(buildAbortSteer(job)).catch(() => {
-		/* The saved pending abort notice remains owned by the session. */
+		/* El aviso de cancelación pendiente guardado sigue perteneciendo a la sesión. */
 	});
 	return { ok: true };
 }
 
 function chatIdOf(steer: SteerMessage): string {
-	// The probe handoff carries its chat directly in the marker details (the
-	// job record would say it too, but the details are the cheap path).
+	// El traspaso de sondeo lleva su chat directamente en los detalles del marcador (el
+	// registro de la tarea también lo diría, pero los detalles son la ruta barata).
 	if (steer.customType === "probe-handoff") {
 		return (steer.details as { chatId: string }).chatId;
 	}
-	// The chat is resolvable from the job record; the steer's details
-	// carry jobId, which indexes the store.
+	// El chat se puede resolver a partir del registro de la tarea; los detalles de la
+	// reorientación llevan el jobId, que indexa el almacén.
 	const jobId = jobIdOf(steer);
 	const job = jobId ? stores.jobStore.getJob(jobId) : undefined;
 	return job?.chatId ?? "";
 }
 
 /**
- * The per-chat pump: delivers the registry along pi's two native paths.
- * Only one loop per chat at a time; later arrivals ride the registry.
+ * La bomba por chat: entrega el registro por las dos rutas nativas de pi. Solo
+ * un bucle por chat a la vez; lo que llega después viaja en el registro.
  *
- * Each iteration first clears dead weight (gone chat, already-delivered
- * markers), then picks the vehicle: a LIVE turn takes every eligible
- * marker via agent.followUp (the run continues at its own stop — nothing
- * more to do here until settlement re-pumps); otherwise the IDLE WAKE
- * fires ONE turn carrying every pending marker as its input appends.
+ * Cada iteración primero quita el peso muerto (chat desaparecido, marcadores
+ * ya entregados) y luego elige el vehículo: un turno VIVO toma todos los
+ * marcadores admisibles mediante agent.followUp (la ejecución continúa en su
+ * propia parada; no hay nada más que hacer aquí hasta que el asentamiento
+ * vuelva a bombear); si no, el DESPERTAR EN REPOSO dispara UN turno que lleva
+ * todos los marcadores pendientes como añadidos de su entrada.
  */
 async function pump(chatId: string): Promise<void> {
 	if (!chatId) return;
@@ -500,7 +535,7 @@ async function pump(chatId: string): Promise<void> {
 				return;
 			}
 
-			// Gone chat: nothing to deliver into.
+			// Chat desaparecido: no hay dónde entregar.
 			const record = stores.chatStore.getChat(chatId);
 			if (!record) {
 				s.queues.delete(chatId);
@@ -510,32 +545,32 @@ async function pump(chatId: string): Promise<void> {
 				continue;
 			}
 
-			// Idempotent delivery: the transcript already carries these steers
-			// (an in-run injection persisted, a wake completed, or a duplicate
-			// deliver raced in). Resolve and flip without re-firing anything.
+			// Entrega idempotente: la transcripción ya contiene estas reorientaciones (se
+			// persistió una inyección durante la ejecución, se completó un despertar o se coló
+			// una entrega duplicada). Se resuelven y se marcan sin volver a disparar nada.
 			noteSteersDurable(chatId, record.messages);
 			const stillPending = (s.queues.get(chatId) ?? []).filter((entry) => !entry.waking && !entry.deferred);
 			if (stillPending.length === 0) { parked = true; return; }
 			if (!automaticFollowUpAllowed(chatId, s.liveAgents.get(chatId))) { parked = true; return; }
 
-			// VEHICLE 1 — THE LIVE RUN: pi's steering queue. The agent of the
-			// streaming turn takes every eligible marker; pi injects at the
-			// next turn boundary (message_start/message_end on the live wire,
-			// between completed assistant+toolResult units) and continues the
-			// run. Delivery resolves at settlement (settleSteers). Nothing else
-			// to do in this loop iteration — the turn owns the delivery.
+			// VEHÍCULO 1, LA EJECUCIÓN VIVA: la cola de reorientación de pi. El agente del turno
+			// en emisión toma todos los marcadores admisibles; pi los inyecta en la siguiente
+			// frontera de turno (message_start/message_end en el cable vivo, entre unidades
+			// completas de asistente+toolResult) y continúa la ejecución. La entrega se resuelve
+			// al asentarse (settleSteers). No hay nada más que hacer en esta iteración del bucle:
+			// el turno se encarga de la entrega.
 			const live = s.liveAgents.get(chatId);
 			if (live && isTurnRunning(chatId)) {
 				handOffEligible(chatId, live);
 				const handable = stillPending.filter((e) => e.handedTo === live);
-				// probe-handoffs never ride a live run (owner ruling: the
-				// handoff must START the teacher's run) — if any remain
-				// pending, wait the run out and loop to the wake below.
+				// los probe-handoff nunca viajan en una ejecución viva (decisión del responsable:
+				// el traspaso debe INICIAR la ejecución del profesor); si queda alguno
+				// pendiente, se espera a que acabe la ejecución y se vuelve al despertar de abajo.
 				const handoffWaits = stillPending.some(
 					(e) => e.steer.customType === "probe-handoff",
 				);
 				if (handable.length > 0 && !handoffWaits) {
-					return; // the run delivers; settleSteers re-pumps the rest
+					return; // la ejecución entrega; settleSteers vuelve a bombear el resto
 				}
 				if (handable.length > 0) {
 					await delay(POLL_MS);
@@ -544,21 +579,21 @@ async function pump(chatId: string): Promise<void> {
 				}
 			}
 
-			// VEHICLE 2 — THE IDLE WAKE: one server-side turn carrying EVERY
-			// pending marker as its input appends (the handler write-ahead
-			// persists them under the wake's own turn claim).
+			// VEHÍCULO 2, EL DESPERTAR EN REPOSO: un turno en el servidor que lleva TODOS los
+			// marcadores pendientes como añadidos de su entrada (el handler los persiste por
+			// anticipado bajo la propia reclamación del turno del despertar).
 			await waitForIdle(chatId);
 
-			// Re-fetch AFTER the gates open — waitForIdle can wait out a quiz
-			// answer (minutes), and sending the pre-wait snapshot would clobber
-			// the client's answer + continuation in the write-ahead persist.
+			// Se vuelve a leer DESPUÉS de que se abran las barreras: waitForIdle puede esperar a
+			// que se responda un quiz (minutos), y enviar la instantánea previa a la espera
+			// machacaría la respuesta + continuación del cliente en la persistencia anticipada.
 			const fresh = stores.chatStore.getChat(chatId);
 			if (!fresh) {
-				continue; // the gone-chat branch rejects next iteration
+				continue; // la rama de chat desaparecido lo rechaza en la siguiente iteración
 			}
 
-			// The runner is required — chat-handler sets it at init. If some
-			// module instance missed the wiring, fail loudly rather than hang.
+			// El ejecutor es obligatorio; chat-handler lo fija al iniciar. Si alguna instancia
+			// de módulo se perdió el cableado, se falla con estruendo en vez de quedarse colgado.
 			if (!s.turnRunner) {
 				const err = new Error("wake pipeline: no turn runner wired (setTurnRunner)");
 				for (const entry of stillPending) deferOrReject(chatId, entry, err);
@@ -566,34 +601,34 @@ async function pump(chatId: string): Promise<void> {
 				return;
 			}
 
-			// A live run may have delivered some markers while the gates were
-			// closed — re-check: only still-missing markers ride the wake.
+			// Puede que una ejecución viva haya entregado algunos marcadores mientras las barreras
+			// estaban cerradas; se vuelve a comprobar: solo viajan en el despertar los que aún faltan.
 			noteSteersDurable(chatId, fresh.messages);
 			const fire = (s.queues.get(chatId) ?? []).filter((entry) => !entry.waking && !entry.deferred && !entry.handedTo);
 			if (fire.length === 0) return;
 
-			// THE DISMISSAL PAUSE (owner design 2026-10-03, "A2"): the record
-			// ends in a user dismissal — the session waits for the USER. Hold
-			// every marker in the queue (no wake fires) and return; the user's
-			// next send is the wake that carries them (the in-run vehicle below
-			// hands them to that turn once the text-claim lands — until then,
-			// settlement re-pumps and lands them right after it). The pause is
-			// derived from the tail, so any user message un-holds by construction.
-			// An interrupted question-recovery request also waits for explicit
-			// input; a queued job must not restart its replacement turn.
+			// LA PAUSA POR DESCARTE (diseño del responsable 2026-10-03, "A2"): el registro termina
+			// en un descarte del usuario; la sesión espera al USUARIO. Se retienen todos los
+			// marcadores en la cola (no se dispara ningún despertar) y se vuelve; el siguiente envío
+			// del usuario es el despertar que los lleva (el vehículo durante la ejecución de abajo
+			// se los pasa a ese turno en cuanto llega la reclamación de texto; hasta entonces, el
+			// asentamiento vuelve a bombear y los entrega justo después). La pausa se deriva de la
+			// cola del registro, así que cualquier mensaje del usuario la levanta por construcción.
+			// Una petición de recuperación de pregunta interrumpida también espera una entrada
+			// explícita; una tarea en cola no debe reiniciar su turno sustituto.
 			if (endsInDismissal(fresh.messages) || endsInQuestionRecovery(fresh.messages) || !automaticFollowUpAllowed(chatId)) {
 				parked = true;
 				return;
 			}
 
-			// Keep ownership through the wake. The flag excludes cargo from
-			// its own live-agent handoff while duplicate callers share it.
+			// Se mantiene la propiedad durante el despertar. El indicador excluye la carga de
+			// su propio traspaso al agente vivo mientras los llamantes duplicados la comparten.
 			for (const entry of fire) entry.waking = true;
 			const steers = fire.map((e) => e.steer);
 
-			// Fire the wake with cargo still registered. A 409 releases its
-			// vehicle flag and retries after the existing backoff, without
-			// appending another registry entry.
+			// Se dispara el despertar con la carga aún registrada. Un 409 libera su indicador de
+			// vehículo y reintenta tras la espera creciente existente, sin añadir otra entrada
+			// al registro.
 			const status = await s.turnRunner(chatId, { type: "steers", steers }).catch((err: unknown) => {
 				console.error(`[steer ${steers.map((x) => x.id).join(",")}] wake turn crashed:`, err);
 				return -1;
@@ -610,28 +645,28 @@ async function pump(chatId: string): Promise<void> {
 			attempt = 0;
 			for (const entry of owned) {
 				if (status === 200 && !jobIdOf(entry.steer)) {
-					// Preserve the non-job probe handoff's acceptance semantics.
+					// Se conserva la semántica de aceptación del traspaso de sondeo que no es de tarea.
 					completeEntry(chatId, entry);
 				} else if (status !== 200 || !isTurnRunning(chatId)) {
 					deferOrReject(chatId, entry, new Error(`wake turn did not persist steer (status ${status})`));
 				}
-				// An accepted live turn still owns its cargo until canonical save
-				// or settlement. HTTP 200 alone is not a durable marker receipt.
+				// Un turno vivo aceptado sigue siendo dueño de su carga hasta el guardado canónico
+				// o el asentamiento. Un HTTP 200 por sí solo no es un recibo duradero del marcador.
 			}
 		}
 	} finally {
 		s.pumping.delete(chatId);
-		// A steer may have arrived between the last check and the finally —
-		// restart the pump rather than strand it. Entries already handed to
-		// a live run are NOT stragglers (settleSteers owns their resurrection)
-		// — restarting for them would just park in waitForIdle forever.
+		// Puede haber llegado una reorientación entre la última comprobación y el finally:
+		// se reinicia la bomba en lugar de dejarla varada. Las entradas ya pasadas a una
+		// ejecución viva NO son rezagadas (settleSteers se encarga de resucitarlas);
+		// reiniciar por ellas solo dejaría la bomba aparcada en waitForIdle para siempre.
 		const q = state().queues.get(chatId) ?? [];
 		if (!parked && automaticFollowUpAllowed(chatId, state().liveAgents.get(chatId)) && q.some((e) => e.handedTo === undefined && !e.waking && !e.deferred)) void pump(chatId);
 	}
 }
 
-// Connection changes are the only wake for consent-deferred automatic work.
-// No retry timer, inference, or API-key fallback is started while consent is off.
+// Los cambios de conexión son el único despertar del trabajo automático aplazado por consentimiento.
+// Mientras el consentimiento esté desactivado no se inicia ningún temporizador de reintento, inferencia ni alternativa con clave API.
 state().stopConnectionWatch?.();
 state().stopConnectionWatch = onSubscriptionChange(() => {
 	const s = state();
@@ -643,7 +678,7 @@ state().stopConnectionWatch = onSubscriptionChange(() => {
 		agent.clearSteeringQueue();
 		for (const entry of pending) entry.handedTo = undefined;
 		for (const entry of s.userSteers.get(chatId) ?? []) if (!consumed.has(entry.message.id)) entry.handedTo = undefined;
-		handOffEligible(chatId, agent); // only unconsumed learner input; never replay consumed steers
+		handOffEligible(chatId, agent); // solo la entrada del alumno sin consumir; nunca se repiten reorientaciones consumidas
 	}
 	for (const chatId of s.queues.keys()) {
 		if (automaticFollowUpAllowed(chatId, s.liveAgents.get(chatId))) void pump(chatId);
@@ -662,7 +697,7 @@ function deferOrReject(chatId: string, entry: QueuedSteer, error: Error): void {
 	}
 }
 
-/** Acknowledge session delivery without changing the worker outcome. */
+/** Acusa la entrega a la sesión sin cambiar el resultado del worker. */
 function finalizeJob(jobId: string): void {
 	try {
 		let job = stores.jobStore.getJob(jobId);
@@ -671,8 +706,8 @@ function finalizeJob(jobId: string): void {
 		if (job.delivery?.status !== "pending") return;
 		stores.jobStore.updateJob(jobId, { delivery: { ...job.delivery, status: "delivered" } });
 	} catch (error) {
-		// The conversation is already durable. A bookkeeping failure must
-		// never replay that marker or turn a successful worker into a failure.
+		// La conversación ya es duradera. Un fallo de contabilidad nunca debe repetir
+		// ese marcador ni convertir un worker con éxito en un fallo.
 		console.error(`[job ${jobId}] delivery acknowledgement failed:`, error);
 	}
 }
@@ -686,17 +721,17 @@ function normalizeLegacyResult(job: JobRecord): JobRecord {
 	}) ?? job;
 }
 
-/** Restore known obligations only; old terminal records are never replayed. */
+/** Restaura solo las obligaciones conocidas; los registros terminales antiguos nunca se reproducen. */
 function restorePendingDeliveries(chatId: string): void {
 	const record = stores.chatStore.getChat(chatId);
 	if (!record) return;
 	noteSteersDurable(chatId, record.messages);
 	for (const stored of stores.jobStore.listJobs(chatId)) {
 		const live = isJobLive(stored.id);
-		// Plugin result preparation persists an honest generic fallback before
-		// awaiting the author formatter. Do not deliver that fallback early
-		// while the live formatter still owns preparation; a restart has no
-		// registration and can restore it without replaying author code.
+		// La preparación del resultado de un plugin persiste una alternativa genérica honesta
+		// antes de esperar al formateador del autor. No se entrega esa alternativa antes de
+		// tiempo mientras el formateador vivo siga controlando la preparación; un reinicio no
+		// tiene registro y puede restaurarla sin volver a ejecutar código del autor.
 		if (stored.kind === "plugin" && live && !(state().queues.get(chatId) ?? []).some((entry) => jobIdOf(entry.steer) === stored.id)) continue;
 		const job = live ? stored : normalizeLegacyResult(stored);
 		if (job.delivery?.status !== "pending") continue;
@@ -710,11 +745,12 @@ function restorePendingDeliveries(chatId: string): void {
 }
 
 /**
- * Wait until the chat can take a wake turn: no turn in flight AND no
- * unanswered question call (the record's dangling question — the answer
- * arrives as its tool result, and no turn may run in the window). Poll;
- * the learner may take arbitrarily long to answer, and that is correct —
- * the steer fires right after their answer turn completes.
+ * Espera hasta que el chat pueda aceptar un turno de despertar: ningún turno
+ * en curso Y ninguna llamada de pregunta sin responder (la pregunta colgada
+ * del registro: la respuesta llega como su resultado de herramienta, y ningún
+ * turno puede ejecutarse en esa ventana). Sondea; el alumno puede tardar lo
+ * que quiera en responder, y eso es correcto: la reorientación se dispara
+ * justo después de que termine su turno de respuesta.
  */
 async function waitForIdle(chatId: string): Promise<void> {
 	for (;;) {
@@ -736,25 +772,27 @@ async function waitForIdle(chatId: string): Promise<void> {
 	}
 }
 
-// ─── crash recovery ──────────────────────────────────────────────────────────
+// ─── recuperación tras caídas ────────────────────────────────────────────────
 
 const SWEEP_THROTTLE_MS = 30_000;
 
 /**
- * Lazy sweep (called off the /api/jobs poll, throttled), LIVENESS-GATED
- * (accuracy wave, 2026-09-19): a "running" record without a live loop
- * registration (subagents/aborts.ts) is an orphan of a process death —
- * re-deliver its stored result (idempotently) or re-spawn the loop, at
- * once (the old 15-minute age heuristic waited on ghosts AND re-ran
- * hung-but-alive loops beside themselves — the figure-maker incident,
- * 2026-09-18). A record WITH a live registration is provably executing
- * in THIS process — never touched, however old: a hung first model call
- * stays honestly running until END kills it. Terminal workers with known
- * pending delivery are restored independently; old terminal records without
- * delivery metadata are never inferred to owe a delivery.
+ * Barrido perezoso (se llama desde el sondeo de /api/jobs, con limitación),
+ * CON BARRERA DE VIDA (oleada de precisión, 2026-09-19): un registro
+ * "running" sin registro de bucle vivo (subagents/aborts.ts) es un huérfano
+ * de la muerte de un proceso: se vuelve a entregar su resultado guardado (de
+ * forma idempotente) o se vuelve a lanzar el bucle, en el acto (la antigua
+ * heurística de 15 minutos de antigüedad esperaba a fantasmas Y volvía a
+ * ejecutar bucles colgados pero vivos junto a sí mismos: el incidente del
+ * figure-maker, 2026-09-18). Un registro CON registro vivo se está ejecutando,
+ * de forma demostrable, en ESTE proceso: nunca se toca, por antiguo que sea;
+ * una primera llamada al modelo colgada sigue honestamente en ejecución hasta
+ * que END la mata. Los workers terminales con entrega pendiente conocida se
+ * restauran de forma independiente; nunca se deduce que los registros
+ * terminales antiguos sin metadatos de entrega deban una entrega.
  */
-/** Re-run a job's sub-agent loop — exposed for the sweep's tests (the
- *  /api/jobs poll is its only production caller, disabled under NODE_ENV=test). */
+/** Vuelve a ejecutar el bucle del subagente de una tarea; expuesto para las pruebas del barrido
+ *  (el sondeo de /api/jobs es su único llamante en producción, desactivado con NODE_ENV=test). */
 export function recoverStaleJobs(): void {
 	const s = state();
 	const now = Date.now();
@@ -763,7 +801,7 @@ export function recoverStaleJobs(): void {
 	try {
 		for (const chat of stores.chatStore.listChats()) {
 			for (const job of stores.jobStore.listJobs(chat.id)) {
-				if (isJobLive(job.id)) continue; // never re-run beside live computation
+				if (isJobLive(job.id)) continue; // nunca se vuelve a ejecutar junto a un cálculo vivo
 				if (!stores.chatStore.getChat(job.chatId)) continue;
 				if (isTurnRunning(job.chatId)) continue;
 				const recovered = normalizeLegacyResult(job);
@@ -772,7 +810,7 @@ export function recoverStaleJobs(): void {
 					void pump(job.chatId);
 				} else if (job.status === "running" && !job.result) {
 					if (job.kind === "plugin") {
-						// Canonical task reads only; never respawn plugin tools/code.
+						// Solo lecturas canónicas de tareas; nunca se relanzan herramientas/código de plugins.
 						if (s.recoverPlugin) void s.recoverPlugin(job).catch((error: unknown) => {
 							if (stores.jobStore.getJob(job.id)?.status !== "running") return;
 							const failure = `Plugin job recovery failed: ${String(error)}`;
@@ -781,7 +819,7 @@ export function recoverStaleJobs(): void {
 						});
 						continue;
 					}
-					// The sub-agent loop itself died with the process: re-spawn.
+					// El propio bucle del subagente murió con el proceso: se vuelve a lanzar.
 					if (!s.respawn) continue;
 					stores.jobStore.updateJob(job.id, { activity: "recovering: re-running" });
 					s.respawn(job.id);
@@ -793,7 +831,7 @@ export function recoverStaleJobs(): void {
 	}
 }
 
-/** The /api/jobs entry: job list for the client poll (+ lazy recovery). */
+/** La entrada de /api/jobs: lista de tareas para el sondeo del cliente (+ recuperación perezosa). */
 export function listJobs(chatId: string): JobRecord[] {
 	if (process.env.NODE_ENV !== "test") recoverStaleJobs();
 	return stores.jobStore.listJobs(chatId);
