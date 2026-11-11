@@ -123,8 +123,8 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 | C2 | Comentarios: `src/agent/subagents`, `src/server` | 59 | 30.924 | [x] |
 | C3 | Comentarios: `src/core` (1ª mitad) | 38 | 21.353 | [x] |
 | C4 | Comentarios: `src/core` (2ª mitad) | 30 | 21.060 | [x] |
-| C5 | Comentarios: `components/*` raíz (1ª mitad) | 37 | 32.633 | [~] parcial |
-| C6 | Comentarios: `components/*` raíz (2ª mitad) | 89 | 31.871 | [ ] |
+| C5 | Comentarios: `components/*` raíz (1ª mitad) | 37 | 32.633 | [x] |
+| C6 | Comentarios: `components/*` raíz (2ª mitad) | 89 | 31.871 | [~] parcial |
 | C7 | Comentarios: `components/{settings,artifacts,ui,ai-elements}`, `app`, `electron`, `scripts`, `plugins`, configuración | 201 | 33.875 | [ ] |
 | C8 | Comentarios: `tests/` (1ª mitad) | 124 | 23.181 | [ ] |
 | C9 | Comentarios: `tests/` (2ª mitad) + los 7 `.py` (a mano) | 178 | 23.180 | [ ] |
@@ -316,3 +316,32 @@ falsos positivos).
   de comentario): chat.tsx (≈9.700, conviene partirlo por ids en 2–3 tandas), graph-canvas.ts
   (≈5.100), graph-view.tsx (≈4.400), dictation.tsx (≈2.600), chain-table.tsx (≈1.550),
   home.tsx, extraction-coverage.tsx (≈1.000 cada uno).
+- Sesión 10: C5 terminado: líneas 8–9 y 18–37 de `.traduccion/lotes/C5.txt` en ocho tandas
+  con su commit (chain-table.tsx solo; chat.tsx en tres tandas por ids 1–80, 81–155 y
+  156–229; composer…focus-hygiene + graph-context-card + home; dictation.tsx solo;
+  graph-canvas.ts solo; graph-view.tsx solo). Para partir un fichero por ids basta con
+  escribir en `.es.txt` solo los ids de la tanda (los ausentes no se tocan) y volver a
+  extraer antes de la siguiente: los ids no cambian. Ningún JSDoc de estos ficheros estaba
+  en `docs/plugin-api/` (0 coincidencias); no había directivas `turbopackIgnore` ni
+  referencias a encabezados de docs traducidos (solo rutas y `§N`).
+  Literales que se dejan en inglés: "Practice these", "(no premises)", Clear/Done/Delete/
+  Cancel/Try again, "Ask, answer, or steer the lesson…", "Preparing your plan…",
+  "Check your understanding", "Your thinking", "You", NEXT PROBLEM, EVALUATING…, Thinking…,
+  "Delete session?", "Also remove its graph traces", "Dictate", "fully extracted",
+  "No matching nodes.", Import Notes, Background colors, "Copied", "session view",
+  los nombres de columna Name/Props/Created y las marcas "needed".
+  Glosario añadido en la práctica: *owner* (persona) → responsable (*owner ruling/round* →
+  decisión/ronda del responsable); *full-bleed* → a sangre; *marginalia* → nota al margen;
+  *fold* (dock) → plegado; *morph* → transformación; *reserve/tail* → reserva/cola reservada;
+  *mute* → silencio; *glide* → deslizamiento; *anneal* → recocer/recocido; *reheat* →
+  recalentar; *ring meter* → medidor de anillo; *donut* → dónut; *callout* → recuadro;
+  *affordance* → indicación; *popup* → ventana emergente; *pick* → elección/elegir;
+  *reveal* → revelación; *band* → franja; *flank* → flanco; *carve-out* → recorte;
+  *drag strip/band* → franja de arrastre; *backstop* → red de seguridad; *seam* →
+  frontera (igual que antes). En chain-table.tsx los *clusters* (grupos por sesión de
+  nacimiento) se tradujeron como «grupos»; en el grafo siguen siendo «clústeres».
+  C6 empezado: líneas 1–10 de `.traduccion/lotes/C6.txt` (host-content-root…md-blocks).
+  C6 pendiente: líneas 11–89 de `.traduccion/lotes/C6.txt` (desde components/menu-shell.tsx).
+  Ficheros grandes (palabras de comentario): plan-block.tsx (≈3.100), question-dock.tsx
+  (≈2.500), new-session.tsx (≈1.100), menu-shell.tsx (≈970), model-picker.tsx (≈950),
+  practice-cards.tsx (≈800).
