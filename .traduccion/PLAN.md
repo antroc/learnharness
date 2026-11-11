@@ -94,8 +94,8 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 | M2 | Docs de plugins (`docs/plugin-*.md`, flashcards) y READMEs de `plugins/` y `examples/` | 20 | 34.368 | [x] |
 | M3 | `docs/plugin-api/` | 22 | 31.155 | [x] |
 | M4 | `docs/archive/`, `skills/` y READMEs de `tests/` | 14 | 26.742 | [x] |
-| C1 | Comentarios: `src/core/contracts`, `src/store`, `src/server/pi`, `src/agent` (sin subagents) | 86 | 28.518 | [~] parcial |
-| C2 | Comentarios: `src/agent/subagents`, `src/server` | 59 | 30.924 | [ ] |
+| C1 | Comentarios: `src/core/contracts`, `src/store`, `src/server/pi`, `src/agent` (sin subagents) | 86 | 28.518 | [x] |
+| C2 | Comentarios: `src/agent/subagents`, `src/server` | 59 | 30.924 | [~] parcial |
 | C3 | Comentarios: `src/core` (1ª mitad) | 38 | 21.353 | [ ] |
 | C4 | Comentarios: `src/core` (2ª mitad) | 30 | 21.060 | [ ] |
 | C5 | Comentarios: `components/*` raíz (1ª mitad) | 37 | 32.633 | [ ] |
@@ -208,3 +208,17 @@ falsos positivos).
   C1 empezado: comentarios de las líneas 1–32 de `.traduccion/lotes/C1.txt` (de
   src/agent/background-capture.ts a src/agent/side-chat.ts), en dos tandas.
   C1 pendiente: líneas 33–86 de `.traduccion/lotes/C1.txt` (desde src/agent/subscription-bridge.ts).
+- Sesión 6: C1 terminado: líneas 33–86 de `.traduccion/lotes/C1.txt` (de
+  src/agent/subscription-bridge.ts a src/store/themes.ts) en cuatro tandas con su commit.
+  Las directivas `/* turbopackIgnore: true */` se dejaron sin tocar. La frase literal
+  "a problem is already active" (mensaje de la herramienta) se deja en inglés en
+  src/agent/tools/practice.ts. Glosario añadido en la práctica: *seam* → frontera;
+  *gate* → barrera; *owner* → responsable; *wave* → oleada; *ledger* → registro;
+  *steer* (mensaje) → reorientación; *wake* → despertar; *handoff* → traspaso;
+  *prober* → sondeador; *merger* → fusionador; *heal* → reparación; *chunk* → fragmento.
+  C2 empezado: líneas 1–4 de `.traduccion/lotes/C2.txt` (src/agent/subagents/aborts.ts,
+  annotation-svg.ts, demo-builder.ts, extraction.ts).
+  C2 pendiente: líneas 5–59 de `.traduccion/lotes/C2.txt` (desde
+  src/agent/subagents/headless.ts). Ficheros grandes: headless.ts (≈1.500 palabras),
+  runner.ts (≈1.300), src/server/chat-handler.ts (≈3.300), src/server/jobs.ts (≈2.900),
+  compaction.ts, keys.ts y model-catalog.ts (≈1.100–1.250 cada uno).
