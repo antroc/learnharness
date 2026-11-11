@@ -1,5 +1,6 @@
-/** Shared Markdown/TeX boundaries for legacy delimiter compatibility and
- * display-only tool-content recovery. Source arguments are never rewritten. */
+/** Límites Markdown/TeX compartidos para la compatibilidad con delimitadores
+ * heredados y la recuperación de contenido de herramientas solo para mostrar.
+ * Los argumentos fuente nunca se reescriben. */
 import {
 	canParseTex, knownTexCommand, mapMathContent, numericPercentEscape, outsideTexComments,
 	readContentSpans, recoverDocumentLayout, texRanges,
@@ -10,9 +11,10 @@ const escaped = (text: string, i: number) => {
 	return n % 2 === 1;
 };
 
-/** Preserve the legacy list-continuation policy: indented display math
- * degrades to inline rather than disrupting list structure. Literal code
- * indentation is already protected by the shared reader. */
+/** Conserva la política heredada de continuación de listas: las fórmulas en
+ * bloque sangradas se degradan a fórmulas en línea en lugar de romper la
+ * estructura de la lista. La sangría literal del código ya la protege el
+ * lector compartido. */
 function indented(text: string, i: number): boolean {
 	const prefix = text.slice(text.lastIndexOf("\n", i - 1) + 1, i);
 	return prefix.length > 0 && /^[ \t]+$/.test(prefix);
@@ -21,9 +23,10 @@ function blockPosition(text: string, i: number): boolean {
 	return /^[ \t]*$/.test(text.slice(text.lastIndexOf("\n", i - 1) + 1, i));
 }
 
-/** micromark closes native single-dollar spans at escaped dollars too.
- * Replace an intended literal dollar with equivalent dollar-free TeX before
- * tokenization. Code, prose, unbalanced spans and display dollars stay raw. */
+/** micromark también cierra los fragmentos nativos de un solo dólar en los
+ * dólares escapados. Sustituye un dólar literal intencionado por TeX
+ * equivalente sin dólares antes de tokenizar. El código, la prosa, los
+ * fragmentos desequilibrados y los dólares de bloque se quedan tal cual. */
 function replaceEscapedDollars(content: string): string {
 	let out = "";
 	for (let i = 0; i < content.length; i++) {
@@ -34,8 +37,9 @@ function replaceEscapedDollars(content: string): string {
 	return out;
 }
 
-/** Read old \(...\)/\[...\] syntax without touching literal content or
- * reparsing native math as Markdown. Dollar authoring remains native. */
+/** Lee la sintaxis antigua \(...\)/\[...\] sin tocar el contenido literal ni
+ * volver a analizar como Markdown las fórmulas nativas. La escritura con
+ * dólares sigue siendo nativa. */
 export function transformMathDelimiters(markdown: string): string {
 	let offset = 0;
 	return readContentSpans(markdown).map(span => {
@@ -58,12 +62,14 @@ const DEBRIS: Record<string, string> = {
 	"\b": "\\b", "\t": "\\t", "\v": "\\v", "\f": "\\f", "\r": "\\r",
 };
 
-/** Recover JSON-swallowed command prefixes only in recognized math, never
- * in code or genuine TeX comments. Restore all debris in one pass. Physical
- * display newlines and CRLF remain source whitespace. Inline LF recovery is
- * limited to complete known n-command names. Under the approved typical-
- * model-authoring policy this includes newline+u→nu in inline math only;
- * already-correct commands are never decoded into whitespace. */
+/** Recupera los prefijos de comando que se tragó el JSON solo en fórmulas
+ * reconocidas, nunca en código ni en comentarios TeX genuinos. Restaura todos
+ * los restos en una sola pasada. Los saltos de línea físicos de bloque y los
+ * CRLF siguen siendo espacio en blanco del código fuente. La recuperación de
+ * LF en línea se limita a nombres completos conocidos de comandos que
+ * empiezan por n. Bajo la política aprobada de escritura típica del modelo,
+ * esto incluye salto de línea+u→nu solo en fórmulas en línea; los comandos ya
+ * correctos nunca se decodifican como espacio en blanco. */
 export function restoreMathEscapes(text: string): string {
 	if (!/[\b\t\n\v\f\r]/.test(text)) return text;
 	return mapMathContent(text, (body, display) => outsideTexComments(body, part => {
@@ -80,10 +86,11 @@ export function restoreMathEscapes(text: string): string {
 
 const commandSymbol = /[,;:!|{}%]/;
 
-/** Decode prefixes and row separators according to ORIGINAL TeX context.
- * A native pair is literal; an encoded pair supplies a factor, so an encoded
- * four-backslash row becomes TWO, never a command prefix. Unknown commands
- * without that structural evidence are left alone. */
+/** Decodifica prefijos y separadores de fila según el contexto TeX ORIGINAL.
+ * Un par nativo es literal; un par codificado aporta un factor, así que una
+ * fila codificada con cuatro barras invertidas pasa a DOS, nunca a un prefijo
+ * de comando. Los comandos desconocidos sin esa prueba estructural se dejan
+ * en paz. */
 function recoverCommandRuns(inner: string, display: boolean): string {
 	const ranges = texRanges(inner);
 	const recovered = inner.replace(/\\+/g, (run: string, offset: number) => {
@@ -103,9 +110,9 @@ function recoverCommandRuns(inner: string, display: boolean): string {
 		if (word) return word.length > 1 && knownTexCommand(word) ? "\\" : run;
 		return next && commandSymbol.test(next) ? "\\" : run;
 	});
-	// Structural evidence is primary (parse success cannot prove row
-	// preservation). As an additional guard, never turn parseable source into
-	// a parse failure through partial command recovery.
+	// La prueba estructural es lo principal (que el análisis salga bien no demuestra que
+	// se conserven las filas). Como protección adicional, nunca convierte un código
+	// analizable en un fallo de análisis por una recuperación parcial de comandos.
 	if (recovered !== inner && !canParseTex(recovered, display) && canParseTex(inner, display)) return inner;
 	return recovered;
 }
@@ -114,8 +121,9 @@ export function healOverescapedCommands(text: string): string {
 	return text.includes("\\\\") ? mapMathContent(text, recoverCommandRuns) : text;
 }
 
-/** Presentation-only, language-independent recovery. Shape parsing, saved
- * identities, grading and model history must use the unprojected source. */
+/** Recuperación solo de presentación e independiente del idioma. El análisis
+ * de forma, las identidades guardadas, la calificación y el historial del
+ * modelo deben usar el código fuente sin proyectar. */
 export function repairMathForDisplay(text: string): string {
 	return healOverescapedCommands(restoreMathEscapes(recoverDocumentLayout(text)));
 }

@@ -1,31 +1,38 @@
 /**
- * THE INPUT-EVENTS CONTRACT (Wave B, owner ruling 2026-09-26: "input
- * events now, in the same pass"): POST /api/chat carries `{chatId, input}`
- * — ONE explicit event, never a client transcript. The server owns the
- * record; a send tells it what HAPPENED, not what the client's list looks
- * like. The 409 merge-retry died with the full-list body (an input event
- * retries idempotently: nothing was appended when a POST is refused).
+ * EL CONTRATO DE INPUT-EVENTS (oleada B, decisión del responsable del
+ * 2026-09-26: «eventos de entrada ya, en la misma pasada»): POST /api/chat
+ * lleva `{chatId, input}` — UN evento explícito, nunca una transcripción del
+ * cliente. El servidor es el dueño del registro; un envío le dice lo que HA
+ * OCURRIDO, no cómo es la lista del cliente. El reintento de fusión con 409
+ * murió con el cuerpo de lista completa (un evento de entrada se reintenta de
+ * forma idempotente: no se añadió nada cuando se rechaza un POST).
  *
- * The four events (the complete client-originated input taxonomy):
- *   text    — a learner-authored user message (composer send, initial
- *             topic, the demo error-fix loop)
- *   answer  — the pending question's graded result (QuestionAnswerData,
- *             built client-side exactly as today; a dismissal is an answer
- *             carrying its flag). Server-side this becomes the call's
- *             native tool result — fork 1's normal agent history.
- *   continue — run the next turn on the current record (mount
- *             continuations, job-settle re-syncs: the record ends at an
- *             answered question with no teacher reaction yet).
- *   retry   — retry a failed model response (issue #110), without new
- *             input. Failed attempts stay in the record; only the retry's
- *             temporary agent history omits the trailing failures.
+ * Los cuatro eventos (la taxonomía completa de entradas originadas en el cliente):
+ *   text    — un mensaje de usuario escrito por el alumno (envío del
+ *             compositor, tema inicial, el bucle de corrección de errores de
+ *             la demo)
+ *   answer  — el resultado calificado de la pregunta pendiente
+ *             (QuestionAnswerData, construido en el cliente exactamente como
+ *             hoy; un descarte es una respuesta que lleva su marca). En el
+ *             servidor se convierte en el resultado de herramienta nativo de
+ *             la llamada — el historial normal del agente de la bifurcación 1.
+ *   continue — ejecuta el siguiente turno sobre el registro actual
+ *             (continuaciones al montar, resincronizaciones al asentarse una
+ *             tarea: el registro termina en una pregunta respondida aún sin
+ *             reacción del profesor).
+ *   retry   — reintenta una respuesta fallida del modelo (issue #110), sin
+ *             entrada nueva. Los intentos fallidos se quedan en el registro;
+ *             solo el historial temporal del agente del reintento omite los
+ *             fallos finales.
  *
- * (The plan verdict input died 2026-09-26 with the verdict itself — the
- * learner's post-plan reply is a natural text message.)
+ * (La entrada del veredicto del plan murió el 2026-09-26 junto con el propio
+ * veredicto — la respuesta del alumno tras el plan es un mensaje de texto
+ * normal.)
  *
- * Server-originated delivery (the wake pipeline's steers) is NOT a client
- * input — the handler accepts it on the same path (TurnInput) so every
- * turn rides one composition.
+ * La entrega originada en el servidor (las reorientaciones del proceso de
+ * despertar) NO es una entrada del cliente — el manejador la acepta por el
+ * mismo camino (TurnInput) para que todos los turnos sigan una misma
+ * composición.
  */
 
 import type { QuestionAnswerData } from "./question-core.ts";
@@ -56,53 +63,58 @@ export type PluginQuestionAnswerInput = { type: "plugin-question-answer"; questi
 export type PluginProblemSubmissionInput = { type: "plugin-problem-submission"; problemId: string; occurrence: PluginSubmissionOccurrence; submission: JsonValue; thinking?: string; images?: PluginProblemSubmissionImages };
 export type DismissPluginQuestionInput = { type: "dismiss-plugin-question"; questionId?: string; occurrence: PluginQuestionOccurrence };
 
-/** One client-originated input event (the POST body's `input`). */
+/** Un evento de entrada originado en el cliente (el `input` del cuerpo del POST). */
 export type ChatInput =
 	| PluginQuestionAnswerInput
 	| PluginProblemSubmissionInput
 	| { type: "text"; text: string; images?: ImageContent[] }
 	| { type: "answer"; toolCallId: string; answer: QuestionAnswerData; occurrence?: PluginSubmissionOccurrence }
 	| { type: "continue" }
-	/** The failed-turn retry (issue #110): the banner's Retry button. */
+	/** El reintento del turno fallido (issue #110): el botón Reintentar del aviso. */
 	| { type: "retry" }
-	/** Explicit replacement of the current malformed question batch. */
+	/** Sustitución explícita del lote de preguntas actual mal formado. */
 	| { type: "retry-question"; messageId: string; contentIndex: number; toolCallId: string }
-	/** The practice dock's two buttons (owner, 2026-10-04): the learner's
-	 *  thinking on the ACTIVE problem — one lane (owner 2026-10-05):
-	 *  whether it claims an answer is read from the text. One
-	 *  problem may carry many submissions; each is its own turn. */
+	/** Los dos botones del dock de práctica (responsable, 2026-10-04): el
+	 *  razonamiento del alumno sobre el problema ACTIVO — un único carril
+	 *  (responsable 2026-10-05): si afirma tener una respuesta se lee del texto.
+	 *  Un problema puede llevar muchos envíos; cada uno es su propio turno. */
 	| { type: "thinking"; problemCallId: string; text: string; images?: ImageContent[]; occurrence?: PluginSubmissionOccurrence }
-	/** The practice move-on signal (owner round 16): the learner's
-	 *  explicit go-ahead during the between-problems pause — the Next
-	 *  chip or Enter on an empty composer. Practice sessions only, and
-	 *  only with nothing active (mid-problem input rides the dock). */
+	/** La señal de avanzar de la práctica (ronda 16 del responsable): la
+	 *  aprobación explícita del alumno durante la pausa entre problemas — el
+	 *  chip Next o Enter con el compositor vacío. Solo en sesiones de práctica,
+	 *  y solo sin nada activo (la entrada a mitad de problema va por el dock). */
 	| { type: "next" };
 
-/** A wake-pipeline steer delivery — same turn composition, server-origin.
- *  Wave C (2026-09-26): the idle wake carries EVERY queued marker as its
- *  input appends — with claimSteers deleted, the pump's wake is the only
- *  steer appender left (the in-run path hands markers to pi's own
- *  follow-up queue instead, so it never builds an input event). */
+/** Una entrega de reorientación del proceso de despertar — misma composición
+ *  de turno, origen en el servidor. Oleada C (2026-09-26): el despertar en
+ *  reposo lleva TODOS los marcadores encolados como añadidos de su entrada —
+ *  eliminado claimSteers, el despertar de la bomba es el único que queda que
+ *  añade reorientaciones (el camino dentro de la ejecución entrega los
+ *  marcadores a la propia cola de seguimiento de pi, así que nunca construye
+ *  un evento de entrada). */
 export type SteerInput = { type: "steers"; steers: LhMessage[] };
 
-/** Every input the turn composition accepts. */
+/** Todas las entradas que acepta la composición del turno. */
 export type TurnInput = ChatInput | SteerInput;
 
-/** The dismissal event (owner design 2026-10-03, "A2"): NEVER composes a
- *  turn — the silent route appends + persists and wakes nothing. The
- *  answer rides the event (mirroring the answer event) but must actually
- *  BE a dismissal: the silent path must never inject a live answer
- *  wake-free. Parallel question calls each get their own dismiss event;
- *  results reference their calls by id, so the appends stay independent. */
+/** El evento de descarte (diseño del responsable del 2026-10-03, «A2»):
+ *  NUNCA compone un turno — la ruta silenciosa añade + persiste y no
+ *  despierta nada. La respuesta viaja en el evento (como en el evento de
+ *  respuesta) pero de verdad debe SER un descarte: el camino silencioso nunca
+ *  debe inyectar una respuesta real sin despertar. Las llamadas de pregunta
+ *  en paralelo reciben cada una su propio evento de descarte; los resultados
+ *  referencian sus llamadas por id, así que los añadidos siguen siendo
+ *  independientes. */
 export type DismissInput =
 	| DismissPluginQuestionInput
 	| { type: "dismiss"; toolCallId: string; answer: QuestionAnswerData }
-	/** The problem discard (practice, owner 2026-10-04): ask-style — the
-	 *  silent route appends the UI-only marker and wakes nothing; the
-	 *  conclude pair rides the user's NEXT input (inputAppends). */
+	/** El descarte de problemas (práctica, responsable 2026-10-04): al estilo de
+	 *  ask — la ruta silenciosa añade el marcador solo de interfaz y no
+	 *  despierta nada; el par de conclusión viaja con la SIGUIENTE entrada del
+	 *  usuario (inputAppends). */
 	| { type: "dismiss-problem"; problemCallId: string };
 
-/** Parse and validate a dismissal event off a request body. */
+/** Analiza y valida un evento de descarte a partir del cuerpo de una petición. */
 export function parseDismissInput(input: unknown): DismissInput {
 	if (typeof input !== "object" || input === null) throw new ChatInputError("input must be an object");
 	const i = input as Record<string, unknown>;
@@ -130,16 +142,18 @@ export function parseDismissInput(input: unknown): DismissInput {
 	return { type: "dismiss", toolCallId: i.toolCallId, answer };
 }
 
-/** A mid-turn steer (owner arc 2026-10-03): the learner's composer message
- *  for a RUNNING turn — queued on pi's steering rail (agent.steer, drained
- *  at the next response boundary INSIDE the same run). NOT a follow-up:
- *  it never extends an ended run, and it never composes a turn of its own
- *  (a send with no live turn is a plain text send, which already exists).
- *  The id is client-minted (steer_<localid>): the queued indicator keys on
- *  it, and the drain's message events upsert the real card by the same id. */
+/** Una reorientación a mitad de turno (arco del responsable, 2026-10-03): el
+ *  mensaje del compositor del alumno para un turno EN CURSO — encolado en el
+ *  carril de reorientación de pi (agent.steer, que se vacía en el siguiente
+ *  límite de respuesta DENTRO de la misma ejecución). NO es un seguimiento:
+ *  nunca prolonga una ejecución terminada y nunca compone un turno propio (un
+ *  envío sin turno vivo es un envío de texto normal, que ya existe). El id lo
+ *  acuña el cliente (steer_<localid>): el indicador de encolado se identifica
+ *  por él, y los eventos de mensaje del vaciado actualizan la tarjeta real
+ *  con el mismo id. */
 export type UserSteerInput = { type: "steer"; id: string; text: string; images?: ImageContent[] };
 
-/** Parse and validate a steer event off a request body. */
+/** Analiza y valida un evento de reorientación a partir del cuerpo de una petición. */
 export function parseUserSteerInput(input: unknown): UserSteerInput {
 	if (typeof input !== "object" || input === null) throw new ChatInputError("input must be an object");
 	const i = input as Record<string, unknown>;
@@ -154,9 +168,9 @@ export function parseUserSteerInput(input: unknown): UserSteerInput {
 	return { type: "steer", id: i.id, text: i.text, ...(images ? { images } : {}) };
 }
 
-/** The native appends a dismissal makes (pure — same orphan discipline
- *  as answers: the call must be a DANGLING question call, or — the
- *  practice variant — the ACTIVE problem). */
+/** Los añadidos nativos que hace un descarte (puro — la misma disciplina
+ *  contra huérfanos que las respuestas: la llamada debe ser una llamada de
+ *  pregunta COLGANTE o — la variante de práctica — el problema ACTIVO). */
 export function dismissAppends(record: { messages: LhMessage[] }, input: DismissInput): LhMessage[] {
 	assertPluginQuestionInputAllowed(record.messages, input);
 	if (input.type === "dismiss-plugin-question") throw new ChatInputError("Plugin question dismissal requires canonical server validation");
@@ -177,12 +191,13 @@ export function dismissAppends(record: { messages: LhMessage[] }, input: Dismiss
 	return [newAnswerResult(input.toolCallId, pending.tool, input.answer)];
 }
 
-/** A malformed input event (the honest 400 — the orphan-trap discipline). */
+/** Un evento de entrada mal formado (el 400 honesto — la disciplina de la trampa de huérfanos). */
 export class ChatInputError extends Error {}
 
-/** New-question gate only: builtin semantics/settings are unchanged. Call
- * before effects and again against saved truth. New protocol requests still
- * require canonical server validation; this guard is not answer validation. */
+/** Solo barrera de preguntas nuevas: la semántica/ajustes integrados no
+ * cambian. Llámala antes de los efectos y otra vez contra la verdad guardada.
+ * Las peticiones del protocolo nuevo siguen exigiendo la validación canónica
+ * del servidor; esta protección no es validación de respuestas. */
 export function assertPluginQuestionInputAllowed(messages: readonly LhMessage[], input: unknown): void {
 	const type = input && typeof input === "object" ? (input as { type?: unknown }).type : undefined;
 	if (type === "plugin-question-answer" || type === "dismiss-plugin-question") return;
@@ -218,7 +233,7 @@ function parseOptionalOccurrence(value: unknown, images: unknown): PluginSubmiss
 	return undefined;
 }
 
-/** Parse and validate an input event off a request body. */
+/** Analiza y valida un evento de entrada a partir del cuerpo de una petición. */
 export function parseChatInput(input: unknown): ChatInput {
 	if (typeof input !== "object" || input === null) throw new ChatInputError("input must be an object");
 	const i = input as Record<string, unknown>;
@@ -288,13 +303,14 @@ export function parseChatInput(input: unknown): ChatInput {
 }
 
 /**
- * The native appends an input event makes to the record (pure). The caller
- * persists them write-ahead; the agent's context is the record plus these.
+ * Los añadidos nativos que hace un evento de entrada al registro (puro).
+ * Quien llama los persiste por adelantado; el contexto del agente es el
+ * registro más estos.
  *
- * Answer validation is the orphan-400 discipline: the call must be a
- * DANGLING QUESTION call in the record (posed, never answered) — anything
- * else 400s honestly instead of silently interrupting a question or
- * double-answering.
+ * La validación de respuestas es la disciplina del 400 por huérfano: la
+ * llamada debe ser una llamada de PREGUNTA COLGANTE en el registro (planteada
+ * y nunca respondida) — cualquier otra cosa da un 400 honesto en lugar de
+ * interrumpir en silencio una pregunta o responderla dos veces.
  */
 export function inputAppends(
 	record: { messages: LhMessage[]; kind?: string },
@@ -319,8 +335,8 @@ export function inputAppends(
 		case "continue":
 			return dismissalConclusion(record);
 		case "retry":
-			// The input already landed write-ahead. retryDrops affects only
-			// the temporary agent history — nothing new appends here.
+			// La entrada ya se escribió por adelantado. retryDrops solo afecta al historial
+			// temporal del agente — aquí no se añade nada nuevo.
 			return [];
 		case "retry-question":
 			return questionRecoveryAppends(record.messages, input);
@@ -333,10 +349,10 @@ export function inputAppends(
 			return [...dismissalConclusion(record), newThinkingMessage(input.problemCallId, input.text, input.images)];
 		}
 		case "next": {
-			// Honest 400s, the thinking gate's discipline: the signal is a
-			// between-problems affordance — practice sessions only, nothing
-			// active (mid-problem input rides the dock), and the client gates
-			// make violations unreachable in practice anyway.
+			// 400 honestos, la disciplina de la barrera de razonamiento: la señal es una
+			// opción entre problemas — solo en sesiones de práctica, sin nada activo (la
+			// entrada a mitad de problema va por el dock), y las barreras del cliente hacen
+			// que, en la práctica, las infracciones sean inalcanzables de todos modos.
 			if (record.kind !== "practice") {
 				throw new ChatInputError("next input is a practice-session affordance");
 			}
@@ -348,8 +364,9 @@ export function inputAppends(
 	}
 }
 
-/** Reusable post-await guard against canonical saved truth. Legacy text-only
- * callers retain their existing ID-based contract; fresh images require binding. */
+/** Protección reutilizable tras un await contra la verdad canónica guardada.
+ * Los llamadores heredados solo de texto conservan su contrato basado en ids;
+ * las imágenes nuevas exigen vinculación. */
 export function assertNativeSubmissionTarget(messages: readonly LhMessage[], input: ChatInput): void {
 	if (input.type !== "answer" && input.type !== "thinking") return;
 	const hasImages = input.type === "answer"
@@ -374,9 +391,10 @@ export function assertNativeSubmissionTarget(messages: readonly LhMessage[], inp
 	}
 }
 
-/** Validate before any turn effects, then again against current saved truth.
- * Never accepts a failed/aborted generation (the existing Retry/new-message
- * paths own those), a stale occurrence, or an answerable sibling. */
+/** Valida antes de cualquier efecto del turno y luego otra vez contra la
+ * verdad guardada actual. Nunca acepta una generación fallida/abortada (de
+ * esas se encargan los caminos de Reintentar/mensaje nuevo), una aparición
+ * obsoleta ni un hermano que se pueda responder. */
 export function questionRecoveryAppends(
 	messages: readonly LhMessage[],
 	input: Extract<ChatInput, { type: "retry-question" }>,
@@ -393,9 +411,10 @@ export function questionRecoveryAppends(
 	}));
 }
 
-/** The failure owning the ephemeral banner. Plan presentation and
- * compaction do not resolve an error; substantive later input/output does.
- * This is deliberately broader than Retry eligibility below. */
+/** El fallo al que pertenece el aviso efímero. Ni la presentación del plan ni
+ * la compactación resuelven un error; una entrada/salida posterior sustancial
+ * sí. Esto es a propósito más amplio que la elegibilidad de Reintentar de
+ * más abajo. */
 export function failedResponseAtEnd(messages: readonly LhMessage[]): Extract<LhMessage, { role: "assistant" }> | undefined {
 	for (let i = messages.length - 1; i >= 0; i--) {
 		const m = messages[i]!;
@@ -405,22 +424,24 @@ export function failedResponseAtEnd(messages: readonly LhMessage[]): Extract<LhM
 	return undefined;
 }
 
-/** Does the record end in a failure with input that can be retried?
- * Aborts are deliberate stops; compaction after a failure requires new
- * learner input rather than a retry using a changed context. */
+/** ¿Termina el registro en un fallo con una entrada que se pueda reintentar?
+ * Los abortos son paradas deliberadas; una compactación tras un fallo exige
+ * una entrada nueva del alumno en lugar de un reintento con un contexto
+ * cambiado. */
 export function endsInFailedTurn(messages: readonly LhMessage[]): boolean {
 	const { ids, before } = failedTail(messages);
 	return ids.size > 0 && before !== undefined && before.role !== "assistant";
 }
 
-/** The ids omitted ONLY from the retry's temporary agent history.
- * Failed attempts (including partial text and their ids) stay on disk.
- * Pi's provider conversion already skips error/aborted responses, but
- * continue() rejects an assistant tail BEFORE conversion. Omitting the
- * trailing failures lets that continuation start from the saved input or
- * completed tool results without replaying tools or resubmitting input.
- * Plan blocks may follow the failure and stay; later compaction blocks
- * Retry without changing compaction itself. */
+/** Los ids que se omiten SOLO del historial temporal del agente del
+ * reintento. Los intentos fallidos (incluidos el texto parcial y sus ids) se
+ * quedan en disco. La conversión al proveedor de Pi ya omite las respuestas
+ * con error/abortadas, pero continue() rechaza una cola del asistente ANTES
+ * de la conversión. Omitir los fallos finales permite que esa continuación
+ * arranque desde la entrada guardada o desde resultados de herramientas
+ * completados sin reproducir herramientas ni reenviar la entrada. Los bloques
+ * de plan pueden seguir al fallo y se quedan; una compactación posterior
+ * bloquea Reintentar sin cambiar la propia compactación. */
 export function retryDrops(messages: readonly LhMessage[]): Set<string> {
 	const { ids, before } = failedTail(messages);
 	if (ids.size === 0) {
@@ -434,9 +455,10 @@ export function retryDrops(messages: readonly LhMessage[]): Set<string> {
 	return ids;
 }
 
-/** Walk back over failed assistants and UI-only plan blocks. A compaction
- * is a boundary, not a marker Retry may cross. A failure AFTER a compaction
- * can still retry: that compacted context was already its starting state. */
+/** Recorre hacia atrás los asistentes fallidos y los bloques de plan solo de
+ * interfaz. Una compactación es un límite, no un marcador que Reintentar
+ * pueda cruzar. Un fallo DESPUÉS de una compactación sí puede reintentarse:
+ * ese contexto compactado ya era su estado de partida. */
 function failedTail(messages: readonly LhMessage[]): { ids: Set<string>; before: LhMessage | undefined } {
 	const ids = new Set<string>();
 	let i = messages.length - 1;
@@ -448,17 +470,18 @@ function failedTail(messages: readonly LhMessage[]): { ids: Set<string>; before:
 	return { ids, before: messages[i] };
 }
 
-/** The deferred conclude synthesis (owner ruling, 2026-10-04): a
- *  problem-dismissal marker waits for the user's next input — the pair
- *  (synthetic conclude call + ack) rides ahead of it, so the agent reads
- *  the dismissal through its own vocabulary and the slot frees. Pure;
- *  empty when nothing dismissals pend. */
+/** La síntesis diferida de conclusión (decisión del responsable,
+ *  2026-10-04): un marcador de descarte de problema espera a la siguiente
+ *  entrada del usuario — el par (llamada de conclusión sintética + acuse) va
+ *  delante de ella, de modo que el agente lee el descarte con su propio
+ *  vocabulario y la ranura se libera. Puro; vacío cuando no hay descartes
+ *  pendientes. */
 function dismissalConclusion(record: { messages: LhMessage[] }): LhMessage[] {
 	const problemCallId = pendingProblemDismissalOf(record.messages);
 	return problemCallId ? concludedByDismissalPair(problemCallId) : [];
 }
 
-/** Is this tool name a question tool (dock-owned, answer-gated)? */
+/** ¿Es este nombre de herramienta una herramienta de pregunta (propia del dock, bloqueada por respuesta)? */
 export function isQuestionTool(name: string): boolean {
 	return (QUESTION_TOOLS as readonly string[]).includes(name);
 }
