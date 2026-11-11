@@ -12,14 +12,14 @@ import { PATH_SOURCE_ATTRIBUTE } from "./path-input-dom";
 import { UPDATE_CITATION_EVENT, type UpdateCitationDetail } from "./path-input";
 import { resolveCitationRange } from "./selection-text";
 
-/** The comment popover for one composer citation: anchored to the cited
- *  tutor text (highlighted while open), else to the chip. */
+/** El popover de comentario de una cita del compositor: anclado al texto citado del
+ * tutor (resaltado mientras está abierto) o, si no, al chip. */
 export function CitationCommentPopover({ target, transcript, composer, onClose, onSend }: {
 	target: CitationEditTarget;
 	transcript: HTMLElement | null;
 	composer: () => HTMLElement | null;
 	onClose: () => void;
-	/** Save-and-send: the composer's own send, run after the link updates. */
+	/** Guardar y enviar: el propio envío del compositor, ejecutado después de actualizar el enlace. */
 	onSend: () => void;
 }) {
 	const rootRef = useRef<HTMLDivElement>(null);
@@ -53,7 +53,7 @@ export function CitationCommentPopover({ target, transcript, composer, onClose, 
 		if (andSend) onSend();
 	};
 	const cancel = () => {
-		if (target.fresh) update(null); // a just-cited chip leaves with its spaces
+		if (target.fresh) update(null); // un chip recién citado se va con sus espacios
 		onClose();
 	};
 	const dismiss = (reason: CommentDismissal): CloseOutcome => {
@@ -67,7 +67,7 @@ export function CitationCommentPopover({ target, transcript, composer, onClose, 
 	const dismissRef = useRef(dismiss);
 	dismissRef.current = dismiss;
 
-	// The cited words stay highlighted while the comment is being written.
+	// Las palabras citadas siguen resaltadas mientras se escribe el comentario.
 	useEffect(() => {
 		const range = sourceRange();
 		return range ? highlightRange("lh-citation-comment", range) : undefined;

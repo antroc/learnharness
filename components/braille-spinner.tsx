@@ -1,21 +1,22 @@
 import { cn } from "@/lib/utils";
 
 /**
- * THE BRAILLE SPINNER (owner, minimal-color round): the one working-state
- * indicator, in the terminal's own glyph language. Pure function + CSS —
- * no JS frame timer, no React re-render per frame; each frame is a tiny
- * <g> whose opacity is compositor-animated, so the cost is below the old
- * breathing dot's (which animated opacity AND transform).
+ * EL SPINNER BRAILLE (responsable, ronda de color mínimo): el único indicador de
+ * estado de trabajo, en el propio lenguaje de glifos del terminal. Función pura + CSS
+ * — sin temporizador de fotogramas en JS ni re-render de React por fotograma; cada
+ * fotograma es un <g> diminuto cuya opacidad anima el compositor, así que cuesta menos
+ * que el antiguo punto que respiraba (que animaba la opacidad Y la transformación).
  *
- * Geometry: the classic cli-spinner sequence (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏, 10 frames,
- * 80ms each — 800ms cycle) as EXACT dot bitmaps in a 2×4 braille cell
- * (dots 1-3 = left column, 4-6 = right). One shared keyframes (globals.css
- * .braille-frame) holds each frame visible for its 10% slice; frames
- * stagger via positive animation-delay, so frame 0 leads from first paint.
+ * Geometría: la clásica secuencia de cli-spinner (⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏, 10 fotogramas, 80 ms
+ * cada uno — ciclo de 800 ms) como mapas de bits EXACTOS de puntos en una celda braille
+ * de 2×4 (puntos 1-3 = columna izquierda, 4-6 = derecha). Unos keyframes compartidos
+ * (.braille-frame de globals.css) mantienen visible cada fotograma durante su 10 %; los
+ * fotogramas se escalonan con animation-delay positivos, así que el fotograma 0 va
+ * delante desde el primer pintado.
  *
- * Static fallback (SSR pre-hydrate, prefers-reduced-motion, print): frame
- * 0 (⠋) shows — a legible glyph, not a blank. Motion is honest here: it
- * exists only while a turn is in flight and vanishes the moment it ends.
+ * Alternativa estática (SSR antes de hidratar, prefers-reduced-motion, impresión): se
+ * muestra el fotograma 0 (⠋) — un glifo legible, no un hueco. Aquí el movimiento es
+ * honesto: solo existe mientras hay un turno en curso y desaparece en cuanto termina.
  */
 const FRAMES: ReadonlyArray<{ dots: ReadonlyArray<readonly [number, number]> }> = [
 	{ dots: [[1, 1], [1, 3], [3, 1]] },
@@ -30,7 +31,7 @@ const FRAMES: ReadonlyArray<{ dots: ReadonlyArray<readonly [number, number]> }> 
 	{ dots: [[1, 1], [1, 3], [1, 5], [3, 1]] },
 ];
 
-/** The animation constants (mirrors globals.css .braille-frame). */
+/** Las constantes de la animación (iguales que .braille-frame de globals.css). */
 export const SPINNER_FRAME_MS = 80;
 export const SPINNER_FRAMES = FRAMES.length;
 
@@ -38,9 +39,9 @@ export function BrailleSpinner({
 	className,
 	label = "Working",
 }: {
-	/** Sizing/position classes; height drives the scale (width is the cell's 1:2 aspect). */
+	/** Clases de tamaño y posición; la altura determina la escala (el ancho es la proporción 1:2 de la celda). */
 	className?: string;
-	/** The accessible name of the state this spinner announces. */
+	/** El nombre accesible del estado que anuncia este spinner. */
 	label?: string;
 }) {
 	return (

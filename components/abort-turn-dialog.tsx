@@ -5,26 +5,26 @@ import { HostDialog } from "@/components/host-dialog";
 import { useBackdropDismiss } from "@/components/backdrop-dismiss";
 
 /**
- * The ESC-abort guard (owner, 2026-10-02): the global Esc → abort chain
- * opens this confirm popup EVERYWHERE — mid-stream aborts and pending-
- * question dismissals alike. Esc on the popup itself cancels (claimed —
- * it must never chain into another abort), which is also why Chat's
- * abort handler ignores events while this dialog is open: two window
- * listeners fire per Esc and stopPropagation alone cannot order them.
+ * La protección del aborto con ESC (responsable, 2026-10-02): la cadena global
+ * Esc → abortar abre este diálogo de confirmación EN TODAS PARTES — tanto para
+ * abortar a mitad de streaming como para descartar una pregunta pendiente. Esc en el
+ * propio diálogo cancela (reclamado — nunca debe encadenarse con otro aborto), y por
+ * eso el manejador de aborto de Chat ignora los eventos mientras este diálogo está
+ * abierto: por cada Esc se disparan dos listeners de window y stopPropagation por sí
+ * solo no puede ordenarlos.
  *
- * MINIMAL, the delete-node dialog's tone: title, one line, Cancel +
- * action. No busy state — both actions are local (a fetch that fires
- * and forgets, an answer submit whose own machinery shows progress).
+ * MÍNIMO, con el tono del diálogo de borrar nodos: título, una línea, Cancelar +
+ * acción. Sin estado de ocupado — ambas acciones son locales (un fetch que se lanza y
+ * se olvida, un envío de respuesta cuya propia maquinaria muestra el progreso).
  *
- * What "abort" means is mode-dependent: from a running turn it kills
- * the turn (partial stays); from a pending question there is no turn to
- * kill — abort IS dismissal (A2, 2026-10-03): the silent route writes
- * the skipped toolResult and wakes NOTHING; the session pauses until
- * the user's next plain message, which carries the dismissal to the
- * model in its context.
+ * Lo que significa "abortar" depende del modo: con un turno en curso, lo mata (lo
+ * parcial se queda); con una pregunta pendiente no hay turno que matar — abortar ES
+ * descartar (A2, 2026-10-03): la ruta silenciosa escribe el toolResult de pregunta
+ * saltada y no despierta NADA; la sesión se pausa hasta el siguiente mensaje normal
+ * del usuario, que lleva el descarte al modelo en su contexto.
  */
 
-/** What Esc is aborting — drives copy and the confirm action. */
+/** Qué está abortando Esc — determina el texto y la acción de confirmación. */
 export type AbortMode = "turn" | "question" | "problem";
 
 const COPY: Record<AbortMode, { title: string; line: string; action: string }> = {
@@ -45,8 +45,8 @@ const COPY: Record<AbortMode, { title: string; line: string; action: string }> =
 	},
 };
 
-/** The dialog's pure body — exported for SSR pins (the delete-node
- * pattern). The wrapper owns effects + the portal. */
+/** El cuerpo puro del diálogo — exportado para las fijaciones de SSR (el patrón de
+ * delete-node). El envoltorio se encarga de los efectos + el portal. */
 export function AbortTurnBody({
 	mode,
 	onClose,
@@ -57,8 +57,8 @@ export function AbortTurnBody({
 	mode: AbortMode;
 	onClose: () => void;
 	onConfirm: () => void;
-	/** The dismiss doubles as the abort when a turn is still running
-	 * (owner, 2026-10-04): the line says so. */
+	/** El descarte hace también de aborto cuando todavía hay un turno en curso
+	 * (responsable, 2026-10-04): la línea lo dice. */
 	busy?: boolean;
 	renderFrame?: (frame: ReactElement<{ children: ReactNode }>) => ReactNode;
 }) {
@@ -89,7 +89,7 @@ export function AbortTurnBody({
 						type="button"
 						data-testid="abort-turn-confirm"
 						onClick={onConfirm}
-						// Destructive red — the app's established destructive pair.
+						// Rojo destructivo — el par destructivo establecido de la app.
 						className="rounded-sm border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive transition-colors hover:bg-destructive/20"
 					>
 						{copy.action}
@@ -109,7 +109,7 @@ export function AbortTurnDialog({
 	onConfirm,
 	busy = false,
 }: {
-	/** What Esc is aborting; null = closed (nothing rendered). */
+	/** Qué está abortando Esc; null = cerrado (no se renderiza nada). */
 	mode: AbortMode | null;
 	onClose: () => void;
 	onConfirm: (mode: AbortMode) => void;

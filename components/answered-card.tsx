@@ -13,18 +13,19 @@ import type { QuestionAnswerData } from "@/src/core";
 import { answerForPresentation, parseAskInput, parseQuizInput } from "@/src/core";
 
 /**
- * Static rendering of an answered question (tool part in `output-available`).
+ * Renderizado estático de una pregunta respondida (parte de herramienta en `output-available`).
  *
- * Quiz answers are GRADED: ✓/✗ marks, the correct answers, and the
- * explanation. Ask answers are NOT graded — a plain record of what was said.
- * (The v1 bug this pins: ask answers must never get quiz grading UI.)
- * Explain answers are graded by the MODEL in its next reply, not by the
- * client — the card reveals his answer, the committed correct answer, and
- * the explanation, with NO verdict chips (owner ruling 2026-09-27).
+ * Las respuestas de quiz se CORRIGEN: marcas ✓/✗, las respuestas correctas y la
+ * explicación. Las respuestas de ask NO se corrigen — un simple registro de lo dicho.
+ * (El fallo de v1 que esto fija: las respuestas de ask nunca deben recibir la
+ * interfaz de corrección del quiz.) Las respuestas de explain las corrige el MODELO
+ * en su siguiente respuesta, no el cliente — la tarjeta revela la respuesta del
+ * alumno, la respuesta correcta comprometida y la explicación, SIN chips de
+ * veredicto (decisión del responsable 2026-09-27).
  */
 export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionAnswerData; input?: unknown }) {
 	const answer = answerForPresentation(savedAnswer, input);
-	const [whyOpen, setWhyOpen] = useState(false); // the tucked explanation (predictions, owner 2026-10-03)
+	const [whyOpen, setWhyOpen] = useState(false); // la explicación recogida (predicciones, responsable 2026-10-03)
 	if (answer.dismissed) {
 		return (
 			<div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
@@ -37,38 +38,38 @@ export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionA
 	const isExplain = answer.kind === "explain";
 	const selectedIdx = new Set(answer.answers.map((a) => a.index));
 	const correctIdx = new Set(answer.correctIndices ?? []);
-	// The question's own context rides the ORIGINAL CALL, not the answer
-	// snapshot (owner, 2026-10-12): the details line — and, for ask
-	// questions, option descriptions — re-render from the persisted
-	// arguments, so every existing transcript shows them too. The lean
-	// snapshot (what the model sees, compactAnswerForModel) is untouched;
-	// any parse failure or absent input renders exactly the older card.
+	// El contexto propio de la pregunta viaja en la LLAMADA ORIGINAL, no en la instantánea
+	// de la respuesta (responsable, 2026-10-12): la línea de detalles — y, en las preguntas
+	// ask, las descripciones de las opciones — se vuelven a renderizar a partir de los
+	// argumentos persistidos, así que todas las transcripciones existentes también los
+	// muestran. La instantánea ligera (lo que ve el modelo, compactAnswerForModel) no se toca;
+	// cualquier fallo de análisis o entrada ausente renderiza exactamente la tarjeta anterior.
 	const askInput = answer.kind === "ask" ? parseAskInput(input) : undefined;
 	const parsedDetails = askInput?.details ?? (answer.kind === "quiz" ? parseQuizInput(input)?.details : undefined);
 	const descByIndex = new Map((askInput?.options ?? []).map((o, i) => [i + 1, o.description]));
 
 	return (
 		<>
-		{/* The reading channel LIFTED (owner round, 2026-10-05): thoughts
-		    captured while reading are chronologically PRIOR to the question —
-		    rendered as its own user-side block ABOVE the card, the unified
-		    ThinkingBlock, instead of an inset inside the answer. Same muted
-		    rail as before; the label is now plain "Your thinking". */}
+		{/* El canal de lectura ELEVADO (ronda del responsable, 2026-10-05): los pensamientos
+		    capturados durante la lectura son cronológicamente ANTERIORES a la pregunta —
+		    se renderizan como un bloque propio del lado del usuario ENCIMA de la tarjeta, el
+		    ThinkingBlock unificado, en lugar de un recuadro dentro de la respuesta. El mismo
+		    raíl atenuado de antes; la etiqueta ahora es simplemente "Your thinking". */}
 		{(answer.readingThinking || answer.images?.readingThinking?.length) && (
 			<ThinkingBlock testId="reading-thinking-block" label="YOUR THINKING" text={answer.readingThinking ?? ""} images={answer.images?.readingThinking} defaultOpen />
 		)}
-		{/* [&>*:last-child]:mb-0 (owner round, 2026-10-07): on ask cards the
-		    thinking row is the last child — its my-3 stacked with the card's
-		    p-4 into a 28px void below (12px above); the card's own padding is
-		    the bottom rhythm when a row ends the card. */}
+		{/* [&>*:last-child]:mb-0 (ronda del responsable, 2026-10-07): en las tarjetas de ask
+		    la fila de razonamiento es el último hijo — su my-3 se apilaba con el p-4 de la
+		    tarjeta en un hueco de 28px por debajo (12px por encima); el propio relleno de la
+		    tarjeta es el ritmo inferior cuando una fila cierra la tarjeta. */}
 		<div
 			className="rounded-xl border bg-card p-4 text-card-foreground [&>*:last-child]:mb-0"
 			data-testid="answered-card"
 		>
 			<div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-				{/* The tool's OWN name first (owner 2026-10-09): probe-phase
-			    cards label Probe/Recall — the phase boundary visible in the
-			    transcript. No `tool` on old records: kind labels as before. */}
+				{/* Primero el nombre PROPIO de la herramienta (responsable 2026-10-09): las tarjetas
+			    de la fase de sondeo se rotulan Probe/Recall — el límite entre fases se ve en la
+			    transcripción. Sin `tool` en los registros antiguos: etiquetas por tipo, como antes. */}
 				{answer.tool === "probe"
 					? "Probe"
 					: answer.tool === "recall"
@@ -93,8 +94,8 @@ export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionA
 				<ToolContentResponse>{answer.questionText}</ToolContentResponse>
 			</div>
 			{parsedDetails && (
-				// The details line, same paint as the pending dock (owner,
-				// 2026-10-12): full markdown, LaTeX included.
+				// La línea de detalles, con el mismo pintado que el dock pendiente (responsable,
+				// 2026-10-12): markdown completo, LaTeX incluido.
 				<div className="mb-3 text-sm text-muted-foreground">
 					<ToolContentResponse>{parsedDetails}</ToolContentResponse>
 				</div>
@@ -117,8 +118,8 @@ export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionA
 								)}
 							>
 								{isQuiz && (
-									// Zapf-Dingbats-derived SVG outlines — the exact LaTeX \ding{51}/
-									// \ding{55} hand-drawn shapes (owner, round 6); see ui/glyph-mark.
+									// Contornos SVG derivados de Zapf Dingbats — las formas exactas dibujadas a mano de
+									// LaTeX \ding{51}/\ding{55} (responsable, ronda 6); ver ui/glyph-mark.
 									<span
 										aria-hidden
 										data-mark={sel && key ? "check" : sel && !key ? "x" : !sel && key ? "check" : undefined}
@@ -129,17 +130,17 @@ export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionA
 											!sel && key && "text-success",
 										)}
 									>
-										{/* Owner round 8: a touch smaller than the text (size-4→size-3.5,
-											   ≈14px vs the 16px row) while centered. */}
+										{/* Ronda 8 del responsable: un pelín más pequeño que el texto (size-4→size-3.5,
+											   ≈14px frente a la fila de 16px) y centrado. */}
 										{(key || sel) && <GlyphMark kind={key ? "check" : "x"} className="size-3.5" />}
 									</span>
 								)}
 								<span className={cn(!sel && "text-muted-foreground")}>
 									<ToolContentResponse>{opt.label}</ToolContentResponse>
 									{descByIndex.get(opt.index) && (
-										// Ask-option subtext (owner, 2026-10-12): same markdown path
-										// as the pending dock — LaTeX included. Quiz options carry
-										// none (owner ruling 2026-09-26); the map stays empty for them.
+										// Subtexto de las opciones de ask (responsable, 2026-10-12): la misma ruta de markdown
+										// que el dock pendiente — LaTeX incluido. Las opciones del quiz no llevan
+										// (decisión del responsable 2026-09-26); para ellas el mapa queda vacío.
 										<ToolContentResponse className="lh-prose block text-xs text-muted-foreground">
 											{descByIndex.get(opt.index)}
 										</ToolContentResponse>
@@ -148,9 +149,9 @@ export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionA
 							</div>
 						);
 					})}
-					{/* The learner's own typed option is an OPTION — same container,
-					    same selected styling as its siblings, not a loose quote
-					    floating outside the list. Quotes keep the learner's words. */}
+					{/* La opción escrita por el propio alumno es una OPCIÓN — el mismo contenedor, el
+					    mismo estilo de seleccionada que sus hermanas, no una cita suelta flotando fuera
+					    de la lista. Las comillas conservan las palabras del alumno. */}
 					{answer.other && (
 						<div
 							data-testid="answered-other"
@@ -165,13 +166,13 @@ export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionA
 			{answer.text && <div className="lh-prose mt-2 whitespace-pre-wrap">“<PathText text={answer.text} />”</div>}
 			<SubmittedImages images={answer.images?.answer} />
 
-			{/* The confidence record (owner round 6): the slider's rail, disc
-			    removed — the missing handle itself says "this is a record, not a
-			    control". Same paint, same ticks, same ramp, same % read-out as the
-			    live dock. Quiz answers only, and only when a confidence exists:
-			    "I don't know" sent none (its slider was grayed out), explain and
-			    ask never had one, and records from before the feature carry no
-			    field — nothing to show, nothing rendered. */}
+			{/* El registro de la confianza (ronda 6 del responsable): el raíl del deslizador, sin
+			    el disco — la propia falta del tirador dice "esto es un registro, no un control".
+			    El mismo pintado, las mismas marcas, la misma rampa y la misma lectura en % que el
+			    dock en vivo. Solo en respuestas de quiz, y solo si existe una confianza: "I don't
+			    know" no la envió (su deslizador estaba atenuado), explain y ask nunca la tuvieron,
+			    y los registros anteriores a la función no llevan el campo — nada que mostrar, nada
+			    renderizado. */}
 			{isQuiz && answer.confidence != null && (
 				<div className="mt-3 flex items-center gap-3" data-testid="answered-confidence">
 					<ConfidenceRail value={answer.confidence} className="min-w-0 flex-1" />
@@ -185,10 +186,10 @@ export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionA
 			)}
 
 			{((answer.thinking ?? answer.note) || answer.images?.thinking?.length) && (
-				/* The SAME unified row (owner round, 2026-10-05): the quiz answer's
-				    thinking is the identical collapsible ThinkingBlock — one
-				    geometry, but NO band on the card (owner round five, 2026-10-07:
-				    the accent lift read too light); rail only, heights identical. */
+				/* La MISMA fila unificada (ronda del responsable, 2026-10-05): el razonamiento de la
+				    respuesta del quiz es el idéntico ThinkingBlock plegable — una sola geometría, pero
+				    SIN banda en la tarjeta (quinta ronda del responsable, 2026-10-07: el realce del
+				    acento se veía demasiado claro); solo el raíl, alturas idénticas. */
 				<ThinkingBlock
 					testId="your-thinking"
 					label="YOUR THINKING"
@@ -198,14 +199,15 @@ export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionA
 				/>
 			)}
 
-			{/* px-3→removed: card p-4 + box px-3 double-inset sat the "Why" label deeper
-			    than the option box edges (owner, round 3). Sides flush with everything
-			    else; py-2 stays for vertical air. */}
+			{/* px-3→eliminado: el p-4 de la tarjeta + el px-3 de la caja metían dos veces el
+			    margen y dejaban la etiqueta "Why" más adentro que los bordes de las cajas de las
+			    opciones (responsable, ronda 3). Laterales alineados con todo lo demás; py-2 se
+			    queda para el aire vertical. */}
 			{isQuiz && answer.explanation && (
-				/* The TUCKED explanation — ALL questions (owner, 2026-10-07): the
-				   verdict shows, the explanation sits collapsed behind the Why
-				   toggle — viewable, never center stage. Identical to the
-				   prediction pattern it generalizes (owner, 2026-10-03). */
+				/* La explicación RECOGIDA — TODAS las preguntas (responsable, 2026-10-07): el
+				   veredicto se muestra y la explicación queda plegada tras el conmutador Why —
+				   visible, pero nunca en primer plano. Idéntico al patrón de las predicciones que
+				   generaliza (responsable, 2026-10-03). */
 				<div className="mt-2" data-testid="tucked-explanation">
 					<button
 						type="button"
@@ -217,17 +219,17 @@ export function AnsweredCard({ answer: savedAnswer, input }: { answer: QuestionA
 					{whyOpen && (
 						<div className="mt-1.5 rounded-lg bg-muted py-2 text-sm text-foreground/50">
 							<span className="font-medium text-muted-foreground">Why: </span>
-							{/* Keep the first paragraph beside the label, not every paragraph:
-							   later paragraphs must retain their recovered document structure. */}
+							{/* Se mantiene el primer párrafo junto a la etiqueta, no todos los párrafos:
+							   los párrafos posteriores deben conservar su estructura de documento recuperada. */}
 							<ToolContentResponse className="inline [&>p:first-child]:inline [&>p:first-child]:m-0">{answer.explanation}</ToolContentResponse>
 						</div>
 					)}
 				</div>
 			)}
 
-			{/* The explain reveal (owner ruling 2026-09-27): the committed answer
-			    — one field, reasoning included — shown on submit; no verdict,
-			    the model's next reply IS the grading. */}
+			{/* La revelación de explain (decisión del responsable 2026-09-27): la respuesta
+			    comprometida — un solo campo, razonamiento incluido — se muestra al enviar; sin
+			    veredicto, la siguiente respuesta del modelo ES la corrección. */}
 			{isExplain && answer.committed && (
 				<div className="mt-3 rounded-lg bg-muted py-2 text-sm text-muted-foreground">
 					<span className="font-medium text-foreground">The answer: </span>

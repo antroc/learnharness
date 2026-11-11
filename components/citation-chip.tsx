@@ -7,11 +7,11 @@ import { citationLabel, type TutorCitation } from "@/src/core";
 import { useOptionalInteractionLayers } from "./interaction-layers";
 import { isInteractionScopeEligible } from "./plugin-input-focus";
 
-/** Where a composer chip's link sits in the draft (for comment edits). */
+/** Dónde está el enlace de un chip del compositor dentro del borrador (para editar comentarios). */
 export type ComposerCitationSource = { start: number; end: number; link: string; host: HTMLElement };
 
-/** The chat provides these; chips in the composer and the transcript read
- *  them through context (composer chips render in portals, which keep it). */
+/** El chat los proporciona; los chips del compositor y de la transcripción los leen a
+ * través del contexto (los chips del compositor se renderizan en portales, que lo conservan). */
 export interface CitationActions {
 	openSource?: (citation: TutorCitation, anchor: HTMLElement) => void;
 	editComment?: (citation: TutorCitation, source: ComposerCitationSource) => void;
@@ -21,13 +21,13 @@ export const CitationActionsContext = createContext<CitationActions | null>(null
 export interface CitationChipProps {
 	citation: TutorCitation;
 	variant: "composer" | "transcript";
-	/** Editors make the chip atomic; transcript renderers omit this. */
+	/** Los editores hacen atómico el chip; los renderizadores de la transcripción lo omiten. */
 	contentEditable?: false;
-	/** Composer chips only: the link's place in the draft. */
+	/** Solo chips del compositor: el sitio del enlace en el borrador. */
 	source?: ComposerCitationSource;
 }
 
-/** A sent quote, opened from its transcript chip. */
+/** Una cita enviada, abierta desde su chip en la transcripción. */
 export function CitationQuoteCard({ citation, onOpenSource }: { citation: TutorCitation; onOpenSource: () => void }) {
 	return (
 		<div className="flex flex-col gap-2">

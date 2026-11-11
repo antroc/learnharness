@@ -41,8 +41,8 @@ export function useChainNavigation(rootRef: RefObject<HTMLDivElement | null>, se
 			pendingEnter.current = null; highlight(key, true);
 		} else highlight(active.current);
 	});
-	// Reattach with the current render's refs; handlers always read the visible
-	// rows rather than maintaining a second, potentially stale hierarchy.
+	// Se vuelve a enganchar con las refs del render actual; los manejadores leen siempre las
+	// filas visibles en lugar de mantener una segunda jerarquía que podría quedar desfasada.
 	useEffect(() => {
 		if (!enabled) return;
 		const root = rootRef.current;
@@ -54,7 +54,7 @@ export function useChainNavigation(rootRef: RefObject<HTMLDivElement | null>, se
 			const row = event.target instanceof Element ? event.target.closest<HTMLElement>("[data-chain-nav-row]") : null;
 			if (row) highlight(row.dataset.chainNavRow!);
 			else if (event.target instanceof Element && event.target.closest('[data-testid="source-root-drop"]')) {
-				event.preventDefault(); // do not refocus the tabindex=-1 table after blur
+				event.preventDefault(); // no se vuelve a enfocar la tabla con tabindex=-1 tras perder el foco
 				pendingEnter.current = null; pendingFocus.current = null; highlight(null);
 				const focused = document.activeElement;
 				if (focused && root?.contains(focused) && "blur" in focused) (focused as HTMLElement).blur();

@@ -3,23 +3,23 @@ import { CITATION_MAX_TEXT_LENGTH, serializeCitation, type TutorCitation } from 
 import { INSERT_CITATION_EVENT, type CitationInsertedRange, type InsertCitationDetail } from "./path-input";
 import type { SelectionAction } from "./selection-toolbar";
 
-/** A citation chip in the composer whose comment is being edited. `fresh`
- *  marks one inserted just now: Cancel removes it with the spaces it added. */
+/** Un chip de cita del compositor cuyo comentario se está editando. `fresh` marca uno
+ * recién insertado: Cancelar lo elimina junto con los espacios que añadió. */
 export interface CitationEditTarget {
 	citation: TutorCitation;
 	link: string;
 	start: number;
 	host?: HTMLElement;
-	/** Exact editable host: also supports reading/question/practice thinking. */
+	/** Anfitrión editable exacto: también admite el razonamiento de lectura, pregunta o práctica. */
 	input?: HTMLElement;
 	fresh?: CitationInsertedRange;
 }
 
-/** The toolbar's Cite button: quote the selection into the composer and
- *  open the comment editor on the new chip. */
+/** El botón Cite de la barra de herramientas: cita la selección en el compositor y
+ * abre el editor de comentarios sobre el chip nuevo. */
 export function createCiteAction({ chatId, composer, openEditor }: {
 	chatId: string;
-	/** The intended editable root: composer or the active thinking field. */
+	/** La raíz editable prevista: el compositor o el campo de razonamiento activo. */
 	composer: () => HTMLElement | null;
 	openEditor: (target: CitationEditTarget) => void;
 }): SelectionAction {

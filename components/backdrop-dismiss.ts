@@ -2,10 +2,10 @@
 
 import { useRef, type MouseEvent, type PointerEvent } from "react";
 
-/** A synthesized click may target the backdrop even when a drag began
- * inside the dialog. Require both endpoints of the same primary gesture.
- * Capture observes inside/portaled interactions even if they stop bubbling;
- * it never prevents their own button, menu, or selection behavior. */
+/** Un clic sintetizado puede tener como destino el fondo aunque el arrastre empezara
+ * dentro del diálogo. Se exigen ambos extremos del mismo gesto primario. La captura
+ * observa las interacciones de dentro o en portales aunque dejen de propagarse; nunca
+ * impide el comportamiento propio de sus botones, menús o selecciones. */
 export function useBackdropDismiss(onDismiss: () => void) {
 	const gesture = useRef<{
 		pointerId: number;
@@ -18,8 +18,8 @@ export function useBackdropDismiss(onDismiss: () => void) {
 			gesture.current = event.isPrimary && event.button === 0 && event.target === event.currentTarget
 				? { pointerId: event.pointerId, backdrop: event.currentTarget, released: false }
 				: null;
-			// Touch can implicitly capture the pointer on press. Let release
-			// target the actual hit element, not a backdrop left behind.
+			// El táctil puede capturar implícitamente el puntero al pulsar. Se deja que la
+			// liberación vaya al elemento real alcanzado, no a un fondo que quedó detrás.
 			if (gesture.current && event.currentTarget.hasPointerCapture?.(event.pointerId)) {
 				event.currentTarget.releasePointerCapture(event.pointerId);
 			}
@@ -40,7 +40,7 @@ export function useBackdropDismiss(onDismiss: () => void) {
 			gesture.current = null;
 			if (press?.released && press.backdrop === event.currentTarget &&
 				event.button === 0 && event.target === event.currentTarget) {
-				// This render's callback preserves current busy guards and props.
+				// El callback de este render conserva las protecciones de ocupado y las props actuales.
 				onDismiss();
 			}
 		},

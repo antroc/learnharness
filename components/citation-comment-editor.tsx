@@ -7,18 +7,18 @@ import { useOptionalInteractionLayers } from "./interaction-layers";
 import { isInteractionScopeEligible } from "./plugin-input-focus";
 
 /**
- * THE CITATION COMMENT EDITOR (2026-10-31; behaviour follows T3 Code's
- * citation comment editor, MIT). Enter saves, ⌘/Ctrl+Enter saves and
- * sends, Shift+Enter is a newline, Escape cancels. Clicking away or moving
- * focus out commits a typed draft; an over-length draft keeps the popover
- * open rather than being dropped.
+ * EL EDITOR DE COMENTARIOS DE CITAS (2026-10-31; el comportamiento sigue al editor de
+ * comentarios de citas de T3 Code, MIT). Enter guarda, ⌘/Ctrl+Enter guarda y envía,
+ * Shift+Enter es un salto de línea y Escape cancela. Hacer clic fuera o mover el foco
+ * fuera confirma un borrador escrito; un borrador demasiado largo mantiene abierto el
+ * popover en lugar de descartarse.
  */
 
 export type CommentDismissal = "escape" | "outside" | "focus-out";
 
 export function commentDismissalOutcome({ reason, draft, saved }: {
 	reason: CommentDismissal;
-	/** null = nothing typed since opening. */
+	/** null = no se ha escrito nada desde que se abrió. */
 	draft: string | null;
 	saved: string | undefined;
 }): "close" | "commit" | "keep-open" {
@@ -37,7 +37,7 @@ export function commentKeyAction(event: { key: string; shiftKey: boolean; metaKe
 
 export function CitationCommentEditor({ initial, onDraftChange, onSave, onCancel }: {
 	initial: string | undefined;
-	/** Every keystroke, so the dismissal policy can commit what was typed. */
+	/** Cada pulsación, para que la política de descarte pueda confirmar lo escrito. */
 	onDraftChange: (draft: string) => void;
 	onSave: (comment: string, andSend: boolean) => void;
 	onCancel: () => void;

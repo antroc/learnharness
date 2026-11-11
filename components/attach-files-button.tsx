@@ -11,9 +11,9 @@ import { InteractionLayerOwner, useInteractionLayer, useInteractionLayers, useOp
 import { INTERACTION_LAYER_Z_BASE } from "./host-dialog";
 import { isInteractionScopeEligible } from "./plugin-input-focus";
 
-/** Picked files → the rooted paths an editor chips (issue #285), via the
- *  desktop bridge. Same validity rule as drops: a file without a usable
- *  path is skipped, never guessed. */
+/** Ficheros elegidos → las rutas con raíz que un editor convierte en chips (issue
+ * #285), mediante el puente de escritorio. La misma regla de validez que al soltar: un
+ * fichero sin una ruta utilizable se omite, nunca se adivina. */
 export function pathsForFiles(files: Iterable<File>, resolve: (file: File) => string): { paths: string[]; skipped: number } {
 	const paths: string[] = [];
 	let skipped = 0;
@@ -27,8 +27,8 @@ export function pathsForFiles(files: Iterable<File>, resolve: (file: File) => st
 	return { paths, skipped };
 }
 
-/** Center over the paperclip, but clear the whole visible composer, not just
- * its bottom-aligned button. Clamp horizontally and scroll above the dock. */
+/** Se centra sobre el clip, pero dejando libre todo el compositor visible, no solo su
+ * botón alineado abajo. Se acota en horizontal y se desplaza por encima del dock. */
 export function attachmentPopupPlacement(button: { left: number; right: number }, composer: { top: number }, popupWidth: number, viewport: { width: number; height: number }) {
 	const edge = 8;
 	const gap = 4;
@@ -43,15 +43,16 @@ export function attachmentPopupPlacement(button: { left: number; right: number }
 }
 
 const noSubscribe = () => () => {};
-/** The bridge is fixed for the window's life; the server render is always
- *  the browser case, so hydration never mismatches. */
+/** El puente es fijo durante toda la vida de la ventana; el render del servidor
+ * siempre es el caso del navegador, así que la hidratación nunca discrepa. */
 function useDesktopPaths(): boolean {
 	return useSyncExternalStore(noSubscribe, () => Boolean(window.lh?.getPathForFile), () => false);
 }
 
-/** The choice menu owns Escape with the same layer law as MenuShell, while
- * retaining its paperclip/composer-specific geometry. Mount separately so a
- * closed button remains safe in standalone/static renders. Notices are passive. */
+/** El menú de elección se encarga de Escape con la misma ley de capas que MenuShell,
+ * conservando su geometría específica del clip y del compositor. Se monta aparte para
+ * que un botón cerrado siga siendo seguro en renders independientes o estáticos. Los
+ * avisos son pasivos. */
 function AttachmentPopup({ anchorRef, rootRef, open, close, children }: {
 	anchorRef: RefObject<HTMLButtonElement | null>; rootRef: RefObject<HTMLDivElement | null>;
 	open: boolean; close(): void; children: ReactElement<{ style?: CSSProperties }>;
@@ -73,13 +74,13 @@ function AttachmentPopup({ anchorRef, rootRef, open, close, children }: {
 }
 
 /**
- * The attach button (issue #285): the picker's twin of a file drop — files
- * stay where they are and only their quoted paths enter the draft, at the
- * caret of `editorRef` (a PathInput root). Any file type; the agent reads
- * what it can. Desktop only: a browser File has no local path, so there the
- * button explains instead (the drop zone's notice). The separate native
- * folder choice returns the directory itself, including an empty directory.
- * aria-disabled, not disabled, so the tooltip still shows.
+ * El botón de adjuntar (issue #285): el gemelo del selector de soltar un fichero — los
+ * ficheros se quedan donde están y solo sus rutas entre comillas entran en el
+ * borrador, en el cursor de `editorRef` (una raíz PathInput). Cualquier tipo de
+ * fichero; el agente lee lo que puede. Solo escritorio: un File del navegador no tiene
+ * ruta local, así que ahí el botón lo explica en su lugar (el aviso de la zona de
+ * soltar). La elección nativa de carpeta, aparte, devuelve el propio directorio,
+ * incluido uno vacío. aria-disabled, no disabled, para que el tooltip siga mostrándose.
  */
 export function AttachFilesButton({ editorRef }: { editorRef: React.RefObject<HTMLDivElement | null> }) {
 	const controller = useOptionalInteractionLayers();
@@ -92,9 +93,9 @@ export function AttachFilesButton({ editorRef }: { editorRef: React.RefObject<HT
 	const [notice, setNotice] = useState("");
 	const [placement, setPlacement] = useState<ReturnType<typeof attachmentPopupPlacement> | null>(null);
 	const positioned = placement !== null;
-	// Like MenuShell, portal to body with viewport-capped, reanchored placement.
-	// The production chat/new-session docks deliberately clip their children.
-	// Keep notice focus passive; only the choice menu takes keyboard focus.
+	// Como MenuShell, se hace portal a body con una colocación limitada al viewport y reanclada.
+	// Los docks de producción del chat y de nueva sesión recortan a sus hijos a propósito.
+	// El foco del aviso se mantiene pasivo; solo el menú de elección toma el foco del teclado.
 	useLayoutEffect(() => {
 		if (!open && !notice) { setPlacement(null); return; }
 		const button = buttonRef.current;
@@ -134,7 +135,7 @@ export function AttachFilesButton({ editorRef }: { editorRef: React.RefObject<HT
 		choosingFolder.current = true;
 		try {
 			const chosen = await choose();
-			if (chosen === null) return; // Native cancellation leaves the draft intact.
+			if (chosen === null) return; // La cancelación nativa deja el borrador intacto.
 			const path = directoryReferencePath(chosen);
 			if (editor?.isConnected && editor === editorRef.current) editor.dispatchEvent(new CustomEvent(INSERT_FILE_PATHS_EVENT, { detail: [path] }));
 		} catch { setNotice("Could not choose a folder. Try again."); }
@@ -153,7 +154,7 @@ export function AttachFilesButton({ editorRef }: { editorRef: React.RefObject<HT
 					const resolve = window.lh?.getPathForFile;
 					const { paths } = resolve ? pathsForFiles(Array.from(e.currentTarget.files ?? []), resolve) : { paths: [] };
 					if (paths.length > 0) editorRef.current?.dispatchEvent(new CustomEvent(INSERT_FILE_PATHS_EVENT, { detail: paths }));
-					e.currentTarget.value = ""; // allow re-picking the same file
+					e.currentTarget.value = ""; // permite volver a elegir el mismo fichero
 				}}
 			/>
 			<Hint label={desktop ? "Attach files or a folder" : BROWSER_NOTICE}>

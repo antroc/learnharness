@@ -3,9 +3,9 @@ import { scrollSessionTarget, type SessionScrollContext } from "./session-naviga
 import { resolveCitationRange, sourceElements } from "./selection-text";
 
 /**
- * Where a citation's words live in the transcript, shown with the CSS Custom
- * Highlight API (the same mechanism session find uses) so the transcript's
- * React-owned markup is never touched.
+ * Dónde viven en la transcripción las palabras de una cita, mostradas con la CSS
+ * Custom Highlight API (el mismo mecanismo que usa la búsqueda en la sesión) para que
+ * nunca se toque el marcado de la transcripción, que es propiedad de React.
  */
 
 type HighlightRegistry = { set(name: string, highlight: unknown): void; delete(name: string): boolean };
@@ -15,9 +15,9 @@ function registry(): HighlightRegistry | null {
 	return css?.highlights && typeof (globalThis as { Highlight?: unknown }).Highlight === "function" ? css.highlights : null;
 }
 
-/** ::highlight() rules ship in an injected <style>, never globals.css —
- *  the PostCSS/Tailwind pipeline rejects the pseudo-element (session find's
- *  precedent). */
+/** Las reglas ::highlight() van en un <style> inyectado, nunca en globals.css — la
+ * cadena de PostCSS/Tailwind rechaza el pseudoelemento (el precedente de la búsqueda
+ * en la sesión). */
 const STYLE_ID = "lh-citation-style";
 function injectStyles(): void {
 	if (document.getElementById(STYLE_ID)) return;
@@ -29,8 +29,8 @@ function injectStyles(): void {
 	document.head.appendChild(style);
 }
 
-/** Paint a named highlight over a range; returns the cleanup. No-op where
- *  the Highlight API is missing. */
+/** Pinta un resaltado con nombre sobre un rango; devuelve la limpieza. No hace nada
+ * donde falta la Highlight API. */
 export function highlightRange(name: "lh-citation" | "lh-citation-comment", range: Range): () => void {
 	const highlights = registry();
 	if (!highlights) return () => {};
@@ -40,7 +40,7 @@ export function highlightRange(name: "lh-citation" | "lh-citation-comment", rang
 	return () => { highlights.delete(name); };
 }
 
-// ─── Go to source ────────────────────────────────────────────────────────────
+// ─── Ir a la fuente ───────────────────────────────────────────────────────────
 
 
 export type RevealPlan = "navigate" | "highlight" | "message" | "missing";
@@ -53,14 +53,14 @@ export function revealPlan({ citationChatId, currentChatId, rangeFound, messageF
 	return messageFound ? "message" : "missing";
 }
 
-/** The graph links' arrival path: the chat, scrolled to the message. */
+/** La ruta de llegada de los enlaces del grafo: el chat, desplazado hasta el mensaje. */
 export function citationSourceHref({ chatId, messageId }: Pick<TutorCitation, "chatId" | "messageId">): string {
 	return `/chat/${encodeURIComponent(chatId)}#${encodeURIComponent(messageAnchorId(messageId))}`;
 }
 
 let stopPulse: (() => void) | null = null;
 
-/** Exactly two quick pulses, then gone (one short steady hold under reduced motion). */
+/** Exactamente dos pulsos rápidos y se acabó (una breve pausa fija con movimiento reducido). */
 export function citationPulseSteps(reducedMotion: boolean): ReadonlyArray<readonly [on: boolean, at: number]> {
 	return reducedMotion ? [[true, 0], [false, 750]] : [[true, 0], [false, 250], [true, 500], [false, 750]];
 }
@@ -75,8 +75,8 @@ function pulse(range: Range, reducedMotion: boolean): void {
 	stopPulse = () => { timers.forEach((timer) => window.clearTimeout(timer)); clear(); stopPulse = null; };
 }
 
-/** Show a citation's words: highlight the quote, else flash its message,
- *  or open the other chat at that message. */
+/** Muestra las palabras de una cita: resalta la cita o, si no, hace parpadear su
+ * mensaje, o abre el otro chat en ese mensaje. */
 export function revealCitationSource({ transcript, scroll, citation, currentChatId, navigate }: {
 	transcript: HTMLElement | null;
 	scroll: SessionScrollContext | null;
