@@ -1,14 +1,14 @@
-# Plugin API reference
+# Referencia de la API de plugins
 
 <!-- Generado por scripts/build-plugin-api-reference.mjs. Edita los contratos y guías canónicos, no esta página. -->
 
-[Start here](../plugin-authoring.md) · [Examples and source reading routes](../plugin-examples.md)
+[Empieza aquí](../plugin-authoring.md) · [Ejemplos y rutas de lectura del código fuente](../plugin-examples.md)
 
-This is the complete structural reference generated from the matching portable SDK. It includes public type exports, every declared field/method/overload, nested object members and referenced local supporting types. Follow the linked guides for lifecycle, validation, recovery and interaction rules; types alone do not promise runtime behavior.
+Esta es la referencia estructural completa generada a partir del SDK portable correspondiente. Incluye las exportaciones de tipos públicos, cada campo, método y sobrecarga declarados, los miembros de objetos anidados y los tipos de apoyo locales a los que se hace referencia. Sigue las guías enlazadas para las reglas de ciclo de vida, validación, recuperación e interacción; los tipos por sí solos no prometen ningún comportamiento en tiempo de ejecución.
 
-The SDK is **type-only**. Call the contexts supplied by LearnHarness, not runtime imports from `learnharness-plugin-api`. Host implementation functions/constants may occur in declaration files; they are not callable SDK exports. Supporting declarations below explain type relationships, not extra plugin capabilities. Opaque identities remain host-created.
+El SDK es **solo de tipos**. Llama a los contextos que proporciona LearnHarness, no a importaciones en tiempo de ejecución de `learnharness-plugin-api`. En los ficheros de declaraciones pueden aparecer funciones o constantes de la implementación del host; no son exportaciones invocables del SDK. Las declaraciones de apoyo de más abajo explican relaciones entre tipos, no capacidades adicionales de los plugins. Las identidades opacas las sigue creando el host.
 
-## Entry points
+## Puntos de entrada
 
 - [PluginManifest](plugins.md#pluginmanifest)
 - [PluginFrontendModule](plugins.md#pluginfrontendmodule)
@@ -21,7 +21,7 @@ The SDK is **type-only**. Call the contexts supplied by LearnHarness, not runtim
 - [PluginAgentService](plugin-agents.md#pluginagentservice)
 - [PluginWorkerService](plugin-workers.md#pluginworkerservice)
 
-## Modules
+## Módulos
 
 - [contracts-chat](contracts-chat.md)
 - [contracts-graph](contracts-graph.md)
@@ -45,9 +45,9 @@ The SDK is **type-only**. Call the contexts supplied by LearnHarness, not runtim
 - [settings](settings.md)
 - [view](view.md)
 
-## Public types
+## Tipos públicos
 
-| Type | Module |
+| Tipo | Módulo |
 | --- | --- |
 | [ChatListItem](contracts-chat.md#chatlistitem) | `contracts-chat` |
 | [ChatRecord](contracts-chat.md#chatrecord) | `contracts-chat` |
@@ -190,9 +190,9 @@ The SDK is **type-only**. Call the contexts supplied by LearnHarness, not runtim
 | [Position](contracts-graph.md#position) | `contracts-graph` |
 | [SessionCheckpoint](contracts-graph.md#sessioncheckpoint) | `contracts-graph` |
 
-## Supporting declarations
+## Declaraciones de apoyo
 
-These are reachable through public data, event, inheritance or helper-type relationships. Types not re-exported from the SDK root cannot be imported by name from that root; access them through public types rather than private app imports.
+Se llega a ellas a través de relaciones de datos públicos, eventos, herencia o tipos auxiliares. Los tipos que no se reexportan desde la raíz del SDK no pueden importarse por su nombre desde esa raíz; accede a ellos a través de los tipos públicos y no mediante importaciones privadas de la app.
 
 - [CallUsage](contracts-chat.md#callusage) — `contracts-chat`
 - [ChatKind](contracts-chat.md#chatkind) — `contracts-chat`
@@ -252,8 +252,8 @@ These are reachable through public data, event, inheritance or helper-type relat
 - [LhViewMessage](view.md#lhviewmessage) — `view`
 - [LhViewPart](view.md#lhviewpart) — `view`
 
-## External types
+## Tipos externos
 
-Standard JavaScript/DOM types (`Promise`, `AbortSignal`, `File`, `HTMLElement`, and utility types) use their standard contracts. Pi model/messages/tools and TypeBox schemas use the exact peer versions declared by the bundled SDK's `package.json`. Supply those peers when typechecking; they are development types, not permission to import private LearnHarness runtime modules.
+Los tipos estándar de JavaScript y del DOM (`Promise`, `AbortSignal`, `File`, `HTMLElement` y los tipos utilitarios) siguen sus contratos estándar. Los modelos, mensajes y herramientas de Pi y los esquemas de TypeBox usan las versiones exactas de las dependencias *peer* declaradas en el `package.json` del SDK incluido. Proporciona esas dependencias al comprobar tipos; son tipos de desarrollo, no un permiso para importar módulos privados de runtime de LearnHarness.
 
-Coverage: **140 public types**, **57 supporting declarations**, **894 declared member signatures/variants**. Generation contains no build timestamps or absolute source paths.
+Cobertura: **140 tipos públicos**, **57 declaraciones de apoyo**, **894 firmas o variantes de miembros declaradas**. La generación no incluye marcas de tiempo de compilación ni rutas absolutas del código fuente.
