@@ -79,26 +79,30 @@ import { steerDelivered } from "../core/contracts.ts";
 import type {CallUsage} from "../core/contracts.ts";
 
 /**
- * One chat turn over the server-owned native record. Framework-free (plain
- * Request/Response) so tests can drive it directly with a scripted faux
- * engine — the Next route handler in app/api/chat is a one-line wrapper.
+ * Un turno de chat sobre el registro nativo que controla el servidor. Sin
+ * framework (Request/Response a secas) para que las pruebas puedan dirigirlo
+ * directamente con un motor simulado con guion; el route handler de Next en
+ * app/api/chat es un envoltorio de una línea.
  *
- * THE INPUT-EVENTS CONTRACT (Wave B, owner ruling 2026-09-26): POST /api/chat
- * carries {chatId, input} — one explicit event (text / answer / verdict /
- * continue), never a client transcript. The server owns the record; this
- * module is the TURN COMPOSITION ROOT: it turns the event into native
- * record appends (core/input-events.ts), builds the agent from the record
- * (the record IS the agent state — state.messages = record.messages,
- * continue()), and runs the turn as a background object (pi/ui-stream.ts).
- * Wake-pipeline steers ride the same composition (TurnInput's steer kind).
+ * EL CONTRATO DE EVENTOS DE ENTRADA (oleada B, decisión del responsable
+ * 2026-09-26): POST /api/chat lleva {chatId, input}, un único evento explícito
+ * (texto / respuesta / veredicto / continuar), nunca una transcripción del
+ * cliente. El servidor es el dueño del registro; este módulo es la RAÍZ DE
+ * COMPOSICIÓN DEL TURNO: convierte el evento en añadidos nativos al registro
+ * (core/input-events.ts), construye el agente a partir del registro (el
+ * registro ES el estado del agente: state.messages = record.messages,
+ * continue()) y ejecuta el turno como un objeto en segundo plano
+ * (pi/ui-stream.ts). Las reorientaciones del proceso de despertar viajan por la
+ * misma composición (el tipo steer de TurnInput).
  *
- * THE SAME COMPOSITION serves both entry points: client requests and the
- * wake pipeline's server-side steers (src/server/jobs.ts) — one code path
- * for write-ahead persistence, turn liveness, and the turn services.
+ * LA MISMA COMPOSICIÓN sirve a los dos puntos de entrada: las peticiones del
+ * cliente y las reorientaciones del proceso de despertar en el servidor
+ * (src/server/jobs.ts); una sola ruta de código para la persistencia
+ * anticipada, la vida del turno y los servicios del turno.
  */
 
-/** Fresh check only at new background-run admission; never cancel a run
- * already in progress when the opt-in is switched off. */
+/** Comprobación nueva solo al admitir una nueva ejecución en segundo plano; nunca
+ * se cancela una ejecución ya en curso si se desactiva la opción. */
 function connectionBackgroundAllowed(provider: string): boolean {
 	return subscriptionBackgroundAllowed(provider) && (provider !== CLAUDE_CODE_PROVIDER || providerKeyPresent(provider));
 }
@@ -111,76 +115,78 @@ const jobRunner = createJobRunner({
 	chatStore: stores.chatStore,
 	jobStore: stores.jobStore,
 	deliver: deliverJobResult,
-	// BYOK (owner, 2026-09-22): job engines resolve the chain — role
-	// override → slot → NOTHING — read FRESH per job (a settings PUT
-	// between dispatch and spawn lands); an empty chain flows through as
-	// undefined and the runner refuses the spawn honestly.
+	// BYOK (responsable, 2026-09-22): los motores de las tareas resuelven la cadena
+	// (sustitución del rol → ranura → NADA), leída DE NUEVO en cada tarea (un PUT de
+	// ajustes entre el despacho y el lanzamiento se aplica); una cadena vacía llega
+	// como undefined y el ejecutor rechaza el lanzamiento con honestidad.
 	engineFor: (role) =>
 		resolveEngine(role),
-	// Key-presence gate (provider-key interlude, 2026-09-25): the runner
-	// reads the resolved engine's provider and asks THIS check (the agent
-	// layer may not read the key store); a missing key refuses the spawn
-	// with the 503-envelope family instead of dying mid-run.
+	// Barrera de presencia de clave (interludio de claves de proveedor, 2026-09-25): el
+	// ejecutor lee el proveedor del motor resuelto y consulta ESTA comprobación (la capa
+	// del agente no puede leer el almacén de claves); si falta la clave, el lanzamiento
+	// se rechaza con la familia de sobres 503 en lugar de morir a mitad de ejecución.
 	providerKeyMissing: (provider, tier) =>
 		providerKeyPresent(provider) ? null : providerKeyMissingEnvelope(provider, [tier]),
-	// Search port wave (2026-09-20): the researcher's web_search runs on the
-	// injected port — resolved FRESH per job (key rotations land immediately).
-	// null = honestly unavailable; the dispatch-level drop (below) uses the
-	// same signal so keyless servers never see the research tool at all.
+	// Oleada del puerto de búsqueda (2026-09-20): el web_search del researcher funciona
+	// sobre el puerto inyectado, resuelto DE NUEVO en cada tarea (las rotaciones de claves
+	// se aplican al momento). null = no disponible, dicho con honestidad; la retirada en el
+	// despacho (más abajo) usa la misma señal, así que los servidores sin clave ni ven la herramienta research.
 	searchProvider,
 });
-/** The app's ONE extraction pipeline instance — both front doors share it:
- *  quiz-triggered session runs (turn-service) and notes imports
- *  (/api/graph/import) hit the same single-flight registry. */
+/** La ÚNICA instancia del proceso de extracción de la app; la comparten las dos
+ *  puertas de entrada: las ejecuciones de sesión disparadas por un quiz
+ *  (turn-service) y las importaciones de notas (/api/graph/import) llegan al
+ *  mismo registro de vuelo único. */
 export const extraction = createExtractionPipeline({
 	...stores,
-	// BYOK (owner, 2026-09-22): the extraction stages resolve the chain —
-	// role override → slot → NOTHING — read FRESH per stage call; an empty
-	// chain flows through as undefined and the pipeline refuses the run
-	// with the typed ModelsNotConfiguredError. Direct test values still win.
+	// BYOK (responsable, 2026-09-22): las etapas de extracción resuelven la cadena
+	// (sustitución del rol → ranura → NADA), leída DE NUEVO en cada llamada a una etapa;
+	// una cadena vacía llega como undefined y el proceso rechaza la ejecución con el
+	// ModelsNotConfiguredError tipado. Los valores directos de las pruebas siguen ganando.
 	engineFor: (role) =>
 		resolveEngine(role),
-	// Key-presence gate (provider-key interlude, 2026-09-25): same check
-	// the job runner gets — a stage engine whose provider key is gone
-	// refuses BEFORE any batch runs (the typed throw), never mid-run.
+	// Barrera de presencia de clave (interludio de claves de proveedor, 2026-09-25): la
+	// misma comprobación que recibe el ejecutor de tareas; un motor de etapa sin clave de
+	// proveedor se rechaza ANTES de que se ejecute ningún lote (el error tipado), nunca a mitad.
 	providerKeyMissing: (provider, tier) =>
 		providerKeyPresent(provider) ? null : providerKeyMissingEnvelope(provider, [tier]),
 });
 
 
-// Wake-pipeline wiring (contracts.ts "THE ASYNC PROTOCOL" §4): the pipeline
-// delivers its steers through THIS composition root (one event: the steer
-// marker, appended natively under the turn claim), and crash recovery
-// re-spawns orphaned sub-agent loops through THIS runner.
+// Cableado del proceso de despertar (contracts.ts, "THE ASYNC PROTOCOL" §4): el proceso
+// entrega sus reorientaciones a través de ESTA raíz de composición (un evento: el marcador
+// de reorientación, añadido de forma nativa bajo la reclamación del turno), y la
+// recuperación tras un fallo vuelve a lanzar los bucles de subagente huérfanos con ESTE ejecutor.
 setTurnRunner(async (chatId, input) => {
 	const res = await handleChatInput(chatId, input);
-	// Drive the stream to completion server-side — nobody else will read it,
-	// and onFinish (persist, extraction, endTurn) only runs when it drains.
+	// Se lleva el flujo hasta el final en el servidor: nadie más lo va a leer, y
+	// onFinish (persistir, extracción, endTurn) solo se ejecuta cuando se vacía.
 	await res.arrayBuffer().catch(() => undefined);
 	return res.status;
 });
-/** The settings-resolved engine for one role — BYOK (owner, 2026-09-22):
- *  the chain (role override → slot → NOTHING) may end empty, and undefined
- *  flows through to the per-need refusal gates (runner/extraction), read
- *  FRESH so a settings PUT between dispatch and spawn lands. */
+/** El motor resuelto desde los ajustes para un rol. BYOK (responsable,
+ *  2026-09-22): la cadena (sustitución del rol → ranura → NADA) puede acabar
+ *  vacía, y undefined llega a las barreras de rechazo por necesidad
+ *  (runner/extraction); se lee DE NUEVO para que se aplique un PUT de ajustes
+ *  entre el despacho y el lanzamiento. */
 function resolveEngine(role: ModelRole): PiEngine | undefined {
 	const spec = resolveRoleSpec(role, stores.settingsStore.readSettings());
 	return spec ? piEngineForSpec(spec, true, undefined, retentionForSlot(ROLE_SLOT[role])) : undefined;
 }
 
-/** Slot policy is independent of model overrides. Read fresh per operation,
- * including parked conversations, background loops and compaction. */
+/** La política de ranuras es independiente de las sustituciones de modelo. Se lee de nuevo en
+ * cada operación, incluidas las conversaciones aparcadas, los bucles en segundo plano y la compactación. */
 function retentionForSlot(slot: ModelSlotName) {
 	return () => stores.settingsStore.readSettings()?.models?.[slot]?.cacheRetention;
 }
 
 setJobRespawn((jobId) => void jobRunner.runJob(jobId));
-// The learner-filesystem policy (file-access wave): every tool registry is
-// built in this composition root, so the seam is installed here — the
-// tools read it fresh per call (allowed folders + the app's private paths).
+// La política del sistema de ficheros del alumno (oleada de acceso a ficheros): todos los
+// registros de herramientas se construyen en esta raíz de composición, así que la frontera se
+// instala aquí; las herramientas la leen de nuevo en cada llamada (carpetas permitidas + rutas privadas de la app).
 setFileAccessPolicy(fileAccessPolicy);
 
-/** The route-facing entry: parse {chatId, input} and run one turn. */
+/** La entrada de cara a la ruta: analiza {chatId, input} y ejecuta un turno. */
 export async function handleChatRequest(
 	req: Request,
 	buildAgent?: (opts: AgentBuildOptions & { teaching: boolean }) => TeachingAgent,
@@ -207,9 +213,10 @@ export async function handleChatRequest(
 }
 
 /**
- * The turn composition: one input event → native record appends → one
- * agent turn as a background object. Also the wake pipeline's entry
- * (TurnInput's steer kind appends the marker under the same claim).
+ * La composición del turno: un evento de entrada → añadidos nativos al
+ * registro → un turno del agente como objeto en segundo plano. También es la
+ * entrada del proceso de despertar (el tipo steer de TurnInput añade el
+ * marcador bajo la misma reclamación).
  */
 export async function handleChatInput(
 	chatId: string,
@@ -257,8 +264,8 @@ export async function handleChatInput(
 		} catch { return Response.json({ error: "Question unavailable" }, { status: 400 }); }
 	}
 
-	// Refuse an ineligible Retry before catalog refresh, compaction, or any
-	// turn/write effects. Revalidate after the awaited gates below too.
+	// Se rechaza un Retry no admisible antes de refrescar el catálogo, compactar o
+	// producir efectos de turno/escritura. Se vuelve a validar tras las barreras esperadas de más abajo.
 	if (input.type === "retry") {
 		try {
 			retryDrops(record.messages);
@@ -276,14 +283,14 @@ export async function handleChatInput(
 		}
 	}
 
-	// THE UNIVERSAL TURN GATE (BYOK, owner, 2026-09-22): a turn needs the
-	// CONVERSATION chain — the chat's own model override over the strong
-	// slot — and there is no factory floor; when both are empty the turn
-	// refuses honestly with the machine-readable 503 envelope (new sessions
-	// and continuing ones alike — wake-pipeline turns ride this same path).
-	// Placement is deliberate: BEFORE beginTurn (no liveness effects), the
-	// write-ahead persist (nothing durable changes), and every downstream
-	// resolution (jobs/extraction gate per-need on their own tiers).
+	// LA BARRERA UNIVERSAL DEL TURNO (BYOK, responsable, 2026-09-22): un turno necesita
+	// la cadena de CONVERSACIÓN (la sustitución de modelo del propio chat por encima de la
+	// ranura potente) y no hay suelo de fábrica; si ambas están vacías, el turno se
+	// rechaza con honestidad con el sobre 503 legible por máquina (igual en sesiones nuevas
+	// que en las que continúan; los turnos del proceso de despertar van por esta misma ruta).
+	// La ubicación es deliberada: ANTES de beginTurn (sin efectos sobre la vida del turno),
+	// de la persistencia anticipada (no cambia nada duradero) y de toda resolución posterior
+	// (las tareas y la extracción aplican su barrera por necesidad, según su propio nivel).
 	const effective = effectiveSettings();
 	const conversation = resolveConversationSpec(record.settings, effective.models.strong);
 	if (!conversation) {
@@ -292,15 +299,15 @@ export async function handleChatInput(
 		return Response.json(envelope, { status: 503 });
 	}
 
-	// THE KEY-PRESENCE GATE (provider-key interlude, owner, 2026-09-25): a
-	// pinned model is not enough — its PROVIDER's key must be present, or
-	// the turn dies mid-stream masked to a generic error. Truth is env-first
-	// (providerKeyPresent reads what pi-ai would read at request time), so
-	// an env-shadowed key passes. Same placement discipline as the models
-	// gate: BEFORE beginTurn (no liveness effects) and the write-ahead
-	// persist (nothing durable changes); wake-pipeline turns ride the same
-	// path. The affected tier is strong — the conversation chain's own tier
-	// (a chat.model override still resolves through it).
+	// LA BARRERA DE PRESENCIA DE CLAVE (interludio de claves de proveedor, responsable,
+	// 2026-09-25): no basta con un modelo fijado; la clave de su PROVEEDOR debe estar
+	// presente o el turno muere a mitad del flujo, enmascarado como un error genérico. La
+	// verdad es primero el entorno (providerKeyPresent lee lo que pi-ai leería al hacer la
+	// petición), así que una clave tapada por el entorno pasa. La misma disciplina de
+	// ubicación que la barrera de modelos: ANTES de beginTurn (sin efectos sobre la vida del
+	// turno) y de la persistencia anticipada (no cambia nada duradero); los turnos del proceso
+	// de despertar van por la misma ruta. El nivel afectado es el potente, el propio de la
+	// cadena de conversación (una sustitución chat.model también se resuelve a través de él).
 	if (isSubscriptionProvider(conversation.provider)) {
 		await refreshConnectionCatalog(conversation.provider);
 		if (input.type === "steers" && !connectionBackgroundAllowed(conversation.provider)) {
@@ -313,15 +320,15 @@ export async function handleChatInput(
 		return Response.json(envelope, { status: 503 });
 	}
 
-	// THE COMPACTION GATE (owner round 14, 2026-10-05 — the structural
-	// ruling: NOTHING model-facing for this chat interleaves with a
-	// running compaction): await any in-flight compaction (the settle
-	// kick usually finished inside the learner's answer pause), and if
-	// the record is STILL over threshold, compact synchronously — this
-	// request waits. Skipped under tests (the extraction precedent);
-	// placement mirrors the BYOK/key gates — BEFORE appends and
-	// beginTurn, no liveness effects — and the record re-reads after
-	// because compaction appends the marker.
+	// LA BARRERA DE COMPACTACIÓN (ronda 14 del responsable, 2026-10-05; la decisión
+	// estructural: NADA de cara al modelo para este chat se intercala con una
+	// compactación en curso): se espera a cualquier compactación en marcha (el impulso
+	// al asentarse suele haber terminado durante la pausa de respuesta del alumno) y, si
+	// el registro SIGUE por encima del umbral, se compacta de forma síncrona: esta
+	// petición espera. Se omite en las pruebas (el precedente de la extracción); la
+	// ubicación refleja la de las barreras BYOK/de claves (ANTES de los añadidos y de
+	// beginTurn, sin efectos sobre la vida del turno) y el registro se vuelve a leer
+	// después porque la compactación añade el marcador.
 	const callPurpose = { background: input.type === "steers" || (input.type === "continue" && reconstructRequestCause(record.messages) !== "foreground") };
 	let requestCycle: SubscriptionRequestCycle | undefined;
 	const tentativeSideIds = new Set<string>();
@@ -368,12 +375,12 @@ export async function handleChatInput(
 	const estimateModel = effective.compaction.includeReasoning ? conversationEngine.model : undefined;
 	const fitsSideContext = (messages: readonly LhMessage[]) => {
 		const live = messages.filter((message) => (message as { role: string }).role !== "system");
-		// Hard admission is not the compaction trigger. CLI capacity comes from
-		// this request's latest matching session report, never catalog placeholders.
-		// Re-resolve at every gate: new responses/compaction can invalidate it.
-		// Retry's transient SDK prefix omits ALL tail failures. Keep the saved
-		// history in the metadata-only view so omission cannot revive a report
-		// invalidated by a genuine provider failure. New live responses win.
+		// La admisión estricta no es el disparador de la compactación. La capacidad de la CLI
+		// sale del último informe de sesión coincidente de esta petición, nunca de valores provisionales del catálogo.
+		// Se vuelve a resolver en cada barrera: nuevas respuestas o compactaciones pueden invalidarla.
+		// El prefijo transitorio del SDK en Retry omite TODOS los fallos de la cola. El historial
+		// guardado se mantiene en la vista solo de metadatos, para que la omisión no reviva un
+		// informe invalidado por un fallo genuino del proveedor. Las respuestas en vivo nuevas ganan.
 		const saved = conversation.provider === CLAUDE_CODE_PROVIDER ? stores.chatStore.getChat(chatId)?.messages ?? [] : [];
 		const savedIds = new Set(saved.map((message) => message.id));
 		const reportHistory = saved.length ? [...saved, ...live.filter((message) => !savedIds.has(message.id))] : live;
@@ -396,9 +403,9 @@ export async function handleChatInput(
 			projectMessages: (current) => {
 				try {
 					if (input.type === "plugin-question-answer" || input.type === "plugin-problem-submission") {
-						// The processed result does not exist yet. Count only saved
-						// history + raw side cargo, never a guessed result or an early
-						// plugin callback. The exact assembled request is checked later.
+						// El resultado procesado aún no existe. Solo se cuenta el historial guardado
+						// + la carga lateral en bruto, nunca un resultado supuesto ni un callback
+						// temprano de un plugin. La petición exacta ensamblada se comprueba más tarde.
 						if (input.type === "plugin-question-answer") {
 							const pending = pendingPluginQuestionOf(current.messages);
 							if (!pending || pending.questionId !== input.questionId || !samePluginQuestionOccurrence(pending.occurrence, input.occurrence)) return current.messages;
@@ -420,7 +427,7 @@ export async function handleChatInput(
 					const omitted = input.type === "retry" ? retryDrops(current.messages) : new Set<string>();
 					return projected.filter((message) => !omitted.has(message.id));
 				} catch (error) {
-					if (error instanceof ChatInputError) return current.messages; // normal input validation follows the gate
+					if (error instanceof ChatInputError) return current.messages; // la validación normal de la entrada va después de la barrera
 					throw error;
 				}
 			},
@@ -431,16 +438,16 @@ export async function handleChatInput(
 	if (!buildAgent) {
 		try { pluginContributions = await getPluginAgentContributions(); }
 		catch (error) {
-			// Plugin startup failures must not make the native lesson unusable.
+			// Los fallos de arranque de los plugins no deben dejar inutilizable la lección nativa.
 			console.error("[plugins] Agent contributions unavailable:", error);
 		}
 	}
 	const compactedRecord = stores.chatStore.getChat(chatId);
 	if (!compactedRecord) return Response.json({ error: "Unknown chat" }, { status: 404 });
 	record = compactedRecord;
-	// Final admission seam: every image/preflight await is over. Resolve via
-	// the SAME conversation chain, never a parallel role catalog. No await
-	// may intervene before the save-only write or beginTurn/write below.
+	// Frontera final de admisión: todas las esperas de imagen/comprobación previa han
+	// terminado. Se resuelve con la MISMA cadena de conversación, nunca con un catálogo de roles
+	// paralelo. Ninguna espera puede interponerse antes de la escritura solo-guardado o de beginTurn/escritura de abajo.
 	const staleSubmission = () => Response.json({ code: "submission-stale", error: "The submission target or selected model changed. Your input has been kept." }, { status: 412 });
 	const submissionIsCurrent = (checkModel = true) => {
 		if (!freshSubmission) return true;
@@ -463,9 +470,9 @@ export async function handleChatInput(
 		return true;
 	};
 	if (!submissionIsCurrent()) return staleSubmission();
-	// Recompute Retry eligibility on current truth, still before beginTurn.
-	// A compaction marker or another writer may have landed during awaits.
-	// These omissions affect ONLY the agent context, never the saved record.
+	// Se recalcula si Retry es admisible con la verdad actual, aún antes de beginTurn.
+	// Durante las esperas puede haber llegado un marcador de compactación u otro escritor.
+	// Estas omisiones afectan SOLO al contexto del agente, nunca al registro guardado.
 	let retryOmissions = new Set<string>();
 	if (input.type === "retry") {
 		try {
@@ -476,13 +483,13 @@ export async function handleChatInput(
 		}
 	}
 
-	// The input's native appends (pure; the honest 400 for an answer with no
-	// pending question call). Computed BEFORE beginTurn so a refused input
-	// leaves no liveness effects; read against the CURRENT record. Wave C:
-	// the idle wake carries EVERY queued marker (steerDelivered filters a
-	// re-fire of an already-landed one) - with claimSteers gone, this wake
-	// input is the only steer appender; in-run delivery rides pi's own
-	// follow-up queue and never builds an input event at all.
+	// Los añadidos nativos de la entrada (puros; el 400 honesto para una respuesta sin
+	// llamada de pregunta pendiente). Se calculan ANTES de beginTurn para que una entrada
+	// rechazada no deje efectos sobre la vida del turno; se leen contra el registro ACTUAL.
+	// Oleada C: el despertar en reposo lleva TODOS los marcadores en cola (steerDelivered filtra
+	// un nuevo disparo de uno ya aterrizado); sin claimSteers, esta entrada de despertar es la
+	// única que añade reorientaciones; la entrega durante la ejecución va por la propia cola
+	// de seguimiento de pi y nunca construye un evento de entrada.
 	let preparation: TurnPreparation | undefined;
 	let turnClaimed = false;
 	let handedOff = false;
@@ -491,15 +498,15 @@ export async function handleChatInput(
 		if (preparation) preparation.finish();
 		else { endTurn(chatId); unregisterTurn(chatId); }
 	};
-	// The entire owned region includes grading, persistence and construction.
-	// Every pre-handoff exit closes waiting views and releases its own claim.
+	// Toda la región controlada incluye la calificación, la persistencia y la construcción.
+	// Cada salida previa al traspaso cierra las vistas en espera y libera su propia reclamación.
 	try {
 	let appends;
 	try {
 		assertPluginQuestionInputAllowed(record.messages, input);
-		// A competing preflight can start compaction during the contribution
-		// await above. No await separates this structural check from ownership
-		// or the save-only sibling branch below.
+		// Una comprobación previa concurrente puede iniciar una compactación durante la
+		// espera de la contribución de arriba. Ninguna espera separa esta comprobación
+		// estructural de la toma de control ni de la rama hermana solo-guardado de abajo.
 		if (compactionInFlight(chatId))
 			return Response.json({ error: "A turn is already running for this session" }, { status: 409 });
 		if ((input.type === "plugin-question-answer" || input.type === "plugin-problem-submission") && isTurnRunning(chatId))
@@ -515,12 +522,12 @@ export async function handleChatInput(
 				preparation = claim;
 				turnClaimed = true;
 				const outcome = await work(preparation.signal);
-				// No captured history may be written after asynchronous plugin processing.
+				// No se puede escribir ningún historial capturado tras el procesamiento asíncrono de los plugins.
 				const current = stores.chatStore.getChat(chatId);
 				if (!current || !preparation.isCurrent()) return staleSubmission();
 				record = current;
-				// Admission pins this submission's model/provider. Later picker
-				// changes apply to the next request, not to this accepted work.
+				// La admisión fija el modelo/proveedor de este envío. Los cambios posteriores en el
+				// selector se aplican a la siguiente petición, no a este trabajo ya aceptado.
 				if (!submissionIsCurrent(false)) return staleSubmission();
 				preparation.signal.throwIfAborted();
 				appends = submission.finish({ id: chatId, kind: record.kind, messages: record.messages }, outcome);
@@ -535,16 +542,16 @@ export async function handleChatInput(
 		throw err;
 	}
 
-	// THE PARALLEL-QUESTION GATE (owner, 2026-10-03 — the deepseek parallel
-	// batch incident): an answer that leaves a SIBLING question dangling
-	// defers its wake. The dock advances to the next question (the client's
-	// optimistic result + record-changed carry the view); the LAST answer
-	// fires the one reaction turn with every result ADJACENT to its calling
-	// assistant message — the provider shape law (a tool result appended
-	// after an intervening assistant message is rejected, which stranded
-	// the sibling question permanently pre-fix). Nothing else can generate
-	// while a question dangles (job wakes wait, continuation folds refuse,
-	// the composer gates), so adjacency holds by construction.
+	// LA BARRERA DE PREGUNTAS PARALELAS (responsable, 2026-10-03; el incidente del lote
+	// paralelo de deepseek): una respuesta que deja colgada una pregunta HERMANA aplaza su
+	// despertar. El dock pasa a la siguiente pregunta (el resultado optimista del cliente +
+	// record-changed llevan la vista); la ÚLTIMA respuesta dispara el único turno de reacción
+	// con todos los resultados CONTIGUOS al mensaje del asistente que hizo la llamada: la ley
+	// de forma del proveedor (un resultado de herramienta añadido tras un mensaje del
+	// asistente intermedio se rechaza, lo que antes de la corrección dejaba varada para
+	// siempre la pregunta hermana). Nada más puede generar mientras cuelga una pregunta (los
+	// despertares de tareas esperan, los plegados de continuación se rechazan, el compositor
+	// tiene barrera), así que la contigüidad se cumple por construcción.
 	if ((input.type === "answer" || input.type === "plugin-question-answer") && hasUnresolvedQuestion([...record.messages, ...appends])) {
 		const merged = [...record.messages, ...appends];
 		try { stores.chatStore.saveMessages(chatId, merged); inputSaved = true; }
@@ -553,12 +560,12 @@ export async function handleChatInput(
 			return new Response("Your input could not be saved. Please try again.", { status: 500 });
 		}
 		emit("record-changed", { chatId });
-		return settledTurnResponse(); // the cheap terminal — no beginTurn, no turn
+		return settledTurnResponse(); // el final barato: sin beginTurn, sin turno
 	}
 
-	// One turn per chat, ever. A second request while a turn runs means a
-	// stale/remounted client raced a live one — letting it through would
-	// double-run the teacher and clobber the first turn's persist.
+	// Un turno por chat, siempre. Una segunda petición mientras corre un turno significa
+	// que un cliente obsoleto/remontado compitió con uno vivo; dejarla pasar ejecutaría
+	// dos veces al profesor y machacaría la persistencia del primer turno.
 	if (!preparation && !beginTurn(chatId)) {
 		console.info(`[chat ${chatId}] turn already in flight — request rejected`);
 		return Response.json({ error: "A turn is already running for this session" }, { status: 409 });
@@ -566,15 +573,15 @@ export async function handleChatInput(
 
 	turnClaimed = true;
 
-	// Write-ahead persistence: the input's native appends go on disk BEFORE
-	// the turn starts - the learner's answer is durable the instant the
-	// request arrives, and any remount, second tab, or server crash reads
-	// truth instead of the pre-answer record. (Wave C: the wake's markers
-	// ride this same write-ahead - the pump de-queued them at fire, so this
-	// is the ONLY copy ever appended.)
-	// Prospectively check new exchanges from ALL threads for early automatic
-	// refusal. This snapshot does not authorize the final assembled request;
-	// SDK preparation re-collects live text and validates queued steering too.
+	// Persistencia anticipada: los añadidos nativos de la entrada van a disco ANTES de
+	// que empiece el turno; la respuesta del alumno es duradera en el instante en que
+	// llega la petición, y cualquier remontaje, segunda pestaña o caída del servidor lee
+	// la verdad en lugar del registro previo a la respuesta. (Oleada C: los marcadores del
+	// despertar viajan por esta misma escritura anticipada; la bomba los sacó de la cola al
+	// dispararse, así que esta es la ÚNICA copia que se añade).
+	// Se comprueban de antemano los intercambios nuevos de TODOS los hilos para un rechazo
+	// automático temprano. Esta instantánea no autoriza la petición final ensamblada; la
+	// preparación del SDK vuelve a recoger el texto vivo y valida también la reorientación en cola.
 	const sideContextSnapshots = sideContext.snapshot(chatId);
 	const afterInput = [...record.messages, ...appends];
 	const sideQuestions = hasUnresolvedQuestion(afterInput) ? [] : sideConversationEntries({
@@ -583,20 +590,20 @@ export async function handleChatInput(
 	const withSideQuestions = input.type === "answer" || input.type === "retry-question" || input.type === "plugin-question-answer" ? [...appends, ...sideQuestions] : [...sideQuestions, ...appends];
 	const prospective = [...record.messages, ...withSideQuestions].filter((message) => !retryOmissions.has(message.id));
 	const sideContextBlocked = sideQuestions.length > 0 && !fitsSideContext(prospective);
-	// An automatic batch has not been admitted; refuse it without persisting
-	// its markers. Its existing caller retains/restores the queued work.
+	// Un lote automático no ha sido admitido; se rechaza sin persistir sus
+	// marcadores. Su llamante existente conserva/restaura el trabajo en cola.
 	if (sideContextBlocked && isSubscriptionProvider(conversation.provider) && input.type === "steers") {
 		endTurn(chatId);
 		return new Response(sideBudgetError().message, { status: 400 });
 	}
-	// Only the learner/automatic input is write-ahead. Raw exchanges are
-	// already durable in sideChats; their delivery entries join the SDK
-	// request at its preparation boundary, and publish only if admitted.
+	// Solo la entrada del alumno/automática se escribe por anticipado. Los intercambios en
+	// bruto ya son duraderos en sideChats; sus entradas de entrega se suman a la petición
+	// del SDK en su frontera de preparación y solo se publican si se admiten.
 	const merged = [...record.messages, ...appends];
-	// Retry preserves every persisted attempt. Pi needs a non-assistant
-	// tail to start continue(), so its temporary history omits the trailing
-	// failures only. Count that SAME temporary prefix at settlement, or the
-	// retained failures would make persistTurn skip genuinely new output.
+	// Retry conserva todos los intentos persistidos. Pi necesita una cola que no sea del
+	// asistente para iniciar continue(), así que su historial temporal omite solo los fallos
+	// finales. Se cuenta ese MISMO prefijo temporal al asentarse; si no, los fallos
+	// conservados harían que persistTurn se saltara salida genuinamente nueva.
 	const agentMessages = input.type === "retry" ? merged.filter((m) => !retryOmissions.has(m.id)) : merged;
 	const stagedAutomatic = isSubscriptionProvider(conversation.provider) && input.type === "steers";
 	let persistBaseCount = stagedAutomatic ? record.messages.length : agentMessages.length;
@@ -609,17 +616,17 @@ export async function handleChatInput(
 		console.error(`[chat ${chatId}] write-ahead persist failed:`, err);
 		return new Response("Your input could not be saved. Please try again.", { status: 500 });
 	}
-	// Visibility bookkeeping is not the canonical save. Its failure must
-	// neither misreport a saved input as lost nor prevent the turn running.
+	// La contabilidad de visibilidad no es el guardado canónico. Su fallo no debe ni
+	// dar por perdida una entrada guardada ni impedir que se ejecute el turno.
 	try {
 		if (!stagedAutomatic) noteSteersDurable(chatId, merged);
 	} catch (err) {
 		console.error(`[chat ${chatId}] input visibility bookkeeping failed:`, err);
 	}
 
-	// MONEY CHANNEL (wave 4): one collector per request, fed by the agent's
-	// message_end events. Every model call's usage lands in the chat record's
-	// append-only turns log at onFinish — idempotent per turn id.
+	// CANAL DEL DINERO (oleada 4): un colector por petición, alimentado por los eventos
+	// message_end del agente. El uso de cada llamada al modelo llega al registro de turnos
+	// de solo añadido del chat en onFinish; idempotente por id de turno.
 	const turnUsageId = crypto.randomUUID();
 	const steps: CallUsage[] = [];
 	const collectUsage = (usage: Usage) => {
@@ -629,35 +636,35 @@ export async function handleChatInput(
 			cacheReadTokens: usage.cacheRead,
 			cacheWriteTokens: usage.cacheWrite,
 			cacheWrite1hTokens: usage.cacheWrite1h ?? 0,
-			// Optional in pi's Usage — persisted as 0, never dropped.
+			// Opcional en el Usage de pi: se persiste como 0, nunca se descarta.
 			reasoningTokens: usage.reasoning ?? 0,
 		});
 	};
 
-	// AGENT CONSTRUCTION BRANCH (docs/archive/probe-teach-split.md §2): the transcript
-	// is the seam — a probe_done call in the record means the probe is
-	// concluded: build the TEACHER (planning + the full toolset). Otherwise
-	// the session is still probing: build the PROBER (quiz/ask + probe_done).
-	// Both share this whole composition (write-ahead persist, liveness,
-	// steers, usage, extraction) — only the agent differs.
+	// RAMA DE CONSTRUCCIÓN DEL AGENTE (docs/archive/probe-teach-split.md §2): la transcripción
+	// es la frontera; una llamada probe_done en el registro significa que el sondeo ha
+	// concluido: se construye el PROFESOR (planificación + todas las herramientas). Si no,
+	// la sesión sigue sondeando: se construye el SONDEADOR (quiz/ask + probe_done).
+	// Ambos comparten toda esta composición (persistencia anticipada, vida del turno,
+	// reorientaciones, uso, extracción); solo cambia el agente.
 	const teaching = hasProbeDone(agentMessages);
-	// BYOK (owner, 2026-09-22): the conversation chain was resolved by the
-	// turn gate above (chat.model override → strong slot → refused) — the
-	// engine build is pure from here; thinking levels clamp natively.
-	// (Built once above the compaction gate; reused verbatim.)
+	// BYOK (responsable, 2026-09-22): la cadena de conversación ya la resolvió la barrera
+	// del turno de arriba (sustitución chat.model → ranura potente → rechazo); desde aquí
+	// la construcción del motor es pura; los niveles de razonamiento se acotan de forma nativa.
+	// (Se construye una vez encima de la barrera de compactación y se reutiliza tal cual).
 	const engine = conversationEngine;
-	// Provider-qualified stamp (model slots wave): matches the price table's
-	// provider:id keys.
+	// Sello con proveedor (oleada de ranuras de modelo): coincide con las claves
+	// proveedor:id de la tabla de precios.
 	const modelId = `${engine.model.provider}:${engine.model.id}`;
-	// Tests inject a factory: the agent is stateless per turn, so each
-	// request builds a fresh one off the record — the factory mirrors that
-	// seam exactly. Wave B: the record IS the agent state (native messages;
-	// the record's id field strips at the wire in toLlmMessages).
-	// CROSS-STREAM SEAM (P2 reconciliation, 2026-09-19): `toolToggles`
-	// rides the build opts as the user-level DELTA map (absent key =
-	// enabled). The definitive toggleable set is TOGGLEABLE_TOOLS — the
-	// sub-agent JOB tools (research/demo/visual/pdf; adjudicated with the
-	// user: quiz/ask/fs/plan/probe_done are always-on).
+	// Las pruebas inyectan una fábrica: el agente no tiene estado entre turnos, así que
+	// cada petición construye uno nuevo a partir del registro; la fábrica refleja
+	// exactamente esa frontera. Oleada B: el registro ES el estado del agente (mensajes
+	// nativos; el campo id del registro se quita en la red en toLlmMessages).
+	// FRONTERA ENTRE FLUJOS (conciliación P2, 2026-09-19): `toolToggles` viaja en las
+	// opciones de construcción como mapa DELTA a nivel de usuario (clave ausente =
+	// activada). El conjunto definitivo de herramientas conmutables es TOGGLEABLE_TOOLS:
+	// las herramientas de TAREA de los subagentes (research/demo/visual/pdf; acordado con
+	// el usuario: quiz/ask/fs/plan/probe_done están siempre activas).
 	if (isSubscriptionProvider(conversation.provider)) requestCycle = new SubscriptionRequestCycle({
 		initialMessages: asAgentMessages(agentMessages),
 		staged: stagedAutomatic ? asAgentMessages(appends) : undefined,
@@ -679,58 +686,58 @@ export async function handleChatInput(
 		requestCycle,
 		messages: asAgentMessages(agentMessages),
 		validateContext: (messages) => {
-			// This is the SDK's ACTUAL request, after both prepared references
-			// and already-drained steering have joined it. A pre-queue estimate
-			// cannot authorize this combined payload.
+			// Esta es la petición REAL del SDK, después de que se le hayan sumado las
+			// referencias preparadas y la reorientación ya vaciada. Una estimación previa a la
+			// cola no puede autorizar esta carga combinada.
 			preparedSideIds = new Set(messages.map((message) => (message as LhMessage).id).filter((id) => tentativeSideIds.has(id)));
 			if (pendingSideBudgetError || (preparedSideIds.size > 0 && !fitsSideContext(messages as readonly LhMessage[]))) {
 				pendingSideBudgetError = sideBudgetError();
 				const rejected = new Set([...tentativeSideIds].filter((id) => !admittedSideIds.has(id)));
-				// Only unadmitted reference entries are withdrawn from transient
-				// loop state. No saved prefix, learner steer or completed tool is removed.
+				// Solo se retiran del estado transitorio del bucle las entradas de referencia no
+				// admitidas. No se quita ningún prefijo guardado, reorientación del alumno ni herramienta completada.
 				constructed.state.messages = constructed.state.messages.filter((message) => !rejected.has((message as LhMessage).id));
 				requestCycle?.rejectLocalRequest(rejected);
 				throw pendingSideBudgetError;
 			}
-			if (!requestCycle) admitSideContext(); // BYOK has no subscription admission gate
+			if (!requestCycle) admitSideContext(); // BYOK no tiene barrera de admisión por suscripción
 		},
 		contextUpdates: (messages) => {
 			pendingSideBudgetError = undefined;
 			const current = stores.chatStore.getChat(chatId);
 			if (!current) return [];
 			const saved = new Set(current.messages.map((message) => message.id));
-			// Only unsaved null-detail SDK acknowledgements are placeholders;
-			// real graded answers and legacy saved null results still resolve.
+			// Solo los acuses del SDK sin guardar y con detalle null son marcadores provisionales;
+			// las respuestas calificadas reales y los resultados null guardados heredados se siguen resolviendo.
 			const live = messages.filter((message) => message.role !== "toolResult" || message.isError || message.details !== null ||
 				saved.has((message as LhMessage).id) || !(QUESTION_TOOLS as readonly string[]).includes(message.toolName)) as LhMessage[];
 			if (hasUnresolvedQuestion(live)) return [];
-			// Include the loop's already-injected entries, but don't fold saved
-			// suffixes twice. Full disk history keeps the pre-compaction ledger.
+			// Se incluyen las entradas que el bucle ya inyectó, pero sin plegar dos veces los
+			// sufijos guardados. El historial completo en disco conserva el registro previo a la compactación.
 			const pending = live.filter((message) => message.role === "custom" && message.customType === "side-question" && !saved.has(message.id));
 			const history = [...current.messages, ...pending];
 			const updates = sideConversationEntries({ messages: history, sideChats: sideContext.snapshot(chatId) });
 			if (updates.length && !fitsSideContext([...live, ...updates])) {
 				pendingSideBudgetError = sideBudgetError();
-				return []; // no delivery watermark for exchanges the model cannot receive
+				return []; // sin marca de agua de entrega para intercambios que el modelo no puede recibir
 			}
 			for (const update of updates) tentativeSideIds.add(update.id);
 			return asAgentMessages(updates);
 		},
 		onUsage: collectUsage,
 		toolToggles: effective.agent.tools,
-		// Debug (owner, 2026-10-04): teacher/prober raw provider events under
-		// LH_PROVIDER_EVENTS=1 (provider-events.ts); no-op otherwise.
+		// Depuración (responsable, 2026-10-04): eventos en bruto del proveedor del profesor/sondeador
+		// con LH_PROVIDER_EVENTS=1 (provider-events.ts); si no, no hace nada.
 		chatId,
-		// The prompt-override switches (P2, 2026-09-19): same resolution
-		// point as the tool delta — the agent layer composes the system
-		// prompt fresh per turn, swapping in any enabled override segments.
+		// Los interruptores de sustitución del prompt (P2, 2026-09-19): mismo punto de
+		// resolución que el delta de herramientas; la capa del agente compone el prompt de
+		// sistema de nuevo en cada turno, intercambiando los segmentos sustitutos activados.
 		promptSwitches: effective.agent.prompts,
 	};
-	// PRACTICE BRANCH (owner design, 2026-10-04): a kind:"practice"
-	// session builds the practitioner from turn 1 — no prober→teacher
-	// split, no plan/question/job tools; the whole registry is
-	// problem + conclude. buildAgent stays honored (the test seam is
-	// uniform across kinds).
+	// RAMA DE PRÁCTICA (diseño del responsable, 2026-10-04): una sesión kind:"practice"
+	// construye al practicante desde el turno 1: sin división sondeador→profesor, sin
+	// herramientas de plan/preguntas/tareas; todo el registro es
+	// problem + conclude. buildAgent se sigue respetando (la frontera de pruebas es
+	// uniforme entre tipos).
 	const constructed: TeachingAgent = buildAgent
 		? buildAgent({ ...agentOpts, teaching })
 		: record.kind === "practice"
@@ -738,15 +745,15 @@ export async function handleChatInput(
 					{
 						chatId,
 						chatStore: stores.chatStore,
-						// TARGET VALIDATION (owner round 9): the practice tools read the
-						// WHOLE graph fresh per pose — targets validate against every
-						// proposition, not just the session's picks (pickless sessions
-						// and future graph-tools poses stay valid).
+						// VALIDACIÓN DE OBJETIVOS (ronda 9 del responsable): las herramientas de práctica leen
+						// TODO el grafo de nuevo en cada planteamiento; los objetivos se validan contra todas
+						// las proposiciones, no solo contra las elegidas para la sesión (las sesiones sin elección
+						// y los futuros planteamientos con herramientas de grafo siguen siendo válidos).
 						graphNodes: () => stores.graphStore.readNodes(),
-						// THE RARELY-NEEDED SET (owner round 10): research + pdf jobs
-						// (same runner/gating as the teacher's — research honestly
-						// absent when no engine is live) and the map readers behind
-						// the SAME settings gate as the prober's.
+						// EL CONJUNTO RARA VEZ NECESARIO (ronda 10 del responsable): tareas de research + pdf
+						// (el mismo ejecutor/barreras que las del profesor; research ausente con honestidad
+						// cuando no hay motor vivo) y los lectores del mapa tras la MISMA barrera de ajustes
+						// que los del sondeador.
 						jobs: {
 							chatId,
 							jobStore: stores.jobStore,
@@ -764,8 +771,8 @@ export async function handleChatInput(
 						chatStore: stores.chatStore,
 						jobStore: stores.jobStore,
 						spawn: (job, input) => void jobRunner.runJob(job.id, input),
-						// The registry drop's signal (2026-09-20): no live engine
-						// = no research tool in the teacher's registry.
+						// La señal para retirarla del registro (2026-09-20): sin motor vivo
+						// = sin herramienta research en el registro del profesor.
 						searchAvailable,
 					},
 					agentOpts,
@@ -775,66 +782,66 @@ export async function handleChatInput(
 						chatId,
 						chatStore: stores.chatStore,
 						deliver: (steer) => void deliverJobResult(steer),
-						// Fix wave (2026-09-20): the prober carries research + pdf
-						// dispatch (owner ruling — phase-omnipresent), so its ctx
-						// needs the same job wiring as the teacher's.
+						// Oleada de correcciones (2026-09-20): el sondeador lleva el despacho de research +
+						// pdf (decisión del responsable: presente en todas las fases), así que su ctx
+						// necesita el mismo cableado de tareas que el del profesor.
 						jobStore: stores.jobStore,
 						spawn: (job, input) => void jobRunner.runJob(job.id, input),
 						searchAvailable,
-						// The map reader (wave 7): the prober reads the learner's
-						// knowledge graph through tools when the gate opens —
-						// graph master switch AND the agent.graphTools toggle.
+						// El lector del mapa (oleada 7): el sondeador lee el grafo de conocimiento del alumno
+						// mediante herramientas cuando se abre la barrera: el interruptor general del grafo
+						// Y el conmutador agent.graphTools.
 						...(graphToolsEnabled(effective) ? { graphStore: stores.graphStore } : {}),
 					},
 					agentOpts,
 				);
 
-	// A test-injected agent gets no usage collector (tests assert the
-	// transcript, not the money channel); when it's ours, usage flows through
-	// the factory's subscription (wired above via onUsage).
+	// Un agente inyectado por una prueba no recibe colector de uso (las pruebas comprueban
+	// la transcripción, no el canal del dinero); cuando es nuestro, el uso fluye por la
+	// suscripción de la fábrica (conectada arriba mediante onUsage).
 	try {
-		// THE TURN AS A BACKGROUND OBJECT (owner ruling, 2026-09-25):
-		// runPiTurn executes decoupled from this response — the POST stream
-		// is just the FIRST subscriber (a view). A client disconnect can no
-		// longer abort the turn; the remote kill is the abort channel, and
-		// late views reattach via GET /api/chats/[id]/stream.
-		// Wave C (owner correction, 2026-09-26 — steering): register the live
-		// agent BEFORE runPiTurn — the loop's start steering-poll drains the
-		// queue SYNCHRONOUSLY inside that call, so a later registration would
-		// miss it. Registration also steers any pending registry markers into
-		// this run: a marker parked behind a just-answered quiz rides THIS
-		// run's first LLM call (the native replacement for continuation
-		// coalescing). Settlement still cannot beat the flow below: it needs
-		// a streamed response, which never happens inside the constructor.
+		// EL TURNO COMO OBJETO EN SEGUNDO PLANO (decisión del responsable, 2026-09-25):
+		// runPiTurn se ejecuta desacoplado de esta respuesta; el flujo del POST es solo el
+		// PRIMER suscriptor (una vista). Una desconexión del cliente ya no puede cancelar el
+		// turno; la terminación remota es el canal de cancelación, y las vistas tardías se
+		// vuelven a enganchar mediante GET /api/chats/[id]/stream.
+		// Oleada C (corrección del responsable, 2026-09-26; reorientación): se registra el agente
+		// vivo ANTES de runPiTurn; la consulta de reorientación al inicio del bucle vacía la cola
+		// de forma SÍNCRONA dentro de esa llamada, así que un registro posterior se la perdería.
+		// El registro también reorienta hacia esta ejecución cualquier marcador pendiente del
+		// registro: un marcador aparcado tras un quiz recién respondido viaja en la primera
+		// llamada al LLM de ESTA ejecución (el sustituto nativo de la unión de continuaciones).
+		// Aun así, el asentamiento no puede adelantarse al flujo de abajo: necesita una
+		// respuesta en streaming, que nunca ocurre dentro del constructor.
 		registerLiveAgent(chatId, constructed, input.type !== "steers" && input.type !== "continue",
 			input.type === "steers" ? new Set(appends.map((message) => message.id)) : undefined);
-		// Debug recorder run marker (owner, 2026-10-04): correlates the
-		// JSONL event stream with the record's turns; no-op unless
+		// Marcador de ejecución del grabador de depuración (responsable, 2026-10-04): relaciona
+		// el flujo de eventos JSONL con los turnos del registro; no hace nada salvo con
 		// LH_PROVIDER_EVENTS=1.
 		providerEventNote(chatId, "turn", `run start (base: ${agentMessages.length} messages)`);
 		const handle = runPiTurn({
 			agent: constructed,
 			requestCycle,
-			// The next-turn SDK hook covers internal calls. The steering poll
-			// supplies the same fresh cargo on the first/recovery call, with
-			// normal lifecycle events and no extra provider request.
+			// El hook del SDK del siguiente turno cubre las llamadas internas. La consulta de
+			// reorientación aporta la misma carga nueva en la primera llamada / la de recuperación,
+			// con los eventos normales del ciclo de vida y sin una petición extra al proveedor.
 			beforeCycle: () => {
 				for (const message of agentOpts.contextUpdates!(constructed.state.messages)) constructed.steer(message);
 			},
-			// The coalescing window seam (COMPACTION LAW, 2026-10-09): tests
-			// tighten it via LH_UPDATE_FLUSH_MS; production rides the 100ms
-			// default in ui-stream.
+			// La frontera de la ventana de unión (LEY DE LA COMPACTACIÓN, 2026-10-09): las pruebas
+			// la estrechan con LH_UPDATE_FLUSH_MS; en producción se usa el valor por defecto de
+			// 100 ms de ui-stream.
 			...(process.env.LH_UPDATE_FLUSH_MS ? { updateFlushMs: Number(process.env.LH_UPDATE_FLUSH_MS) } : {}),
-			// THE LACAN FIX (2026-10-04): seed the uniquifier with every
-			// tool-call id the record already holds — a provider that resets
-			// ids per response (DeepSeek) then gets fresh unique ids for this
-			// turn's calls at the wire boundary, on the wire, in the record,
-			// and in the next turn's context alike.
+			// LA CORRECCIÓN LACAN (2026-10-04): se siembra el generador de unicidad con todos los
+			// ids de llamadas a herramientas que ya contiene el registro; así, un proveedor que
+			// reinicia los ids en cada respuesta (DeepSeek) recibe ids únicos nuevos para las
+			// llamadas de este turno en la frontera de red, en la red, en el registro y en el
+			// contexto del turno siguiente por igual.
 			usedToolCallIds: new Set(collectToolCallIds(merged)),
-			// Stream-level failures are provider/transport internals — masked,
-			// like the SDK defaults. Tool-input validation messages never
-			// route through here: they ride the error-result path and reach the
-			// transcript directly (the retry context the model saw).
+			// Los fallos a nivel de flujo son detalles internos del proveedor/transporte:
+			// enmascarados, como en los valores por defecto del SDK. Los mensajes de validación de
+			// la entrada de herramientas nunca pasan por aquí: van por la ruta del resultado de error
+			// y llegan directamente a la transcripción (el contexto de reintento que vio el modelo).
 			onError: (error) => {
 				if (conversation.provider === "chatgpt") return chatGPTStreamError(String(error));
 				if (isSubscriptionProvider(conversation.provider)) return nativeSubscriptionError(conversation.provider, String(error));
@@ -844,31 +851,31 @@ export async function handleChatInput(
 			onSettleError: settlementErrorText,
 			onSettleFailure: (error, reportedErrorText) => {
 				if (preparation && !preparation.isCurrent()) return;
-				// POST only acknowledges acceptance; the submitter may attach
-				// after this turn has already failed and left the registry.
+				// El POST solo acusa la aceptación; quien envía puede engancharse
+				// después de que este turno ya haya fallado y salido del registro.
 				rememberTurnFailure(chatId, reportedErrorText ?? settlementErrorText(error));
 				try { applyParkedDismissal(stores.chatStore, chatId); }
 				catch (dismissalError) { console.error(`[chat ${chatId}] parked dismissal failed:`, dismissalError); }
 				finally { releaseOwnership(); unregisterLiveAgent(chatId); }
-				// The canonical save may have succeeded before later bookkeeping
-				// threw. Reconcile against actual durability, never replay input
-				// merely because usage/extraction/other settlement work failed.
+				// Puede que el guardado canónico tuviera éxito antes de que fallara la contabilidad
+				// posterior. Se concilia contra la durabilidad real; nunca se repite la entrada solo
+				// porque haya fallado el uso/la extracción/otro trabajo de asentamiento.
 				const persisted = stores.chatStore.getChat(chatId)?.messages ?? [];
 				reconcileUserSteers(chatId, persisted);
 				settleSteers(chatId, persisted, true, constructed);
 			},
 			onFinish: (turnMessages, isAborted) => {
 				if (preparation && !preparation.isCurrent()) return;
-				// Wave B: append only messages past the temporary agent prefix.
-				// Retry's saved record still includes its earlier failed attempts.
-				// Unadmitted reference entries cannot become delivery watermarks
-				// merely because a local/provider refusal settled the running turn.
+				// Oleada B: solo se añaden los mensajes posteriores al prefijo temporal del agente.
+				// El registro guardado de Retry sigue incluyendo sus intentos fallidos anteriores.
+				// Las entradas de referencia no admitidas no pueden convertirse en marcas de agua de
+				// entrega solo porque un rechazo local/del proveedor haya asentado el turno en curso.
 				const admittedMessages = turnMessages.filter((message) => !tentativeSideIds.has((message as LhMessage).id) || admittedSideIds.has((message as LhMessage).id));
 				const stamped = persistTurn(stores.chatStore, chatId, persistBaseCount, admittedMessages, isAborted);
 				noteSteersDurable(chatId, stores.chatStore.getChat(chatId)?.messages ?? stamped);
-				// usage log append (idempotent per turn id) — the stats bar
-				// refolds this on the client after the turn settles. The
-				// provenance message is the turn's FIRST new assistant message.
+				// añadido al registro de uso (idempotente por id de turno); la barra de estadísticas
+				// lo vuelve a plegar en el cliente cuando el turno se asienta. El mensaje de
+				// procedencia es el PRIMER mensaje nuevo del asistente en el turno.
 				const response = stamped.find((m) => (m as { role?: string }).role === "assistant");
 				if (response && steps.length > 0) {
 					stores.chatStore.appendTurnUsage(chatId, {
@@ -879,49 +886,49 @@ export async function handleChatInput(
 						steps,
 					});
 				}
-				// GRAPH GATE (settings-storage wave, 2026-09-19): the write channel —
-				// extraction, its auditor — dies with the master switch.
-				// PRACTICE (owner, 2026-10-04): practice sessions write nothing —
-				// no extraction, no graph, no coverage (v1: the session itself
-				// is the deliverable).
+				// BARRERA DEL GRAFO (oleada de almacenamiento de ajustes, 2026-09-19): el canal de
+				// escritura (la extracción y su auditor) muere con el interruptor general.
+				// PRÁCTICA (responsable, 2026-10-04): las sesiones de práctica no escriben nada:
+				// ni extracción, ni grafo, ni cobertura (v1: la propia sesión es
+				// el entregable).
 				if ((!requestCycle || requestCycle.dispatched) && record.kind !== "practice" && extractionEnabled(effective.graph)) {
-					// Fresh per-turn read of the graph section's chunk budget
-					// (extraction-UX redesign, 2026-09-24): the trigger compares
-					// against it and the pipeline's batches share it.
+					// Lectura nueva en cada turno del presupuesto de fragmentos de la sección del grafo
+					// (rediseño de la UX de extracción, 2026-09-24): el disparador se compara
+					// con él y los lotes del proceso lo comparten.
 					triggerExtraction(stores, extraction, chatId, effective.graph.extractionChunkTokens);
 				}
-				// PARKED DISMISSAL (owner, 2026-10-04): a dismissal that arrived
-				// mid-turn was parked by the dismiss route (202); now that
-				// persistTurn has landed the turn's messages, apply it against
-				// real truth — BEFORE endTurn, so "turn-settled" guarantees a
-				// subsequent fetch reads the dismissal already in the record
-				// (the same ordering law as persistTurn itself).
+				// DESCARTE APARCADO (responsable, 2026-10-04): un descarte que llegó a mitad
+				// de turno quedó aparcado por la ruta de descarte (202); ahora que persistTurn ha
+				// guardado los mensajes del turno, se aplica contra la verdad real, ANTES de
+				// endTurn, para que "turn-settled" garantice que una lectura posterior ya
+				// encuentra el descarte en el registro (la misma ley de orden que la del
+				// propio persistTurn).
 				applyParkedDismissal(stores.chatStore, chatId);
-				// Any helper activity after the last model call stays pending;
-				// settlement never injects it behind the agent's context.
-				// LAST: a poller that sees not-in-flight must read an already-persisted
-				// record — endTurn only after persistTurn has done its job.
+				// Cualquier actividad de auxiliares tras la última llamada al modelo queda pendiente;
+				// el asentamiento nunca la inyecta por detrás del contexto del agente.
+				// AL FINAL: un sondeo que ve que no hay nada en curso debe leer un registro ya
+				// persistido; endTurn solo después de que persistTurn haya hecho su trabajo.
 				releaseOwnership();
-				// Wave C steer settlement: the live agent is dead (no more
-				// followUp handoffs) - reconcile the steer registry against
-				// what this run actually persisted (in-run injections
-				// resolve; stranded markers return to pending), then let
-				// the pump take any stragglers down the idle wake.
+				// Asentamiento de reorientaciones de la oleada C: el agente vivo ha muerto (no hay más
+				// traspasos followUp); se concilia el registro de reorientaciones con lo que esta
+				// ejecución persistió de verdad (las inyecciones durante la ejecución se resuelven; los
+				// marcadores varados vuelven a pendientes) y luego se deja que la bomba lleve los
+				// rezagados por el despertar en reposo.
 				unregisterLiveAgent(chatId);
 				settleSteers(chatId, stamped, false, constructed);
-				// Composer steers (2026-10-03): delivered ids dropped, stranded
-				// ones stay parked for the chat's next run (the registry is the
-				// stranding safety net — the agent's undrained copy died above).
+				// Reorientaciones del compositor (2026-10-03): se descartan los ids entregados y los
+				// varados se quedan aparcados para la siguiente ejecución del chat (el registro es la red
+				// de seguridad contra los varados; la copia sin vaciar del agente murió arriba).
 				reconcileUserSteers(chatId, stamped);
-				// THE SETTLE KICK (owner round 14): the turn settled — if the
-				// projection is now over threshold, the summary starts in the
-				// background, INSIDE the learner's reading/answering pause
-				// (question/problem poses end runs, so this moment is always a
-				// between-runs window). The next turn's ensureCompacted gate
-				// awaits whatever this leaves running; a lost engine or a
-				// beneath-threshold record is a silent no-op. Skipped under
-				// tests (the extraction precedent — scripted chats are
-				// fixtures; the service itself is pinned directly).
+				// EL IMPULSO AL ASENTARSE (ronda 14 del responsable): el turno se ha asentado;
+				// si la proyección supera ahora el umbral, el resumen arranca en segundo plano,
+				// DENTRO de la pausa de lectura/respuesta del alumno (los planteamientos de
+				// preguntas/problemas terminan las ejecuciones, así que este momento es siempre
+				// una ventana entre ejecuciones). La barrera ensureCompacted del turno siguiente
+				// espera a lo que esto deje en marcha; un motor perdido o un registro por debajo
+				// del umbral no hacen nada, en silencio. Se omite en las pruebas (el precedente
+				// de la extracción: los chats con guion son fixtures; el propio servicio se fija
+				// directamente).
 				if (process.env.NODE_ENV !== "test" && !pendingSideBudgetError && (!requestCycle || requestCycle.dispatched))
 					kickCompaction(() => {
 						const fresh = effectiveSettings();
@@ -948,31 +955,31 @@ export async function handleChatInput(
 					}, chatId);
 			},
 		});
-		// The turn is now a live background object: register it so any view
-		// can reattach (GET /api/chats/[id]/stream) or remotely abort it
-		// (POST /api/activity/abort, kind "turn"). Registration after the
-		// runPiTurn call is race-free: the agent loop only ticks in later
-		// microtasks, so settle (and thus unregister) cannot beat us here.
+		// El turno es ahora un objeto vivo en segundo plano: se registra para que cualquier
+		// vista pueda volver a engancharse (GET /api/chats/[id]/stream) o cancelarlo en remoto
+		// (POST /api/activity/abort, tipo "turn"). Registrarlo tras la llamada a runPiTurn no
+		// tiene carreras: el bucle del agente solo avanza en microtareas posteriores, así que
+		// el asentamiento (y, por tanto, la baja del registro) no puede adelantársenos aquí.
 		if (preparation) preparation.handoff(handle);
 		else registerTurn(chatId, handle);
 		handedOff = true;
-		// CONNECTION DIET B (owner, 2026-10-10 — the parallel-session freeze
-		// postmortem): the POST no longer holds the turn's SSE stream open for
-		// its whole duration. It acknowledges acceptance and CLOSES; the
-		// submitter attaches through GET /api/chats/[id]/stream — the same
-		// universal reattach wire a returning visitor uses. The browser's
-		// 6-connections-per-origin pool is the scarce resource. A graded
-		// submission is the explicit exception: its POST stays open through
-		// grading and the canonical save, then closes before teacher output. The
-		// turn itself is a server-side process (ruling 2026-09-25) — it never
-		// needed this connection, only a view did.
+		// DIETA DE CONEXIONES B (responsable, 2026-10-10; el análisis del bloqueo con
+		// sesiones paralelas): el POST ya no mantiene abierto el flujo SSE del turno
+		// durante toda su duración. Acusa la aceptación y SE CIERRA; quien envía se
+		// engancha mediante GET /api/chats/[id]/stream, el mismo cable universal de
+		// reenganche que usa un visitante que vuelve. El grupo de 6 conexiones por
+		// origen del navegador es el recurso escaso. Un envío calificado es la
+		// excepción explícita: su POST sigue abierto durante la calificación y el
+		// guardado canónico, y se cierra antes de la salida del profesor. El turno en
+		// sí es un proceso del servidor (decisión 2026-09-25); nunca necesitó esta
+		// conexión, solo la necesitaba una vista.
 		if (stagedAutomatic && requestCycle && !(await requestCycle.admission)) return Response.json({ error: "Automatic follow-up remains deferred in its queue." }, { status: 403 });
 		return Response.json({ ok: true });
 	} catch (err) {
 		console.error(`[chat ${chatId}] turn failed to start:`, err);
 		if (preparation && inputSaved) {
-			// The answer and outcome are already durable. Report the later
-			// teacher failure through the existing retained stream notice.
+			// La respuesta y el resultado ya son duraderos. El fallo posterior del profesor se
+			// comunica mediante el aviso de flujo conservado que ya existe.
 			rememberTurnFailure(chatId, "Failed to start the turn");
 			return Response.json({ ok: true });
 		}
