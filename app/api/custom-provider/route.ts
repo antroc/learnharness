@@ -1,5 +1,5 @@
-/** PR #62's single custom endpoint: discover/manual connect, offline pins,
- * and disconnect. Host boundaries and mutations live behind the server barrel. */
+/** El único endpoint personalizado del PR #62: conexión por descubrimiento/manual, fijaciones
+ * sin conexión y desconexión. Los límites del host y las mutaciones viven tras el barril del servidor. */
 import { customProviderGet, customProviderMutation } from "@/src/server";
 
 export const dynamic = "force-dynamic";

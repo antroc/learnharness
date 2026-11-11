@@ -1,6 +1,7 @@
 /**
- * POST → stop a running side answer (inline side questions, 2026-11-02).
- * The partial answer is saved with `stopped: true`. 409 when nothing runs.
+ * POST → detiene una respuesta lateral en marcha (preguntas laterales en
+ * línea, 2026-11-02). La respuesta parcial se guarda con `stopped: true`.
+ * 409 cuando no hay nada en marcha.
  */
 import { sideChats } from "@/src/server";
 

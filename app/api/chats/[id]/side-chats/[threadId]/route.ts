@@ -1,6 +1,7 @@
 /**
- * One durable side conversation. GET attaches to its current answer (also
- * after reload); PATCH changes window visibility. Closing never deletes it.
+ * Una conversación lateral duradera. GET se engancha a su respuesta actual
+ * (también tras recargar); PATCH cambia la visibilidad de la ventana.
+ * Cerrarla nunca la borra.
  */
 import { parseSideOpenInput, SideChatInputError } from "@/src/core";
 import { sideChats } from "@/src/server";

@@ -1,17 +1,20 @@
 /**
- * THE REATTACH STREAM (background-turn runner wave, owner ruling
- * 2026-09-25) — and, since CONNECTION DIET B (owner, 2026-10-10), THE
- * turn wire, period: POST /api/chat acknowledges and closes, so the
- * submitter too attaches here. One SSE stream per chat: a running turn →
- * subscribe to the live turn object: FULL replay of the event log, then
- * live chunks until settle ([DONE]). No running turn → the cheap terminal
- * ({"type":"turn-settled"} + [DONE]): the client refetches the record.
- * A retained settlement-failure notice precedes that terminal when a
- * reply could not be saved before the submitter attached.
+ * EL STREAM DE REENGANCHE (oleada del ejecutor de turnos en segundo plano,
+ * decisión del responsable 2026-09-25) — y, desde la DIETA DE CONEXIONES B
+ * (responsable, 2026-10-10), EL cable de los turnos, sin más: POST /api/chat
+ * acusa recibo y cierra, así que quien envía también se engancha aquí. Un
+ * stream SSE por chat: con un turno en marcha → suscripción al objeto del
+ * turno vivo: repetición COMPLETA del registro de eventos y luego fragmentos
+ * en vivo hasta el asentamiento ([DONE]). Sin turno en marcha → el terminal
+ * barato ({"type":"turn-settled"} + [DONE]): el cliente vuelve a pedir el
+ * registro. Un aviso conservado de fallo de asentamiento precede a ese
+ * terminal cuando una respuesta no se pudo guardar antes de que se
+ * enganchara quien la envió.
  *
- * 404 mirrors the POST handler's unknown-chat. Framework route is a thin
- * wrapper over the server barrel (the import law); tests drive the seams
- * (turn-runs + ui-stream) directly.
+ * El 404 refleja el de chat desconocido del manejador POST. La ruta del
+ * framework es un envoltorio fino sobre el barril del servidor (la ley de
+ * los imports); las pruebas manejan las fronteras (turn-runs + ui-stream)
+ * directamente.
  */
 import { getChat, runningTurn, piTurnResponse, settledTurnResponse } from "@/src/server";
 

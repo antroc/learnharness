@@ -1,15 +1,15 @@
-// POST /api/chats/[id]/steer — the composer's mid-turn steering rail
-// (owner arc 2026-10-03). The learner's message for a RUNNING turn rides
-// pi's steering queue: drained at the next response boundary INSIDE the
-// same run (agent.steer + steeringMode "all"), forwarded verbatim on the
-// live stream (the client upserts the card by the client-minted id), and
-// persisted by the turn's own settlement.
+// POST /api/chats/[id]/steer — el raíl de reorientación a mitad de turno del composer
+// (arco del responsable 2026-10-03). El mensaje del alumno para un turno EN MARCHA viaja
+// por la cola de reorientaciones de pi: se vacía en el siguiente límite de respuesta DENTRO
+// de la misma ejecución (agent.steer + steeringMode "all"), se reenvía tal cual por el
+// stream en vivo (el cliente inserta o actualiza la tarjeta por el id generado en el cliente) y
+// lo persiste el propio asentamiento del turno.
 //
-// This is steering, NOT follow-ups: the route never starts a turn and
-// never extends an ended one. No live turn → 409 and the client falls
-// back to a plain text send (the settle race). Stranding safety: the
-// registry copy survives a question termination or abort and rides the
-// chat's next run.
+// Esto es reorientación, NO seguimientos: la ruta nunca inicia un turno y
+// nunca prolonga uno terminado. Sin turno vivo → 409 y el cliente recurre
+// a un envío de texto normal (la carrera del asentamiento). Seguridad ante varamientos: la
+// copia del registro sobrevive a una terminación por pregunta o a un abort y viaja con
+// la siguiente ejecución del chat.
 import { ChatInputError, parseUserSteerInput } from "@/src/core";
 import { getChat, prepareAndSteerChat } from "@/src/server";
 

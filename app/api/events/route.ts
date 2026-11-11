@@ -1,10 +1,11 @@
 /**
- * THE NOTIFICATION CHANNEL ROUTE (push-architecture slice 1, 2026-10-02):
- * one SSE connection per open window over the core event bus — the
- * endpoint every future consumer (chat view, sidebar, activity dock)
- * subscribes to as the polls retire. The response plumbing lives in the
- * server seam (events-stream.ts); the framework route stays a thin
- * wrapper (the import law; tests drive the seam directly).
+ * LA RUTA DEL CANAL DE NOTIFICACIONES (corte 1 de la arquitectura push,
+ * 2026-10-02): una conexión SSE por ventana abierta sobre el bus de eventos
+ * del núcleo — el endpoint al que se suscribe todo consumidor futuro (vista
+ * del chat, barra lateral, dock de actividad) a medida que se retiran los
+ * sondeos. La fontanería de la respuesta vive en la frontera del servidor
+ * (events-stream.ts); la ruta del framework sigue siendo un envoltorio fino
+ * (la ley de los imports; las pruebas manejan la frontera directamente).
  */
 import { eventsResponse } from "@/src/server";
 

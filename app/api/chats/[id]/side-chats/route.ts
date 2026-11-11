@@ -1,16 +1,18 @@
 /**
- * Side questions (inline clarification threads, owner design 2026-11-02).
+ * Preguntas laterales (hilos de aclaración en línea, diseño del responsable
+ * 2026-11-02).
  *
- * GET  → { threads, answering }: the session's side threads plus, for each
- *        thread whose answer is still running, the text streamed so far.
- * POST → ask: { threadId, text, quotes? } (follow-up), { anchor, text,
- *        quotes? } (first question at a teacher-prose block), or
- *        { threadId, retry: true } (re-answer a failed last answer).
- *        Streams NDJSON (src/server/side-chat.ts documents the wire);
- *        refusals are ordinary JSON errors (400/404/409/503).
+ * GET  → { threads, answering }: los hilos laterales de la sesión más, para
+ *        cada hilo cuya respuesta aún está en marcha, el texto emitido hasta
+ *        ahora.
+ * POST → preguntar: { threadId, text, quotes? } (seguimiento), { anchor, text,
+ *        quotes? } (primera pregunta en un bloque de prosa del profesor) o
+ *        { threadId, retry: true } (volver a responder una última respuesta
+ *        fallida). Emite NDJSON (src/server/side-chat.ts documenta el cable);
+ *        los rechazos son errores JSON normales (400/404/409/503).
  *
- * Thin wrapper over the server barrel (the import law); tests drive
- * createSideChatService directly.
+ * Envoltorio fino sobre el barril del servidor (la ley de los imports); las
+ * pruebas manejan createSideChatService directamente.
  */
 import { parseSideAskInput, SideChatInputError } from "@/src/core";
 import { sideChats } from "@/src/server";

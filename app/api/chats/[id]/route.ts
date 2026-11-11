@@ -8,28 +8,28 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 	if (!chat) return Response.json({ error: "Not found" }, { status: 404 });
 	let questionResolver: QuestionTypeResolver | undefined;
 	if (pendingPluginQuestionOf(chat.messages)) {
-		try { questionResolver = await getPluginQuestionTypeResolver(); } catch { /* unavailable fallback */ }
-		// No awaited plugin startup may separate this read from the response projection.
+		try { questionResolver = await getPluginQuestionTypeResolver(); } catch { /* alternativa no disponible */ }
+		// Ningún arranque de plugin esperado puede separar esta lectura de la proyección de la respuesta.
 		chat = getChat(id);
 		if (!chat) return Response.json({ error: "Not found" }, { status: 404 });
 	}
 	let problemResolver: ProblemTypeResolver | undefined;
 	if (activeProblemOf(chat.messages)?.pluginProblem) {
-		try { problemResolver = (await getPluginHost()).resolveProblemType; } catch { /* unavailable fallback */ }
+		try { problemResolver = (await getPluginHost()).resolveProblemType; } catch { /* alternativa no disponible */ }
 		chat = getChat(id);
 		if (!chat) return Response.json({ error: "Not found" }, { status: 404 });
 	}
-	// turnInFlight lets a returning client re-attach to a running turn
-	// (chat-handler write-ahead + registry — see src/server/turn-liveness.ts).
-	// coverage (extraction-UX redesign, 2026-09-24): the chat view's ring
-	// meter + sidebar block — THE coverage surface (the all-sessions GET
-	// route died with the redesign; the Extract POST stays). getChat
-	// already 404'd, so the block exists.
-	// Wave D (owner-approved 2026-09-26): the record's messages are native
-	// agent history, served VERBATIM — the client derives its view
-	// (core/view.ts projectView). turnInFlight lets a returning client
-	// re-attach to a running turn; coverage is the chat view's ring meter.
-	// Snapshot bytes have a session-scoped endpoint; do not resend the whole image pool on every poll.
+	// turnInFlight permite que un cliente que vuelve se reenganche a un turno en marcha
+	// (persistencia anticipada de chat-handler + registro — ver src/server/turn-liveness.ts).
+	// coverage (rediseño de la UX de extracción, 2026-09-24): el medidor de anillo de la
+	// vista del chat + el bloque de la barra lateral — LA superficie de cobertura (la ruta GET
+	// de todas las sesiones murió con el rediseño; el POST de Extract se queda). getChat
+	// ya dio 404, así que el bloque existe.
+	// Oleada D (aprobada por el responsable 2026-09-26): los mensajes del registro son
+	// historial nativo del agente, servidos TAL CUAL — el cliente deriva su vista
+	// (projectView de core/view.ts). turnInFlight permite que un cliente que vuelve
+	// se reenganche a un turno en marcha; coverage es el medidor de anillo de la vista del chat.
+	// Los bytes de las instantáneas tienen un endpoint con ámbito de sesión; no reenvíes todo el conjunto de imágenes en cada sondeo.
 	const { imageSnapshots: _imageSnapshots, ...record } = chat;
 	return Response.json({
 		...record,
@@ -38,7 +38,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 		pluginProblemAvailability: pluginProblemAvailabilityOf(chat, problemResolver),
 		pricing: sessionCost(chat),
 		turnInFlight: isTurnRunning(id),
-		// Also reaches idle views that missed the failing turn's stream.
+		// También llega a las vistas inactivas que se perdieron el stream del turno fallido.
 		turnError: turnFailure(id),
 		compacting: compactionInFlight(id),
 		coverage: sessionCoverage(id),
@@ -46,11 +46,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 }
 
 /**
- * Rename (2026-09-17): the header's click-to-edit title commits here.
- * Validation is a single rule — a non-empty string after trim (the store's
- * "Untitled session" floor is never reached from this route). updatedAt is
- * deliberately NOT bumped: a rename must not reorder the sidebar (same
- * rule as the settings PUT).
+ * Renombrar (2026-09-17): el título de la cabecera que se edita con un clic
+ * se confirma aquí. La validación es una sola regla — una cadena no vacía
+ * tras recortar (el suelo "Untitled session" del store nunca se alcanza
+ * desde esta ruta). updatedAt NO se actualiza a propósito: un renombrado no
+ * debe reordenar la barra lateral (la misma regla que el PUT de settings).
  */
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
@@ -65,24 +65,28 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 /**
- * DELETE /api/chats/[id]?mode=preserve-graph|delete-nodes — session deletion
- * (wave 6, owner rulings 2026-09-22/23). The mode is REQUIRED and explicit:
- * no default, because the two differ in destructiveness —
+ * DELETE /api/chats/[id]?mode=preserve-graph|delete-nodes — borrado de
+ * sesiones (oleada 6, decisiones del responsable 2026-09-22/23). El modo es
+ * OBLIGATORIO y explícito: sin valor por defecto, porque los dos difieren en
+ * lo destructivos que son —
  *
- *   preserve-graph  the session record, its jobs, and its extraction
- *                   bookkeeping (coverage/checkpoint rows) die; the graph
- *                   keeps every contribution the session merged.
- *   delete-nodes    "this session never happened": every ledger trace of
- *                   the session goes too — provenance, link lines,
- *                   events, mappings — and orphaned nodes die entirely
- *                   (shared nodes survive automatically, their other
- *                   sessions' content intact).
+ *   preserve-graph  mueren el registro de la sesión, sus tareas y su
+ *                   contabilidad de extracción (filas de cobertura/punto de
+ *                   control); el grafo conserva todas las contribuciones que
+ *                   fusionó la sesión.
+ *   delete-nodes    "esta sesión nunca existió": desaparece también todo
+ *                   rastro de la sesión en el registro — procedencia,
+ *                   líneas de enlace, eventos, correspondencias — y los
+ *                   nodos huérfanos mueren por completo (los nodos
+ *                   compartidos sobreviven automáticamente, con el
+ *                   contenido de sus otras sesiones intacto).
  *
- * Gates are the server orchestration's (server/chats.ts deleteChatSession):
- * 409 while a turn or background job is running, 503 while the session's
- * extraction is winding down after its abort — both retryable. The
- * response carries what was removed plus the new graphRevision (the
- * version stamp the UI polls to refetch clusters/layout).
+ * Las barreras son las de la orquestación del servidor (deleteChatSession de
+ * server/chats.ts): 409 mientras hay un turno o una tarea en segundo plano en
+ * marcha, 503 mientras la extracción de la sesión se está cerrando tras su
+ * abort — ambos reintentables. La respuesta lleva lo que se eliminó más el
+ * nuevo graphRevision (el sello de versión que sondea la interfaz para volver
+ * a pedir los clústeres/el layout).
  */
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
