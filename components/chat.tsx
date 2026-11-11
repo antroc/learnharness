@@ -1152,63 +1152,63 @@ export function Chat({
 		if (!record) return;
 		if (Array.isArray(record.turns)) setTurns(record.turns);
 		setPricing(record.pricing);
-		// The continuation seam (contracts.ts protocol §4): a job result
-		// landing in the record leaves the agent owing a continuation — the
-		// record ENDS on un-consumed results, the dock owns no question, and
-		// nothing runs. The native fold (needsContinuation) is the old SDK
-		// lastAssistantMessageIsCompleteWithToolCalls check.
-		// Current model truth also guards retained/live failures: canonical
-		// sync must never automatically replace a reply that failed to save.
+		// La frontera de continuación (protocolo de contracts.ts §4): el resultado de una tarea
+		// que llega al registro deja al agente debiendo una continuación — el
+		// registro TERMINA en resultados sin consumir, el dock no tiene ninguna pregunta y
+		// no se ejecuta nada. El plegado nativo (needsContinuation) es la antigua comprobación
+		// lastAssistantMessageIsCompleteWithToolCalls del SDK.
+		// La verdad actual del modelo también protege los fallos conservados/vivos: la sincronización
+		// canónica nunca debe sustituir automáticamente una respuesta que no se pudo guardar.
 		continueIfOwed(record.messages);
 	}, [readRecord, continueIfOwed]);
 
-	// The settled terminal's other half (stream-reattach wave): the
-	// transport resolved turn-settled — no turn running, the record is
-	// current. Drop the fallback busy state and adopt the record (its
-	// continuation check fires the owed next turn, exactly as the poll's
-	// settle branch always did).
+	// La otra mitad del terminal asentado (oleada de reenganche del stream): el
+	// transporte resolvió turn-settled — no hay ningún turno en ejecución y el registro está
+	// al día. Quita el estado ocupado alternativo y adopta el registro (su
+	// comprobación de continuación dispara el siguiente turno pendiente, exactamente como
+	// siempre hizo la rama de asentamiento del sondeo).
 	reattachSettledRef.current = () => {
 		setTurnInFlight(false);
 		void syncFromServer();
 	};
 
-	// ── Append-only record adoption (owner ground rules, 2026-09-15) ──
-	// Content delivered into the record server-side — sub-agent
-	// artifacts, abort notes — must become visible the
-	// moment it persists, mid-turn included: it sits between messages, and
-	// nothing about a running turn should hide it. The full snapshot sync
-	// mid-stream is forbidden (it breaks the SDK's in-place continuation
-	// merge — the stale-snapshot lesson), so adoption here is APPEND-ONLY
-	// (the session hook's adoptRecord): insert the record's new ids in their canonical
-	// order, never rewrite a local one, keep the in-flight tail last. The
-	// full syncFromServer stays the net at idle (reorder, plan blocks, turns).
+	// ── Adopción del registro solo por anexado (reglas básicas del responsable, 2026-09-15) ──
+	// El contenido entregado al registro en el servidor — artefactos de
+	// subagentes, notas de aborto — debe hacerse visible en el
+	// momento en que se persiste, también a mitad de turno: va entre mensajes, y
+	// nada de un turno en ejecución debería ocultarlo. La sincronización completa de la instantánea
+	// a mitad del stream está prohibida (rompe la fusión de continuación en su sitio del
+	// SDK — la lección de la instantánea obsoleta), así que aquí la adopción es SOLO POR ANEXADO
+	// (el adoptRecord del hook de sesión): inserta los ids nuevos del registro en su orden
+	// canónico, nunca reescribe uno local y deja la cola en curso al final. La
+	// syncFromServer completa sigue siendo la red en reposo (reordenación, bloques de plan, turnos).
 	const adoptAppendOnly = useCallback(async () => {
 		try {
 			await readRecord({ adoption: "append" });
 		} catch {
-			/* transient — the idle full sync is the net */
+			/* transitorio — la sincronización completa en reposo es la red */
 		}
 	}, [readRecord]);
 
-	// Turn-start window: the server inserts claimed steers right after our
-	// outgoing message, BEFORE the stream produces anything — so a bounded,
-	// self-terminating window of three record fetches (400ms/1s/2s) catches
-	// the insert and shows the marker during the turn, then stops. No
-	// standing poll — the window exists only for these seconds. (The dock
-	// nudges that lived here died at S5: dispatch writes announce jobs-changed
-	// from the store, extraction announces activity-changed at setPhase.)
+	// Ventana de inicio de turno: el servidor inserta las reorientaciones reclamadas justo después de
+	// nuestro mensaje saliente, ANTES de que el stream produzca nada — así que una ventana acotada y
+	// que termina sola de tres lecturas del registro (400 ms/1 s/2 s) atrapa
+	// la inserción y muestra el marcador durante el turno, y luego para. Ningún
+	// sondeo permanente — la ventana existe solo esos segundos. (Los empujones al dock
+	// que vivían aquí murieron en S5: las escrituras de despacho anuncian jobs-changed
+	// desde el almacén, y la extracción anuncia activity-changed en setPhase.)
 	const turnStartStatusRef = useRef(status);
-	// The window must survive the submitted→streaming flip (the stream starts
-	// in well under 400ms), so the timers are guarded by this ref — dropped at
-	// unmount, left alone otherwise: the window self-terminates after 2s.
+	// La ventana debe sobrevivir al cambio submitted→streaming (el stream empieza
+	// en bastante menos de 400 ms), así que esta ref protege los temporizadores — se sueltan al
+	// desmontar y en otro caso se dejan en paz: la ventana termina sola a los 2 s.
 	const adoptionWindowOpenRef = useRef(false);
 	const turnStartTimerRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
 	useEffect(() => {
 		const was = turnStartStatusRef.current;
 		turnStartStatusRef.current = status;
 		if (was === "submitted" || status !== "submitted") return;
-		// A turn just started (status flipped ready → submitted): open the
-		// bounded adoption window.
+		// Acaba de empezar un turno (el estado pasó de ready a submitted): abre la
+		// ventana acotada de adopción.
 		adoptionWindowOpenRef.current = true;
 		const timers = [400, 1000, 2000].map((ms) =>
 			setTimeout(() => {
@@ -1217,8 +1217,8 @@ export function Chat({
 				}
 			}, ms),
 		);
-		// Deliberately no cleanup here: this effect re-runs on every status
-		// flip, which would cancel the window at submitted→streaming.
+		// Aquí no hay limpieza a propósito: este efecto se vuelve a ejecutar con cada cambio
+		// de estado, lo que cancelaría la ventana en submitted→streaming.
 		timers.forEach((t) => {
 			turnStartTimerRefs.current.push(t);
 		});
@@ -1232,61 +1232,61 @@ export function Chat({
 		};
 	}, []);
 
-	// The live plan popup (wave 4): opened by any transcript plan block, the
-	// top-bar plan chip, and the dock band's marginalia.
+	// La ventana del plan vivo (oleada 4): la abren cualquier bloque de plan de la transcripción,
+	// el chip de plan de la barra superior y la nota al margen de la franja del dock.
 	const [planOpen, setPlanOpen] = useState(false);
-	// Real plan presence — gates the marginalia's clickable flank. A JSX
-	// element is always truthy; gating on the node alone mounted a phantom
-	// (invisible, clickable) button in the bottom-right whenever a question
-	// was pending with no plan yet (owner report, UI round 2026-10-01).
+	// Presencia real del plan — es la barrera del flanco clicable de la nota al margen. Un
+	// elemento JSX siempre es verdadero; usar solo el nodo como barrera montaba un botón fantasma
+	// (invisible, clicable) abajo a la derecha siempre que había una pregunta
+	// pendiente y aún no había plan (informe del responsable, ronda de interfaz 2026-10-01).
 	const hasPlan = useMemo(() => planExists(messages), [messages]);
-	// The coverage ring's refresh chain (extraction-UX redesign): bumped at
-	// turn settle — the moment this session's uncovered mass changes.
+	// La cadena de refresco del anillo de cobertura (rediseño de la UX de extracción): se incrementa
+	// al asentarse el turno — el momento en que cambia la masa sin cubrir de esta sesión.
 	const [coverageTick, setCoverageTick] = useState(0);
-	// The mermaid focus (chrome-melt wave, 2026-09-19): md-blocks' expand
-	// button registers the chart source here; the overlay (and the plan
-	// popup) mount INSIDE the session-area div — both are session-scoped, so
-	// the drag bar stays sharp and draggable while a focus owns the area.
+	// El foco de mermaid (oleada de fundido del cromo, 2026-09-19): el botón de ampliar de
+	// md-blocks registra aquí el código del diagrama; el overlay (y la ventana del
+	// plan) se montan DENTRO del div del área de la sesión — los dos tienen ámbito de sesión, así que
+	// la barra de arrastre sigue nítida y arrastrable mientras un foco ocupa el área.
 	const [mermaidFocus, setMermaidFocus] = useState<string | null>(null);
-	// Figure focus (2026-10-07): the figure card's fullscreen button — same
-	// overlay shell as mermaid, but carrying the raw svg + the card's invert
-	// state so the fullscreen view stays faithful to the toggled card.
+	// Foco de figura (2026-10-07): el botón de pantalla completa de la tarjeta de figura — el mismo
+	// envoltorio de overlay que mermaid, pero con el svg en bruto + el estado de inversión
+	// de la tarjeta, para que la vista a pantalla completa sea fiel a la tarjeta con el conmutador.
 	const [figureFocus, setFigureFocus] = useState<{ svg: string; inverted: boolean } | { image: SessionImage } | null>(null);
 
-	// Overlay mirrors for the layered-Esc gate (owner 2026-10-04): the
-	// lh:kbd-abort-turn handler reads these at EVENT time — declared here
-	// beside their states, consumed below wherever the states live.
+	// Espejos de los overlays para la barrera de Esc por capas (responsable 2026-10-04): el
+	// manejador de lh:kbd-abort-turn los lee en el momento del EVENTO — se declaran aquí
+	// junto a sus estados y se consumen más abajo, donde viven los estados.
 	const mermaidFocusRef = useRef(mermaidFocus);
 	mermaidFocusRef.current = mermaidFocus;
-	// The figure focus rides the mermaid layer in the Esc gate — the same
-	// overlay class (session-scoped diagram focus, Esc claimed at the
-	// document level by the overlay itself); the window chain must stay out.
+	// El foco de figura va en la capa de mermaid en la barrera de Esc — la misma
+	// clase de overlay (foco de diagrama con ámbito de sesión; el propio overlay reclama el Esc
+	// a nivel de documento); la cadena de window debe quedarse fuera.
 	const figureFocusRef = useRef(figureFocus);
 	figureFocusRef.current = figureFocus;
 	const planOpenRef = useRef(planOpen);
 	planOpenRef.current = planOpen;
 	const setupOpenRef = useRef(setupOpen);
 	setupOpenRef.current = setupOpen;
-	// The session's live plan (drives the top-bar chip; the marginalia
-	// derives its own from the same transcript).
+	// El plan vivo de la sesión (alimenta el chip de la barra superior; la nota al margen
+	// deriva el suyo de la misma transcripción).
 	const planTree = useMemo(() => latestTree(messages), [messages]);
 
-	// ── Session usage (wave-4 stats bar) ──
-	// The money channel: the record's turns log and read-time server Pi
-	// pricing projection. Seeded once on mount (the page doesn't carry turns),
-	// refreshed when the local stream settles (each turn appends to the log
-	// server-side), and kept fresh by syncFromServer whenever it already
-	// fetches the record. No turns yet → the bar renders "—" everywhere.
+	// ── Uso de la sesión (barra de estadísticas de la oleada 4) ──
+	// El canal del dinero: el registro de turnos del registro y la proyección de precios de Pi
+	// que hace el servidor al leer. Se siembra una vez al montar (la página no trae los turnos),
+	// se refresca cuando el stream local se asienta (cada turno se anexa al registro
+	// en el servidor) y lo mantiene al día syncFromServer siempre que ya
+	// lee el registro. Sin turnos todavía → la barra muestra "—" en todas partes.
 	const [turns, setTurns] = useState<TurnUsage[]>([]);
 	const [pricing, setPricing] = useState<SessionPricing | undefined>();
-	// The per-chat model control state (model-picker writes via PUT; the
-	// record is the source of truth, lifted here so the stats bar re-renders).
-	// The dock's reserved tail height (DockOverlay reports it; the spacer at
-	// the end of the transcript renders it). Lives here because the spacer is
-	// inside the scroller while the dock overlays OUTSIDE it — two parents.
-	// 208 ≈ gradient(96) + composer block(~112): the SSR/pre-hydration
-	// guess so the static paint has a sane tail. The first layout effect
-	// replaces it with the measured truth before paint.
+	// El estado del control de modelo por chat (model-picker escribe con PUT; el
+	// registro es la fuente de verdad, elevada aquí para que la barra de estadísticas se vuelva a renderizar).
+	// La altura de la cola reservada del dock (la comunica DockOverlay; el espaciador al
+	// final de la transcripción la renderiza). Vive aquí porque el espaciador está
+	// dentro del contenedor de scroll, mientras que el dock se superpone FUERA de él — dos padres.
+	// 208 ≈ degradado(96) + bloque del compositor(~112): la estimación para SSR/antes de la
+	// hidratación, para que el pintado estático tenga una cola razonable. El primer efecto de
+	// layout la sustituye por la medida real antes de pintar.
 	const [dockReserve, setDockReserve] = useState(208);
 	const syncTurns = useCallback(async () => {
 		try {
@@ -1295,62 +1295,62 @@ export function Chat({
 			if (Array.isArray(record.turns)) setTurns(record.turns);
 			setPricing(record.pricing);
 		} catch {
-			// transient blip: stats stay on the last known figures
+			// fallo transitorio: las estadísticas se quedan con las últimas cifras conocidas
 		}
 	}, [readRecord]);
 	useEffect(() => {
 		void syncTurns();
 	}, [syncTurns]);
-	// After the learner's own turn ends the log has a fresh entry — and the
-	// Post-turn settle (the SLIMMED watch — push-architecture S3,
-	// 2026-10-02): our own stream just ended. Two instant LOCAL actions
-	// only — the turns-only refetch lands the log entry while the server's
-	// persist/endTurn lags by milliseconds, and the coverage ring re-reads
-	// (this turn's messages just joined the uncovered mass). The ADOPTION
-	// LOOP and the HANDOFF WATCH that lived here are RETIRED: a
-	// server-initiated turn (the probe→teach handoff, a job wake, another
-	// tab) is now ANNOUNCED on the events channel — the turn-started
-	// subscription (below the jobs poll) attaches to it live. No polling
-	// window can expire; the freeze class is gone.
+	// Cuando termina el turno del propio alumno, el registro tiene una entrada nueva — y el
+	// asentamiento posterior al turno (la vigilancia ADELGAZADA — arquitectura push S3,
+	// 2026-10-02): nuestro propio stream acaba de terminar. Solo dos acciones LOCALES
+	// instantáneas — la relectura solo de los turnos trae la entrada del registro mientras el
+	// persist/endTurn del servidor va milisegundos por detrás, y el anillo de cobertura vuelve a leer
+	// (los mensajes de este turno acaban de sumarse a la masa sin cubrir). El BUCLE DE
+	// ADOPCIÓN y la VIGILANCIA DEL TRASPASO que vivían aquí están RETIRADOS: un
+	// turno iniciado por el servidor (el traspaso sondeo→enseñanza, el despertar de una tarea, otra
+	// pestaña) ahora se ANUNCIA en el canal de eventos — la suscripción a turn-started
+	// (debajo del sondeo de tareas) se engancha a él en vivo. Ninguna ventana de sondeo puede
+	// caducar; la clase de congelaciones ha desaparecido.
 	const prevStatusRef = useRef(status);
 	useEffect(() => {
 		const transitioned = prevStatusRef.current !== "ready" && status === "ready";
-		// Every path (the old early-return skipped this on the transition
-		// branch — the re-fire-on-dep-churn wart, fixed S3).
+		// En todas las rutas (el antiguo retorno anticipado se lo saltaba en la rama de
+		// transición — el defecto de redisparar con el cambio de dependencias, corregido en S3).
 		prevStatusRef.current = status;
 		if (!transitioned) return;
-		// immediate: turns-only refetch — the stats bar updates even while
-		// the server's persist/endTurn lags the client by milliseconds
+		// inmediato: relectura solo de los turnos — la barra de estadísticas se actualiza aunque
+		// el persist/endTurn del servidor vaya milisegundos por detrás del cliente
 		void syncTurns();
-		// The coverage ring re-reads at turn settle too (extraction-UX
-		// redesign, 2026-09-24); the ring's own running-poll handles runs.
+		// El anillo de cobertura también vuelve a leer al asentarse el turno (rediseño de la UX de
+		// extracción, 2026-09-24); el propio sondeo de ejecución del anillo se ocupa de las ejecuciones.
 		setCoverageTick((t) => t + 1);
-		// CANONIZATION (fix B, the duplicate-previous-message bug, 2026-10-02):
-		// turn-settled for OUR OWN turn arrives while the stream is still open
-		// (endTurn emits from onFinish before the response terminates, so the
-		// SSE frame reliably beats [DONE]) — the handler below cannot sync
-		// there, it flags instead, and THIS flip consumes the flag: the record
-		// reflects durable truth (a failed settlement retains its notice,
-		// not its unsaved reply), so replacing the view absorbs the tail's
-		// streamed c_-id copies into base under their server ids. Without
-		// this the tail kept those copies forever and the next send's
-		// steer-adoption window rendered them a second time. The wake handoff
-		// cannot be missed by this sync: the wake fires only after the idle
-		// gates + grace (≥750ms past this flip), so its turn-started event
-		// lands at an idle, already-canonical view and attaches normally.
+		// CANONIZACIÓN (arreglo B, el fallo del mensaje anterior duplicado, 2026-10-02):
+		// turn-settled de NUESTRO PROPIO turno llega con el stream aún abierto
+		// (endTurn emite desde onFinish antes de que termine la respuesta, así que la
+		// trama SSE siempre gana a [DONE]) — el manejador de más abajo no puede sincronizar
+		// ahí, así que marca un indicador, y ESTE cambio lo consume: el registro
+		// refleja la verdad duradera (un asentamiento fallido conserva su aviso,
+		// no su respuesta sin guardar), así que sustituir la vista absorbe en la base las copias
+		// con id c_ que llegaron por stream en la cola, con sus ids del servidor. Sin
+		// esto, la cola conservaba esas copias para siempre y la ventana de adopción de
+		// reorientaciones del siguiente envío las renderizaba por segunda vez. Esta sincronización no puede
+		// perderse el traspaso del despertar: el despertar solo se dispara tras las barreras de
+		// reposo + el margen (≥750 ms después de este cambio), así que su evento turn-started
+		// llega a una vista en reposo y ya canónica, y se engancha con normalidad.
 		if (settleAnnouncedRef.current) {
 			settleAnnouncedRef.current = false;
 			void syncFromServer();
 		}
-		// (The extraction-discovery nudges that lived here died at S5: the
-		// pipeline announces every phase on the events channel.)
+		// (Los empujones de descubrimiento de la extracción que vivían aquí murieron en S5: el
+		// proceso anuncia cada fase en el canal de eventos.)
 	}, [status, syncTurns, syncFromServer]);
 
-	// A stream that died MID-FLIGHT (network): the runner decoupled the turn
-	// from its view, so the server turn runs ON behind the error banner —
-	// re-enter the in-flight watch (the 1500ms fallback poll adopts at
-	// settle) instead of leaving the session blind until the next send's
-	// 409 merge-retry heals it. One record check per error transition.
+	// Un stream que murió EN PLENO VUELO (red): el ejecutor desacopló el turno
+	// de su vista, así que el turno del servidor SIGUE ejecutándose detrás del aviso de error —
+	// vuelve a entrar en la vigilancia del turno en curso (el sondeo alternativo de 1500 ms lo
+	// adopta al asentarse) en vez de dejar la sesión a ciegas hasta que lo repare el
+	// reintento con fusión del 409 del siguiente envío. Una comprobación del registro por cada transición de error.
 	const prevErrorStatusRef = useRef(status);
 	useEffect(() => {
 		const was = prevErrorStatusRef.current;
@@ -1364,7 +1364,7 @@ export function Chat({
 				if (record.turnInFlight === true) setTurnInFlight(true);
 				else void syncFromServer();
 			} catch {
-				/* transient — the banner stands; the next send's merge-retry heals */
+				/* transitorio — el aviso se mantiene; el reintento con fusión del siguiente envío lo repara */
 			}
 		})();
 		return () => {
@@ -1372,39 +1372,39 @@ export function Chat({
 		};
 	}, [status, readRecord, syncFromServer]);
 
-	// ── Central job observability (contracts.ts "THE ASYNC PROTOCOL" §4) ──
-	// ONE fetch of /api/jobs drives every job surface (transcript dispatch
-	// cards, the sub-agents panel) and re-syncs the transcript exactly once
-	// when a job settles. PUSH (architecture S4, 2026-10-02): the store
-	// announces every job write on the events channel; the interval poll and
-	// its pollMs/jobPartCount gating are RETIRED. The view fetches once on
-	// mount, once per jobs-changed announcement (trailing-debounced — a
-	// sub-agent run writes activity-line bursts; 250ms coalesces them at or
-	// below the old 1s poll cadence), and once on channel resync.
+	// ── Observabilidad central de las tareas (contracts.ts "THE ASYNC PROTOCOL" §4) ──
+	// UNA lectura de /api/jobs alimenta todas las superficies de tareas (las tarjetas de
+	// despacho de la transcripción, el panel de subagentes) y vuelve a sincronizar la transcripción exactamente una vez
+	// cuando se asienta una tarea. PUSH (arquitectura S4, 2026-10-02): el almacén
+	// anuncia cada escritura de tarea en el canal de eventos; el sondeo por intervalos y
+	// sus barreras pollMs/jobPartCount están RETIRADOS. La vista lee una vez al
+	// montar, una vez por cada anuncio de jobs-changed (con debounce al final — la ejecución
+	// de un subagente escribe ráfagas de líneas de actividad; 250 ms las agrupa a la cadencia
+	// del antiguo sondeo de 1 s o por debajo) y una vez al resincronizar el canal.
 	//
-	// A settle no longer implies the record is complete: CONTINUATION
-	// COALESCING flips the job done at claim time — while the learner's own
-	// answer turn is still streaming (and a settle can race a second job's
-	// wake turn). Syncing mid-turn would swap in a stale snapshot
-	// mid-stream, which breaks the SDK's in-place continuation merge
-	// (duplicate message ids). So: a settle during a busy turn defers the
-	// sync; the next idle fetch adopts the finished record.
+	// Un asentamiento ya no implica que el registro esté completo: la AGRUPACIÓN DE
+	// CONTINUACIONES marca la tarea como hecha al reclamarla — mientras el turno de respuesta del
+	// propio alumno sigue llegando por stream (y un asentamiento puede competir con el turno de
+	// despertar de una segunda tarea). Sincronizar a mitad de turno metería una instantánea obsoleta
+	// a mitad del stream, lo que rompe la fusión de continuación en su sitio del SDK
+	// (ids de mensaje duplicados). Así que un asentamiento durante un turno ocupado aplaza la
+	// sincronización; la siguiente lectura en reposo adopta el registro terminado.
 	const [jobs, setJobs] = useState<JobRecord[]>([]);
 	const localStreamRef = useRef(false);
 	localStreamRef.current = localStream;
 	const jobStatusRef = useRef<Map<string, string>>(new Map());
-	// A settle seen during a busy turn — the sync is owed, not dropped.
+	// Un asentamiento visto durante un turno ocupado — la sincronización se debe, no se descarta.
 	const pendingSyncRef = useRef(false);
-	// (The dispatch nudge effect that lived here — refreshActivity per new
-	// dispatch tool part — died at S5: the store announces jobs-changed at
-	// the dispatch write; the dock subscribes.)
-	// First-fetch guard (the old first-tick guard): the initial read adopts
-	// existing history (jobs recorded before mount) without nudging — a
-	// nudge is only owed for a running job the feed hasn't seen THIS session.
+	// (El efecto de empujón del despacho que vivía aquí — refreshActivity por cada parte
+	// de herramienta de despacho nueva — murió en S5: el almacén anuncia jobs-changed en
+	// la escritura del despacho; el dock se suscribe.)
+	// Protección de la primera lectura (la antigua protección del primer tick): la lectura inicial adopta
+	// el historial existente (tareas registradas antes del montaje) sin empujar — solo se debe un
+	// empujón por una tarea en ejecución que el feed no ha visto en ESTA sesión.
 	const firstFetchRef = useRef(true);
-	// The trailing debounce for jobs-changed announcements (one timer), and
-	// the ref the timer fires through (a stale closure must never fetch an
-	// old chatId).
+	// El debounce final de los anuncios de jobs-changed (un temporizador), y
+	// la ref a través de la que se dispara el temporizador (un closure obsoleto nunca debe leer un
+	// chatId antiguo).
 	const fetchDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 	const fetchJobsRef = useRef<() => void>(() => {});
 	const fetchJobs = useCallback(async () => {
@@ -1416,14 +1416,14 @@ export function Chat({
 			for (const j of list) {
 				const prev = jobStatusRef.current.get(j.id);
 				if (prev === "running" && j.status !== "running") {
-					// A settle — the blob leaves the dock via the store's jobs-changed
-					// announce at this very write (S5); this handler owns the RECORD.
-					// The record is only guaranteed complete when no turn is in
-					// flight — locally or server-side (a coalesced settle fires
-					// mid-turn by design), so the FULL sync waits for idle.
-					// Ground rule (2026-09-15): delivered content shows
-					// immediately anyway — adopt append-only NOW; the idle
-					// sync still settles the record properly.
+					// Un asentamiento — la burbuja sale del dock mediante el anuncio de jobs-changed
+					// del almacén en esta misma escritura (S5); este manejador es responsable del REGISTRO.
+					// El registro solo está garantizado completo cuando no hay ningún turno en
+					// curso — ni en local ni en el servidor (un asentamiento agrupado se dispara
+					// a mitad de turno por diseño), así que la sincronización COMPLETA espera al reposo.
+					// Regla básica (2026-09-15): el contenido entregado se muestra
+					// de inmediato de todos modos — adopta solo por anexado AHORA; la sincronización
+					// en reposo sigue asentando el registro como es debido.
 					if (localStreamRef.current || data.turnInFlight === true) {
 						pendingSyncRef.current = true;
 						void adoptAppendOnly();
@@ -1443,32 +1443,32 @@ export function Chat({
 				void syncFromServer();
 			}
 			setJobs(list);
-			// (Wake-turn adoption that lived here — the turnInFlight attach
-			// line — died at S3: turn-started on the events channel owns
-			// discovery now. turnInFlight is STILL READ above: the settle
-			// logic's idle check needs it.)
+			// (La adopción de turnos de despertar que vivía aquí — la línea de enganche de
+			// turnInFlight — murió en S3: ahora el descubrimiento es cosa de turn-started en el
+			// canal de eventos. turnInFlight SE SIGUE LEYENDO arriba: la comprobación de reposo
+			// de la lógica de asentamiento lo necesita.)
 		} catch {
-			/* transient fetch failure — the next jobs-changed announcement re-fetches */
+			/* fallo transitorio de lectura — el siguiente anuncio de jobs-changed vuelve a leer */
 		}
 	}, [chatId, syncFromServer, adoptAppendOnly]);
 	fetchJobsRef.current = () => void fetchJobs();
-	// Mount + chat switch: the IMMEDIATE (non-debounced) initial read. The
-	// firstFetch guard resets with the old rule — true only when this
-	// session has never seen a job (a chat switch keeps the map: job ids
-	// are unique per chat, and a newly-seen running job may still nudge).
+	// Montaje + cambio de chat: la lectura inicial INMEDIATA (sin debounce). La
+	// protección firstFetch se reinicia con la regla antigua — verdadera solo cuando esta
+	// sesión nunca ha visto una tarea (un cambio de chat conserva el mapa: los ids de tarea
+	// son únicos por chat, y una tarea en ejecución vista por primera vez aún puede empujar).
 	useEffect(() => {
 		firstFetchRef.current = jobStatusRef.current.size === 0;
 		void fetchJobs();
-	}, [fetchJobs]); // identity changes exactly on chatId
+	}, [fetchJobs]); // la identidad cambia exactamente con chatId
 	useServerEvent("jobs-changed", (p) => {
-		if (p.chatId != null && p.chatId !== chatId) return; // ours or unattributed
+		if (p.chatId != null && p.chatId !== chatId) return; // nuestra o sin atribuir
 		if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
 		fetchDebounceRef.current = setTimeout(() => {
 			fetchDebounceRef.current = undefined;
 			fetchJobsRef.current();
 		}, 250);
 	});
-	// Reconnect catch-up: events missed while the channel was down.
+	// Puesta al día al reconectar: los eventos que se perdieron mientras el canal estaba caído.
 	useServerResync(() => fetchJobsRef.current());
 	useEffect(
 		() => () => {
@@ -1477,49 +1477,49 @@ export function Chat({
 		[],
 	);
 
-	// ── Server-initiated turn discovery (push-architecture S3, 2026-10-02) ──
-	// Every turn THIS chat runs is announced on the events channel — the
-	// probe→teach handoff, a job wake, another tab's send, the
-	// missed-on-mount case. This replaces the retired watch loop and the
-	// 1500ms fallback record poll: discovery is no longer a polling window
-	// that can expire. Handlers read REFS, not closure state — events fire
-	// between renders, and a ref holds the live value at event time.
+	// ── Descubrimiento de turnos iniciados por el servidor (arquitectura push S3, 2026-10-02) ──
+	// Cada turno que ejecuta ESTE chat se anuncia en el canal de eventos — el
+	// traspaso sondeo→enseñanza, el despertar de una tarea, el envío de otra pestaña, el
+	// caso de perdérselo al montar. Esto sustituye al bucle de vigilancia retirado y al
+	// sondeo alternativo del registro de 1500 ms: el descubrimiento ya no es una ventana de sondeo
+	// que pueda caducar. Los manejadores leen REFS, no estado de closures — los eventos se disparan
+	// entre renders, y una ref guarda el valor vivo en el momento del evento.
 	const statusRef = useRef(status);
 	statusRef.current = status;
-	/** Fix B (2026-10-02): turn-settled arrived for OUR OWN turn — the
-	 * record is durable (endTurn fires only after persistTurn); the ready
-	 * flip consumes this flag to canonize the view onto the record. See the
-	 * settle effect and the turn-settled handler below. */
+	/** Arreglo B (2026-10-02): llegó turn-settled de NUESTRO PROPIO turno — el
+	 * registro es duradero (endTurn solo se dispara después de persistTurn); el cambio
+	 * a ready consume este indicador para canonizar la vista sobre el registro. Ver el
+	 * efecto de asentamiento y el manejador de turn-settled de más abajo. */
 	const settleAnnouncedRef = useRef(false);
 	useServerEvent("turn-started", (p) => {
-		// Known non-issue: beginTurn emits before registerTurn in the same
-		// synchronous request flow; a GET /stream inside that sub-ms window
-		// gets a settled response — unwinnable by a network round-trip,
-		// self-healing via the eventual turn-settled. Do not engineer around.
+		// Problema conocido sin importancia: beginTurn emite antes que registerTurn en el mismo
+		// flujo síncrono de la petición; un GET /stream dentro de esa ventana de menos de un ms
+		// recibe una respuesta asentada — imposible de ganar con un viaje de red de ida y vuelta,
+		// y se repara solo con el turn-settled que acaba llegando. No lo esquives con más ingeniería.
 		if (p.chatId !== chatId) return;
-		if (localStreamRef.current) return; // our OWN turn — the 409-race guard
-		if (turnInFlightRef.current) return; // already attached
+		if (localStreamRef.current) return; // NUESTRO PROPIO turno — la protección contra la carrera del 409
+		if (turnInFlightRef.current) return; // ya enganchado
 		attachToRunningTurn();
 	});
 	useServerEvent("turn-settled", (p) => {
 		if (p.chatId !== chatId) return;
 		if (localStreamRef.current) {
-			// Our own [DONE] path owns the BUSY settle — but not a no-op (fix B,
-			// 2026-10-02): the event is the record-durable guarantee (endTurn
-			// fires only after persistTurn), and it reliably beats [DONE] here
-			// (endTurn emits from onFinish before the response terminates). Flag
-			// it; the ready flip consumes the flag and canonizes the view onto
-			// the record. (If [DONE] somehow won this race instead, this branch
-			// didn't run and the fully-idle branch below already synced.)
+			// Nuestra propia ruta de [DONE] es la responsable del asentamiento del OCUPADO — pero no es una operación nula (arreglo B,
+			// 2026-10-02): el evento es la garantía de que el registro es duradero (endTurn
+			// solo se dispara después de persistTurn), y aquí siempre gana a [DONE]
+			// (endTurn emite desde onFinish antes de que termine la respuesta). Márcalo;
+			// el cambio a ready consume el indicador y canoniza la vista sobre
+			// el registro. (Si por lo que sea [DONE] ganara esta carrera, esta rama
+			// no se ejecutó y la rama de reposo total de más abajo ya sincronizó.)
 			settleAnnouncedRef.current = true;
 			return;
 		}
 		if (turnInFlightRef.current) {
-			// The attached stream's terminal frame owns the normal settle —
-			// syncing HERE would swap a stale snapshot mid-stream (the
-			// continuation-coalescing law, see the jobs poll above). Only
-			// the error case heals: the attached stream died, and the settle
-			// says persistTurn has made the record durable truth.
+			// La trama terminal del stream enganchado es la responsable del asentamiento normal —
+			// sincronizar AQUÍ metería una instantánea obsoleta a mitad del stream (la
+			// ley de agrupación de continuaciones, ver el sondeo de tareas de arriba). Solo
+			// el caso de error repara: el stream enganchado murió, y el asentamiento
+			// dice que persistTurn ha convertido el registro en verdad duradera.
 			if (statusRef.current === "error") {
 				setTurnInFlight(false);
 				clearError();
@@ -1527,24 +1527,24 @@ export function Chat({
 			}
 			return;
 		}
-		// Fully idle — a turn we never saw (every window missed): adopt now.
+		// Reposo total — un turno que nunca vimos (se perdieron todas las ventanas): adóptalo ahora.
 		void syncFromServer();
 	});
 	useServerEvent("compaction-changed", (p) => {
-		// The settle-kick's background summary: while it runs, sends gate
-		// (the next turn's server-side ensureCompacted awaits it anyway —
-		// this only keeps the affordance honest). On finish, record-changed
-		// (emitted by the compaction write itself) carries the marker in.
+		// El resumen en segundo plano que lanza el asentamiento: mientras se ejecuta, los envíos se bloquean
+		// (el ensureCompacted del siguiente turno en el servidor lo espera de todos modos —
+		// esto solo mantiene honesta la indicación). Al terminar, record-changed
+		// (emitido por la propia escritura de la compactación) trae el marcador.
 		if (p.chatId !== chatId) return;
 		setCompacting(p.running);
 	});
 	useServerEvent("record-changed", (p) => {
-		// The silent dismissal write (A2, 2026-10-03): no turn ever ran, so
-		// only the record moved. Other tabs and post-error windows adopt;
-		// our OWN dismissal already rendered its optimistic append — syncing
-		// here too is harmless (the adoption law swaps local ids for the
-		// server's). Busy states ignore it: a running turn owns the view,
-		// and the write is 409-guarded against exactly that anyway.
+		// La escritura silenciosa del descarte (A2, 2026-10-03): nunca se ejecutó ningún turno, así que
+		// solo se movió el registro. Otras pestañas y las ventanas posteriores a un error lo adoptan;
+		// NUESTRO PROPIO descarte ya renderizó su anexado optimista — sincronizar
+		// aquí también es inofensivo (la ley de adopción cambia los ids locales por los
+		// del servidor). Los estados ocupados lo ignoran: un turno en ejecución es responsable de la vista,
+		// y de todos modos la escritura está protegida con un 409 justo contra eso.
 		if (p.chatId !== chatId) return;
 		if (localStreamRef.current || turnInFlightRef.current) return;
 		void syncFromServer();
@@ -1556,15 +1556,15 @@ export function Chat({
 		void prepareText();
 	};
 
-	/* STEER VS SEND (owner arc 2026-10-03): a send while a turn runs steers
-	 * it — the quiet queue + the live agent's steering rail; the turn's own
-	 * stream lands the card when pi drains it. The branch is BUSY, not
-	 * turnInFlight: the own-stream case CLEARS turnInFlight (the local
-	 * dedup, chat.tsx ~370), so branching there swallowed Enter entirely
-	 * during our own turn (owner live report, fixed same day). busy covers
-	 * own stream AND foreign/wake turns — both have a live agent by the
-	 * time the send's POST resolved, so the steer lands. Idle takes the
-	 * plain send; a raced settle 409s and falls back to exactly that. */
+	/* REORIENTAR FRENTE A ENVIAR (arco del responsable 2026-10-03): un envío mientras se
+	 * ejecuta un turno lo reorienta — la cola discreta + el raíl de reorientación del agente vivo; el
+	 * propio stream del turno trae la tarjeta cuando pi la vacía. La rama es BUSY, no
+	 * turnInFlight: el caso del stream propio LIMPIA turnInFlight (la deduplicación
+	 * local, chat.tsx ~370), así que bifurcar ahí se tragaba el Enter por completo
+	 * durante nuestro propio turno (informe en vivo del responsable, corregido el mismo día). busy cubre
+	 * el stream propio Y los turnos ajenos/de despertar — los dos tienen un agente vivo para cuando
+	 * se resuelve el POST del envío, así que la reorientación llega. En reposo se usa el
+	 * envío normal; un asentamiento en carrera da un 409 y recurre exactamente a eso. */
 
 	const readViewInput = (): PluginSessionViewInput => {
 		const expected = pendingPlugin?.occurrence ?? unreadablePlugin?.occurrence
@@ -1590,7 +1590,7 @@ export function Chat({
 	const captureActionContext = () => {
 		if (!submissionMounted.current || !surfaceTarget || !findSurfaceBoundary(surfaceTarget)) return;
 		const captured = actionContext();
-		if (captured) void captured.view; // Detach once at invocation, not after plugin awaits.
+		if (captured) void captured.view; // Desengancha una vez al invocar, no después de las esperas de los plugins.
 		return captured;
 	};
 
@@ -1614,35 +1614,35 @@ export function Chat({
 		>
 		<JobsContext.Provider value={jobs}>
 		<CitationActionsContext.Provider value={citationActions}>
-		{/* The session surface: the transcript column (header + scroller) and
-		    the plan-tree panel as full-height SIBLINGS — the panel spans top to
-		    bottom exactly like the left sidebar, and the header (name + phase
-		    chip) spans from the left sidebar's edge to the panel's edge. The
-		    dock overlays the column bottom (outside the scroller); a spacer in
-		    the transcript reserves its height. */}
+		{/* La superficie de la sesión: la columna de la transcripción (cabecera + contenedor de
+		scroll) y el panel del árbol del plan como HERMANOS a toda altura — el panel va de arriba
+		abajo exactamente igual que la barra lateral izquierda, y la cabecera (nombre + chip
+		de fase) va del borde de la barra lateral izquierda al borde del panel. El
+		dock se superpone a la parte inferior de la columna (fuera del contenedor de scroll); un
+		espaciador en la transcripción reserva su altura. */}
 		<div className="flex h-dvh">
 			<div className="flex min-w-0 flex-1 flex-col">
-				{/* The top bar is its own block (owner, top-fade round 4): in flow
-				    above the scroller on the plain page background — no gradient. Its
-				    bottom outline (border-b border-border) matches the one that
-				    separates the left sidebar — same width, same color (owner, r5).
-				    h-15 (60px), not py-2: the toggle (a size-9 icon button) renders
-				    only while the sidebar is CLOSED — an auto-height row would
-				    collapse when it disappears and slide the title + chip up.
-				    60px is an ALIGNMENT, not just a size: it equals the sidebar's
-				    LH wordmark band, so the header's border-b continues that
-				    band's bottom edge as one line across the app (owner, round 6). */}
+				{/* La barra superior es su propio bloque (responsable, ronda 4 del fundido superior): en el
+				flujo, encima del contenedor de scroll, sobre el fondo liso de la página — sin degradado. Su
+				contorno inferior (border-b border-border) coincide con el que separa la barra lateral
+				izquierda — mismo grosor, mismo color (responsable, r5).
+				h-15 (60px), no py-2: el conmutador (un botón de icono size-9) solo se renderiza
+				mientras la barra lateral está CERRADA — una fila de altura automática se encogería
+				cuando desaparece y subiría el título + el chip.
+				60px es una ALINEACIÓN, no solo un tamaño: coincide con la franja del logotipo LH de la
+				barra lateral, así que el border-b de la cabecera continúa el borde inferior de esa
+				franja como una sola línea a lo ancho de la app (responsable, ronda 6). */}
 				<TopBar
-					// While renaming the bar is NOT a drag surface: app-region:drag
-					// would eat the mousedown, so click-to-escape (below) could
-					// never fire. Rename mode is interactive mode (owner ask) —
-					// TopBar's one escape hatch.
+					// Mientras se renombra, la barra NO es una superficie de arrastre: app-region:drag
+					// se comería el mousedown, así que el clic para salir (más abajo) nunca
+					// podría dispararse. El modo de renombrado es modo interactivo (petición del responsable) —
+					// la única vía de escape de la TopBar.
 					drag={!renaming}
 					onMouseDown={(e) => {
-						// Escape hitbox: any mousedown outside the input itself blurs
-						// it, running the existing onBlur commit path. The input is
-						// shrink-to-fit (field-sizing), so the rest of the bar is
-						// this spacer + inert chips — all click-to-exit (owner ask).
+						// Zona de escape: cualquier mousedown fuera del propio input le quita
+						// el foco, lo que ejecuta la ruta de confirmación onBlur existente. El input se
+						// ajusta a su contenido (field-sizing), así que el resto de la barra es
+						// este espaciador + chips inertes — todo ello clic para salir (petición del responsable).
 						if (renaming && e.target !== titleInputRef.current) titleInputRef.current?.blur();
 					}}
 				>
@@ -1655,8 +1655,8 @@ export function Chat({
 								onKeyDown={(e) => {
 									if (!isInteractionScopeEligible(e.currentTarget, controller)) return;
 									if (e.key === "Enter") void commitRename(titleDraft);
-									// stopPropagation claims the Esc (keyboard wave A):
-									// closing rename must not also abort a turn.
+									// stopPropagation reclama el Esc (oleada A de teclado):
+									// cerrar el renombrado no debe abortar también un turno.
 									else if (e.key === "Escape") {
 										controller?.claimEscape(e);
 										e.stopPropagation();
@@ -1670,15 +1670,15 @@ export function Chat({
 								title="Rename this session"
 								className="lh-no-drag min-w-[8ch] max-w-[70%] shrink-0 bg-transparent font-title text-3xl tracking-tight caret-current outline-none [field-sizing:content]"
 							/>
-							{/* flex-1 spacer during rename too, so the chips stay at
-							    the right edge; clicks here commit via the header
-							    mousedown handler. */}
+							{/* espaciador flex-1 también durante el renombrado, para que los chips sigan en
+							el borde derecho; los clics aquí confirman mediante el manejador de
+							mousedown de la cabecera. */}
 							<div className="min-w-4 flex-1" aria-hidden="true" />
 						</>
 					) : (
 					<>
 						<Hint
-							// F2 renames (registry) — surfaced on the hover.
+							// F2 renombra (registro) — se muestra al pasar el ratón.
 							label="Rename session"
 							action="rename-session"
 							side="bottom"
@@ -1695,14 +1695,14 @@ export function Chat({
 							{titleText}
 							</button>
 						</Hint>
-							{/* flex-1 spacer: keeps the chips at the right edge AND stays a
-							    drag surface (no carve-out) — the freed bar is grippable. */}
+							{/* espaciador flex-1: mantiene los chips en el borde derecho Y sigue siendo una
+							superficie de arrastre (sin recorte) — la barra liberada se puede agarrar. */}
 							<div className="min-w-4 flex-1" aria-hidden="true" />
 					</>
 					)}
-					{/* The plan chip (owner, plan-placement round): session-level
-					    structure beside the phase chip — access to the full-DAG popup
-					    at every width; the marginalia is the wide-screen glance view. */}
+					{/* El chip de plan (responsable, ronda de colocación del plan): estructura a nivel
+					de sesión junto al chip de fase — acceso a la ventana con el DAG completo
+					a cualquier ancho; la nota al margen es la vista rápida de pantalla ancha. */}
 					{planTree && (
 						<Hint label="Open the full plan" side="bottom">
 <button
@@ -1719,16 +1719,16 @@ export function Chat({
 						</button>
 </Hint>
 					)}
-					{/* The extraction ring (owner-locked redesign, 2026-09-24): fills
-					    with uncovered vs the chunk threshold, pulses while a run is in
-					    flight, vanishes when the graph is off. Click → the exact
-					    numbers. Before the phase label — the chips cluster right. */}
-					{/* Practice (owner, 2026-10-04): the coverage ring hides —
-				    practice never extracts, so an ever-filling ring with no
-				    run behind it would lie. */}
+					{/* El anillo de extracción (rediseño fijado por el responsable, 2026-09-24): se llena
+					con lo no cubierto frente al umbral de fragmento, late mientras hay una ejecución en
+					curso y desaparece cuando el grafo está desactivado. Clic → las cifras
+					exactas. Antes de la etiqueta de fase — los chips se agrupan a la derecha. */}
+					{/* Práctica (responsable, 2026-10-04): el anillo de cobertura se oculta —
+				la práctica nunca extrae, así que un anillo que no para de llenarse sin ninguna
+				ejecución detrás mentiría. */}
 					{kind !== "practice" && <CoverageRing chatId={chatId} refreshKey={coverageTick} />}
-					{/* Practice sessions: no phase arc — a quiet Practice tag
-					    instead of the phase chip. */}
+					{/* Sesiones de práctica: sin arco de fases — una discreta etiqueta Practice
+					en lugar del chip de fase. */}
 					{kind === "practice" ? (
 						<span
 							data-testid="phase-chip"
@@ -1761,30 +1761,30 @@ export function Chat({
 
 							{messages.map((m, mi) =>
 								m.role === "user" && isSubagentSteer(m) ? (
-									// Sub-agent delivery (wake-pipeline steer): NO message bubble — the
-									// artifact card sits in the transcript column directly, full width
-									// and centered like the teacher's artifacts (contracts.ts "THE ASYNC
-									// PROTOCOL" §4). Key fallback: legacy transcripts (pre id-hygiene)
-									// can still hold empty ids — the index keeps keys unique for them.
+									// Entrega de un subagente (reorientación del proceso de despertar): SIN burbuja de mensaje — la
+									// tarjeta de artefacto va directamente en la columna de la transcripción, a todo el ancho
+									// y centrada como los artefactos del profesor (contracts.ts "THE ASYNC
+									// PROTOCOL" §4). Alternativa para la clave: las transcripciones antiguas (anteriores a la higiene de ids)
+									// aún pueden tener ids vacíos — el índice mantiene únicas sus claves.
 									<SubagentSteerCard key={m.id || `m-${mi}`} message={m} />
 								) : m.role === "user" && m.parts.some((p) => p.type === "data-probe-handoff") ? (
-								// The probe→teach handoff wake (custom-message scheme): the
-								// PLANNING DIVIDER IS the seam (owner ruling 2026-09-26 — it
-								// replaced the "Preparing your plan…" system line; the marker
-								// renders in the right spot by record construction, so the old
-								// fold-based divider — which floated to the transcript top once
-								// Wave D grouping merged the whole probe into one giant
-								// assistant group — is gone). Never a user bubble: the wake is
-								// scaffolding; the model-facing instruction lives in the adapter.
+								// El despertar del traspaso sondeo→enseñanza (esquema de mensajes personalizados): el
+								// DIVISOR DE PLANIFICACIÓN ES la frontera (decisión del responsable 2026-09-26 — sustituyó
+								// a la línea del sistema "Preparing your plan…"; el marcador se renderiza en el sitio
+								// correcto por cómo se construye el registro, así que el antiguo divisor basado en el plegado
+								// — que subía flotando al principio de la transcripción en cuanto la agrupación de la
+								// oleada D fundía todo el sondeo en un único grupo gigante del
+								// asistente — ha desaparecido). Nunca una burbuja de usuario: el despertar es
+								// andamiaje; la instrucción dirigida al modelo vive en el adaptador.
 								<PhaseDivider key={m.id || `m-${mi}`} phase="plan" />
 							) : m.role === "user" && m.parts.length > 0 && m.parts.every((p) => p.type.startsWith("data-")) ? (
-								// Marker cards (custom messages, 2026-10-04): user-side
-								// scaffolding — the graph-context pick, the practice
-								// thinking trace — render as cards in the transcript
-								// column directly, NO chat bubble (the subagent-steer
-								// precedent). The user branch below renders text only;
-								// without this hoist a data-only message read as an
-								// EMPTY bubble (owner report, 2026-10-04).
+								// Tarjetas de marcador (mensajes personalizados, 2026-10-04): andamiaje del
+								// lado del usuario — la elección del contexto del grafo, el rastro de razonamiento
+								// de la práctica — se renderizan como tarjetas directamente en la columna de la
+								// transcripción, SIN burbuja de chat (el precedente de la reorientación
+								// del subagente). La rama de usuario de más abajo solo renderiza texto;
+								// sin esta elevación, un mensaje con solo datos se leía como una burbuja
+								// VACÍA (informe del responsable, 2026-10-04).
 								<Fragment key={m.id || `m-${mi}`}>
 									{m.parts.map((part, pi) => {
 										switch (part.type) {
@@ -1801,8 +1801,8 @@ export function Chat({
 											case "data-practice-thinking":
 												return <ThinkingCard key={pi} data={part.data as PracticeThinkingData} />;
 											case "data-practice-next":
-												// The learner's move-on signal (owner round 16): a compact
-												// centered mono-caps line — chrome, the dismissal register.
+												// La señal del alumno para pasar al siguiente (ronda 16 del responsable): una línea compacta,
+												// centrada, en versalitas monoespaciadas — cromo, el registro del descarte.
 												return (
 													<div
 														key={pi}
@@ -1820,24 +1820,24 @@ export function Chat({
 								</Fragment>
 							) : (
 									<Fragment key={m.id || `m-${mi}`}>
-									{/* THE INFERRED TEACH SEAM (owner ruling 2026-09-26, the verdict
-									death): teaching begins where the FIRST nodeId-tagged quiz is
-									posed — the fold (phaseTimeline, the same derivation the phase chip
-									reads) flips to teach exactly AT this assistant group. STEP-LEVEL
-									since owner round 8 (2026-10-05 — the stacked-dividers bug): the
-									plan presentation often lives in the SAME message, an earlier
-									provider step than the quiz call, and the old message-level seam
-									drew this divider before the plan too (Planning and Teaching
-									stacked back-to-back, nothing between). teachStepIndex finds the
-									step boundary governing the flip call: -1 = the message's first
-									step → prepend before the whole block (this branch); a later
-									index → the divider renders AT that part boundary in the loop
-									below (replacing the plain step hairline — a labeled phase rule
-									supersedes it). The boundary check (this index flips, the
-									previous didn't) still guarantees exactly ONE divider per session.
-									PREPENDED, never a replacement branch: the teach group is a real
-									message with content — a replacement ternary swallowed the entire
-									first lesson block (the Lacan session, 2026-09-27). */}
+									{/* LA FRONTERA INFERIDA DE LA ENSEÑANZA (decisión del responsable 2026-09-26, la muerte del
+									veredicto): la enseñanza empieza donde se plantea el PRIMER quiz etiquetado con nodeId
+									— el plegado (phaseTimeline, la misma derivación que lee el chip de
+									fase) cambia a teach exactamente EN este grupo del asistente. A NIVEL DE PASO
+									desde la ronda 8 del responsable (2026-10-05 — el fallo de los divisores apilados): la
+									presentación del plan suele vivir en el MISMO mensaje, en un paso del proveedor
+									anterior a la llamada del quiz, y la antigua frontera a nivel de mensaje
+									dibujaba este divisor también antes del plan (Planning y Teaching
+									apilados uno tras otro, sin nada en medio). teachStepIndex encuentra el
+									límite de paso que rige la llamada del cambio: -1 = el primer paso del
+									mensaje → se antepone a todo el bloque (esta rama); un índice
+									posterior → el divisor se renderiza EN ese límite de parte, en el bucle
+									de más abajo (sustituye a la línea fina normal de paso — una regla de fase con
+									etiqueta prevalece sobre ella). La comprobación del límite (este índice cambia y el
+									anterior no) sigue garantizando exactamente UN divisor por sesión.
+									ANTEPUESTO, nunca una rama de sustitución: el grupo de enseñanza es un mensaje
+									real con contenido — un ternario de sustitución se tragaba todo el
+									primer bloque de la lección (la sesión de Lacan, 2026-09-27). */}
 									{m.role === "assistant" &&
 									mi > 0 &&
 									phases[mi] === "teach" &&
@@ -1846,29 +1846,29 @@ export function Chat({
 										<PhaseDivider key={`teach-${m.id || `m-${mi}`}`} phase="teach" />
 									) : null}
 									{m.role === "user" ? (
-										/* THE DOCUMENT ROW (owner round, 2026-10-05): no right-aligned
-										    bubble — the transcript reads as a document. User text is a
-										    full-width quote block: muted "You" label, muted rail,
-										    FULL-opacity text (learner words are content, not whisper).
-										    Distinguished from user thinking at a glance: thinking is
-										    collapsed + 50% italic; this is upright and present.
-										    User text renders plain — the model's LaTeX pipeline is not
-										    applied to learner-authored text ($ stays $, no surprises).
-										    Rendered WITHOUT the Message wrapper — that is the bubble. */
+										/* LA FILA DE DOCUMENTO (ronda del responsable, 2026-10-05): sin burbuja
+										alineada a la derecha — la transcripción se lee como un documento. El texto del usuario es un
+										bloque de cita a todo el ancho: etiqueta "You" atenuada, raíl atenuado,
+										texto con opacidad COMPLETA (las palabras del alumno son contenido, no un susurro).
+										Se distingue de un vistazo del razonamiento del usuario: el razonamiento va
+										plegado + en cursiva al 50 %; esto va recto y presente.
+										El texto del usuario se renderiza tal cual — no se aplica la cadena de LaTeX del modelo
+										al texto escrito por el alumno ($ sigue siendo $, sin sorpresas).
+										Se renderiza SIN el envoltorio Message — ese es la burbuja. */
 											<div
 										data-testid="user-message"
-										/* THE DOCUMENT, ALL-IN (owner rounds two+three, 2026-10-07):
-										    no chat side — the user message is a full-width card-color
-										    BAND, the IDENTICAL geometry as the thinking rows: 5px band
-										    padding, the left gap matches it, the rail fills the 3ch
-										    inset (the band is the authorship mark against the agent's
-										    transparent prose). The "You" label stays — one register
-										    with the thinking labels. */
+										/* EL DOCUMENTO, DEL TODO (rondas dos y tres del responsable, 2026-10-07):
+										sin lado de chat — el mensaje del usuario es una FRANJA a todo el ancho del color de
+										las tarjetas, con una geometría IDÉNTICA a la de las filas de razonamiento: 5px de relleno
+										de la franja, el hueco izquierdo coincide con él y el raíl ocupa el margen
+										interior de 3ch (la franja es la marca de autoría frente a la prosa transparente
+										del agente). La etiqueta "You" se mantiene — un mismo registro
+										que las etiquetas del razonamiento. */
 										className="my-2 w-full border-l-[calc(3ch-14px)] border-muted-foreground/30 bg-card py-1 pl-[14px] pr-4 font-ui text-xs"
 									>
-												{/* The rail GROUPS (owner round 4, 2026-10-05): the YOU heading
-												    sits INSIDE the rail, same mono-xs register and same 1ch
-												    rail as the thinking rows — one quote geometry. */}
+												{/* El raíl AGRUPA (ronda 4 del responsable, 2026-10-05): el encabezado YOU
+												va DENTRO del raíl, con el mismo registro mono-xs y el mismo raíl de
+												1ch que las filas de razonamiento — una única geometría de cita. */}
 												<div className="font-medium uppercase tracking-wide text-muted-foreground">You</div>
 												<div className="lh-prose whitespace-pre-wrap text-foreground">
 													<PathText text={m.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n")} />
@@ -1882,22 +1882,22 @@ export function Chat({
 												if (part.pluginProblem) return <ProblemCard key={pi} part={{ ...part, state: part.state ?? "input-available", toolCallId: part.toolCallId ?? "" }} />;
 												if (part.pluginQuestion) return <PluginQuestionPart key={pi} part={part} chatId={chatId} />;
 												const isLastPart = mi === messages.length - 1 && pi === m.parts.length - 1;
-												// The step boundary where teaching begins (round 8): when
-												// the teach flip happens in a LATER step, its PhaseDivider
-												// replaces this boundary's plain hairline.
+												// El límite de paso donde empieza la enseñanza (ronda 8): cuando
+												// el cambio a teach ocurre en un paso POSTERIOR, su PhaseDivider
+												// sustituye a la línea fina normal de este límite.
 												const teachBoundary =
 													m.role === "assistant" &&
 													mi > 0 &&
 													phases[mi] === "teach" &&
 													phases[mi - 1] !== "teach" &&
 													teachStepIndex(m.parts) === pi;
-												// A tool call that errored BACK TO THE AGENT (validation
-												// failure, malformed args) is invisible work — the agent
-												// reads the error and retries. Owner ruling 2026-09-26:
-												// surface the retry loop as one quiet line, any tool,
-												// instead of silence (question tools used to render null,
-												// so a flailing quiz loop read as a stall). Aborts are
-												// terminal — nothing retries — so they stay silent.
+												// Una llamada a herramienta que devolvió un error AL AGENTE (fallo de
+												// validación, argumentos mal formados) es trabajo invisible — el agente
+												// lee el error y reintenta. Decisión del responsable 2026-09-26:
+												// mostrar el bucle de reintentos como una línea discreta, con cualquier herramienta,
+												// en lugar de silencio (las herramientas de preguntas renderizaban null,
+												// así que un bucle de quiz dando tumbos parecía un atasco). Los abortos son
+												// terminales — nada reintenta —, así que siguen en silencio.
 												if (
 													part.state === "output-error" &&
 													part.type.startsWith("tool-") &&
@@ -1932,8 +1932,8 @@ export function Chat({
 															{teachBoundary ? <PhaseDivider phase="teach" /> : pi > 0 ? <Separator className="my-3" /> : null}
 														</Fragment>;
 													case "data-plan-block":
-														// The plan in the chat (wave 4): a frozen snapshot
-														// block — rendered as carried, never re-derived.
+														// El plan en el chat (oleada 4): un bloque con una
+														// instantánea congelada — se renderiza tal como viene, nunca se vuelve a derivar.
 														return (
 															<PlanBlock
 																key={pi}
@@ -1953,8 +1953,8 @@ export function Chat({
 																draftRef.current = null;
 																void send({ type: "retry-question", messageId: malformed.messageId, contentIndex: malformed.contentIndex, toolCallId: malformed.toolCallId });
 															}} />;
-														// Pending/streaming questions live in the dock, not the
-														// transcript; answered ones render as graded records.
+														// Las preguntas pendientes/en stream viven en el dock, no en la
+														// transcripción; las respondidas se renderizan como registros calificados.
 														if (part.state === "output-available") {
 															return (
 																<AnsweredCard key={pi} answer={part.output as QuestionAnswerData} input={part.input} />
