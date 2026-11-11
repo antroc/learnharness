@@ -15,9 +15,10 @@
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Conversation default resolved from the strong slot, used for new sessions
-and as fallback for sessions without their own choices. An omitted thinking
-level is selected from the host's supported-level preference at engine build.
+Valor por defecto de la conversación resuelto a partir de la ranura potente; se usa en las
+sesiones nuevas y como alternativa en las sesiones sin elecciones propias. Si se omite el
+nivel de razonamiento, se elige según la preferencia de niveles admitidos del host al
+construir el motor.
 
 ```ts
 export interface CatalogDefaults {
@@ -67,7 +68,7 @@ thinkingLevel?: ThinkingLevel;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-One row of the providers surface.
+Una fila de la superficie de proveedores.
 
 ```ts
 export interface CatalogProvider {
@@ -91,7 +92,8 @@ id: string;
 
 ### CatalogProvider envVar
 
-Credential environment-variable name; empty for subscription/native CLI routes.
+Nombre de la variable de entorno de la credencial; vacío para las rutas de suscripción o de
+CLI nativa.
 
 ```ts
 envVar: string;
@@ -99,8 +101,9 @@ envVar: string;
 
 ### CatalogProvider keyPresent
 
-Host credential/connection availability flag, not a remote health check.
-Custom keyless connections can be available without an API key.
+Indicador de disponibilidad de credenciales o conexión del host, no una comprobación de
+salud remota. Las conexiones personalizadas sin clave pueden estar disponibles sin clave
+de API.
 
 ```ts
 keyPresent: boolean;
@@ -110,9 +113,9 @@ keyPresent: boolean;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-One picker row: everything the UI shows about a model, projected from
-pi-ai's catalog. Costs are USD per 1M tokens (the same catalog, the same
-units as Pi's server-side pricing calculator).
+Una fila del selector: todo lo que la interfaz muestra sobre un modelo, proyectado desde el
+catálogo de pi-ai. Los costes están en USD por cada millón de tokens (el mismo catálogo y
+las mismas unidades que la calculadora de precios de Pi en el servidor).
 
 ```ts
 export interface ModelCatalogEntry {
@@ -181,7 +184,7 @@ input: ("text" | "image")[];
 
 ### ModelCatalogEntry supportedLevels
 
-Thinking levels accepted by this model, as reported by the host catalog.
+Niveles de razonamiento que acepta este modelo, según informa el catálogo del host.
 
 ```ts
 supportedLevels: ThinkingLevel[];
@@ -189,7 +192,7 @@ supportedLevels: ThinkingLevel[];
 
 ### ModelCatalogEntry cost
 
-Null when LearnHarness cannot estimate prices for this connection.
+Null cuando LearnHarness no puede estimar los precios de esta conexión.
 
 ```ts
 cost: {
@@ -226,7 +229,7 @@ cacheWrite: number;
 
 ### ModelCatalogEntry contextWindow
 
-Null for native CLI aliases whose effective limits are session-specific.
+Null para los alias de CLI nativa cuyos límites efectivos dependen de la sesión.
 
 ```ts
 contextWindow: number | null;
@@ -242,7 +245,7 @@ maxTokens: number | null;
 
 Tipo público del SDK, exportado como `ModelCatalogResponse`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-GET /api/models response.
+Respuesta de GET /api/models.
 
 ```ts
 export interface ModelCatalogResponse {
@@ -272,8 +275,9 @@ models: ModelCatalogEntry[];
 
 ### ModelCatalogResponse defaults
 
-Strong-slot conversation default, or null when no default model is
-configured. A session's explicit model choice resolves separately.
+Valor por defecto de la conversación de la ranura potente, o null cuando no hay ningún
+modelo por defecto configurado. La elección explícita de modelo de una sesión se resuelve
+aparte.
 
 ```ts
 defaults: CatalogDefaults | null;
@@ -281,8 +285,8 @@ defaults: CatalogDefaults | null;
 
 ### ModelCatalogResponse rolePins
 
-Resolved background-role models, using the same resolution as execution.
-Each unconfigured role is null.
+Modelos resueltos de los roles en segundo plano, con la misma resolución que la ejecución.
+Cada rol sin configurar es null.
 
 ```ts
 rolePins: RolePins;
@@ -290,8 +294,9 @@ rolePins: RolePins;
 
 ### ModelCatalogResponse slots
 
-Resolved strong/cheap/vision slot choices, null for each unset tier.
-Per-role overrides are represented in rolePins, not in these slot values.
+Elecciones resueltas de las ranuras potente/barata/visión; null para cada nivel sin
+definir. Las sustituciones por rol se representan en rolePins, no en estos valores de
+ranura.
 
 ```ts
 slots: SlotPins;
@@ -299,9 +304,9 @@ slots: SlotPins;
 
 ### ModelCatalogResponse providers
 
-Provider/connection rows with availability flags, including disconnected
-providers where exposed by the host. This is not a guarantee that each
-provider has currently selectable models; inspect models and keyPresent.
+Filas de proveedores y conexiones con indicadores de disponibilidad, incluidos los
+proveedores desconectados cuando el host los expone. No garantiza que cada proveedor tenga
+en ese momento modelos seleccionables; consulta models y keyPresent.
 
 ```ts
 providers: CatalogProvider[];
@@ -311,9 +316,10 @@ providers: CatalogProvider[];
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Resolved model choice per background role: role override, then its assigned
-tier slot. Null means no model is configured and work requiring that role
-is unavailable; there is no implicit factory model fallback.
+Elección de modelo resuelta por rol en segundo plano: la sustitución del rol y, si no, la
+ranura del nivel que tiene asignado. Null significa que no hay ningún modelo configurado y
+que el trabajo que requiere ese rol no está disponible; no hay ninguna alternativa
+implícita a un modelo de fábrica.
 
 ```ts
 export type RolePins = Record<BackgroundModelRole, {
@@ -331,8 +337,9 @@ export type RolePins = Record<BackgroundModelRole, {
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Resolved model choice for each slot tier. Null means that tier has no model;
-configured entries include optional thinking and cache-retention preferences.
+Elección de modelo resuelta para cada nivel de ranura. Null significa que ese nivel no tiene
+modelo; las entradas configuradas incluyen preferencias opcionales de razonamiento y de
+retención de caché.
 
 ```ts
 export type SlotPins = Record<ModelSlotName, (ModelSlot & {

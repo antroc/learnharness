@@ -11,7 +11,7 @@
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-A view message: user (bubble) or assistant (one continuous run).
+Un mensaje de la vista: del usuario (burbuja) o del asistente (una única secuencia continua).
 
 ```ts
 export interface LhViewMessage {
@@ -51,7 +51,7 @@ parts: LhViewPart[];
 
 ### LhViewMessage metadata
 
-The subagentResult meta the steer cards read (marker details).
+Los metadatos de subagentResult que leen las tarjetas de reorientación (details del marcador).
 
 ```ts
 metadata?: unknown;
@@ -61,10 +61,11 @@ metadata?: unknown;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-One projected transcript part consumed by host renderers and phase/input
-scanners. type selects the part vocabulary; common fields are optional
-because text, tools and data parts carry different payloads. Additional
-fields remain unknown through the index signature and require narrowing.
+Una parte proyectada de la transcripción que consumen los renderizadores del host y los
+analizadores de fase y de entrada. type selecciona el vocabulario de la parte; los campos
+comunes son opcionales porque las partes de texto, de herramientas y de datos llevan
+contenidos distintos. Los campos adicionales quedan como desconocidos a través de la firma
+de índice y requieren estrechamiento.
 
 ```ts
 export interface LhViewPart extends Record<string, unknown> {
@@ -140,7 +141,7 @@ toolCallId?: string;
 
 ### LhViewPart sourceMessageId
 
-Native location, retained across display grouping (client-only).
+Ubicación nativa, conservada a través de la agrupación de visualización (solo cliente).
 
 ```ts
 sourceMessageId?: string;
@@ -154,7 +155,8 @@ sourceContentIndex?: number;
 
 ### LhViewPart pluginQuestion
 
-Must be selected before any generic tool renderer; never a raw trace.
+Debe seleccionarse antes que cualquier renderizador genérico de herramientas; nunca es una
+traza en bruto.
 
 ```ts
 pluginQuestion?: Exclude<PluginQuestionAnnotationRead, {
@@ -194,7 +196,8 @@ errorText?: string;
 
 ### LhViewPart result
 
-Native result retained for public plugin renderers and readable fallbacks.
+Resultado nativo conservado para los renderizadores públicos de plugins y las alternativas
+legibles.
 
 ```ts
 result?: Pick<ToolResultMessage, "content" | "details" | "isError">;

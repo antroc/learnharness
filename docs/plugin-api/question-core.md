@@ -16,7 +16,7 @@
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Client-facing question payload — deliberately omits the answer.
+Contenido de la pregunta de cara al cliente; omite deliberadamente la respuesta.
 
 ```ts
 export interface ClientQuestion {

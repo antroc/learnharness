@@ -12,8 +12,8 @@
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-One notification: distribute over the vocabulary so narrowing `type`
-actually narrows its payload (including plugin-scoped messages).
+Una notificación: se distribuye sobre el vocabulario para que estrechar `type` estreche de
+verdad su contenido (incluidos los mensajes de ámbito de plugin).
 
 ```ts
 export type ServerEvent<K extends ServerEventType = ServerEventType> = {
@@ -29,13 +29,14 @@ export type ServerEvent<K extends ServerEventType = ServerEventType> = {
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Live app notifications for turn, job, record and availability changes.
-Consumers fetch authoritative state after a notification and refetch on
-reconnect; notifications are not a durable replay log. The plugin-message
-channel additionally carries plugin-scoped JSON data, with the same
-live-only delivery limitation.
+Notificaciones en vivo de la app para cambios de turnos, tareas, registros y disponibilidad.
+Los consumidores obtienen el estado autoritativo tras una notificación y vuelven a obtenerlo
+al reconectar; las notificaciones no son un registro de reproducción duradero. El canal de
+mensajes de plugins transporta además datos JSON de ámbito de plugin, con la misma
+limitación de entrega solo en vivo.
 
-The core event vocabulary plus the namespaced plugin extension channel.
+El vocabulario de eventos del núcleo más el canal de extensión de plugins con espacio de
+nombres.
 
 ```ts
 export interface ServerEvents {
@@ -98,8 +99,8 @@ export interface ServerEvents {
 
 ### ServerEvents "turn-started"
 
-A native conversation turn began server-side, including sends, wake
-turns and turns initiated from another window.
+Empezó un turno nativo de conversación en el servidor, incluidos los envíos, los turnos de
+activación y los turnos iniciados desde otra ventana.
 
 ```ts
 "turn-started": {
@@ -115,8 +116,8 @@ chatId: string;
 
 ### ServerEvents "turn-settled"
 
-A turn settled after turn persistence. Refetch the saved record; this
-does not mean asynchronous extraction or background work has completed.
+Un turno se asentó tras persistirlo. Vuelve a obtener el registro guardado; esto no
+significa que la extracción asíncrona o el trabajo en segundo plano hayan terminado.
 
 ```ts
 "turn-settled": {
@@ -132,8 +133,9 @@ chatId: string;
 
 ### ServerEvents "jobs-changed"
 
-A job record changed (dispatch, progress, settle, abort, recovery).
-chatId when known — consumers that own one chat filter on it.
+Cambió el registro de una tarea (despacho, progreso, asentamiento, cancelación,
+recuperación). chatId cuando se conoce: los consumidores propietarios de un chat filtran
+por él.
 
 ```ts
 "jobs-changed": {
@@ -149,7 +151,7 @@ chatId?: string;
 
 ### ServerEvents "activity-changed"
 
-An extraction run changed phase (activity dock).
+Una ejecución de extracción cambió de fase (dock de actividad).
 
 ```ts
 "activity-changed": Record<string, never>;
@@ -157,7 +159,7 @@ An extraction run changed phase (activity dock).
 
 ### ServerEvents "chats-changed"
 
-The session list changed (create, delete, title).
+Cambió la lista de sesiones (creación, borrado, título).
 
 ```ts
 "chats-changed": Record<string, never>;
@@ -165,7 +167,7 @@ The session list changed (create, delete, title).
 
 ### ServerEvents "sources-changed"
 
-Source inventory, display names, or organizational folders changed.
+Cambiaron el inventario de fuentes, los nombres para mostrar o las carpetas organizativas.
 
 ```ts
 "sources-changed": Record<string, never>;
@@ -173,7 +175,7 @@ Source inventory, display names, or organizational folders changed.
 
 ### ServerEvents "subscriptions-changed"
 
-Web subscription state changed. No account or credential data on the bus.
+Cambió el estado de la suscripción web. No hay datos de cuenta ni de credenciales en el bus.
 
 ```ts
 "subscriptions-changed": Record<string, never>;
@@ -181,9 +183,9 @@ Web subscription state changed. No account or credential data on the bus.
 
 ### ServerEvents "record-changed"
 
-A chat's record changed WITHOUT a turn (the silent dismissal write).
-Same notify-then-fetch contract as the turn events: open views of
-the chat refetch and adopt the durable record.
+Cambió el registro de un chat SIN un turno (la escritura silenciosa del descarte).
+Mismo contrato de notificar y luego obtener que los eventos de turno: las vistas abiertas
+del chat vuelven a obtener y adoptan el registro duradero.
 
 ```ts
 "record-changed": {
@@ -199,9 +201,9 @@ chatId: string;
 
 ### ServerEvents "compaction-changed"
 
-Context compaction started or finished for this chat. While running is
-true, the server gates model interaction and the client disables related
-composer/dock submission. This is live state, not a persisted marker.
+La compactación del contexto empezó o terminó para este chat. Mientras running es true, el
+servidor bloquea la interacción con el modelo y el cliente desactiva el envío relacionado
+del compositor y del dock. Es estado en vivo, no un marcador persistido.
 
 ```ts
 "compaction-changed": {
@@ -224,8 +226,8 @@ running: boolean;
 
 ### ServerEvents "side-chats-changed"
 
-A side conversation changed. Notify-then-fetch: open views refetch
-GET /api/chats/:id/side-chats. Closing never deletes it.
+Cambió una conversación lateral. Notificar y luego obtener: las vistas abiertas vuelven a
+obtener GET /api/chats/:id/side-chats. Cerrarla nunca la borra.
 
 ```ts
 "side-chats-changed": {
@@ -241,7 +243,8 @@ chatId: string;
 
 ### ServerEvents "plugins-changed"
 
-Plugin availability/lifecycle changed; refetch installed packages.
+Cambió la disponibilidad o el ciclo de vida de los plugins; vuelve a obtener los paquetes
+instalados.
 
 ```ts
 "plugins-changed": Record<string, never>;
@@ -249,7 +252,8 @@ Plugin availability/lifecycle changed; refetch installed packages.
 
 ### ServerEvents "plugin-message"
 
-Live-only, plugin-scoped notifications. Reconnect requires snapshot resync.
+Notificaciones de ámbito de plugin, solo en vivo. Al reconectar hace falta resincronizar
+con una instantánea.
 
 ```ts
 "plugin-message": {

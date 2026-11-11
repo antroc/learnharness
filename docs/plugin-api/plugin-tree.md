@@ -45,7 +45,7 @@ header: PluginTreeContent;
 
 ### PluginTreeColumn width
 
-Fixed trailing-column width: pixels for numbers, CSS width for strings.
+Ancho fijo de la columna final: píxeles para números, ancho CSS para cadenas.
 
 ```ts
 width: number | string;
@@ -91,7 +91,7 @@ export interface PluginTreeProps {
 
 ### PluginTreeProps label
 
-Accessible name; visible headings belong to header or row content.
+Nombre accesible; los encabezados visibles pertenecen al contenido de la cabecera o de la fila.
 
 ```ts
 label: string;
@@ -161,7 +161,7 @@ export interface PluginTreeRow {
 
 ### PluginTreeRow key
 
-Globally unique occurrence identity, independent of represented entities.
+Identidad de ocurrencia única globalmente, independiente de las entidades representadas.
 
 ```ts
 key: string;

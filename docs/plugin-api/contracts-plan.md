@@ -26,7 +26,7 @@ export interface PlanEdge {
 
 ### PlanEdge from
 
-Prerequisite node id.
+Id del nodo prerrequisito.
 
 ```ts
 from: string;
@@ -34,7 +34,7 @@ from: string;
 
 ### PlanEdge to
 
-Node that depends on `from`.
+Nodo que depende de `from`.
 
 ```ts
 to: string;
@@ -44,12 +44,13 @@ to: string;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Plan-tree contracts — the session-scoped dependency tree
+Contratos del árbol del plan: el árbol de dependencias de ámbito de sesión
 
-Part of the domain-split contracts (src/core/contracts/): each domain file
-is owned outright by its stream — cross-domain schema changes go through
-master. Pure types + protocol docs + tiny pure helpers; type-only imports
-of "ai" (safe everywhere: server, client, tests). See docs/archive/vision.md.
+Forma parte de los contratos divididos por dominio (src/core/contracts/): cada fichero de
+dominio pertenece por completo a su flujo de trabajo; los cambios de esquema entre dominios
+pasan por master. Tipos puros + documentación de protocolo + helpers puros diminutos;
+importaciones solo de tipos de "ai" (seguras en cualquier sitio: servidor, cliente, pruebas).
+Consulta docs/archive/vision.md.
 
 ```ts
 export interface PlanNode {
@@ -67,7 +68,7 @@ export interface PlanNode {
 
 ### PlanNode id
 
-Opaque, agent-chosen slug, stable across edits: "chain-rule-intuition".
+Slug opaco elegido por el agente y estable entre ediciones: "chain-rule-intuition".
 
 ```ts
 id: string;
@@ -75,7 +76,7 @@ id: string;
 
 ### PlanNode title
 
-Short label for the tree panel.
+Etiqueta corta para el panel del árbol.
 
 ```ts
 title: string;
@@ -83,7 +84,7 @@ title: string;
 
 ### PlanNode summary
 
-1-2 sentences: what this node covers.
+1-2 frases: qué cubre este nodo.
 
 ```ts
 summary?: string;
@@ -123,7 +124,7 @@ edges: PlanEdge[];
 
 ### PlanTree version
 
-Increments on every mutation — lets the UI animate/react to changes.
+Se incrementa en cada mutación; permite que la interfaz anime los cambios o reaccione a ellos.
 
 ```ts
 version: number;
