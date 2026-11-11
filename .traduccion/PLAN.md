@@ -84,6 +84,16 @@ parser de TypeScript); si algo falla lo indica por id y no toca ese fichero. Las
 Para lotes grandes conviene extraer por tandas de 10–20 ficheros (por ejemplo con
 `sed -n '1,15p' .traduccion/lotes/C1.txt`), traducir, aplicar y hacer commit de cada tanda.
 
+Ojo con la sangría (sesión 7): `aplicar` re-sangra los grupos `//`, pero NO las líneas de
+continuación de los `/** */` que están sangrados dentro del código (quedarían en la columna 0).
+Se pueden escribir las traducciones sin sangría y, antes de aplicar, ejecutar:
+
+```bash
+python3 .traduccion/cuenta.py /tmp/C1      # grupos // con el mismo nº de líneas y sin "//" vacíos
+python3 .traduccion/sangria.py /tmp/C1     # copia los tabs del original a las continuaciones de /* */
+node .traduccion/comentarios.cjs aplicar /tmp/C1
+```
+
 ## Lotes y estado
 
 Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
@@ -95,8 +105,8 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 | M3 | `docs/plugin-api/` | 22 | 31.155 | [x] |
 | M4 | `docs/archive/`, `skills/` y READMEs de `tests/` | 14 | 26.742 | [x] |
 | C1 | Comentarios: `src/core/contracts`, `src/store`, `src/server/pi`, `src/agent` (sin subagents) | 86 | 28.518 | [x] |
-| C2 | Comentarios: `src/agent/subagents`, `src/server` | 59 | 30.924 | [~] parcial |
-| C3 | Comentarios: `src/core` (1ª mitad) | 38 | 21.353 | [ ] |
+| C2 | Comentarios: `src/agent/subagents`, `src/server` | 59 | 30.924 | [x] |
+| C3 | Comentarios: `src/core` (1ª mitad) | 38 | 21.353 | [~] parcial |
 | C4 | Comentarios: `src/core` (2ª mitad) | 30 | 21.060 | [ ] |
 | C5 | Comentarios: `components/*` raíz (1ª mitad) | 37 | 32.633 | [ ] |
 | C6 | Comentarios: `components/*` raíz (2ª mitad) | 89 | 31.871 | [ ] |
@@ -222,3 +232,24 @@ falsos positivos).
   src/agent/subagents/headless.ts). Ficheros grandes: headless.ts (≈1.500 palabras),
   runner.ts (≈1.300), src/server/chat-handler.ts (≈3.300), src/server/jobs.ts (≈2.900),
   compaction.ts, keys.ts y model-catalog.ts (≈1.100–1.250 cada uno).
+- Sesión 7: C2 terminado: líneas 5–59 de `.traduccion/lotes/C2.txt` en ocho tandas con su
+  commit (headless…pi-run; researcher…visual-maker; chat-handler.ts solo; chats…index;
+  jobs.ts solo; keys…plugin-host; plugin-inference…source-organization; stores…
+  web-subscriptions). Directivas `/* turbopackIgnore: true */` sin tocar (plugin-host.ts,
+  plugin-inference.ts, plugins.ts). Ningún comentario citaba encabezados de docs traducidos
+  (solo `§N`). Scripts nuevos `.traduccion/cuenta.py` y `.traduccion/sangria.py` (ver
+  "Herramienta para comentarios de código"). Glosario añadido en la práctica: *wake
+  pipeline* → proceso de despertar; *idle wake* → despertar en reposo; *pump* → bomba;
+  *park/parked* → aparcar/aparcado; *strand* → quedar varado; *settle/settlement* →
+  asentar(se)/asentamiento; *fold* → plegar (uso: sumar); *slot* → ranura; *pin* → fijación;
+  *write-ahead persist* → persistencia anticipada; *fill-gap* → relleno de huecos;
+  *shadowed* → tapado; *helper* → auxiliar; *fallback* → alternativa; *liveness* → vida del
+  turno; *run* → ejecución; *kind* → tipo; *envelope* → sobre; *interlude* → interludio;
+  *master switch* → interruptor general; *money channel* → canal del dinero; *real kill* →
+  terminación real; *reattach* → reenganche; *handle* → identificador; *brief* → informe
+  (o encargo, según contexto); *merge* → fusión; *tier* → nivel; *placeholder* → provisional.
+  C3 empezado: líneas 1–7 de `.traduccion/lotes/C3.txt` (src/core/answer-presentation.ts a
+  src/core/clusters.ts).
+  C3 pendiente: líneas 8–38 de `.traduccion/lotes/C3.txt` (desde src/core/compaction.ts).
+  Ficheros grandes: native-messages.ts (1.093 líneas), layout.ts, graph.ts,
+  plugin-questions.ts, input-events.ts, compaction.ts.
