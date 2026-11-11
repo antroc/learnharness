@@ -1,32 +1,36 @@
 /**
- * The running-turn registry (background-turn runner wave, owner ruling
- * 2026-09-25): chatId → the live PiTurnHandle. THE reattach surface —
- * GET /api/chats/[id]/stream resolves here, and the remote abort
- * (/api/activity/abort, kind "turn") kills through here.
+ * El registro de turnos en marcha (oleada del ejecutor de turnos en segundo
+ * plano, decisión del responsable 2026-09-25): chatId → el PiTurnHandle vivo.
+ * LA superficie de reenganche: GET /api/chats/[id]/stream se resuelve aquí, y
+ * la terminación remota (/api/activity/abort, tipo "turn") mata a través de
+ * aquí.
  *
- * Same globalThis discipline as turn-liveness.ts (read its header): Next
- * dev compiles each route as its own module instance, so a module-level
- * Map would be a DIFFERENT registry in the POST /api/chat entry and the
- * GET .../stream entry. globalThis spans module instances within the
- * process.
+ * La misma disciplina de globalThis que turn-liveness.ts (lee su cabecera):
+ * en desarrollo, Next compila cada ruta como su propia instancia de módulo, así
+ * que un Map a nivel de módulo sería un registro DISTINTO en la entrada de
+ * POST /api/chat y en la de GET .../stream. globalThis abarca las instancias
+ * de módulo dentro del proceso.
  *
- * Registration lifecycle: chat-handler registers the handle the moment
- * the turn starts (after the 409 guard) and its onFinish unregisters LAST
- * — after persist, usage, extraction, and endTurn — so anything that sees
- * "no running turn" sees durable record truth. Failed settlement also
- * retains its small notice before unregistering, so late attachments do
- * not mistake an unsaved reply for success. The per-chat
- * 409 guard means a chatId can hold at most one handle. Private preparation
- * registers one stable outer handle before awaiting its callback, then
- * delegates to the real teacher without replacing that registry entry.
- * Preparation cannot expire while executing; once handed off, beginTurn's
- * ordinary 30-minute teacher TTL bounds the pathological never-settling
- * case. A later accepted turn overwrites the stale handle (Map.set), and
- * owner-fenced cleanup cannot unregister that successor.
+ * Ciclo de vida del registro: chat-handler registra el identificador en
+ * cuanto empieza el turno (tras la protección del 409) y su onFinish lo da de
+ * baja AL FINAL (tras persistir, el uso, la extracción y endTurn), así que
+ * todo lo que ve «ningún turno en marcha» ve la verdad duradera del registro.
+ * Un asentamiento fallido también conserva su pequeño aviso antes de darse de
+ * baja, para que los enganches tardíos no confundan una respuesta sin guardar
+ * con un éxito. La protección del 409 por chat hace que un chatId pueda tener
+ * como mucho un identificador. La preparación privada registra un
+ * identificador exterior estable antes de esperar a su callback y después
+ * delega en el profesor real sin sustituir esa entrada del registro. La
+ * preparación no puede caducar mientras se ejecuta; una vez traspasada, el TTL
+ * normal de 30 minutos del profesor en beginTurn acota el caso patológico de
+ * que nunca se asiente. Un turno aceptado más tarde sobrescribe el
+ * identificador obsoleto (Map.set), y la limpieza protegida por responsable no
+ * puede dar de baja a ese sucesor.
  *
- * App-quit mid-turn (the process dying with an un-persisted turn) is the
- * SAME residual as before the wave: the registry is memory-only, the
- * write-ahead record + liveness TTL recovery cover the next mount.
+ * Cerrar la app a mitad de turno (el proceso muere con un turno sin
+ * persistir) es el MISMO residuo que antes de la oleada: el registro es solo
+ * en memoria; el registro de escritura anticipada + la recuperación por TTL
+ * de la vida del turno cubren el siguiente montaje.
  */
 
 import type { PiTurnHandle } from "./pi/ui-stream.ts";
@@ -41,8 +45,8 @@ function runs(): Map<string, PiTurnHandle> {
 	return (g.__lhTurnRuns ??= new Map<string, PiTurnHandle>());
 }
 
-/** One small, transient notice per failed session. Never stores messages.
- * Cleared on the next accepted begin, session deletion, or process exit. */
+/** Un aviso pequeño y transitorio por sesión fallida. Nunca guarda mensajes.
+ * Se borra con el siguiente inicio aceptado, al borrar la sesión o al salir del proceso. */
 function failures(): Map<string, string> {
 	const g = globalThis as typeof globalThis & LhTurnRunsGlobal;
 	return (g.__lhTurnFailures ??= new Map<string, string>());
@@ -60,28 +64,29 @@ export function clearTurnFailure(chatId: string): void {
 	failures().delete(chatId);
 }
 
-/** Register the chat's running turn (chat-handler, right after the turn
- *  starts). One per chat by construction — the 409 guard. */
+/** Registra el turno en marcha del chat (chat-handler, justo después de que
+ *  empiece el turno). Uno por chat por construcción: la protección del 409. */
 export function registerTurn(chatId: string, handle: PiTurnHandle): void {
 	runs().set(chatId, handle);
 }
 
-/** Unregister at settle — LAST (after endTurn). Preparation passes its
- * stable outer handle as a fence; ordinary callers retain the default. */
+/** Da de baja al asentarse, AL FINAL (tras endTurn). La preparación pasa su
+ * identificador exterior estable como protección; los llamantes normales mantienen el valor por defecto. */
 export function unregisterTurn(chatId: string, ownerHandle?: PiTurnHandle): void {
 	if (ownerHandle && runs().get(chatId) !== ownerHandle) return;
 	runs().delete(chatId);
 }
 
-/** The live turn handle for a chat, or undefined — the subscribe endpoint's
- *  and the abort channel's resolution point. */
+/** El identificador del turno vivo de un chat, o undefined: el punto de
+ *  resolución del endpoint de suscripción y del canal de cancelación. */
 export function runningTurn(chatId: string): PiTurnHandle | undefined {
 	return runs().get(chatId);
 }
 
-/** The remote kill: any client (original sender, reattached viewer, future
- *  surfaces) may stop a running turn. not_running mirrors abortJob's
- *  honest 409 — there was nothing to abort, the caller refetches. */
+/** La terminación remota: cualquier cliente (el remitente original, un
+ *  espectador reenganchado, superficies futuras) puede detener un turno en
+ *  marcha. not_running refleja el 409 honesto de abortJob: no había nada que
+ *  cancelar y el llamante vuelve a pedir los datos. */
 export function abortTurn(chatId: string): { ok: true } | { ok: false; reason: "not_running" } {
 	const handle = runs().get(chatId);
 	if (!handle) return { ok: false, reason: "not_running" };
@@ -89,13 +94,14 @@ export function abortTurn(chatId: string): { ok: true } | { ok: false; reason: "
 	return { ok: true };
 }
 
-/** The cheap terminal when GET /api/chats/[id]/stream finds no running
- *  turn (raced settle, or the client checked turnInFlight a beat too
- *  late): a same-dialect SSE response whose single chunk tells the client
- *  "nothing to attach to — refetch durable truth". A retained settlement
- *  failure is delivered first, including when no view attached in time.
- *  Chosen as an EVENT (not a status code), consuming ONE wire
- *  protocol end to end. */
+/** El final barato cuando GET /api/chats/[id]/stream no encuentra ningún turno
+ *  en marcha (carrera con el asentamiento, o el cliente comprobó turnInFlight
+ *  un instante tarde): una respuesta SSE del mismo dialecto cuyo único
+ *  fragmento le dice al cliente «no hay nada a lo que engancharse: vuelve a
+ *  pedir la verdad duradera». Primero se entrega un fallo de asentamiento
+ *  conservado, también cuando ninguna vista se enganchó a tiempo. Se eligió
+ *  como EVENTO (no como código de estado), consumiendo UN solo protocolo de
+ *  red de extremo a extremo. */
 export function settledTurnResponse(chatId?: string): Response {
 	const errorText = chatId ? turnFailure(chatId) : undefined;
 	const notice = errorText === undefined ? "" : `data: ${JSON.stringify({ type: "error", errorText })}\n\n`;

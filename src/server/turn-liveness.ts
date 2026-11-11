@@ -1,24 +1,28 @@
 /**
- * Server-side turn liveness: which chats currently have a teacher turn in
- * flight. The missing half of "sessions keep running in the background" —
- * together with the write-ahead persist in chat-handler, a returning client
- * can tell "the teacher is mid-turn — don't resurrect, don't start anything"
- * apart from "the record IS current".
+ * Vida de los turnos en el servidor: qué chats tienen ahora mismo un turno del
+ * profesor en curso. La mitad que faltaba de «las sesiones siguen ejecutándose
+ * en segundo plano»: junto con la persistencia anticipada de chat-handler,
+ * permite a un cliente que vuelve distinguir «el profesor está a mitad de
+ * turno: no resucites, no empieces nada» de «el registro ESTÁ al día».
  *
- * Lives on globalThis, NOT a module-level Map: Next dev compiles each route
- * as its own entry, so a module-level singleton is a DIFFERENT instance in
- * the page render, GET /api/chats/[id], and POST /api/chat — the page would
- * read an empty registry while the chat route holds the live turn (the bug:
- * returning mid-turn showed the 409 banner instead of the busy state).
- * globalThis spans module instances within the process; it is the standard
- * Next.js singleton channel (same reason Prisma clients live there).
+ * Vive en globalThis, NO en un Map a nivel de módulo: en desarrollo, Next
+ * compila cada ruta como su propia entrada, así que un singleton a nivel de
+ * módulo es una instancia DISTINTA en el renderizado de la página, en
+ * GET /api/chats/[id] y en POST /api/chat; la página leería un registro vacío
+ * mientras la ruta del chat tiene el turno vivo (el error: volver a mitad de
+ * turno mostraba el aviso del 409 en lugar del estado ocupado). globalThis
+ * abarca las instancias de módulo dentro del proceso; es el canal de
+ * singletons estándar de Next.js (por el mismo motivo viven ahí los clientes
+ * de Prisma).
  *
- * Still ephemeral BY DESIGN: a process restart clears it, so there are no
- * stale flags to clean up — a crashed turn recovers via the write-ahead
- * record + mount continuation on the next visit. The TTL is a leak guard for
- * teacher turns whose onFinish never fires. Preparation owners are pinned
- * until their callback settles: expiring an executing grader would admit a
- * second writer. Handoff restores the teacher TTL with a fresh timestamp.
+ * Sigue siendo efímero POR DISEÑO: un reinicio del proceso lo borra, así que
+ * no hay indicadores obsoletos que limpiar; un turno caído se recupera con el
+ * registro de escritura anticipada + la continuación al montar en la
+ * siguiente visita. El TTL protege contra fugas de turnos del profesor cuyo
+ * onFinish nunca se dispara. Los responsables de una preparación quedan
+ * fijados hasta que se resuelve su callback: hacer caducar un calificador en
+ * ejecución admitiría un segundo escritor. El traspaso restaura el TTL del
+ * profesor con una marca de tiempo nueva.
  */
 
 import { emit } from "../core/events.ts";
@@ -48,13 +52,14 @@ const inFlight = registry();
 const MAX_TURN_MS = 30 * 60_000;
 
 /**
- * Mark a turn as starting. Returns false if one is already running for the
- * chat — the caller rejects the request (only one turn may own a chat).
- * Announces "turn-started" AFTER the registry write: a listener that reads
- * isTurnRunning or fetches the record sees consistent truth. The rejected
- * double-begin (the 409 path) stays silent — no turn began. A private
- * preparation owner pins the entry until handoff; ordinary callers keep
- * the existing TTL behavior and need not pass an owner.
+ * Marca un turno como iniciado. Devuelve false si ya hay uno en marcha para el
+ * chat; el llamante rechaza la petición (solo un turno puede controlar un
+ * chat). Anuncia "turn-started" DESPUÉS de escribir en el registro: un
+ * listener que lea isTurnRunning o pida el registro ve una verdad coherente.
+ * El doble inicio rechazado (la ruta del 409) se queda en silencio: no empezó
+ * ningún turno. Un responsable privado de preparación fija la entrada hasta el
+ * traspaso; los llamantes normales mantienen el comportamiento de TTL
+ * existente y no necesitan pasar un responsable.
  */
 export function beginTurn(chatId: string, preparationOwner?: object): boolean {
 	if (isTurnRunning(chatId)) return false;
@@ -67,13 +72,14 @@ export function beginTurn(chatId: string, preparationOwner?: object): boolean {
 }
 
 /**
- * Mark the chat's turn as finished after normal settlement, or after the
- * failure notice has been retained by settlement cleanup. A subsequent
- * fetch reads durable truth, never a promise that an unsaved reply landed.
- * Emits only when an entry was actually present: a
- * defensive no-op endTurn must not fire a spurious settle. Passing an
- * owner fences cleanup against a newer turn; omitted retains the original
- * unconditional end API for ordinary turns.
+ * Marca el turno del chat como terminado tras un asentamiento normal, o
+ * después de que la limpieza del asentamiento haya conservado el aviso de
+ * fallo. Una lectura posterior lee la verdad duradera, nunca la promesa de
+ * que llegó una respuesta sin guardar. Solo emite cuando había de verdad una
+ * entrada: un endTurn defensivo que no hace nada no debe disparar un
+ * asentamiento espurio. Pasar un responsable protege la limpieza frente a un
+ * turno más nuevo; sin él, se mantiene la API de fin incondicional original
+ * para los turnos normales.
  */
 export function endTurn(chatId: string, owner?: object): void {
 	if (owner && owners().get(chatId)?.token !== owner) return;
@@ -81,13 +87,13 @@ export function endTurn(chatId: string, owner?: object): void {
 	if (inFlight.delete(chatId)) emit("turn-settled", { chatId });
 }
 
-/** Private ownership fence for preparation and its handed-off teacher. */
+/** Protección privada de propiedad para la preparación y el profesor al que se traspasa. */
 export function isTurnOwner(chatId: string, owner: object): boolean {
 	return isTurnRunning(chatId) && owners().get(chatId)?.token === owner;
 }
 
-/** Transfer the pinned preparation to the ordinary teacher TTL, without
- * ending/restarting the turn or emitting another lifecycle event. */
+/** Pasa la preparación fijada al TTL normal del profesor, sin terminar ni
+ * reiniciar el turno ni emitir otro evento de ciclo de vida. */
 export function handoffTurn(chatId: string, owner: object): boolean {
 	if (!isTurnOwner(chatId, owner)) return false;
 	owners().get(chatId)!.preparing = false;
@@ -95,11 +101,12 @@ export function handoffTurn(chatId: string, owner: object): boolean {
 	return true;
 }
 
-/** True while the chat's turn is in flight; lazily evicts stale entries.
- * The eviction path is DELIBERATELY event-free: it is a leak guard for a
- * turn whose onFinish never fired (itself pathological), it runs lazily
- * from a read, and emitting from a read is a side-effect smell. Silence
- * here is a choice, not an oversight. */
+/** True mientras el turno del chat está en curso; expulsa de forma perezosa
+ * las entradas obsoletas. La ruta de expulsión NO emite eventos A PROPÓSITO:
+ * protege contra fugas de un turno cuyo onFinish nunca se disparó (algo ya de
+ * por sí patológico), se ejecuta de forma perezosa desde una lectura, y emitir
+ * desde una lectura es un efecto secundario sospechoso. El silencio aquí es
+ * una elección, no un descuido. */
 export function isTurnRunning(chatId: string): boolean {
 	const since = inFlight.get(chatId);
 	if (since === undefined) return false;

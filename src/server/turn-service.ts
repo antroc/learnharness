@@ -1,18 +1,21 @@
 /**
- * The chat-turn services — one named seam per turn
- * responsibility, extracted from the chat-handler so it composes instead of
- * implementing. Each takes its dependencies explicitly (storage ports, the
- * job runner) — no module here imports an adapter.
+ * Los servicios del turno de chat: una frontera con nombre por cada
+ * responsabilidad del turno, extraídas de chat-handler para que componga en
+ * lugar de implementar. Cada uno recibe sus dependencias de forma explícita
+ * (puertos de almacenamiento, el ejecutor de tareas); ningún módulo de aquí
+ * importa un adaptador.
  *
- *   persistTurn        — the canonical state write (Wave B: native history;
- *                        id stamping, placeholder filtering, plan-block
- *                        emission, abort-partial persistence)
- *   triggerExtraction  — the graph write channel: fires the extraction
- *                        pipeline (the sole graph writer) once a chat
- *                        crosses the token-budget threshold.
+ *   persistTurn        — la escritura canónica del estado (oleada B:
+ *                        historial nativo; sellado de ids, filtrado de
+ *                        marcadores provisionales, emisión de bloques de plan,
+ *                        persistencia parcial al cancelar)
+ *   triggerExtraction  — el canal de escritura del grafo: dispara el proceso
+ *                        de extracción (el único que escribe en el grafo) en
+ *                        cuanto un chat cruza el umbral de presupuesto de tokens.
  *
- * Logs are the minimal-observability baseline: one line per failure, tagged
- * [chat <id>] — structured logging lands behind these seams later.
+ * Los registros son la base mínima de observabilidad: una línea por fallo,
+ * etiquetada [chat <id>]; el registro estructurado llegará más adelante tras
+ * estas fronteras.
  */
 
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
@@ -26,7 +29,7 @@ import type { ChatStore, GraphStore } from "../core/ports.ts";
 import type { ExtractionPipeline } from "../agent/subagents/extraction.ts";
 import { ModelsNotConfiguredError, ProviderKeyMissingError } from "../core/settings.ts";
 
-/** Distinguish a failed canonical save from later bookkeeping failures. */
+/** Distingue un guardado canónico fallido de los fallos posteriores de contabilidad. */
 export class TurnPersistenceError extends Error {
 	constructor(cause: unknown) {
 		super("The reply could not be saved.", { cause });
@@ -35,26 +38,29 @@ export class TurnPersistenceError extends Error {
 }
 
 /**
- * The canonical state write (Wave B, owner-approved 2026-09-26): append the
- * turn's own messages — the agent loop's native history, provider/model/
- * usage/thinkingSignature stamped by pi itself. Persists even when aborted
- * — the partial transcript (including a pending question's unanswered
- * call) is what makes resume work.
+ * La escritura canónica del estado (oleada B, aprobada por el responsable
+ * 2026-09-26): añade los propios mensajes del turno, el historial nativo del
+ * bucle del agente, con proveedor/modelo/uso/thinkingSignature sellados por el
+ * propio pi. Persiste incluso si se cancela: la transcripción parcial
+ * (incluida la llamada sin responder de una pregunta pendiente) es lo que hace
+ * que funcione la reanudación.
  *
- * - Id stamping: pi messages carry no id; the record's identity needs one
- *   per message (client keys, append-only adoption, the continuation
- *   seam). Minted here, at the single canonical write.
- * - Placeholder filtering: a cleanly-posed question's synthetic
- *   "question posed" result is an in-memory loop device (Wave A's
- *   terminate) — NEVER persisted (fork 1: the record ends at the
- *   unanswered call; the learner's answer arrives as the real tool
- *   result). Errored question calls DO persist — the model's retry
- *   context.
- * - Plan blocks: one frozen snapshot per successful plan_init call,
- *   idempotent (persist replays are safe).
+ * - Sellado de ids: los mensajes de pi no llevan id; la identidad del registro
+ *   necesita uno por mensaje (claves del cliente, adopción de solo añadido, la
+ *   frontera de continuación). Se acuñan aquí, en la única escritura canónica.
+ * - Filtrado de marcadores provisionales: el resultado sintético
+ *   "question posed" de una pregunta planteada sin errores es un mecanismo del
+ *   bucle en memoria (el terminate de la oleada A); NUNCA se persiste
+ *   (bifurcación 1: el registro termina en la llamada sin responder; la
+ *   respuesta del alumno llega como el resultado real de la herramienta). Las
+ *   llamadas de pregunta con error SÍ se persisten: son el contexto de
+ *   reintento del modelo.
+ * - Bloques de plan: una instantánea congelada por cada llamada plan_init con
+ *   éxito, idempotente (repetir la persistencia es seguro).
  *
- * Returns the stamped new messages (usage provenance reads them). Throws
- * TurnPersistenceError on failure so the runner can report it before DONE.
+ * Devuelve los mensajes nuevos sellados (la procedencia del uso los lee).
+ * Lanza TurnPersistenceError si falla, para que el ejecutor pueda informar de
+ * ello antes de DONE.
  */
 export function persistTurn(
 	chatStore: ChatStore,
@@ -69,7 +75,7 @@ export function persistTurn(
 		const stamped: LhMessage[] = [];
 		for (const m of turnMessages.slice(baseCount)) {
 			const message = m as LhMessage;
-			// The placeholder question result: loop device, never a record fact.
+			// El resultado provisional de la pregunta: un mecanismo del bucle, nunca un hecho del registro.
 			if (
 				(message as { role?: string }).role === "toolResult" &&
 				(QUESTION_TOOLS as readonly string[]).includes((message as ToolResultMessage).toolName) &&
@@ -93,18 +99,20 @@ export function persistTurn(
 }
 
 /**
- * The graph write channel (vision §1 construction): the extraction pipeline
- * (extractor → auditor → merger — the sole graph writer) runs ASYNC once a
- * chat's UNCOVERED transcript tokens reach the chunk budget
- * (vision-extraction-coverage.md, 2026-09-15). Coverage reads through the
- * projection (the record is native history; the extraction view stays
- * client-shaped until Wave D). Fire-and-forget — never blocks the turn;
- * failures are logged by the pipeline and leave coverage untouched, so the
- * next trigger (or the manual extract button) re-runs what's left.
+ * El canal de escritura del grafo (construcción de la visión §1): el proceso
+ * de extracción (extractor → auditor → fusionador, el único que escribe en el
+ * grafo) se ejecuta de forma ASÍNCRONA en cuanto los tokens NO CUBIERTOS de la
+ * transcripción de un chat alcanzan el presupuesto de fragmentos
+ * (vision-extraction-coverage.md, 2026-09-15). La cobertura se lee a través de
+ * la proyección (el registro es historial nativo; la vista de extracción
+ * mantiene la forma del cliente hasta la oleada D). Disparar y olvidar: nunca
+ * bloquea el turno; el proceso registra los fallos y deja la cobertura
+ * intacta, así que el siguiente disparo (o el botón manual de extraer) vuelve
+ * a ejecutar lo que falte.
  *
- * Deliberately isolated in this one seam — the pipeline is
- * trigger-agnostic. Skipped under tests: scripted chats are fixtures, not
- * knowledge (the pipeline itself is tested directly with mock models).
+ * Aislado a propósito en esta única frontera: el proceso no depende del
+ * disparador. Se omite en las pruebas: los chats con guion son fixtures, no
+ * conocimiento (el proceso en sí se prueba directamente con modelos simulados).
  */
 export function triggerExtraction(
 	deps: { chatStore: ChatStore; graphStore: GraphStore },
@@ -119,10 +127,10 @@ export function triggerExtraction(
 		const covered = coverageOf(record.messages, deps.graphStore.readCoverage(), chatId);
 		if (covered.uncoveredTokens < chunkTokens) return;
 		void extraction.runExtraction(chatId).catch((err) => {
-			// BYOK (owner, 2026-09-22) + key presence (provider-key interlude,
-			// 2026-09-25): an unconfigured OR keyless write channel SKIPS (the
-			// coverage ledger keeps the messages uncovered — the next trigger
-			// retries once slots/keys are set); only real failures log.
+			// BYOK (responsable, 2026-09-22) + presencia de clave (interludio de claves de proveedor,
+			// 2026-09-25): un canal de escritura sin configurar O sin clave SE OMITE (el registro de
+			// cobertura mantiene los mensajes sin cubrir; el siguiente disparo reintenta cuando haya
+			// ranuras/claves); solo se registran los fallos reales.
 			if (err instanceof ModelsNotConfiguredError) {
 				console.info(`[chat ${chatId}] extraction skipped — ${err.envelope.error} (missing: ${err.envelope.missing.join(", ")})`);
 				return;

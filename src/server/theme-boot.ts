@@ -1,25 +1,26 @@
 /**
- * THE FIRST-PAINT THEME (theme wave, 2026-11-04): what app/layout.tsx puts
- * on <html> before any client code runs — the record's appearance, the
- * active theme (a preset or an imported file; Default when the id is gone)
- * and its color variables with every override applied. Read the record
- * and only the selected custom file (the layout calls connection()
- * first, so this never bakes into a prerender).
+ * EL TEMA DEL PRIMER PINTADO (oleada de temas, 2026-11-04): lo que
+ * app/layout.tsx pone en <html> antes de que se ejecute ningún código del
+ * cliente: la apariencia del registro, el tema activo (un preajuste o un
+ * fichero importado; Default si el id ya no existe) y sus variables de color
+ * con todas las sustituciones aplicadas. Lee el registro y solo el fichero
+ * personalizado seleccionado (el layout llama antes a connection(), así que
+ * esto nunca queda fijado en un prerenderizado).
  */
 
 import { effectiveColors, isBuiltinThemeId, resolveTheme, themeVars, type AppearanceSettings, type Theme } from "../core";
 import { themeStore } from "../store/themes.ts";
 import { readSettings } from "../store/settings.ts";
 
-/** Everything the layout needs for a flash-free first paint. */
+/** Todo lo que necesita el layout para un primer pintado sin parpadeo. */
 export interface ThemeBoot {
 	appearance: AppearanceSettings | undefined;
 	theme: Theme;
-	/** The CSS variables for <html style>. */
+	/** Las variables CSS para <html style>. */
 	vars: Record<string, string>;
 }
 
-/** Read the record and selected custom file; resolve the active theme and its vars. */
+/** Lee el registro y el fichero personalizado seleccionado; resuelve el tema activo y sus variables. */
 export function readThemeBoot(): ThemeBoot {
 	const appearance = readSettings()?.appearance;
 	const id = appearance?.theme;

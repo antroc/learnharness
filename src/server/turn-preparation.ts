@@ -1,8 +1,9 @@
 /**
- * Private ownership while an answer is being prepared, before a real teacher
- * exists. The one outer handle is registered synchronously and stays stable
- * through handoff; only the real teacher owns replay/events. View cancellation
- * never aborts preparation or another view.
+ * Propiedad privada mientras se prepara una respuesta, antes de que exista un
+ * profesor real. El único identificador exterior se registra de forma
+ * síncrona y se mantiene estable durante el traspaso; solo el profesor real
+ * es dueño de la reproducción/los eventos. Cancelar una vista nunca cancela la
+ * preparación ni otra vista.
  */
 import type { PiTurnHandle } from "./pi/ui-stream.ts";
 import { beginTurn, endTurn, handoffTurn, isTurnOwner } from "./turn-liveness.ts";
@@ -15,10 +16,11 @@ export interface TurnPreparation {
 	finish(): void;
 }
 
-/** Claims the existing per-session turn gate, with no await or separate job.
- * Aborting preparation does NOT release it: the host must await its callback's
- * settlement and durable cleanup, then call finish (including failure paths).
- * Once handed off, the host calls finish after the real teacher's settlement. */
+/** Reclama la barrera de turno por sesión existente, sin await ni tarea aparte.
+ * Cancelar la preparación NO la libera: el host debe esperar a que se resuelvan
+ * su callback y la limpieza duradera y después llamar a finish (también en las
+ * rutas de fallo). Una vez traspasada, el host llama a finish tras el
+ * asentamiento del profesor real. */
 export function claimPreparingTurn(chatId: string): TurnPreparation | null {
 	const owner = {};
 	const preparation = new AbortController();
@@ -40,8 +42,8 @@ export function claimPreparingTurn(chatId: string): TurnPreparation | null {
 				waiting.delete(connect);
 				if (cancelled) return;
 				try {
-					// A handed-off handle always supplies its own replay, even if
-					// finish ran meanwhile. Preparation itself has no event log.
+					// Un identificador traspasado siempre aporta su propia reproducción, aunque
+					// mientras tanto se haya ejecutado finish. La preparación en sí no tiene registro de eventos.
 					reader = (real ? real.subscribe() : settledTurnResponse(chatId).body!).getReader();
 					resolveReady(reader);
 				} catch (error) {
@@ -105,7 +107,7 @@ export function claimPreparingTurn(chatId: string): TurnPreparation | null {
 				realHandle.abort();
 				throw new Error("Turn preparation is no longer eligible for teacher handoff");
 			}
-			// No await between the ownership check, timestamp reset, and transfer.
+			// Sin await entre la comprobación de propiedad, el reinicio de la marca de tiempo y el traspaso.
 			handoffTurn(chatId, owner);
 			real = realHandle;
 			connectWaiting();
@@ -114,9 +116,9 @@ export function claimPreparingTurn(chatId: string): TurnPreparation | null {
 			if (finished) return;
 			finished = true;
 			connectWaiting();
-			// Keep the handle registered until liveness settlement, matching
-			// ordinary turns. Both deletions are fenced against a successor,
-			// including one admitted by a teacher TTL expiration.
+			// Se mantiene registrado el identificador hasta el asentamiento de la vida del turno,
+			// igual que en los turnos normales. Ambos borrados están protegidos frente a un sucesor,
+			// incluido uno admitido porque caducó el TTL de un profesor.
 			endTurn(chatId, owner);
 			unregisterTurn(chatId, outer);
 		},

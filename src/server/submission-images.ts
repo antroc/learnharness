@@ -7,16 +7,16 @@ import { preparePluginProblemSubmissionImages, type PluginProblemSubmissionImage
 
 type ImageEngine = Pick<PiEngine, "model">;
 
-/** Only admission policy, not a second provider/model resolver. The caller
- * supplies the actual engine it will dispatch (or the captured live model). */
+/** Solo política de admisión, no un segundo resolutor de proveedor/modelo. El llamante
+ * aporta el motor real al que despachará (o el modelo vivo capturado). */
 export function submissionImagePolicyKey(engine: ImageEngine): string {
 	const resize = engine.model.inputLimits?.images?.resize;
 	return JSON.stringify([engine.model.provider, engine.model.id, engine.model.input.includes("image"),
 		resize?.maxWidth, resize?.maxHeight, resize?.maxBytes, resize?.jpegQuality]);
 }
 
-/** Strict native blocks only. The decoder below verifies the entire image;
- * signature sniffing also prevents a false MIME declaration reaching it. */
+/** Solo bloques nativos estrictos. El decodificador de abajo verifica la imagen entera;
+ * la detección por firma también impide que le llegue una declaración MIME falsa. */
 export async function prepareSubmissionImages(
 	images: readonly Readonly<ImageContent>[] | undefined,
 	engine: ImageEngine,
@@ -26,14 +26,14 @@ export async function prepareSubmissionImages(
 	catch (error) { throw new ChatInputError(error instanceof Error ? error.message : "Invalid submitted images"); }
 	if (images.length === 0) return undefined;
 	if (!engine.model.input.includes("image")) throw new ChatInputError("The selected model does not support images. Your input has been kept.");
-	// Capture bytes and policy before the first await; caller-owned mutations
-	// must not alter an in-flight submission or its later image channels.
+	// Se capturan los bytes y la política antes del primer await; las modificaciones del
+	// llamante no deben alterar un envío en curso ni sus canales de imagen posteriores.
 	const resizeOptions = { ...engine.model.inputLimits?.images?.resize };
 	const captured = images.map(image => {
 		const bytes = Buffer.from(image.data, "base64");
-		// The existing file-tool sniffer intentionally excludes animated PNG.
-		// Submission PNGs may still be decoded by the real processor; do not
-		// silently narrow the approved PNG format family to static files.
+		// El detector existente de la herramienta de ficheros excluye a propósito los PNG
+		// animados. Los PNG de un envío pueden seguir decodificándose con el procesador real;
+		// no se restringe en silencio la familia de formatos PNG aprobada a ficheros estáticos.
 		const detected = detectSupportedImageMimeType(bytes) ?? (bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) ? "image/png" : null);
 		if (!bytes.length || bytes.toString("base64") !== image.data || detected !== image.mimeType)
 			throw new ChatInputError("Submitted image bytes do not match their declared format");
@@ -44,8 +44,8 @@ export async function prepareSubmissionImages(
 		try {
 			const result = await processImage(image.bytes, image.mimeType, { resizeOptions });
 			if (!result.ok) throw new Error("Image processing failed");
-			// Processor hints are not learner text; only normalized image bytes
-			// become accepted native content. Never substitute an omission marker.
+			// Las pistas del procesador no son texto del alumno; solo los bytes de imagen
+			// normalizados pasan a ser contenido nativo aceptado. Nunca se sustituye por un marcador de omisión.
 			prepared.push({ type: "image", data: result.data, mimeType: result.mimeType });
 		} catch {
 			throw new ChatInputError("Could not prepare the submitted image. Your input has been kept.");
@@ -69,8 +69,8 @@ export async function prepareSubmissionImageChannels(
 	if (images === undefined) return undefined;
 	try { images = validatePluginSubmissionImages(images); }
 	catch (error) { throw new ChatInputError(error instanceof Error ? error.message : "Invalid submitted image channels"); }
-	// Start all preparations synchronously so every channel is captured before
-	// processing yields; even direct server callers cannot mutate later ones.
+	// Todas las preparaciones arrancan de forma síncrona para capturar todos los canales
+	// antes de que el procesamiento ceda; ni los llamantes directos del servidor pueden modificar los posteriores.
 	const [answer, thinking, readingThinking] = await Promise.all([
 		prepareSubmissionImages(images.answer, engine),
 		prepareSubmissionImages(images.thinking, engine),

@@ -2,8 +2,8 @@ import { NATIVE_SUBSCRIPTIONS } from "../core/contracts/subscriptions.ts";
 import { subscriptionRequestOrigin } from "./desktop-access.ts";
 import { webSubscriptionOwner, webSubscriptionsEnabled, webSubscriptionStatus } from "./web-subscriptions.ts";
 
-// Lives in desktop-access.ts so proxy.ts can share it without loading the
-// subscription runtime; re-exported for existing callers.
+// Vive en desktop-access.ts para que proxy.ts pueda compartirlo sin cargar el runtime
+// de suscripciones; se reexporta para los llamantes existentes.
 export { subscriptionRequestOrigin };
 
 const HEADERS = { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Content-Type-Options": "nosniff" };
@@ -22,7 +22,7 @@ export async function subscriptionControlsResponse(request: Request): Promise<Re
 		if (request.method === "GET") return Response.json(await webSubscriptionStatus(), { headers: HEADERS });
 		if (request.method !== "POST") return error("Unsupported method.", 405);
 		if (request.headers.get("content-type")?.split(";")[0]?.trim() !== "application/json") return error("Expected JSON.", 415);
-		// Bound both advertised and streamed input before parsing commands.
+		// Se acota tanto la entrada anunciada como la recibida en streaming antes de analizar comandos.
 		if (Number(request.headers.get("content-length")) > 16384) return error("Request too large.", 413);
 		const reader = request.body?.getReader();
 		if (!reader) return error("Expected a command.", 400);
@@ -47,8 +47,8 @@ export async function subscriptionControlsResponse(request: Request): Promise<Re
 		return error("The subscription connection could not be changed. Retry or reconnect in Providers.", 400);
 	}
 }
-/** One-use same-origin navigation. Full provider authorization URLs go only to
- * a top-level browser redirect, never status JSON, the SSE bus or application JS. */
+/** Navegación de un solo uso del mismo origen. Las URL completas de autorización del proveedor
+ * solo van a una redirección del navegador de nivel superior, nunca al JSON de estado, al bus SSE ni al JS de la aplicación. */
 export async function subscriptionBrowserResponse(request: Request): Promise<Response> {
 	if (!webSubscriptionsEnabled()) return error("Unavailable.", 404);
 	const origin = subscriptionRequestOrigin(request);

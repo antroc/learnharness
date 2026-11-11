@@ -1,6 +1,6 @@
-/** Persistent Node web/dev owner. Never imported by client code. Desktop keeps
- * its existing main-process owner; a broken desktop IPC channel cannot fall
- * back to these files. One server process must own each configured auth dir. */
+/** Responsable persistente en Node para web/desarrollo. El código del cliente nunca lo importa. El escritorio
+ * mantiene su responsable existente en el proceso principal; un canal IPC de escritorio roto no puede
+ * recurrir a estos ficheros. Un solo proceso del servidor debe ser dueño de cada directorio de autenticación configurado. */
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
@@ -36,7 +36,7 @@ async function loadSDK() {
 	return { ...sdk, ...copilot, ...xai };
 }
 
-/** Injectable factories/stores keep all test authentication offline. */
+/** Las fábricas/almacenes inyectables mantienen toda la autenticación de las pruebas sin conexión. */
 export function createWebSubscriptionOwner(options: {
 	directory: string;
 	chatgptStore?: Parameters<typeof createChatGPT>[0]["store"];
@@ -102,7 +102,7 @@ export function webSubscriptionOwner() {
 	}
 	return state.owner;
 }
-/** Private runtime calls only: no HTTP lease/token operation exists. */
+/** Solo llamadas privadas del runtime: no existe ninguna operación HTTP de préstamo/token. */
 export async function webSubscriptionRequest<T>(channel: Channel, op: string, fields: Record<string, unknown>): Promise<T> {
 	const owner = webSubscriptionOwner();
 	let value: unknown;
