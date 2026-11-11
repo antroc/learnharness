@@ -6,9 +6,10 @@ import { messageAnchorId, messageIdFromHash } from "@/src/core";
 
 export type SessionScrollContext = Pick<StickToBottomContext, "scrollRef" | "stopScroll">;
 
-/** Scroll only the session's own containers (including tall question/code
- * areas), never sidebar/chrome. Inner containers move first, then the main
- * transcript. stopScroll releases the sticky-bottom animation BEFORE jumping. */
+/** Desplaza solo los contenedores propios de la sesión (incluidas las áreas altas de
+ * pregunta/código), nunca la barra lateral/el cromo. Primero se mueven los contenedores
+ * internos y luego la transcripción principal. stopScroll suelta la animación de
+ * pegado al fondo ANTES de saltar. */
 export function scrollSessionTarget(target: Range | HTMLElement, scope: HTMLElement, context: SessionScrollContext | null): void {
 	const node = "startContainer" in target ? target.startContainer : target;
 	const main = context?.scrollRef.current;
@@ -23,23 +24,24 @@ export function scrollSessionTarget(target: Range | HTMLElement, scope: HTMLElem
 	}
 }
 
-/** React owns message markup; this controller adds no messages or content.
- * Arrival on a full load is the browser's own hash scroll; this watcher owns
- * SPA arrivals (graph links) and later hash changes. The mount path polls on
- * a short interval ON PURPOSE: the transcript scroller's ref is attached by a
- * LATER SIBLING (StickToBottom.Content), hydration orderings vary, and a
- * frame-chained rAF proved cancellable mid-flight in dev (the owner's
- * every-link-lands-at-bottom report, 2026-10-13) — a synchronous tick that
- * retries until both elements exist has no cancellation window. */
+/** React es dueño del marcado de los mensajes; este controlador no añade mensajes ni
+ * contenido. La llegada en una carga completa es el scroll al hash del propio navegador;
+ * este vigilante se encarga de las llegadas SPA (enlaces del grafo) y de los cambios de
+ * hash posteriores. La ruta de montaje sondea a intervalos cortos A PROPÓSITO: la ref
+ * del elemento con scroll de la transcripción la engancha un HERMANO POSTERIOR
+ * (StickToBottom.Content), los órdenes de hidratación varían y un rAF encadenado por
+ * fotogramas resultó cancelable a mitad de vuelo en desarrollo (el informe del
+ * responsable de que todo enlace acababa abajo, 2026-10-13) — un tic síncrono que
+ * reintenta hasta que existen ambos elementos no tiene ventana de cancelación. */
 export function SessionMessageNavigation() {
 	const context = useStickToBottomContext();
-	// ABSORB IDENTITY CHURN (the 2026-10-13 heisenbug): use-stick-to-bottom
-	// re-creates stopScroll (and thus this context) while its initial scroll
-	// settles. Reading it through a ref keeps `jump`'s identity STABLE, so the
-	// effects below run once — a dep-churned cleanup used to cancel the queued
-	// jump / strip the flash mid-flight, which is exactly the owner's
-	// every-link-lands-at-bottom report (it only reproduced WITHOUT debug
-	// logging shifting the timing).
+	// ABSORBE LOS CAMBIOS DE IDENTIDAD (el heisenbug del 2026-10-13): use-stick-to-bottom
+	// recrea stopScroll (y por tanto este contexto) mientras se asienta su scroll
+	// inicial. Leerlo a través de una ref mantiene ESTABLE la identidad de `jump`, así que
+	// los efectos de abajo se ejecutan una vez — una limpieza provocada por el cambio de
+	// dependencias cancelaba el salto en cola o quitaba el destello a mitad de vuelo, que es
+	// justo el informe del responsable de que todo enlace acababa abajo (solo se reproducía
+	// SIN logging de depuración que alterase los tiempos).
 	const contextRef = useRef(context);
 	contextRef.current = context;
 	const lastJump = useRef<{ hash: string; target: HTMLElement } | null>(null);
@@ -50,9 +52,9 @@ export function SessionMessageNavigation() {
 		flash.current.target.classList.remove("lh-source-highlight");
 		flash.current = null;
 	}, []);
-	/** Synchronous arrival: release the bottom-follow lock, scroll every
-	 * session container so the passage sits near the top, flash it. Returns
-	 * true when this hash is (now) jumped-to. */
+	/** Llegada síncrona: suelta el bloqueo de seguir el fondo, desplaza todos los
+	 * contenedores de la sesión para que el pasaje quede cerca de arriba y lo hace
+	 * destellar. Devuelve true cuando ya se ha saltado (ahora) a este hash. */
 	const jump = useCallback((): boolean => {
 		const { scrollRef, stopScroll } = contextRef.current;
 		const hash = window.location.hash;
@@ -70,21 +72,21 @@ export function SessionMessageNavigation() {
 		return true;
 	}, [clearFlash]);
 
-	// Arrival on mount (a graph link opened this session, or a full load
-	// carried the hash): retry on a short interval until the scroller and the
-	// anchor both exist, then stop. The ~4s watchdog covers a never-arriving
-	// anchor (a deleted message) — the session simply opens where it opens.
+	// Llegada al montar (un enlace del grafo abrió esta sesión, o una carga completa
+	// trajo el hash): reintenta a intervalos cortos hasta que existan tanto el elemento
+	// con scroll como el ancla, y luego para. El perro guardián de ~4s cubre un ancla que
+	// nunca llega (un mensaje borrado) — la sesión simplemente se abre donde se abra.
 	useEffect(() => {
 		if (!window.location.hash) return;
 		let ticks = 0;
 		const id = window.setInterval(() => {
-			// Keep watching PAST the first success: hydration / record adoption
-			// can REPLACE the node that was just jumped to (observed on cold
-			// dev loads, 2026-10-13) — jump() re-targets the fresh node and
-			// re-flashes it, while steady-state ticks are no-ops via the
-			// lastJump guard. ~20s watchdog covers a cold compile (observed
-			// 6.8s SSR flush) or slow first load; a deleted-message anchor
-			// gives up and the session opens as-is.
+			// Sigue vigilando DESPUÉS del primer éxito: la hidratación / la adopción del registro
+			// puede SUSTITUIR el nodo al que se acaba de saltar (observado en cargas en frío de
+			// desarrollo, 2026-10-13) — jump() vuelve a apuntar al nodo nuevo y lo hace
+			// destellar de nuevo, mientras que los tics en estado estable no hacen nada gracias a la
+			// guarda lastJump. El perro guardián de ~20s cubre una compilación en frío (se observó
+			// un volcado SSR de 6,8s) o una primera carga lenta; un ancla de mensaje borrado
+			// se rinde y la sesión se abre tal cual.
 			if (++ticks > 300) window.clearInterval(id);
 			else jump();
 		}, 64);
@@ -99,8 +101,8 @@ export function SessionMessageNavigation() {
 		};
 		window.addEventListener("hashchange", onHash);
 		window.addEventListener("popstate", onHash);
-		// Cleanup removes LISTENERS ONLY: never clearFlash/lastJump here — a
-	// dep-churned re-run must not strip a live flash (see the note above).
+		// La limpieza quita SOLO LOS LISTENERS: nunca clearFlash/lastJump aquí — una
+	// reejecución por cambio de dependencias no debe quitar un destello vivo (ver la nota de arriba).
 		return () => {
 			window.removeEventListener("hashchange", onHash);
 			window.removeEventListener("popstate", onHash);

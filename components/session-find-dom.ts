@@ -1,8 +1,9 @@
 import { findSessionTextMatches } from "@/src/core";
 
-/** Only marked session surfaces enter Find. Offscreen scroller content counts;
- * hidden/unmounted sections do not. Never walk embedded documents or drafts.
- * Do NOT exclude aria-hidden globally: KaTeX's VISIBLE HTML uses it too. */
+/** Solo las superficies de sesión marcadas entran en Find. Cuenta el contenido de un
+ * elemento con scroll fuera de pantalla; las secciones ocultas/desmontadas no. Nunca
+ * recorras documentos incrustados ni borradores. NO excluyas aria-hidden en general:
+ * el HTML VISIBLE de KaTeX también lo usa. */
 const EXCLUDED = [
 	"script", "style", "noscript", "textarea", "input", "select", "iframe", "canvas", '[contenteditable="true"]',
 	"title", "defs", "metadata", "desc", ".katex-mathml", ".sr-only", "[hidden]",
@@ -17,8 +18,8 @@ const BLOCK_DISPLAYS = new Set(["block", "flex", "grid", "list-item", "table", "
 
 function styleOf(element: Element): CSSStyleDeclaration | null {
 	const view = element.ownerDocument.defaultView;
-	// Test DOMs (linkedom) may ship no CSS OM — degrade to attribute-only
-	// visibility checks; real browsers always implement it.
+	// Los DOM de prueba (linkedom) pueden no traer CSS OM — degrada a
+	// comprobaciones de visibilidad solo por atributos; los navegadores reales siempre lo implementan.
 	return typeof view?.getComputedStyle === "function" ? view.getComputedStyle(element) : null;
 }
 
@@ -35,9 +36,9 @@ function displayedRoot(root: Element): boolean {
 	return true;
 }
 
-/** Preserve a source-point map while collapsing ordinary HTML whitespace.
- * This lets a phrase span inline markup, without concatenating separate cards
- * or paragraphs. Preformatted code/user text keeps its literal whitespace. */
+/** Conserva un mapa de puntos de origen mientras colapsa los espacios en blanco normales
+ * del HTML. Así una frase puede abarcar marcado en línea sin concatenar tarjetas o
+ * párrafos distintos. El código preformateado/texto del usuario conserva sus espacios literales. */
 function displayRuns(root: Element): DisplayRun[] {
 	const runs: DisplayRun[] = [];
 	let text = "";
@@ -71,8 +72,8 @@ function displayRuns(root: Element): DisplayRun[] {
 		if (hidden(element, style)) return;
 		if (element.tagName === "BR") { flush(); return; }
 		const block = !!style && BLOCK_DISPLAYS.has(style.display);
-		// Without a CSS OM (test DOMs), the HTML defaults stand: only pre-family
-		// tags keep literal whitespace.
+		// Sin CSS OM (DOM de prueba), valen los valores por defecto del HTML: solo las
+		// etiquetas de la familia pre conservan los espacios literales.
 		const whiteSpace = style?.whiteSpace ?? (element.matches("pre, listing, plaintext") ? "pre" : "normal");
 		if (block) flush();
 		for (const child of element.childNodes) {
@@ -86,8 +87,8 @@ function displayRuns(root: Element): DisplayRun[] {
 	return runs;
 }
 
-/** Minimal AbstractRange stand-in for DOMs without live Range support
- *  (linkedom in tests). Real browsers always take document.createRange. */
+/** Sustituto mínimo de AbstractRange para DOM sin soporte de Range vivo
+ *  (linkedom en las pruebas). Los navegadores reales siempre usan document.createRange. */
 class StaticRangeLike {
 	startContainer: Node = null as unknown as Node;
 	startOffset = 0;
@@ -99,7 +100,7 @@ class StaticRangeLike {
 	toString(): string {
 		const text = (node: Node) => (node.nodeType === 3 ? (node as Text).data : "");
 		if (this.startContainer === this.endContainer) return text(this.startContainer).slice(this.startOffset, this.endOffset);
-		// Cross-node: gather the document-order text between the boundaries.
+		// Entre nodos: reúne el texto en orden del documento entre los límites.
 		const texts: Text[] = [];
 		const walk = (node: Node | null): void => {
 			if (!node) return;
@@ -124,7 +125,7 @@ export function sessionFindRanges(scope: HTMLElement, query: string): Range[] {
 	];
 	const ranges: Range[] = [];
 	for (const root of roots) {
-		// A nested marker must not double-count its text.
+		// Un marcador anidado no debe contar su texto dos veces.
 		if (roots.some((other) => other !== root && other.contains(root)) || !displayedRoot(root)) continue;
 		for (const run of displayRuns(root)) {
 			for (const match of findSessionTextMatches(run.text, query)) {
@@ -141,9 +142,9 @@ export function sessionFindRanges(scope: HTMLElement, query: string): Range[] {
 	return ranges;
 }
 
-/** Frozen boundary identity, rather than a mutable live Range, survives text
- * appends while Find is open. A re-render may replace nodes; then the caller
- * clamps the old index without pulling the reader to a different passage. */
+/** Una identidad de límites congelada, en vez de un Range vivo mutable, sobrevive a los
+ * añadidos de texto mientras Find está abierto. Un re-render puede sustituir nodos;
+ * entonces quien llama acota el índice antiguo sin llevar al lector a otro pasaje. */
 export interface SessionRangeIdentity {
 	start: Node; startOffset: number; end: Node; endOffset: number;
 }

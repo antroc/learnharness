@@ -1,11 +1,12 @@
 /**
- * WHEN AND WHERE A SELECTION TOOLBAR SHOWS (2026-10-31; semantics follow
- * T3 Code's selection actions, MIT). A pointer gesture reports after the
- * mouse is released — 500 ms later for double/triple clicks, so the
- * selection can finish growing — and a frame after that, once layout has
- * settled. Keyboard selection reports on selectionchange. Escape, blur,
- * resize, a new press and scrolling dismiss; with restoreAfterScroll the
- * toolbar comes back once scrolling settles.
+ * CUÁNDO Y DÓNDE SE MUESTRA UNA BARRA DE SELECCIÓN (2026-10-31; la semántica
+ * sigue las acciones de selección de T3 Code, MIT). Un gesto de puntero
+ * informa tras soltar el ratón — 500 ms después en los dobles/triples clics,
+ * para que la selección termine de crecer — y un fotograma más tarde, cuando
+ * el layout se ha asentado. La selección con teclado informa en
+ * selectionchange. Escape, la pérdida de foco, el redimensionado, una nueva
+ * pulsación y el scroll la descartan; con restoreAfterScroll la barra vuelve
+ * cuando el scroll se asienta.
  */
 
 export type SelectionActionPoint = { x: number; y: number };
@@ -108,7 +109,7 @@ export function observeSelectionActions({ element, getActionElement, restoreAfte
 	const contextMenu = () => dismiss("interaction");
 	const focusIn = (event: FocusEvent) => { if (shown && !onAction(event.target)) dismiss("interaction"); };
 	const scroll = () => {
-		if (pointerDown) return; // autoscroll while dragging keeps the gesture
+		if (pointerDown) return; // el autoscroll al arrastrar mantiene el gesto
 		const wasShown = shown;
 		if (shown || timer !== undefined) dismiss("cancel");
 		if (!restoreAfterScroll || !wasShown) return;

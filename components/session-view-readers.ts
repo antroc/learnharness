@@ -1,4 +1,4 @@
-/** Private read-only bridges to the actual mounted input owners; never a second state model. */
+/** Puentes privados de solo lectura hacia los responsables reales de las entradas montadas; nunca un segundo modelo de estado. */
 import type { QuestionData, PluginSubmissionTarget, PluginNativeQuestionViewDraft, PluginSessionViewInput } from "@/src/core";
 export interface ViewReaderRef<T> { current: (() => T) | null; changed?(): void }
 export interface NativeQuestionViewState {

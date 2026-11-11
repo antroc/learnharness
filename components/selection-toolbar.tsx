@@ -12,17 +12,17 @@ import {
 	type RectLike, type SelectionActionPoint,
 } from "./selection-actions";
 
-/** One button on the toolbar. Cite is the first; side questions adds more. */
+/** Un botón de la barra. Cite es el primero; las preguntas laterales añaden más. */
 export interface SelectionAction {
 	id: string;
 	label: string;
 	ariaLabel: string;
 	icon: LucideIcon;
-	/** A reason the action can't run for this selection (e.g. "Shorten
-	 *  selection"): shown instead of the label, button disabled. */
+	/** Un motivo por el que la acción no puede ejecutarse con esta selección (p. ej.
+	 *  "Shorten selection"): se muestra en lugar de la etiqueta, con el botón desactivado. */
 	disabledLabel?: (capture: CapturedSelection) => string | null;
 	visible: (capture: CapturedSelection) => boolean;
-	/** Return true when handled: the selection clears and the toolbar closes. */
+	/** Devuelve true si se ha tratado: la selección se borra y la barra se cierra. */
 	onSelect: (capture: CapturedSelection) => boolean;
 }
 
@@ -50,7 +50,7 @@ export function SelectionToolbarButtons({ capture, actions, onDone }: {
 						disabled={disabled !== null}
 						aria-label={disabled ?? action.ariaLabel}
 						className="bg-popover shadow-md dark:bg-popover dark:hover:bg-accent"
-						// Keep the learner's selection alive through the click.
+						// Mantén viva la selección del alumno durante el clic.
 						onPointerDown={(event) => event.preventDefault()}
 						onClick={() => { if (runSelectionAction(action, capture)) onDone(); }}
 					>
@@ -63,7 +63,7 @@ export function SelectionToolbarButtons({ capture, actions, onDone }: {
 	);
 }
 
-/** Clip rects of every scrolling ancestor between a node and the viewport. */
+/** Rects de recorte de todos los ancestros con scroll entre un nodo y el viewport. */
 function clipsFor(node: Node, viewport: HTMLElement): RectLike[] {
 	const clips: RectLike[] = [viewport.getBoundingClientRect()];
 	for (let element = node.parentElement; element && element !== viewport; element = element.parentElement) {
@@ -84,8 +84,8 @@ function clipsFor(node: Node, viewport: HTMLElement): RectLike[] {
 	return clips;
 }
 
-/** Is any selected line box actually on screen (e.g. not scrolled away
- *  inside a code block's hidden overflow)? */
+/** ¿Está de verdad en pantalla alguna caja de línea seleccionada (p. ej. no
+ *  desplazada fuera dentro del desbordamiento oculto de un bloque de código)? */
 function selectionVisible(range: Range, viewport: HTMLElement): boolean {
 	const walker = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT);
 	let node: Node | null = range.commonAncestorContainer.nodeType === Node.TEXT_NODE ? range.commonAncestorContainer : walker.nextNode();
@@ -102,7 +102,7 @@ function selectionVisible(range: Range, viewport: HTMLElement): boolean {
 	return false;
 }
 
-/** The floating toolbar over a tutor-text selection inside `viewport`. */
+/** La barra flotante sobre una selección de texto del tutor dentro de `viewport`. */
 export function SelectionToolbar({ viewport, actions }: { viewport: HTMLElement | null; actions: readonly SelectionAction[] }) {
 	const controller = useOptionalInteractionLayers();
 	const [state, setState] = useState<{ capture: CapturedSelection; position: SelectionActionPoint } | null>(null);
@@ -111,7 +111,7 @@ export function SelectionToolbar({ viewport, actions }: { viewport: HTMLElement 
 	const actionsRef = useRef(actions);
 	actionsRef.current = actions;
 
-	// Clamp inside the window once the real size is known, before paint.
+	// Acota dentro de la ventana cuando se conoce el tamaño real, antes de pintar.
 	useLayoutEffect(() => {
 		const toolbar = toolbarRef.current;
 		if (!toolbar || !state) return;
@@ -152,7 +152,7 @@ export function SelectionToolbar({ viewport, actions }: { viewport: HTMLElement 
 			onDismiss: clear,
 		});
 		observerRef.current = observer;
-		// Tab from the transcript reaches the toolbar first.
+		// Tab desde la transcripción llega primero a la barra.
 		const focusToolbar = (event: KeyboardEvent) => {
 			const toolbar = toolbarRef.current;
 			if (event.key !== "Tab" || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey || event.isComposing || event.defaultPrevented) return;

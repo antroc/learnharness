@@ -6,9 +6,9 @@ import { streamdownPlugins } from "@/components/ai-elements/message";
 import { MarkdownStrong } from "@/components/md-blocks";
 import { repairMathForDisplay, transformMathDelimiters } from "@/src/core";
 
-// Transform the renderer's parsed Markdown, not a whitespace-flattened source:
-// flattening first destroys code fences and significant spaces in inline code.
-// These are parser-owned nodes; the question/answer source is never modified.
+// Transforma el Markdown ya analizado por el renderizador, no un origen con los espacios aplanados:
+// aplanar primero destruye los bloques de código cercados y los espacios significativos del código en línea.
+// Son nodos propiedad del analizador; el origen de la pregunta/respuesta nunca se modifica.
 type PreviewNode = {
 	type: string;
 	value?: string;
@@ -17,8 +17,8 @@ type PreviewNode = {
 	url?: string;
 	data?: { hName: string; hProperties: { title: string; href?: undefined } };
 };
-// Carry link labels through the shared sanitizer without relaxing its schema.
-// The local span renderer consumes this marker; it never becomes a tooltip.
+// Pasa las etiquetas de los enlaces por el saneador compartido sin relajar su esquema.
+// El renderizador de span local consume este marcador; nunca se convierte en un tooltip.
 const linkLabelMarker = "lh-question-preview-link";
 const cutMarker = "lh-question-preview-cut";
 
@@ -52,7 +52,7 @@ function remarkQuestionPreviewPrefix({ cutBeforeMath }: { cutBeforeMath: number 
 						break;
 					case "link":
 					case "linkReference":
-						// Retain link styling/labels, not navigation or safety dialogs.
+						// Conserva el estilo/las etiquetas de los enlaces, no la navegación ni los diálogos de seguridad.
 						out.push({
 							type: "link", url: "", children: prefix(node.children ?? []),
 							data: { hName: "span", hProperties: { title: linkLabelMarker, href: undefined } },
@@ -96,10 +96,10 @@ const previewComponents = {
 	strong: MarkdownStrong,
 };
 
-/** A single inert line inside the dock's expand button. No block renderers,
- * media, links, copy buttons or streaming block splitting belong in a teaser. */
+/** Una única línea inerte dentro del botón de desplegar del dock. En un avance no caben
+ * renderizadores de bloque, medios, enlaces, botones de copiar ni la división en bloques del streaming. */
 export function QuestionPreview({ children }: { children: string }) {
-	// A new question must be measured in full, independently of the old cutoff.
+	// Una pregunta nueva debe medirse entera, con independencia del corte anterior.
 	return <MeasuredQuestionPreview key={children} source={children} />;
 }
 
@@ -109,8 +109,8 @@ function MeasuredQuestionPreview({ source }: { source: string }) {
 	const previewPlugins = useMemo(() => ({
 		cjk: {
 			...streamdownPlugins.cjk!,
-			// Streamdown caches processors by plugin name + serialized options,
-			// not closure identity. Keep the cutoff in explicit plugin options.
+			// Streamdown guarda en caché los procesadores por nombre de plugin + opciones serializadas,
+			// no por identidad del cierre. Mantén el corte en opciones explícitas del plugin.
 			remarkPluginsAfter: [...streamdownPlugins.cjk!.remarkPluginsAfter, [remarkQuestionPreviewPrefix, {
 				cutBeforeMath: Number.isFinite(fit.cutBeforeMath) ? fit.cutBeforeMath : null,
 			}]],
@@ -123,15 +123,15 @@ function MeasuredQuestionPreview({ source }: { source: string }) {
 		const slot = slotRef.current;
 		const box = slot.getBoundingClientRect();
 		const height = box.height;
-		if (height <= 0) return; // Hidden/unlaid-out dock: measure when it gains size.
-		// Include KaTeX error fallbacks so their indexes still match inlineMath AST
-		// nodes. Measure actual typesetting, not a list of guessed TeX commands.
+		if (height <= 0) return; // Dock oculto/sin layout: mide cuando adquiera tamaño.
+		// Incluye las alternativas de error de KaTeX para que sus índices sigan coincidiendo con los nodos
+		// inlineMath del AST. Mide la composición real, no una lista de comandos TeX supuestos.
 		const math = [...slot.querySelectorAll<HTMLElement>(".katex, .katex-error")];
 		const tall = math.findIndex((node) => node.getBoundingClientRect().height > height);
 		const content = slot.querySelector<HTMLElement>(".lh-prose");
-		// Nested math can hide overflow from the line's scrollWidth. Compare
-		// against the remaining SLOT, not its intrinsic box: small font overhangs
-		// inside an otherwise roomy line must not produce spurious dots.
+		// Las matemáticas anidadas pueden ocultar el desbordamiento al scrollWidth de la línea.
+		// Compara con la RANURA restante, no con su caja intrínseca: los pequeños salientes de
+		// la fuente dentro de una línea por lo demás holgada no deben producir puntos espurios.
 		const overflows = (node: HTMLElement) => node.scrollWidth > Math.ceil(box.right - node.getBoundingClientRect().left);
 		const truncated = tall >= 0 || !!slot.querySelector('[data-preview-cut="true"]') ||
 			!!(content && overflows(content)) || math.some(overflows);
@@ -159,9 +159,9 @@ function MeasuredQuestionPreview({ source }: { source: string }) {
 		};
 	}, []);
 
-	// One compact, math-friendly line, reserved even for an empty teaser. The
-	// absolute content cannot grow the slot. Zero KaTeX leading removes only
-	// extra line-box space: its own struts retain the full, unscaled glyph height.
+	// Una línea compacta y apta para matemáticas, reservada incluso para un avance vacío.
+	// El contenido absoluto no puede hacer crecer la ranura. El interlineado cero de KaTeX solo
+	// quita espacio extra de la caja de línea: sus propios puntales conservan la altura completa y sin escalar del glifo.
 	return (
 		<span
 			ref={slotRef}

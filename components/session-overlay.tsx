@@ -12,28 +12,31 @@ import { SvgImage } from "@/components/artifacts/svg-image";
 import { InteractionLayerOwner, useInteractionLayer } from "./interaction-layers";
 
 /**
- * SESSION-SCOPED OVERLAYS (owner wave, 2026-09-19): the "fullscreen"
- * expansions — the plan focus, this mermaid focus — do NOT cover the app
- * chrome. They mount ABSOLUTE INSIDE THE SESSION AREA (the `relative` div
- * below the top bar, right of the sidebar, where the transcript and dock
- * live), so the 60px drag bar stays sharp, visible, and draggable and the X
- * can never land in drag territory — the old `fixed inset-0` overlays put it
- * exactly there, which is what drove this redesign. Surface: 80% background +
- * blur (user-decided) — the transcript ghosts through while the focus owns
- * the session area.
+ * OVERLAYS CON ÁMBITO DE SESIÓN (oleada del responsable, 2026-09-19): las
+ * ampliaciones "a pantalla completa" — el foco del plan, este foco de
+ * mermaid — NO cubren el cromo de la app. Se montan en ABSOLUTO DENTRO DEL
+ * ÁREA DE LA SESIÓN (el div `relative` bajo la barra superior, a la derecha
+ * de la barra lateral, donde viven la transcripción y el dock), así que la
+ * barra de arrastre de 60px sigue nítida, visible y arrastrable, y la X nunca
+ * puede caer en territorio de arrastre — los antiguos overlays
+ * `fixed inset-0` la ponían justo ahí, que es lo que motivó este rediseño.
+ * Superficie: fondo al 80% + difuminado (decisión del usuario) — la
+ * transcripción se transparenta mientras el foco ocupa el área de la sesión.
  *
- * The chart source registers from wherever it lives in the transcript
- * (md-blocks' expand button) via the context below; the CHAT PAGE owns the
- * open state so this overlay mounts as a sibling of the scroller inside the
- * session area — never inside it (an absolute inset-0 inside the scroller
- * would cover the scrollable extent, not the visible area).
+ * El código del diagrama se registra desde donde esté en la transcripción
+ * (el botón de ampliar de md-blocks) mediante el contexto de abajo; la
+ * PÁGINA DEL CHAT es dueña del estado abierto para que este overlay se monte
+ * como hermano del elemento con scroll dentro del área de la sesión — nunca
+ * dentro de él (un absolute inset-0 dentro del elemento con scroll cubriría
+ * la extensión desplazable, no el área visible).
  */
 
-/** The expand seam: md-blocks' mermaid hover button calls openMermaid with
- *  the chart source; the figure card's fullscreen button calls openFigure
- *  with the raw svg (+ its invert state). The chat page (which provides
- *  this context) opens the overlay. Null when no chat page is mounted
- *  (sidebar previews etc.) — the buttons simply don't render there. */
+/** La frontera de ampliar: el botón de hover de mermaid de md-blocks llama a
+ *  openMermaid con el código del diagrama; el botón de pantalla completa de
+ *  la tarjeta de figura llama a openFigure con el svg en bruto (+ su estado
+ *  de inversión). La página del chat (que proporciona este contexto) abre el
+ *  overlay. Null cuando no hay ninguna página de chat montada (vistas
+ *  previas de la barra lateral, etc.) — ahí los botones simplemente no se renderizan. */
 export interface SessionImage {
 	src: string;
 	width: number;
@@ -50,11 +53,11 @@ export function useSessionMermaid() {
 	return useContext(SessionMermaidContext);
 }
 
-/** A chart svg's natural size — mermaid always emits a viewBox; this is the
- *  extent at zoom 1 (1 svg unit = 1 px), like the plan diagram's natural
- *  size. Figure svgs (2026-10-07) may declare width/height instead — that
- *  pair is the fallback. The final fallback covers a degenerate svg with
- *  neither. Pure. */
+/** El tamaño natural del svg de un diagrama — mermaid siempre emite un
+ *  viewBox; esta es la extensión con zoom 1 (1 unidad svg = 1 px), como el
+ *  tamaño natural del diagrama del plan. Los svg de figuras (2026-10-07)
+ *  pueden declarar en su lugar width/height — ese par es la alternativa. La
+ *  alternativa final cubre un svg degenerado sin ninguno de los dos. Pura. */
 export function chartSize(svg: string): { w: number; h: number } {
 	const m = /<svg[^>]*\bviewBox="([\d.eE+-]+)\s+([\d.eE+-]+)\s+([\d.eE+-]+)\s+([\d.eE+-]+)"/.exec(svg);
 	if (m) {
@@ -74,14 +77,15 @@ export function chartSize(svg: string): { w: number; h: number } {
 	return { w: 600, h: 400 };
 }
 
-/** The diagram focus: the chart at natural size inside a pan/zoom viewport
- *  (the plan popup's fit-floor semantics — fitGraphView/zoomedGraphView in
- *  pan-zoom.ts), Esc/X close. Renders its own copy of the chart (mermaid
- *  ids are per-render), not the injected inline svg. FIGURE MODE
- *  (2026-10-07): pass a raw `svg` instead of a mermaid `chart` — the same
- *  shell then focuses a figure card's svg on a white stage, with the
- *  caller's invert state carried over (the filter rides the white stage,
- *  exactly like the in-card holder). */
+/** El foco del diagrama: el diagrama a tamaño natural dentro de un viewport
+ *  de desplazamiento/zoom (la semántica de suelo de ajuste de la ventana
+ *  emergente del plan — fitGraphView/zoomedGraphView en pan-zoom.ts), Esc/X
+ *  cierran. Renderiza su propia copia del diagrama (los ids de mermaid son
+ *  por render), no el svg en línea inyectado. MODO FIGURA (2026-10-07): pasa
+ *  un `svg` en bruto en lugar de un `chart` de mermaid — el mismo armazón
+ *  enfoca entonces el svg de una tarjeta de figura sobre un escenario blanco,
+ *  conservando el estado de inversión de quien llama (el filtro va sobre el
+ *  escenario blanco, exactamente como el contenedor dentro de la tarjeta). */
 export function MermaidOverlay({
 	chart,
 	svg: rawSvg,
@@ -95,7 +99,7 @@ export function MermaidOverlay({
 	inverted?: boolean;
 	onClose: () => void;
 }) {
-	// ── chart render (own instance, own ids); figure mode uses the raw svg ──
+	// ── render del diagrama (instancia propia, ids propios); el modo figura usa el svg en bruto ──
 	const [svg, setSvg] = useState<string | null>(rawSvg ?? null);
 	const [error, setError] = useState<string | null>(null);
 	const [attempt, setAttempt] = useState(0);
@@ -133,7 +137,7 @@ export function MermaidOverlay({
 		onClose: () => { onClose(); return "closed"; },
 	});
 
-	// ── pan/zoom viewport (same wiring as the plan popup) ──
+	// ── viewport de desplazamiento/zoom (la misma conexión que la ventana emergente del plan) ──
 	const viewportRef = useRef<HTMLDivElement>(null);
 	const [size, setSize] = useState({ w: 0, h: 0 });
 	useEffect(() => {
@@ -224,12 +228,12 @@ export function MermaidOverlay({
 		<div
 			ref={rootRef}
 			data-testid="mermaid-overlay"
-			// SESSION-SCOPED (not fixed): mounts absolute inside the chat
-			// page's session-area div — below the drag bar, right of the
-			// sidebar. 80% + blur: the transcript ghosts through (owner
-			// decision, 2026-09-19).
+			// CON ÁMBITO DE SESIÓN (no fijo): se monta en absoluto dentro del div del
+			// área de la sesión de la página del chat — bajo la barra de arrastre, a la
+			// derecha de la barra lateral. 80% + difuminado: la transcripción se transparenta
+			// (decisión del responsable, 2026-09-19).
 			className="pointer-events-auto absolute inset-0 z-40 flex flex-col bg-background/80 p-4 backdrop-blur-sm"
-			// Ranked inside the session's bounded view stack, below app modals.
+			// Ordenado dentro de la pila de vistas acotada de la sesión, por debajo de los modales de la app.
 			style={{ zIndex: 100 + layer.order }}
 			role="region"
 			aria-label={`${mediaName} focus`}
@@ -271,11 +275,11 @@ export function MermaidOverlay({
 							style={{
 								width: `${box.w}px`,
 								transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
-								// Hidden until the first fit has APPLIED: the fit runs in an
-							// effect (after paint), and the chart would otherwise flash
-							// at the initial top-left zoom:1 state for a frame (the
-							// owner saw exactly that; transition-gating alone doesn't
-							// hide it — VISIBILITY must be gated on settled too).
+								// Oculto hasta que se ha APLICADO el primer ajuste: el ajuste corre en un
+							// efecto (tras el pintado), y si no el diagrama parpadearía
+							// en el estado inicial arriba a la izquierda con zoom:1 durante un fotograma (el
+							// responsable vio exactamente eso; condicionar solo la transición no basta para
+							// ocultarlo — la VISIBILIDAD también debe condicionarse a settled).
 								opacity: settled ? 1 : 0,
 								transition:
 									panning || !settled
@@ -283,11 +287,11 @@ export function MermaidOverlay({
 										: "transform 180ms ease-out, opacity 160ms ease-out",
 							}}
 						>
-							{/* Figures share the card's image boundary and white backing.
-							    Mermaid keeps its inline renderer; globals.css removes
-							    its max-width cap so it fills the natural-size box. */}
+							{/* Las figuras comparten el límite de imagen y el fondo blanco de la tarjeta.
+							Mermaid conserva su renderizador en línea; globals.css quita
+							su tope max-width para que llene la caja de tamaño natural. */}
 							{image ? (
-								// Reuse the figure viewport without re-encoding or inverting raster bytes.
+								// Reutiliza el viewport de la figura sin volver a codificar ni invertir los bytes del ráster.
 								// eslint-disable-next-line @next/next/no-img-element
 								<img src={image.src} alt="Submitted image" draggable={false} className="block h-auto w-full" />
 							) : rawSvg !== undefined ? (

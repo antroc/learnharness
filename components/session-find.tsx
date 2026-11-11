@@ -13,10 +13,10 @@ import { hasLegacyInteractionForeground, isInteractionScopeEligible } from "./pl
 export const SESSION_FIND_HIGHLIGHT = "lh-session-find";
 export const SESSION_FIND_ACTIVE_HIGHLIGHT = "lh-session-find-active";
 
-/** ::highlight() rules live OUTSIDE globals.css on purpose: the PostCSS/
- *  Tailwind v4 pipeline rejects the Custom Highlight pseudo-element as a
- *  parse error, which downed the whole stylesheet. A tiny <style> element,
- *  injected once on first client mount, ships them verbatim. */
+/** Las reglas ::highlight() viven FUERA de globals.css a propósito: la cadena
+ *  PostCSS/Tailwind v4 rechaza el pseudoelemento Custom Highlight como error
+ *  de análisis, lo que tumbaba la hoja de estilos entera. Un pequeño elemento
+ *  <style>, inyectado una vez en el primer montaje en el cliente, las lleva tal cual. */
 const FIND_STYLE_ID = "lh-session-find-style";
 export function injectFindStyles(): void {
 	if (document.getElementById(FIND_STYLE_ID)) return;
@@ -36,7 +36,7 @@ export function clearSessionFindHighlights(): void {
 
 function publishHighlights(ranges: readonly Range[], index: number): void {
 	if (typeof CSS === "undefined" || !CSS.highlights || typeof Highlight === "undefined") return;
-	// Avoid a huge argument spread when a short query matches many times.
+	// Evita un spread enorme de argumentos cuando una consulta corta coincide muchas veces.
 	const all = new Highlight();
 	for (const range of ranges) all.add(range);
 	CSS.highlights.set(SESSION_FIND_HIGHLIGHT, all);
@@ -46,16 +46,16 @@ function publishHighlights(ranges: readonly Range[], index: number): void {
 	CSS.highlights.set(SESSION_FIND_ACTIVE_HIGHLIGHT, active);
 }
 
-/** One-Esc law: a surfaced menu/dialog/cheat sheet outranks this non-modal
- * bar, regardless of where focus happened to be left. Closed Radix exits
- * must not block Find once they have stopped being a surfaced layer. */
+/** Ley de un solo Esc: un menú/diálogo/chuleta en superficie tiene prioridad sobre esta
+ * barra no modal, esté donde esté el foco. Las salidas de Radix cerradas no deben
+ * bloquear Find una vez que han dejado de ser una capa en superficie. */
 export function sessionFindHasForegroundLayer(doc: Document, scope?: HTMLElement | null): boolean {
 	return hasLegacyInteractionForeground(doc, scope);
 }
 
-/** Mounted for the lifetime of ONE Chat (which is keyed by chatId). Closing
- * keeps the query/reading position; changing sessions resets all local state.
- * The bar lives outside scopeRef, so it never finds its own query or count. */
+/** Montada durante la vida de UN Chat (que tiene chatId como clave). Cerrar conserva
+ * la consulta/posición de lectura; cambiar de sesión reinicia todo el estado local.
+ * La barra vive fuera de scopeRef, así que nunca encuentra su propia consulta ni su recuento. */
 export function SessionFind({ scopeRef, scrollContextRef }: {
 	scopeRef: RefObject<HTMLDivElement | null>;
 	scrollContextRef: RefObject<SessionScrollContext | null>;
@@ -83,7 +83,7 @@ export function SessionFind({ scopeRef, scrollContextRef }: {
 			if (!isInteractionScopeEligible(scopeRef.current, controller)) return;
 			if (!open) previousFocus.current = document.activeElement as HTMLElement | null;
 			setOpen(true);
-			// A second Mod+F focuses/selects the retained query, not a second bar.
+			// Un segundo Mod+F enfoca/selecciona la consulta conservada, no una segunda barra.
 			if (open) { inputRef.current?.focus({ preventScroll: true }); inputRef.current?.select(); }
 		};
 		window.addEventListener(kbdEventForAction("find"), onFind);
@@ -121,8 +121,8 @@ export function SessionFind({ scopeRef, scrollContextRef }: {
 			publishHighlights(ranges, index);
 			if (selectFirst && ranges[index]) scrollSessionTarget(ranges[index]!, scope, scrollContextRef.current);
 		};
-		// New queries start at the session's first match. Reopening the retained
-		// query or receiving streamed content only refreshes; neither yanks scroll.
+		// Las consultas nuevas empiezan en la primera coincidencia de la sesión. Reabrir la consulta
+		// conservada o recibir contenido por streaming solo refresca; ninguno de los dos da un tirón al scroll.
 		refresh(lastQueryRef.current !== query);
 		lastQueryRef.current = query;
 		const schedule = () => {
@@ -141,7 +141,7 @@ export function SessionFind({ scopeRef, scrollContextRef }: {
 		};
 	}, [open, query, scopeRef, scrollContextRef]);
 
-	// Also clear on a session switch when Find was already closed.
+	// Borra también al cambiar de sesión cuando Find ya estaba cerrado.
 	useEffect(() => clearSessionFindHighlights, []);
 
 	const step = (direction: 1 | -1) => {
@@ -164,7 +164,7 @@ export function SessionFind({ scopeRef, scrollContextRef }: {
 			className="lh-no-drag flex h-10 shrink-0 items-center gap-2 border-b border-border px-6 font-ui text-sm"
 			onKeyDown={(event) => {
 				if (event.key === "Enter") {
-					event.stopPropagation(); // NEVER reach question/global Enter submits.
+					event.stopPropagation(); // NUNCA llegues a los envíos con Enter de las preguntas/globales.
 					if ((event.target as HTMLElement).tagName !== "INPUT" || event.nativeEvent.isComposing) return;
 					event.preventDefault();
 					step(event.shiftKey ? -1 : 1);
