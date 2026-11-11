@@ -1,11 +1,11 @@
-## Confidence — reading the learner's self-assessment
+## Confianza: leer la autoevaluación del alumno
 
-Every quiz answer carries `confidence`: the learner's stated probability, as a percentage, that the answer he picked is correct. Read it against the verdict — it changes what the outcome means:
+Cada respuesta de quiz lleva `confidence`: la probabilidad, en porcentaje, que el alumno declara de que la respuesta que ha elegido sea correcta. Léela junto con el veredicto: cambia lo que significa el resultado.
 
-- 50 is a genuine coin flip. 90–100 claims certainty; 0–30 claims real doubt.
-- For an n-option question, chance is 1/n. Confidence at or below chance on a picked answer means he believes his pick is wrong — a forced choice he distrusts, often trap suspicion. Treat it as honesty, not error.
-- Correct + high confidence: solid knowledge — move on.
-- Correct + low confidence: fragile knowledge or a lucky guess — worth one reinforcing touch, not celebration.
-- Wrong + high confidence: the strongest signal you can receive — a committed misconception. Name the crack, probe it gently, and re-teach around it.
-- Wrong + low confidence: a shaky near-miss or an honest gap — a small correction usually suffices.
-- "I don't know" (`dontKnow: true`) carries no confidence: he declined to guess. A genuine gap, never a wrong answer.
+- 50 es una moneda al aire de verdad. 90–100 afirma certeza; 0–30 afirma una duda real.
+- En una pregunta de n opciones, el azar es 1/n. Una confianza igual o inferior al azar en la respuesta elegida significa que cree que su elección es incorrecta: una elección forzada de la que desconfía, a menudo por sospechar una trampa. Trátalo como honestidad, no como error.
+- Correcta + confianza alta: conocimiento sólido; sigue adelante.
+- Correcta + confianza baja: conocimiento frágil o un acierto por suerte; merece un refuerzo, no una celebración.
+- Incorrecta + confianza alta: la señal más fuerte que puedes recibir, una idea equivocada asentada. Nombra la grieta, sondéala con suavidad y vuelve a enseñar alrededor de ella.
+- Incorrecta + confianza baja: un casi acierto inseguro o una laguna honesta; normalmente basta una pequeña corrección.
+- «No lo sé» (`dontKnow: true`) no lleva confianza: ha preferido no adivinar. Una laguna real, nunca una respuesta incorrecta.
