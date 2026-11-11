@@ -1,35 +1,41 @@
 /**
- * THE VIEW MODEL (Wave D, owner-approved 2026-09-26): the client's transcript
- * view — native record messages (+ the live turn's working messages) grouped
- * into today's exact render shape. The golden master is the pre-Wave-D UI
- * (owner fork 1): everything the agent produces is ONE continuous document
- * per run — step separators between the loop's steps, artifact and answered
- * cards inline, the teacher's reaction continuing below an answered quiz.
+ * EL MODELO DE VISTA (oleada D, aprobada por el responsable el 2026-09-26): la
+ * vista de transcripción del cliente — los mensajes nativos del registro (+ los
+ * mensajes de trabajo del turno en vivo) agrupados en la forma exacta de render de
+ * hoy. La referencia maestra es la interfaz anterior a la oleada D (bifurcación 1
+ * del responsable): todo lo que produce el agente es UN documento continuo por
+ * ejecución — separadores de paso entre los pasos del bucle, tarjetas de artefactos
+ * y de respuestas en línea, y la reacción del profesor continuando debajo de un
+ * cuestionario respondido.
  *
- * This is the grouping canon of the deleted server-side projection
- * (core/projection.ts, Wave B), moved client-side, app-owned, with zero AI-SDK
- * types — plus the LIVE-TURN layer the projection never had: mid-turn tool
- * execution states (input-streaming → input-available/output-error/output),
- * so the dock mounts only after a call clears the validation boundary
- * (tool_execution_end) and the shimmer names the running activity.
+ * Este es el canon de agrupación de la proyección del servidor ya eliminada
+ * (core/projection.ts, oleada B), trasladado al cliente, propiedad de la app, sin
+ * ningún tipo del AI-SDK — más la capa del TURNO EN VIVO que la proyección nunca
+ * tuvo: los estados de ejecución de herramientas a mitad de turno (input-streaming
+ * → input-available/output-error/output), para que el dock se monte solo cuando una
+ * llamada supera la frontera de validación (tool_execution_end) y el brillo nombre
+ * la actividad en curso.
  *
- * GROUPING RULE: one assistant view message per GROUP — consecutive assistant
- * + toolResult messages, bounded by user/marker messages; toolResults attach
- * to the tool part of their call (searching backward — an answered quiz's
- * result lands on the part that asked it, even turns later); a group's id is
- * its FIRST assistant message's id.
+ * REGLA DE AGRUPACIÓN: un mensaje de vista del asistente por GRUPO — mensajes
+ * consecutivos de assistant + toolResult, delimitados por mensajes de usuario o
+ * marcadores; los toolResult se asocian a la parte de herramienta de su llamada
+ * (buscando hacia atrás — el resultado de un cuestionario respondido cae en la
+ * parte que lo preguntó, aunque sea turnos después); el id de un grupo es el id de
+ * su PRIMER mensaje del asistente.
  *
- * Plan blocks: a plan-block marker has no message of its own — its data part
- * splices into the preceding assistant group, IN FLOW right after the last
- * successful plan_init call (the presentation moment).
+ * Bloques de plan: un marcador de bloque de plan no tiene mensaje propio — su parte
+ * de datos se inserta en el grupo del asistente anterior, EN EL FLUJO justo después
+ * de la última llamada correcta a plan_init (el momento de presentación).
  *
- * Question tools on the wire (owner fork 2): the agent's closing
- * tool_execution_end carries the in-memory "Question posed" placeholder —
- * projectView IGNORES clean question executions (the part stays
- * input-available; the learner's answer arrives as a real toolResult). The
- * placeholder never persists, so settled records never see it.
+ * Herramientas de pregunta en la red (bifurcación 2 del responsable): el
+ * tool_execution_end de cierre del agente lleva el provisional en memoria
+ * "Question posed" — projectView IGNORA las ejecuciones limpias de preguntas (la
+ * parte se queda en input-available; la respuesta del alumno llega como un
+ * toolResult real). El provisional nunca se persiste, así que los registros
+ * asentados nunca lo ven.
  *
- * Pure and deterministic: client-safe (no node deps), same input → same view.
+ * Puro y determinista: seguro para el cliente (sin dependencias de node), misma
+ * entrada → misma vista.
  */
 
 import type { AssistantMessage, ImageContent, ToolResultMessage } from "@earendil-works/pi-ai";
@@ -42,62 +48,66 @@ import { QUESTION_TOOLS } from "./pending.ts";
 import type { SubagentArtifactData, SubagentResultMeta } from "./contracts/jobs.ts";
 import type { PlanBlockData } from "./contracts/chat.ts";
 
-/** One projected transcript part consumed by host renderers and phase/input
- * scanners. type selects the part vocabulary; common fields are optional
- * because text, tools and data parts carry different payloads. Additional
- * fields remain unknown through the index signature and require narrowing. */
+/** Una parte proyectada de la transcripción que consumen los renderizadores del host y los
+ * analizadores de fase y de entrada. type selecciona el vocabulario de la parte; los campos
+ * comunes son opcionales porque las partes de texto, de herramientas y de datos llevan
+ * contenidos distintos. Los campos adicionales quedan como desconocidos a través de la
+ * firma de índice y requieren estrechamiento. */
 export interface LhViewPart extends Record<string, unknown> {
 	type: string;
 	id?: string;
 	text?: string;
 	state?: string;
 	toolCallId?: string;
-	/** Native location, retained across display grouping (client-only). */
+	/** Ubicación nativa, conservada a través de la agrupación de visualización (solo cliente). */
 	sourceMessageId?: string;
 	sourceContentIndex?: number;
-	/** Must be selected before any generic tool renderer; never a raw trace. */
+	/** Debe seleccionarse antes que cualquier renderizador genérico de herramientas; nunca
+	 * es una traza en bruto. */
 	pluginQuestion?: Exclude<PluginQuestionAnnotationRead, { status: "absent" }>;
 	pluginProblem?: PluginProblemSnapshot;
 	input?: unknown;
 	output?: unknown;
 	rawInput?: unknown;
 	errorText?: string;
-	/** Native result retained for public plugin renderers and readable fallbacks. */
+	/** Resultado nativo conservado para los renderizadores públicos de plugins y las
+	 * alternativas legibles. */
 	result?: Pick<ToolResultMessage, "content" | "details" | "isError">;
 	data?: unknown;
 }
 
-/** A view message: user (bubble) or assistant (one continuous run). */
+/** Un mensaje de la vista: del usuario (burbuja) o del asistente (una única secuencia continua). */
 export interface LhViewMessage {
 	id: string;
 	role: "user" | "assistant";
 	parts: LhViewPart[];
-	/** The subagentResult meta the steer cards read (marker details). */
+	/** Los metadatos de subagentResult que leen las tarjetas de reorientación (details del
+	 * marcador). */
 	metadata?: unknown;
 }
 
-/** A tool call's live execution outcome (from tool_execution_end). */
+/** El resultado de la ejecución en vivo de una llamada a herramienta (de tool_execution_end). */
 export interface LiveExecution {
 	isError: boolean;
-	/** The clean result's details payload (the card's output). */
+	/** El contenido de details del resultado limpio (la salida de la tarjeta). */
 	output?: unknown;
-	/** The failure text (output-error parts). */
+	/** El texto del fallo (partes output-error). */
 	errorText?: string;
 	result?: Pick<ToolResultMessage, "content" | "details" | "isError">;
 }
 
-/** The live turn's execution layer, maintained by the session hook. */
+/** La capa de ejecución del turno en vivo, mantenida por el hook de la sesión. */
 export interface LiveTurnState {
-	/** toolCallId → its execution outcome seen so far. */
+	/** toolCallId → el resultado de su ejecución visto hasta ahora. */
 	executions: ReadonlyMap<string, LiveExecution>;
-	/** True while the turn runs — calls with no execution yet render
-	 *  input-streaming (the shimmer); settled dangling calls render
-	 *  input-available (the dock mounts from the record). */
+	/** True mientras el turno se ejecuta — las llamadas aún sin ejecución se
+	 * renderizan como input-streaming (el brillo); las llamadas colgantes asentadas
+	 * se renderizan como input-available (el dock se monta desde el registro). */
 	inFlight: boolean;
-	/** Ids of the messages THIS consume is streaming (optimistic round 3,
-	 *  2026-10-02): an arrived-but-empty streaming message projects one
-	 *  empty reasoning part — the thinking row — so the placeholder's
-	 *  handoff is seamless; settled empty messages stay hidden. */
+	/** Ids de los mensajes que ESTE consumo está transmitiendo (ronda optimista 3,
+	 * 2026-10-02): un mensaje en streaming que ha llegado vacío proyecta una parte
+	 * de razonamiento vacía — la fila de razonamiento — para que el traspaso desde
+	 * el provisional no se note; los mensajes vacíos asentados siguen ocultos. */
 	streamingIds: ReadonlySet<string>;
 }
 
@@ -105,10 +115,10 @@ function textPart(text: string): LhViewPart {
 	return { type: "text", text, state: "done" };
 }
 
-/** The result a tool part should show, from a native toolResult. */
+/** El resultado que debe mostrar una parte de herramienta, a partir de un toolResult nativo. */
 function applyResult(part: LhViewPart, result: ToolResultMessage): void {
 	if (part.pluginQuestion) {
-		// Authored payload/error prose must never escape through generic trace.
+		// La prosa de contenido o de error escrita por el autor nunca debe escaparse por la traza genérica.
 		if (result.isError) { part.state = "output-error"; return; }
 		part.state = "output-available";
 		part.output = result.details;
@@ -126,7 +136,7 @@ function applyResult(part: LhViewPart, result: ToolResultMessage): void {
 	}
 }
 
-/** Does this assistant group carry a successful plan_init (the splice target)? */
+/** ¿Lleva este grupo del asistente un plan_init correcto (el destino de la inserción)? */
 function lastSuccessfulPlanInit(parts: LhViewPart[]): number {
 	let idx = -1;
 	parts.forEach((p, i) => {
@@ -137,12 +147,12 @@ function lastSuccessfulPlanInit(parts: LhViewPart[]): number {
 	return idx;
 }
 
-/** Project the native record (+ live turn working list) into the client's
- *  view messages. Pure: the same input always projects to the same list. */
+/** Proyecta el registro nativo (+ la lista de trabajo del turno en vivo) en los mensajes
+ * de vista del cliente. Puro: la misma entrada proyecta siempre la misma lista. */
 export function projectView(messages: readonly LhMessage[], live?: LiveTurnState): LhViewMessage[] {
 	const out: LhViewMessage[] = [];
-	// Output calls become text rather than tool parts, so read settled
-	// failures up front: a failed call must retain the normal error path.
+	// Las llamadas de salida se convierten en texto en lugar de partes de herramienta, así que
+	// se leen de antemano los fallos asentados: una llamada fallida debe conservar la ruta de error normal.
 	const outputErrors = new Map<string, ToolResultMessage>();
 	for (const message of messages) {
 		if (message.role === "toolResult" && message.toolName === SEND_TO_USER_TOOL && message.isError) {
@@ -156,12 +166,12 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	};
 	const findToolPart = (result: LhMessage & ToolResultMessage): LhViewPart | undefined => {
 		for (let i = out.length - 1; i >= 0; i--) {
-			// NEWEST-FIRST part scan within a group (the Lacan heal, 2026-10-04):
-			// a result pairs with the most RECENT call carrying its id. Unique
-			// ids (the uniquifier guarantees them for new turns) make scan order
-		// irrelevant; for legacy duplicate-id records (DeepSeek's per-response
-		// `call_0`) this routes each answer to its own call instead of letting
-		// a later result overwrite an earlier question's card.
+			// Recorrido de partes del MÁS NUEVO AL MÁS ANTIGUO dentro de un grupo (la reparación
+			// Lacan, 2026-10-04): un resultado se empareja con la llamada MÁS RECIENTE que lleve su
+			// id. Con ids únicos (el uniquificador los garantiza en los turnos nuevos) el orden de
+		// recorrido da igual; en los registros antiguos con ids duplicados (el `call_0` por
+		// respuesta de DeepSeek) esto lleva cada respuesta a su propia llamada en lugar de dejar
+		// que un resultado posterior sobrescriba la tarjeta de una pregunta anterior.
 			const parts = out[i]!.parts;
 			for (let p = parts.length - 1; p >= 0; p--) {
 				const part = parts[p]!;
@@ -177,11 +187,11 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 		return undefined;
 	};
 
-	// The active compaction (owner round 14): the fold emits the CUT
-	// DIVIDER — the longer, at-the-seam marker — immediately BEFORE the
-	// first kept message, so the transcript shows exactly where history
-	// was summarized away. Everything before it stays visible to the
-	// user (full history is never hidden); only the MODEL's context jumps.
+	// La compactación activa (ronda 14 del responsable): el plegado emite el DIVISOR DE
+	// CORTE — el marcador más largo, situado en la frontera — justo ANTES del primer
+	// mensaje conservado, para que la transcripción muestre exactamente dónde se resumió
+	// el historial. Todo lo anterior sigue visible para el usuario (el historial completo
+	// nunca se oculta); solo salta el contexto del MODELO.
 	const compaction = activeCompactionOf(messages);
 
 	for (const m of messages) {
@@ -224,24 +234,24 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 
 		if (role === "assistant") {
 			const assistant = m as AssistantMessage;
-			// OWNER RULING (2026-09-26): reasoning ALWAYS renders above the
-			// message it belongs to. Providers emit trailing reasoning tokens
-			// (GLM fires a final reasoning burst after the answer), which
-			// lands the thinking block AFTER the text in the persisted
-			// content — presenting arrival order verbatim put the reasoning
-			// UNDER the message. The view canon owns presentation order:
-			// stable-partition each assistant message, reasoning parts first
-			// (their own order kept), then everything else.
+			// DECISIÓN DEL RESPONSABLE (2026-09-26): el razonamiento SIEMPRE se renderiza encima
+			// del mensaje al que pertenece. Los proveedores emiten tokens de razonamiento al final
+			// (GLM lanza una ráfaga final de razonamiento después de la respuesta), lo que deja el
+			// bloque de razonamiento DESPUÉS del texto en el contenido persistido — presentar el
+			// orden de llegada tal cual ponía el razonamiento DEBAJO del mensaje. El canon de la
+			// vista manda en el orden de presentación: partición estable de cada mensaje del
+			// asistente, primero las partes de razonamiento (en su propio orden) y luego todo
+			// lo demás.
 			const rest: LhViewPart[] = [];
 			const reasoning: LhViewPart[] = [];
 			let textN = 0;
 			let reasoningN = 0;
-			// LIVE IS POSITIVE EVIDENCE (owner, 2026-10-05): a call renders
-			// live ONLY when its own message is streaming THIS turn — session
-			// busyness alone can never resurrect a settled call (the practice
-			// bug: a thinking submission flipped the POSE turn's problem call
-			// back to a spinner mid-transcript; live cards belong at the
-			// bottom, and this gate is what puts them there by construction).
+			// LO EN VIVO ES EVIDENCIA POSITIVA (responsable, 2026-10-05): una llamada se renderiza
+			// en vivo SOLO cuando su propio mensaje está en streaming ESTE turno — que la sesión
+			// esté ocupada no basta nunca para resucitar una llamada asentada (el fallo de la
+			// práctica: un envío de razonamiento devolvía la llamada al problema del turno de
+			// PLANTEAMIENTO a un indicador de carga a mitad de transcripción; las tarjetas en vivo
+			// van abajo, y esta barrera es la que las pone ahí por construcción).
 			const streamingMessage = live?.streamingIds.has(m.id) === true;
 			for (const [contentIndex, block] of assistant.content.entries()) {
 				if (block.type === "text") {
@@ -251,7 +261,7 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 				} else if (block.type === "toolCall") {
 					const annotation = readPluginQuestionMessageAnnotation(m, contentIndex);
 					if (annotation.status !== "absent") {
-						// Source position, not reasoning-partitioned/grouped view index.
+						// Posición en la fuente, no índice de la vista agrupada o con el razonamiento particionado.
 						rest.push({ type: `tool-${block.name}`, toolCallId: block.id,
 							sourceMessageId: m.id, sourceContentIndex: contentIndex, pluginQuestion: annotation,
 							state: annotation.status === "posed" ? "input-available" : streamingMessage ? "input-streaming" : "output-error" });
@@ -265,8 +275,8 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 						part.sourceContentIndex = contentIndex;
 					}
 					if (block.name === SEND_TO_USER_TOOL) {
-						// Failed/aborted generations never execute their calls;
-						// the provider error/abort UI already owns that outcome.
+						// Las generaciones fallidas o abortadas nunca ejecutan sus llamadas;
+						// la interfaz de error o aborto del proveedor ya se encarga de ese resultado.
 						if (assistant.stopReason === "error" || assistant.stopReason === "aborted") continue;
 						const error = outputErrors.get(block.id);
 						if (error) applyResult(part, error);
@@ -278,13 +288,13 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 								rest.push({ type: "text", id: `${m.id}-t${textN++}`, text, state: "done" });
 							}
 						}
-						// No live tool card or acknowledgement: this channel is
-						// ordinary prose, including while its arguments stream.
+						// Ni tarjeta de herramienta en vivo ni acuse: este canal es
+						// prosa normal, también mientras se transmiten sus argumentos.
 						continue;
 					}
-					// The conclusion's reveal join (owner round, 2026-10-05): the
-					// hero of a conclude card is the modelSolution committed at POSE
-					// time — a record fold, enriched here so the card renders pure.
+					// La unión de la revelación de la conclusión (ronda del responsable, 2026-10-05): el
+					// protagonista de una tarjeta de conclusión es el modelSolution fijado al PLANTEAR
+					// — un plegado del registro, enriquecido aquí para que la tarjeta se renderice pura.
 					if (block.name === PRACTICE_CONCLUDE_TOOL) {
 						part.reveal = modelSolutionForConclude(messages, block.id);
 						part.problemInput = problemInputForConclude(messages, block.id);
@@ -294,14 +304,14 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 			}
 			const parts: LhViewPart[] = [...reasoning, ...rest];
 			if (parts.length === 0) {
-				// An arrived-but-silent STREAMING message (owner, optimistic
-				// round 3, 2026-10-02): the turn's first applied event can
-				// carry empty content — project ONE empty reasoning part so
-				// the message's ARRIVAL renders the thinking row (chat.tsx's
-				// Reasoning isStreamings the last part: the same spinner +
-				// shimmer as the placeholder it replaces — the handoff is
-				// seamless and the two can never double). Settled empty
-				// messages stay hidden (presentation-only).
+				// Un mensaje en STREAMING que ha llegado pero sin contenido (responsable, ronda
+				// optimista 3, 2026-10-02): el primer evento aplicado del turno puede llevar
+				// contenido vacío — se proyecta UNA parte de razonamiento vacía para que la
+				// LLEGADA del mensaje renderice la fila de razonamiento (el Reasoning de chat.tsx
+				// marca isStreaming en la última parte: el mismo indicador + brillo que el
+				// provisional al que sustituye — el traspaso no se nota y nunca pueden salir
+				// duplicados). Los mensajes vacíos asentados siguen ocultos
+				// (solo presentación).
 				if (live?.streamingIds.has(m.id)) {
 					parts.push({ type: "reasoning", id: `${m.id}-r0`, text: "", state: "done" });
 				} else {
@@ -310,7 +320,7 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 			}
 			const group = lastAssistant();
 			if (group) {
-				// Same group: the step separator renders between the steps.
+				// Mismo grupo: el separador de paso se renderiza entre los pasos.
 				group.parts.push({ type: "step-start", sourceMessageId: m.id }, ...parts);
 			} else {
 				out.push({ id: m.id, role: "assistant", parts: [{ type: "step-start", sourceMessageId: m.id }, ...parts] });
@@ -322,23 +332,24 @@ export function projectView(messages: readonly LhMessage[], live?: LiveTurnState
 	return out;
 }
 
-/** The dock-owned tools: question tools (client-owned results — the dock
- *  mounts on the dangling call) and the practice pose (its ack is FINAL —
- *  details: null, never replaced — and the card + dock read the call's
- *  input; the placeholder must never flip the part to output-available).
- *  PRACTICE (2026-10-04): problem joins the placeholder fork; conclude is
- *  a NORMAL tool part (its result acks with no payload, details null —
- *  but the ConcludeCard reads the call's input, and output-available with
- *  output undefined renders fine). */
+/** Las herramientas que gestiona el dock: las de pregunta (resultados propiedad del
+ * cliente — el dock se monta sobre la llamada colgante) y el planteamiento de práctica
+ * (su acuse es DEFINITIVO — details: null, nunca se sustituye — y la tarjeta + el dock
+ * leen la entrada de la llamada; el provisional nunca debe pasar la parte a
+ * output-available). PRÁCTICA (2026-10-04): problem se une a la bifurcación del
+ * provisional; conclude es una parte de herramienta NORMAL (su resultado se acusa sin
+ * contenido, details null — pero ConcludeCard lee la entrada de la llamada, y
+ * output-available con output undefined se renderiza bien). */
 function isPlaceholderResultTool(name: string): boolean {
 	return (QUESTION_TOOLS as readonly string[]).includes(name) || name === "problem";
 }
 
-/** A tool call block → its view part, with the live execution layer.
- * `streamingMessage` — POSITIVE EVIDENCE (owner, 2026-10-05): this call's
- * own message is streaming THIS turn. The input-streaming shimmer keys on
- * it, never on session busyness: a call from a settled message can never
- * render live, whatever else is running. */
+/** Un bloque de llamada a herramienta → su parte de vista, con la capa de ejecución en
+ * vivo. `streamingMessage` — EVIDENCIA POSITIVA (responsable, 2026-10-05): el propio
+ * mensaje de esta llamada está en streaming ESTE turno. El brillo de input-streaming
+ * depende de esto, nunca de que la sesión esté ocupada: una llamada de un mensaje
+ * asentado nunca puede renderizarse en vivo, se esté ejecutando lo que se esté
+ * ejecutando. */
 function toolPartOf(
 	block: { id: string; name: string; arguments?: unknown },
 	live: LiveTurnState | undefined,
@@ -354,26 +365,26 @@ function toolPartOf(
 	if (exec) {
 		if (exec.result) part.result = exec.result;
 		if (exec.isError) {
-			// An invalid call NEVER becomes input-available — the dock's mount
-			// gate keys on the clean execution end (the live modal-realism
-			// crash: a malformed quiz must never mount).
+			// Una llamada no válida NUNCA pasa a input-available — la barrera de montaje del
+			// dock depende del final limpio de la ejecución (el fallo en vivo del realismo del
+			// modal: un cuestionario mal formado nunca debe montarse).
 			part.state = "output-error";
 			part.rawInput = block.arguments;
 			part.errorText = exec.errorText ?? "The tool call failed.";
 		} else if (isQuestion) {
-			// Fork 2: the clean "Question posed" placeholder is IGNORED —
-			// question tools are client-owned; the dock mounts on the clean
-			// end, the answer arrives as a real toolResult.
+			// Bifurcación 2: el provisional limpio "Question posed" se IGNORA —
+			// las herramientas de pregunta son propiedad del cliente; el dock se monta en el
+			// final limpio y la respuesta llega como un toolResult real.
 			part.state = "input-available";
 		} else {
 			part.state = "output-available";
 			part.output = exec.output;
 		}
 	} else {
-		// No execution yet: live ONLY on positive evidence — the call's own
-		// message is streaming this turn (its arguments may literally be
-		// mid-write). Anything else is a dangling call from a settled
-		// message — the dock's pending state, never a shimmer.
+		// Aún sin ejecución: en vivo SOLO con evidencia positiva — el propio mensaje de la
+		// llamada está en streaming este turno (puede que sus argumentos se estén escribiendo
+		// literalmente). Cualquier otra cosa es una llamada colgante de un mensaje asentado —
+		// el estado pendiente del dock, nunca un brillo.
 		part.state = streamingMessage ? "input-streaming" : "input-available";
 	}
 	return part;
@@ -381,38 +392,38 @@ function toolPartOf(
 
 function applyResultTo(part: LhViewPart | undefined, result: ToolResultMessage): void {
 	if (part) {
-		// Fork 2 (owner, Wave D): the clean "Question posed" placeholder
-		// (details: null — tool-execute questionResult) is client-owned
-		// question territory. The dock mounts on the dangling call; the
-		// AnsweredCard renders only the learner's REAL answer (details set).
-		// Flipping the part to output-available on the placeholder would hand
-		// AnsweredCard a null and crash the render (the live crash, 2026-09-26).
+		// Bifurcación 2 (responsable, oleada D): el provisional limpio "Question posed"
+		// (details: null — questionResult de tool-execute) es territorio de preguntas
+		// propiedad del cliente. El dock se monta sobre la llamada colgante; AnsweredCard
+		// renderiza solo la respuesta REAL del alumno (con details).
+		// Pasar la parte a output-available con el provisional le daría a AnsweredCard
+		// un null y haría caer el render (el fallo en vivo, 2026-09-26).
 		const tool = part.type.startsWith("tool-") ? part.type.slice("tool-".length) : part.type;
 		const isQuestion = isPlaceholderResultTool(tool);
 		if (!result.isError && ((isQuestion && result.details == null) || part.pluginProblem)) {
-			// The placeholder fork (fork 2) stands: the clean pose/ask ack carries
-			// no card data — NEVER output-available. But the call IS settled
-			// (the practice bug, 2026-10-05: this early-return left the part on
-			// whatever toolPartOf guessed, which mid-turn resurrected a settled
-			// problem as a live spinner). input-available is the settled truth:
-			// the ProblemCard reads the call's input, the dock keys on the
-			// native fold — neither wants the ack's (null) payload.
+			// La bifurcación del provisional (bifurcación 2) se mantiene: el acuse limpio del
+			// planteamiento o la pregunta no lleva datos de tarjeta — NUNCA output-available. Pero la
+			// llamada SÍ está asentada (el fallo de la práctica, 2026-10-05: este retorno temprano
+			// dejaba la parte en lo que adivinase toolPartOf, lo que a mitad de turno resucitaba un
+			// problema asentado como un indicador de carga en vivo). input-available es la verdad
+			// asentada: ProblemCard lee la entrada de la llamada y el dock depende del plegado
+			// nativo — ninguno de los dos quiere el contenido (null) del acuse.
 			part.state = "input-available";
 			return;
 		}
 		applyResult(part, result);
 	}
-	// A result with no visible part (e.g. a call whose assistant message
-	// rendered nothing) is dropped from the view — the record keeps it.
+	// Un resultado sin parte visible (p. ej. una llamada cuyo mensaje del asistente no
+	// renderizó nada) se descarta de la vista — el registro lo conserva.
 }
 
-/** A marker's projected message (handoff/steers) or splice (plan block). */
+/** El mensaje proyectado de un marcador (traspaso/reorientaciones) o su inserción (bloque de plan). */
 function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 	switch (marker.customType) {
 		case "graph-context": {
-			// The session's map context (owner, 2026-10-04): user-side —
-			// a minimal collapsible card ABOVE the first user message;
-			// never a text bubble (scaffolding, like the thinking card).
+			// El contexto del mapa de la sesión (responsable, 2026-10-04): del lado del usuario —
+			// una tarjeta plegable mínima ENCIMA del primer mensaje del usuario;
+			// nunca una burbuja de texto (andamiaje, como la tarjeta de razonamiento).
 			out.push({
 				id: marker.id,
 				role: "user",
@@ -465,10 +476,10 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			return;
 		}
 		case "practice-thinking": {
-			// The learner's working trace / committed answer (practice
-			// sessions): a user-side card keyed on the structured details
-			// (problemCallId, commit, text) — the register lives in the card,
-			// not re-parsed from content.
+			// La traza de trabajo / respuesta comprometida del alumno (sesiones de
+			// práctica): una tarjeta del lado del usuario basada en los details estructurados
+			// (problemCallId, commit, text) — el registro vive en la tarjeta, no se vuelve a
+			// extraer del contenido.
 			out.push({
 				id: marker.id,
 				role: "user",
@@ -477,10 +488,10 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			return;
 		}
 		case "practice-next": {
-			// The learner's explicit move-on signal (owner round 16): a compact
-			// centered system line — the mono-caps chrome register, not prose.
-			// The model reads the marker's content; the transcript never shows
-			// it (the label is chrome, single-sourced in the renderer).
+			// La señal explícita del alumno de pasar a otra cosa (ronda 16 del responsable): una
+			// línea de sistema compacta y centrada — el registro de envoltorio en versalitas
+			// monoespaciadas, no prosa. El modelo lee el contenido del marcador; la transcripción
+			// nunca lo muestra (la etiqueta es envoltorio, con una única fuente en el renderizador).
 			out.push({
 				id: marker.id,
 				role: "user",
@@ -490,20 +501,20 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 		}
 		case "side-question":
 		case "side-question-told":
-			// Raw context entries do not split the teaching segment or render
-			// loud transcript pills. Its quiet speech-bubble reopens the saved
-			// conversation in the floating/docked companion.
+			// Las entradas de contexto en bruto no dividen el segmento de enseñanza ni renderizan
+			// pastillas llamativas en la transcripción. Su discreto bocadillo vuelve a abrir la
+			// conversación guardada en el acompañante flotante o acoplado.
 			return;
 		case "problem-dismissed":
-			// UI-only (the ask-style dismissal): the synthesized conclude
-			// pair — which rides the NEXT input — carries the record's face.
+			// Solo interfaz (el descarte de estilo pregunta): el par de conclusión sintetizado
+			// — que viaja con la SIGUIENTE entrada — lleva la cara del registro.
 			return;
 		case "compaction": {
-			// THE MOMENT DIVIDER (owner round 14): minimal centered small
-			// text at the compaction moment — where the user currently is
-			// (the marker appends at the record's tail). Clicking opens the
-			// full summary. The cut divider is emitted by the fold loop at
-			// the kept boundary (see projectView).
+			// EL DIVISOR DEL MOMENTO (ronda 14 del responsable): texto pequeño, mínimo y centrado
+			// en el momento de la compactación — donde está ahora el usuario (el marcador se
+			// añade al final del registro). Al hacer clic se abre el resumen completo. El divisor
+			// de corte lo emite el bucle de plegado en la frontera de lo conservado (ver
+			// projectView).
 			out.push({
 				id: marker.id,
 				role: "user",
@@ -518,8 +529,8 @@ function projectMarker(marker: LhMarkerMessage, out: LhViewMessage[]): void {
 			return;
 		}
 		case "plan-block": {
-			// No message of its own: splice into the preceding assistant
-			// group, IN FLOW after the last successful plan_init call.
+			// Sin mensaje propio: se inserta en el grupo del asistente anterior,
+			// EN EL FLUJO después de la última llamada correcta a plan_init.
 			const group = out[out.length - 1];
 			if (!group || group.role !== "assistant") return;
 			const idx = lastSuccessfulPlanInit(group.parts);
