@@ -1,4 +1,4 @@
-/** The native common practice pose fields, shared unchanged by plugin poses. */
+/** Campos comunes del planteamiento nativo de práctica, compartidos sin cambios por los planteamientos de los plugins. */
 import { Type } from "typebox";
 
 export const practiceProblemInputSchema = Type.Object({

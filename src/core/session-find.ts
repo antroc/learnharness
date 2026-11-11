@@ -1,5 +1,6 @@
-/** Literal, case-insensitive session Find (owner, 2026-10-13). The DOM seam
- * supplies only displayed text; no transcript/Markdown/TeX indexing lives here. */
+/** Búsqueda literal en la sesión, sin distinguir mayúsculas (responsable, 2026-10-13). La
+ * frontera del DOM aporta solo el texto mostrado; aquí no vive ningún índice de
+ * transcripción, Markdown o TeX. */
 export interface SessionTextMatch {
 	start: number;
 	end: number;
@@ -7,8 +8,8 @@ export interface SessionTextMatch {
 
 export function findSessionTextMatches(text: string, query: string): SessionTextMatch[] {
 	if (!query) return [];
-	// Escape the user's string, never expose regex semantics. RegExp retains
-	// ORIGINAL UTF-16 offsets, unlike lowercasing text (İ can change length).
+	// Escapa la cadena del usuario; nunca expongas la semántica de las regex. RegExp conserva
+	// los offsets UTF-16 ORIGINALES, a diferencia del texto en minúsculas (İ puede cambiar de longitud).
 	const literal = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 	const pattern = new RegExp(literal, "giu");
 	return Array.from(text.matchAll(pattern), (m) => ({ start: m.index, end: m.index + m[0].length }));

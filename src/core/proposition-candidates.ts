@@ -1,6 +1,6 @@
 import type { GraphNode } from "./contracts/graph.ts";
 
-/** Retrieval only: scores rank lexical candidates, never decide identity. */
+/** Solo recuperación: las puntuaciones ordenan candidatos léxicos, nunca deciden la identidad. */
 export interface CandidateProposition {
 	id: string;
 	name: string;
@@ -34,9 +34,9 @@ export interface CandidateBatch {
 
 export const CANDIDATE_PAGE_SIZE = 5;
 
-// Keep negation and domain vocabulary. These are only common English function
-// words; Unicode words (including mathematical symbols expressed as letters)
-// remain searchable, with no English-only stemming or substring/glob syntax.
+// Se conservan la negación y el vocabulario del dominio. Estas son solo palabras funcionales
+// comunes del inglés; las palabras Unicode (incluidos símbolos matemáticos escritos con letras)
+// siguen siendo buscables, sin lematización solo para inglés ni sintaxis de subcadenas/glob.
 const STOP_WORDS = new Set((
 	"a an the and or of to in on at by for from with as is are was were be been being " +
 	"it its this that these those which who whose their them they we our you your " +
@@ -62,15 +62,15 @@ function indexText(text: string, alias?: string): TextIndex {
 	return { terms, length: tokens.length, alias };
 }
 
-/** One immutable, in-memory index per audit. Each canonical/alias phrasing is
- * scored separately so a node is not penalized for accumulating many aliases.
- * Document frequency counts NODES, not aliases; repeated phrasings cannot
- * inflate a term's frequency or produce duplicate candidates.
+/** Un índice inmutable en memoria por auditoría. Cada formulación canónica o alias se
+ * puntúa por separado, para que un nodo no salga penalizado por acumular muchos alias.
+ * La frecuencia de documento cuenta NODOS, no alias; las formulaciones repetidas no pueden
+ * inflar la frecuencia de un término ni producir candidatos duplicados.
  *
- * BM25 uses the standard k1=1.2, b=0.75. Query words are a union (not an exact
- * phrase or an AND condition). Hints add vocabulary to the actual proposition;
- * they never replace it. There is no network, embedding model, persistent cache,
- * equivalence threshold, or cross-call "already seen" filtering.
+ * BM25 usa los valores estándar k1=1.2, b=0.75. Las palabras de la consulta son una unión
+ * (no una frase exacta ni una condición AND). Las pistas añaden vocabulario a la proposición
+ * real; nunca la sustituyen. No hay red, modelo de embeddings, caché persistente, umbral de
+ * equivalencia ni filtrado de "ya visto" entre llamadas.
  */
 export function createPropositionCandidateSearch(nodes: readonly GraphNode[]) {
 	const indexed = nodes.map((node) => ({
@@ -112,8 +112,8 @@ export function createPropositionCandidateSearch(nodes: readonly GraphNode[]) {
 				}
 				if (score > bestScore) {
 					bestScore = score;
-					// An alias is useful evidence only when its own wording
-					// matched, rather than just the repeated canonical name.
+					// Un alias solo es evidencia útil cuando ha coincidido su propia
+					// redacción, y no simplemente el nombre canónico repetido.
 					matchedAlias = text.alias && words(text.alias).some((term) => query.has(term)) ? text.alias : undefined;
 				}
 			}
@@ -123,15 +123,15 @@ export function createPropositionCandidateSearch(nodes: readonly GraphNode[]) {
 	};
 }
 
-/** Reject bad ids/offsets before returning any part of a batch. Every call is
- * stateless: repeating a request returns the same page, never a hidden miss. */
+/** Rechaza ids u offsets incorrectos antes de devolver cualquier parte de un lote. Cada
+ * llamada es sin estado: repetir una petición devuelve la misma página, nunca un fallo oculto. */
 export function propositionCandidateBatch(
 	search: ReturnType<typeof createPropositionCandidateSearch>,
 	propositions: readonly CandidateProposition[],
 	requests: readonly CandidateRequest[],
 ): CandidateBatch {
-	// Match mergeFindings: accepted repeated ids refer to their FIRST finding.
-	// Searching the last occurrence could return a verdict for another claim.
+	// Igual que mergeFindings: los ids repetidos aceptados remiten a su PRIMER hallazgo.
+	// Buscar la última aparición podría devolver un veredicto de otra afirmación.
 	const byId = new Map<string, CandidateProposition>();
 	for (const proposition of propositions) {
 		if (!byId.has(proposition.id)) byId.set(proposition.id, proposition);

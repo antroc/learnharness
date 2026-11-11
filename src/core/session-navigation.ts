@@ -1,8 +1,9 @@
 import type { GraphNode } from "./contracts/graph.ts";
 import type { LhViewMessage } from "./view.ts";
 
-/** Message-granular graph links (owner, 2026-10-13). Persisted provenance and
- * native IDs already carry everything needed; only the render seam is new. */
+/** Enlaces del grafo a nivel de mensaje (responsable, 2026-10-13). La procedencia
+ * persistida y los IDs nativos ya llevan todo lo necesario; solo la frontera de
+ * renderizado es nueva. */
 export function messageAnchorId(messageId: string): string {
 	return `message-${messageId}`;
 }
@@ -18,21 +19,22 @@ export function messageIdFromHash(hash: string): string | null {
 	}
 }
 
-/** Old empty anchors do not mask a later real one. Ledger order, not date or
- * lexical order, selects the FIRST recorded message in this source. */
+/** Las anclas vacías antiguas no tapan una real posterior. El orden del registro, no la
+ * fecha ni el orden léxico, selecciona el PRIMER mensaje registrado de esta fuente. */
 export function propositionSessionHref(node: Pick<GraphNode, "provenance">, chatId: string): string {
 	const messageId = node.provenance.find((p) => p.chatId === chatId && p.messageId !== "")?.messageId;
 	return `/chat/${encodeURIComponent(chatId)}${messageId ? `#${encodeURIComponent(messageAnchorId(messageId))}` : ""}`;
 }
 
-/** projectView's text-part identity is <native message ID>-t<text index>.
- * Assistant GROUP IDs cannot identify an individual extraction source. */
+/** La identidad de las partes de texto de projectView es <ID de mensaje nativo>-t<índice de texto>.
+ * Los IDs de GRUPO del asistente no pueden identificar una fuente de extracción concreta. */
 export function textPartMessageId(partId: string | undefined): string | null {
 	return partId?.match(/^(.*)-t\d+$/)?.[1] || null;
 }
 
-/** One DOM anchor per native teacher message, at its first non-empty prose
- * block. Empty text blocks and intervening tools/thinking do not steal it. */
+/** Un ancla del DOM por mensaje nativo del profesor, en su primer bloque de prosa no
+ * vacío. Los bloques de texto vacíos y las herramientas o razonamientos intermedios no
+ * se la quitan. */
 export function firstSourceTextParts(messages: readonly LhViewMessage[]): Map<string, string> {
 	const first = new Map<string, string>();
 	for (const message of messages) {

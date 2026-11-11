@@ -1,5 +1,5 @@
-/** Client-safe accounting folds. Rates and calculation live on the server,
- * using Pi's catalog and calculateCost; no copied pricing table lives here. */
+/** Plegados de contabilidad seguros para el cliente. Las tarifas y el cálculo viven en el
+ * servidor, con el catálogo de Pi y calculateCost; aquí no vive ninguna tabla de precios copiada. */
 import type { CallUsage, ChatRecord, JobRecord, TurnUsage } from "./contracts.ts";
 import { NATIVE_SUBSCRIPTIONS } from "./contracts/subscriptions.ts";
 
@@ -9,7 +9,7 @@ export interface SessionPricing {
 	unpriced: number;
 	subscription?: number;
 	subscriptionProviders?: string[];
-	/** Derived at read time, keyed by the persisted turn's id. Never stored. */
+	/** Derivado en tiempo de lectura, indexado por el id del turno persistido. Nunca se guarda. */
 	turnCosts: Record<string, number | null>;
 }
 
@@ -25,8 +25,8 @@ export function subscriptionLabels(models: readonly (string | undefined)[]): str
 	return [...new Set(models.flatMap((model) => { const label = subscriptionLabel(model); return label ? [label] : []; }))];
 }
 
-/** Absent stays absent. Long-cache precision is unknown if any write-bearing
- * step lacks the split; never silently turn that missing detail into zero. */
+/** Lo ausente sigue ausente. La precisión de la caché larga es desconocida si algún paso con
+ * escrituras carece del desglose; nunca conviertas en silencio ese detalle que falta en cero. */
 export function sumSteps(steps: readonly CallUsage[]): CallUsage {
 	const sumIfAny = (vals: (number | undefined)[]): number | undefined =>
 		vals.every((v) => v === undefined) ? undefined : vals.reduce<number>((a, v) => a + (v ?? 0), 0);
@@ -41,11 +41,12 @@ export function sumSteps(steps: readonly CallUsage[]): CallUsage {
 	};
 }
 
-/** Observed session-wide token reuse, not a prediction of cache warmth.
- * Pi's fresh input excludes both cache buckets. Weight by prompt tokens,
- * never by call percentages; writes count once (the 1h bucket is a subset).
- * Missing cache counts mean no recorded reuse, not proven cache misses.
- * Hide until positive reads exist; incomplete/invalid input cannot yield a rate.
+/** Reutilización de tokens observada en toda la sesión, no una predicción de lo caliente que
+ * está la caché. La entrada nueva de Pi excluye ambos cubos de caché. Pondera por tokens de
+ * prompt, nunca por porcentajes de llamadas; las escrituras cuentan una vez (el cubo de 1 h es
+ * un subconjunto). Que falten recuentos de caché significa que no hay reutilización registrada,
+ * no que haya fallos de caché demostrados. Se oculta hasta que existan lecturas positivas; una
+ * entrada incompleta o no válida no puede dar una tasa.
  */
 export function sessionCacheHitRate(record: Pick<ChatRecord, "turns">): number | null {
 	let promptTokens = 0;
@@ -96,8 +97,8 @@ export function jobCost(job: Pick<JobRecord, "usage">, price: CallPricer): numbe
 	if (usage.calls && usage.calls.length === usage.steps) {
 		return turnCost({ model: usage.model, steps: usage.calls }, price);
 	}
-	// An old one-call job is fully reconstructible from its total. For a
-	// multi-call job, the server resolver decides whether aggregate pricing
-	// is safe for this model (tiered models need the lost per-call sizes).
+	// Una tarea antigua de una sola llamada se reconstruye por completo a partir de su total. Para
+	// una tarea de varias llamadas, el resolvedor del servidor decide si el precio agregado es
+	// seguro para este modelo (los modelos por tramos necesitan los tamaños perdidos de cada llamada).
 	return price(usage, usage.model);
 }

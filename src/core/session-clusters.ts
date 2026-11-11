@@ -1,62 +1,68 @@
 /**
- * BIRTH-SESSION CLUSTERING (wave 7, owner-locked 2026-09-23): embeddings
- * are dead — a proposition's cluster is the SESSION THAT CREATED IT,
- * derived deterministically from provenance. Cluster labels are session
- * names (the chat title or the imported file's path): no model call, no
- * key, no configuration. What the agglomerative pass grouped by MEANING
- * proximity, this groups by WHERE KNOWLEDGE WAS BORN — the owner's call
- * that the session that minted a set of propositions is the honest
- * "region of the world model" they belong to.
+ * AGRUPACIÓN POR SESIÓN DE NACIMIENTO (oleada 7, fijada por el responsable el
+ * 2026-09-23): los embeddings han muerto — el clúster de una proposición es la
+ * SESIÓN QUE LA CREÓ, derivada de forma determinista de su procedencia. Las
+ * etiquetas de los clústeres son nombres de sesión (el título del chat o la ruta
+ * del fichero importado): sin llamada al modelo, sin clave, sin configuración. Lo
+ * que la pasada aglomerativa agrupaba por cercanía de SIGNIFICADO, esto lo agrupa
+ * por DÓNDE NACIÓ EL CONOCIMIENTO — la decisión del responsable de que la sesión
+ * que acuñó un conjunto de proposiciones es la honesta "región del modelo del
+ * mundo" a la que pertenecen.
  *
- * Birth session (owner ruling 2026-09-23): a node's FIRST surviving
- * provenance point's chatId — the create line's first point at read time
- * (getGraph merges lines by id, first line defines, provenance unions in
- * line order — so provenance[0] is the birth point of the surviving
- * lines). This makes deletion self-healing with ZERO special handling:
- * delete-nodes strips a session's create lines and its provenance points;
- * a SURVIVING shared node re-attributes to its earliest remaining
- * contributor (provenance[0] walks forward), and a node left with NO
- * provenance at all is simply unclustered. The partition is derived on
- * every read — there is no persisted partition to invalidate.
+ * Sesión de nacimiento (decisión del responsable, 2026-09-23): el chatId del PRIMER
+ * punto de procedencia superviviente de un nodo — el primer punto de la línea de
+ * creación en tiempo de lectura (getGraph fusiona las líneas por id, la primera
+ * línea define y la procedencia se une en orden de línea — así que provenance[0]
+ * es el punto de nacimiento de las líneas supervivientes). Esto hace que el borrado
+ * se autorrepare con CERO tratamiento especial: delete-nodes quita las líneas de
+ * creación de una sesión y sus puntos de procedencia; un nodo compartido que
+ * SOBREVIVE se reatribuye a su contribuyente restante más antiguo (provenance[0]
+ * avanza), y un nodo que se queda SIN procedencia alguna simplemente queda fuera
+ * de todo clúster. La partición se deriva en cada lectura — no hay ninguna
+ * partición persistida que invalidar.
  *
- * Notes imports are birth-sessions too (owner ruling 2026-09-23): their
- * nodes carry a "src_…" source id instead of a chat id; the caller labels
- * them with the file's path (kind: file in the session views). The old
- * mapping-line fallback for provenance-empty notes nodes is GONE (owner,
- * 2026-09-29): every merge writes provenance points, and the mappings
- * ledger itself died with per-job in-memory resolution — provenance is
- * the one birth record.
+ * Las importaciones de apuntes también son sesiones de nacimiento (decisión del
+ * responsable, 2026-09-23): sus nodos llevan un id de fuente "src_…" en lugar de un
+ * id de chat; el llamador los etiqueta con la ruta del fichero (kind: file en las
+ * vistas de sesión). La antigua alternativa de las líneas de correspondencia para
+ * nodos de apuntes sin procedencia YA NO EXISTE (responsable, 2026-09-29): toda
+ * fusión escribe puntos de procedencia, y el propio registro de correspondencias
+ * murió con la resolución en memoria por tarea — la procedencia es el único
+ * registro de nacimiento.
  *
- * Browser-safe pure logic (no node builtins, no fs): same contract style
- * as the rest of the core graph derivation. Not re-exported through the
- * core barrel — the shell reads clusters from the snapshot; only the
- * server-side derivations (snapshot, settle) and tests import this.
+ * Lógica pura segura para el navegador (sin módulos integrados de node, sin fs):
+ * el mismo estilo de contrato que el resto de la derivación del grafo del núcleo.
+ * No se reexporta desde el barril del núcleo — el shell lee los clústeres de la
+ * instantánea; solo las derivaciones del servidor (instantánea, asentamiento) y
+ * las pruebas lo importan.
  */
 import type { GraphChain, GraphNode } from "./contracts.ts";
 
-/** One birth-session cluster: the session id + the SORTED member node
- *  ids born in it. The shape is deliberately the { members } contract
- *  the layout consumer takes; `id` rides along for consumers that need
- *  the session identity (the snapshot's cluster id + label join). */
+/** Un clúster de sesión de nacimiento: el id de la sesión + los ids ORDENADOS de los
+ * nodos miembro nacidos en ella. La forma es a propósito el contrato { members } que
+ * recibe el consumidor de la disposición; `id` va incluido para los consumidores que
+ * necesitan la identidad de la sesión (la unión de id + etiqueta de clúster de la
+ * instantánea). */
 export interface BirthSessionCluster {
-	/** The birth session's id — a chatId or a notes source id ("src_…"). */
+	/** El id de la sesión de nacimiento — un chatId o un id de fuente de apuntes ("src_…"). */
 	id: string;
-	/** Node ids born in this session, sorted. */
+	/** Ids de los nodos nacidos en esta sesión, ordenados. */
 	members: string[];
 }
 
-/** A node's birth session: its first surviving provenance point's chatId.
- *  null when the node carries no provenance at all (legacy data). */
+/** La sesión de nacimiento de un nodo: el chatId de su primer punto de procedencia
+ * superviviente. null si el nodo no lleva procedencia alguna (datos antiguos). */
 export function birthSessionOf(node: Pick<GraphNode, "provenance">): string | null {
 	return node.provenance[0]?.chatId ?? null;
 }
 
 /**
- * The birth-session partition over the given node LINES: dedupes by id
- * (first line defines — the getGraph rule), groups by birth session, and
- * returns the groups size-desc with members sorted (deterministic output:
- * ties break by session id ascending). A node with no provenance is left
- * unclustered — it belongs to no session the graph can name.
+ * La partición por sesión de nacimiento sobre las LÍNEAS de nodo dadas: deduplica
+ * por id (la primera línea define — la regla de getGraph), agrupa por sesión de
+ * nacimiento y devuelve los grupos por tamaño descendente con los miembros ordenados
+ * (salida determinista: los empates se deshacen por id de sesión ascendente). Un nodo
+ * sin procedencia queda fuera de todo clúster — no pertenece a ninguna sesión que el
+ * grafo pueda nombrar.
  */
 export function birthSessionPartition(nodes: readonly GraphNode[]): BirthSessionCluster[] {
 	const members = new Map<string, string[]>();
@@ -75,13 +81,12 @@ export function birthSessionPartition(nodes: readonly GraphNode[]): BirthSession
 		.sort((a, b) => b.members.length - a.members.length || (a.id < b.id ? -1 : 1));
 }
 
-/** The cluster key a derived implication node takes: MAJORITY among its
- *  PREMISES' birth sessions (owner, 2026-09-30 — premises, NOT the
- *  conclusion), ties to the chain's OWN birth (its provenance's first
- *  point, the asserting session — deterministic, and it coincides with
- *  the unanimous common case anyway). Imp nodes are always re-derived,
- *  never birthed, so their cluster must be a function of the derivation
- *  — this is that function. */
+/** La clave de clúster que toma un nodo de implicación derivado: la MAYORÍA entre las
+ * sesiones de nacimiento de sus PREMISAS (responsable, 2026-09-30 — las premisas, NO la
+ * conclusión), y en caso de empate, el nacimiento PROPIO de la cadena (el primer punto
+ * de su procedencia, la sesión que la afirma — determinista, y coincide de todos modos
+ * con el caso común unánime). Los nodos imp siempre se vuelven a derivar, nunca nacen,
+ * así que su clúster debe ser función de la derivación — y esta es esa función. */
 export function impClusterKey(
 	chain: Pick<GraphChain, "premises" | "provenance">,
 	birthOf: (nodeId: string) => string | null,
@@ -98,19 +103,19 @@ export function impClusterKey(
 	const winners: string[] = [];
 	for (const [key, n] of counts) if (n === max) winners.push(key);
 	if (winners.length === 1) return winners[0]!;
-	// Tie → the chain's own birth; if even that is missing, the
-	// alphabetically-first winner (last-resort determinism).
+	// Empate → el nacimiento propio de la cadena; si incluso eso falta, el
+	// ganador primero por orden alfabético (determinismo de último recurso).
 	return own ?? winners.sort()[0]!;
 }
 
-/** Attach derived imp nodes to communities IN PLACE (the shared seam for
- *  both consumers of cluster membership — the sim's centroid pull and
- *  the canvas's region rasterization both read members lists that went
- *  through here). Only MULTI-premise fully-live chains mint imp nodes
- *  (single-premise chains collapsed to direct arrows, rendering arc
- *  2026-09-30); dangling chains mint nothing. A chain whose home
- *  community is absent from the list stays unclustered — like its
- *  premises when the hull filter drops them. */
+/** Asocia los nodos imp derivados a las comunidades EN EL SITIO (la frontera
+ * compartida por ambos consumidores de la pertenencia a clústeres — la atracción al
+ * centroide de la simulación y la rasterización de regiones del lienzo leen listas
+ * de miembros que han pasado por aquí). Solo las cadenas de VARIAS premisas
+ * totalmente vivas acuñan nodos imp (las cadenas de una sola premisa se reducen a
+ * flechas directas, arco de renderizado 2026-09-30); las cadenas colgantes no acuñan
+ * nada. Una cadena cuya comunidad de origen falta en la lista queda fuera de todo
+ * clúster — igual que sus premisas cuando el filtro de envolventes las descarta. */
 export function attachImpToCommunities(
 	communities: Array<{ id: string; members: string[] }>,
 	propositions: ReadonlyArray<Pick<GraphNode, "id" | "provenance">>,

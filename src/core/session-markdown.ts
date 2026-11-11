@@ -1,23 +1,24 @@
 /**
- * Session → markdown — the ONE formatting engine (owner ruling 2026-09-27).
+ * Sesión → markdown — el ÚNICO motor de formato (decisión del responsable, 2026-09-27).
  *
- * The extractor's view of a teaching session and the future user-facing
- * session export share this engine: a session is rendered as clean,
- * readable markdown — speaker headers, quiz/check-in blocks, tool notes —
- * with optional message-id anchors. Since the submit-schema slim
- * (2026-09-28) propositions no longer report message ids — the extractor
- * renders anchorless and provenance is chat-level — so the anchors today
- * serve only the future user-facing export; `anchors: false` mints the
- * same document without them.
+ * La vista del extractor de una sesión de enseñanza y la futura exportación de
+ * sesiones para el usuario comparten este motor: una sesión se renderiza como
+ * markdown limpio y legible — cabeceras de interlocutor, bloques de cuestionario y
+ * de comprobación, notas de herramientas — con anclas opcionales por id de mensaje.
+ * Desde el adelgazamiento del esquema de envío (2026-09-28) las proposiciones ya no
+ * informan de ids de mensaje — el extractor renderiza sin anclas y la procedencia
+ * es a nivel de chat —, así que hoy las anclas solo sirven a la futura exportación
+ * para el usuario; `anchors: false` acuña el mismo documento sin ellas.
  *
- * Pure core: native messages in (LhMessage), string out. Content parity
- * with the coverage line builder (core/coverage.ts messageViewLines) is
- * deliberate — every message that produces view lines produces a markdown
- * block, in the same order — but the formats are SEPARATE by design
- * (2026-09-27): coverage fingerprints hash the line format and stay stable
- * (no mass re-extraction when presentation changes); markdown is
- * presentation. A failed tool call renders nothing (retry context, not
- * learning evidence); custom markers are invisible, same as the view.
+ * Núcleo puro: entran mensajes nativos (LhMessage), sale una cadena. La paridad de
+ * contenido con el constructor de líneas de cobertura (messageViewLines de
+ * core/coverage.ts) es deliberada — todo mensaje que produce líneas de vista
+ * produce un bloque markdown, en el mismo orden —, pero los formatos están
+ * SEPARADOS por diseño (2026-09-27): las huellas de cobertura hacen hash del formato
+ * de línea y se mantienen estables (sin reextracción masiva cuando cambia la
+ * presentación); el markdown es presentación. Una llamada a herramienta fallida no
+ * renderiza nada (contexto de reintento, no evidencia de aprendizaje); los
+ * marcadores personalizados son invisibles, igual que en la vista.
  */
 
 import { citationsToReadableText } from "./citations.ts";
@@ -35,15 +36,16 @@ import { readPluginQuestionMessageAnnotation, readPluginQuestionAnswer, readPlug
 import { readPluginProblemSnapshot, readPluginProblemSubmission, pluginProblemById } from "./plugin-problems.ts";
 import type { ToolResultMessage } from "@earendil-works/pi-ai";
 
-/** The practice join context (owner-approved, 2026-10-06 export round):
- *  practice tool RESULTS are acks — the statement, outcome, and verdict
- *  all live in the assistant's call arguments, and the model solution
- *  commits at POSE time. The markdown blocks join them the same way the
- *  view seam folds cards (clean-only: a refused pose's result is errored
- *  and renders nothing before this join is ever reached). */
+/** El contexto de unión de la práctica (aprobado por el responsable, ronda de
+ * exportación del 2026-10-06): los RESULTADOS de las herramientas de práctica son
+ * acuses — el enunciado, el resultado y el veredicto viven todos en los argumentos
+ * de la llamada del asistente, y la solución del modelo se fija en el momento del
+ * PLANTEAMIENTO. Los bloques markdown los unen igual que la frontera de la vista
+ * pliega las tarjetas (solo limpios: el resultado de un planteamiento rechazado es
+ * erróneo y no renderiza nada antes de llegar siquiera a esta unión). */
 export interface MarkdownContext {
 	messages: ReadonlyArray<LhMessage>;
-	/** toolCallId → the call part's name + arguments. */
+	/** toolCallId → el nombre + los argumentos de la parte de llamada. */
 	calls: Map<string, { name: string; args: Record<string, unknown> | undefined }>;
 	failedOutputCalls?: ReadonlySet<string>;
 }
@@ -67,13 +69,13 @@ function markdownContext(messages: ReadonlyArray<LhMessage>): MarkdownContext {
 	return { messages, calls, failedOutputCalls: failedOutputCallIds(messages) };
 }
 
-/** solvedWithHints → "Solved with hints" — the outcome enum reads as prose. */
+/** solvedWithHints → "Solved with hints" — el enum del resultado se lee como prosa. */
 function outcomeLabel(outcome: string): string {
 	const spaced = outcome.replace(/([a-z])([A-Z])/g, (_, lo: string, hi: string) => `${lo} ${hi.toLowerCase()}`);
 	return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
-/** One tool result's learner-visible outcome, rendered as body lines. */
+/** El resultado visible para el alumno de un resultado de herramienta, renderizado como líneas de cuerpo. */
 function toolResultBody(result: ToolResultMessage, ctx?: MarkdownContext): { heading: string; body: string[] } {
 	const pluginAnswer = readPluginQuestionAnswer(result.details);
 	const cancellation = readPluginQuestionCancellation(result.details);
@@ -116,7 +118,7 @@ function toolResultBody(result: ToolResultMessage, ctx?: MarkdownContext): { hea
 					? "Probe"
 					: result.toolName === "recall"
 						? "Recall"
-						: "Recall check"; // explain — the teach free-recall name
+						: "Recall check"; // explain — el nombre del recuerdo libre de la enseñanza
 		const question = typeof out?.questionText === "string" && out.questionText ? out.questionText : "(no question text)";
 		const body = [`**Q:** ${question}`];
 		if (out?.dismissed === true) body.push("The learner skipped this check.");
@@ -147,8 +149,8 @@ function toolResultBody(result: ToolResultMessage, ctx?: MarkdownContext): { hea
 		if (outcome === "dismissed") return { heading: "Concluded", body: ["The learner skipped this problem."] };
 		const label = outcome !== "" ? `**${outcomeLabel(outcome)}.**` : "**Concluded.**";
 		const body = [verdict !== undefined ? `${label} ${verdict}` : label];
-		// The reveal (owner round, 2026-10-05): the solution committed at
-		// pose time — the newest cleanly-posed problem before this conclude.
+		// La revelación (ronda del responsable, 2026-10-05): la solución fijada al
+		// plantear — el problema planteado limpiamente más reciente antes de esta conclusión.
 		const input = problemInputForConclude(ctx.messages, result.toolCallId);
 		const solution = typeof input?.modelSolution === "string" && input.modelSolution.trim() ? input.modelSolution.trim() : undefined;
 		if (solution !== undefined) body.push(`> **Model solution**\n>\n> ${solution.replace(/\n/g, "\n> ")}`);
@@ -169,14 +171,15 @@ function toolResultBody(result: ToolResultMessage, ctx?: MarkdownContext): { hea
 		return { heading: "Question", body };
 	}
 
-	// Parity with the line builder: other clean tool results are one line.
+	// Paridad con el constructor de líneas: los demás resultados limpios de herramienta son una línea.
 	return { heading: "Tool", body: [`*${result.toolName} result delivered*`] };
 }
 
 /**
- * ONE message as a markdown block — `null` when the message renders
- * nothing (a failed tool call, a bare marker, an empty text part set).
- * `mid` is the provenance anchor shown when `anchors` is on.
+ * UN mensaje como bloque markdown — `null` cuando el mensaje no renderiza
+ * nada (una llamada a herramienta fallida, un marcador suelto, un conjunto vacío
+ * de partes de texto). `mid` es el ancla de procedencia que se muestra cuando
+ * `anchors` está activado.
  */
 export function messageMarkdown(
 	message: LhMessage,
@@ -208,20 +211,20 @@ export function messageMarkdown(
 		}
 	} else if (role === "toolResult") {
 		const result = message as ToolResultMessage;
-		if (result.isError || result.toolName === SEND_TO_USER_TOOL) return null; // retry context or output ack, not learning evidence
+		if (result.isError || result.toolName === SEND_TO_USER_TOOL) return null; // contexto de reintento o acuse de salida, no evidencia de aprendizaje
 		const { heading, body } = toolResultBody(result, ctx);
 		parts.push(`### ${heading}${anchor}\n\n${citationsToReadableText(body.join("\n\n"))}`);
 	}
 
-	// custom markers are invisible, same as the extraction view.
+	// los marcadores personalizados son invisibles, igual que en la vista de extracción.
 	return parts.length > 0 ? parts.join("\n\n") : null;
 }
 
 /**
- * A whole session (or one extraction BATCH — same engine, subset of
- * messages) as one markdown document. Blocks render in message order;
- * messages that render nothing are skipped silently. The optional title
- * mints the document header (`# <title>`).
+ * Una sesión entera (o un LOTE de extracción — el mismo motor, un subconjunto de
+ * mensajes) como un documento markdown. Los bloques se renderizan en orden de
+ * mensaje; los mensajes que no renderizan nada se omiten en silencio. El título
+ * opcional acuña la cabecera del documento (`# <title>`).
  */
 export function sessionMarkdown(
 	messages: ReadonlyArray<LhMessage>,
