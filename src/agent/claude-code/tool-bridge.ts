@@ -123,8 +123,8 @@ class ToolCallQueue {
 	}
 }
 
-// Low-level Server on purpose: McpServer.registerTool only takes zod schemas, and pi tools carry
-// JSON Schema that must reach the CLI unchanged.
+// Server de bajo nivel a propósito: McpServer.registerTool solo acepta esquemas zod, y las
+// herramientas de pi llevan JSON Schema que debe llegar sin cambios a la CLI.
 function createMcpServer(tools: Tool[], queue: ToolCallQueue, callbacks?: BridgeCallbacks): Server {
 	const server = new Server({ name: BRIDGE_SERVER_NAME, version: "1.0.0" }, { capabilities: { tools: {} } });
 

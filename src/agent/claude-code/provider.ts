@@ -7,11 +7,11 @@ const SHARED_MODEL_FIELDS = {
 	provider: CLAUDE_CODE_PROVIDER,
 	baseUrl: "",
 	input: ["text", "image"],
-	// Pi-required placeholders, not prices: the CLI's own auth/routing
-	// determines charges. Server pricing and the client catalog report unpriced.
+	// Marcadores de posición que exige Pi, no precios: la autenticación y el enrutamiento propios de la CLI
+	// determinan los cargos. Los precios del servidor y el catálogo del cliente lo indican como sin precio.
 	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 	reasoning: true,
-	// The CLI has no thinking-off switch; effort low is the floor.
+	// La CLI no tiene interruptor para desactivar el razonamiento; el esfuerzo low es el mínimo.
 	thinkingLevelMap: { off: null, minimal: null, low: "low", medium: "medium", high: "high", xhigh: "xhigh", max: "max" },
 	contextWindow: 1_000_000,
 	maxTokens: 128_000,

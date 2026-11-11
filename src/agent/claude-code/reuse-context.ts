@@ -1,7 +1,7 @@
 import type { Api, Message, Model, TranscriptContext } from "@earendil-works/pi-ai";
 import { getCurrentSystemPrompt, getCurrentTools } from "@earendil-works/pi-ai/utils/transcript";
 
-/** Compare model-visible history, not app IDs, timestamps, usage, or Pi's added thinkingLevel. */
+/** Compara el historial visible para el modelo, no los ID de la app, las marcas temporales, el uso ni el thinkingLevel que añade Pi. */
 export function conversationForReuse(messages: Message[]): unknown[] {
 	return messages.flatMap((message): unknown[] => {
 		switch (message.role) {
@@ -22,6 +22,6 @@ export function conversationForReuse(messages: Message[]): unknown[] {
 export function configurationForReuse(model: Model<Api>, context: TranscriptContext, effort: string): unknown {
 	const systemPrompt = getCurrentSystemPrompt(context.messages);
 	const tools = getCurrentTools(context.messages);
-	// The wire is JSON: TypeBox's schema symbols are not CLI configuration.
+	// El cable es JSON: los símbolos de esquema de TypeBox no son configuración de la CLI.
 	return JSON.parse(JSON.stringify({ model, effort, systemPrompt, tools })) as unknown;
 }

@@ -2,10 +2,10 @@ import { randomUUID } from "node:crypto";
 
 const INITIALIZE_TIMEOUT_MS = 5_000;
 
-/** A best-effort, local-only CLI control query. Wire contract matches the
- * official SDK0.3.259 source; this does not import or execute the SDK.
- * Summary deliberately avoids the default full mode's token-count requests.
- * CLI maxTokens is an effective/auto-compaction budget, not a nominal model max. */
+/** Una consulta de control de la CLI, local y de mejor esfuerzo. El contrato del cable coincide con el
+ * código del SDK oficial 0.3.259; esto no importa ni ejecuta el SDK.
+ * El resumen evita a propósito las peticiones de recuento de tokens del modo completo por defecto.
+ * El maxTokens de la CLI es un presupuesto efectivo o de compactación automática, no un máximo nominal del modelo. */
 export class ContextWindowProbe {
 	private readonly initializeId = randomUUID();
 	private summaryId: string | undefined;
@@ -26,8 +26,8 @@ export class ContextWindowProbe {
 		this.request(this.initializeId, { subtype: "initialize" });
 	}
 
-	/** Consume control replies separately from model/tool output, including
-	 * late/foreign replies while a native question tool is already waiting. */
+	/** Consume las respuestas de control aparte de la salida del modelo y las herramientas, incluidas
+	 * las respuestas tardías o ajenas mientras una herramienta de pregunta nativa ya está esperando. */
 	handle(value: unknown): boolean {
 		if (!value || typeof value !== "object" || !("type" in value) || value.type !== "control_response") return false;
 		if (this.closed || !("response" in value) || !value.response || typeof value.response !== "object") return true;
@@ -43,9 +43,9 @@ export class ContextWindowProbe {
 		return true;
 	}
 
-	/** Retry when the CLI has begun a model response: pre-first-turn metadata
-	 * is not guaranteed by the protocol. Refresh also follows later responses
-	 * within the same held process, without opening a second process. */
+	/** Reintenta cuando la CLI ha empezado una respuesta del modelo: el protocolo no garantiza
+	 * los metadatos previos al primer turno. La actualización también sigue a respuestas posteriores
+	 * dentro del mismo proceso retenido, sin abrir un segundo proceso. */
 	refresh(): void {
 		if (!this.initialized || this.closed) return;
 		this.summaryId = randomUUID();
@@ -60,8 +60,8 @@ export class ContextWindowProbe {
 		clearTimeout(this.timer);
 		this.initialized = query;
 		if (query) this.refresh();
-		// Never wait for metadata to run the actual user request. No support,
-		// no response, or malformed metadata simply leaves the window unknown.
+		// Nunca esperes a los metadatos para ejecutar la petición real del usuario. Si no hay soporte,
+		// no hay respuesta o los metadatos están mal formados, la ventana simplemente queda desconocida.
 		this.sendPrompt();
 	}
 

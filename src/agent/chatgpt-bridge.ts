@@ -15,9 +15,9 @@ interface BridgeState {
 const key = Symbol.for("lh.chatgpt.bridge");
 const unavailable = (): ChatGPTStatus => ({ available: false, pending: false, allowBackgroundUse: true, activeId: null, accounts: [], error: null });
 const validStamp = (s: Stamp) => s && [s.epoch, s.authorityRevision, s.revision].every((v) => Number.isSafeInteger(v) && v >= 0);
-/** Next dev also uses parent/child IPC. IPC alone is not our desktop
- * transport: require the same launch markers set by Electron startServer.
- * These identify the transport, not a substitute for admission/lease checks. */
+/** Next dev también usa IPC padre/hijo. El IPC por sí solo no es nuestro transporte de
+ * escritorio: exige las mismas marcas de arranque que pone startServer de Electron.
+ * Identifican el transporte; no sustituyen a las comprobaciones de admisión o concesión. */
 function desktopIPCConnected(): boolean {
  return process.env.LH_DESKTOP_SERVER === "1" && (process.env.LH_DESKTOP_API_SECRET?.length ?? 0) >= 64 && typeof process.send === "function" && process.connected === true;
 }
@@ -65,7 +65,7 @@ function acceptStatus(state: BridgeState, value: StatusValue) {
  if (value.epoch !== state.stamp.epoch || value.authorityRevision !== state.stamp.authorityRevision || value.status.activeId !== state.status.activeId) clearCatalog(state);
  state.status = value.status; state.stamp = { epoch: value.epoch, authorityRevision: value.authorityRevision, revision: value.revision };
 }
-/** Runtime-only: inherited desktop IPC or direct web owner. Never HTTP leases. */
+/** Solo en runtime: IPC de escritorio heredado o propietario web directo. Nunca concesiones HTTP. */
 export function chatGPTRequest<T>(op: "status" | "models" | "lease", fields: Record<string, unknown> = {}): Promise<T> {
  const state = bridge();
  if (webSubscriptionsEnabled()) return webSubscriptionRequest<T>("lh:chatgpt", op, fields);
@@ -100,7 +100,7 @@ export async function chatGPTLease(scope: AdmissionScope, background: boolean): 
  if (!validStamp(value) || !chatGPTScopeCurrent(scope) || value.epoch !== scope.epoch || value.authorityRevision !== scope.authorityRevision || value.accountId !== scope.accountId || typeof value.accessToken !== "string" || !value.accessToken || value.accessToken.startsWith("sk-")) throw new Error("ChatGPT lease is stale");
  return value;
 }
-/** Safe status confirmation can establish consent-only denial, never parse error text. */
+/** Una confirmación de estado segura puede establecer una denegación solo por consentimiento; nunca analiza el texto del error. */
 export async function chatGPTDenial(scope: AdmissionScope | undefined, controller: AbortController, callerAborted: boolean, background: boolean): Promise<NoDispatchKind> {
  if (callerAborted || controller.signal.reason === "all") return "all";
  if (!scope || !chatGPTScopeCurrent(scope)) return "other";
@@ -111,7 +111,7 @@ export async function chatGPTDenial(scope: AdmissionScope | undefined, controlle
  if (controller.signal.reason === "all" || !chatGPTScopeCurrent(scope)) return "all";
  return !chatGPTBackgroundAllowed() ? "background" : "other";
 }
-/** Preserve account order; unknown capabilities/windows are never fabricated. */
+/** Conserva el orden de las cuentas; nunca se inventan capacidades ni ventanas desconocidas. */
 export async function refreshChatGPTModels(supported: Model<"openai-responses">[]): Promise<void> {
  const state = bridge();
  if (!runtimeConnected()) { clearCatalog(state); return; }

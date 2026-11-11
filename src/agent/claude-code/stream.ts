@@ -40,11 +40,11 @@ type RunClaudeOptions = { cwd: string; env: NodeJS.ProcessEnv; signal?: AbortSig
 type ClaudeChild = ChildProcessWithoutNullStreams | null;
 export type RunClaude = (args: string[], options: RunClaudeOptions) => ClaudeChild | Promise<ClaudeChild>;
 
-// A held MCP call lasts until pi calls back with the tool result, which for a question tool is
-// whenever the learner answers; this must outlast the live-process idle timeout so the CLI never
-// times out first.
-// A held call sends no progress, so the CLI's separate idle timeout (300 s by default) needs
-// the same bound, or it aborts an unanswered question first.
+// Una llamada MCP retenida dura hasta que pi devuelve el resultado de la herramienta, lo que en
+// una herramienta de pregunta es cuando el alumno responda; esto debe durar más que el tiempo de
+// inactividad del proceso vivo para que la CLI nunca agote su tiempo antes.
+// Una llamada retenida no envía progreso, así que el tiempo de inactividad propio de la CLI
+// (300 s por defecto) necesita el mismo límite, o abortará antes una pregunta sin responder.
 const MCP_TOOL_TIMEOUT_MS = 30 * 60_000;
 
 const PRIVATE_FILE_MODE = 0o600;
@@ -105,8 +105,8 @@ export function toClaudeArgs(input: ClaudeArgsInput): string[] {
 		"--strict-mcp-config",
 		"--mcp-config",
 		input.mcpConfigFile,
-		// Keep native user auth/routing, but override its instruction channels.
-		// Settings env can replace inherited env, so pin the memory switch here too.
+		// Mantén la autenticación y el enrutamiento nativos del usuario, pero sustituye sus canales de instrucciones.
+		// El env de los ajustes puede sustituir al env heredado, así que fija aquí también el interruptor de memoria.
 		"--setting-sources",
 		"user",
 		"--settings",
@@ -149,7 +149,7 @@ class ClaudeTurn {
 	private readonly partialJson = new Map<number, string>();
 	private readonly toolBlocks = new Map<number, ToolCall>();
 	private readonly intents: ToolCall[] = [];
-	/** The current message called a harness tool by its bare name; the CLI rejects that call itself. */
+	/** El mensaje actual llamó a una herramienta del arnés por su nombre sin prefijo; la propia CLI rechaza esa llamada. */
 	skippedBareCall = false;
 	started = false;
 	finished = false;
@@ -223,8 +223,8 @@ class ClaudeTurn {
 				return;
 
 			case "messageStop":
-				// Tool intent is not execution admission. The process publishes only
-				// calls that actually reach the authenticated MCP bridge.
+				// La intención de usar una herramienta no es admisión para ejecutarla. El proceso solo publica
+				// las llamadas que llegan de verdad al puente MCP autenticado.
 				if (this.output.stopReason !== "toolUse") this.finish();
 				return;
 
@@ -294,8 +294,8 @@ class ClaudeTurn {
 
 			case "toolUse":
 				if (!block.name.startsWith(`mcp__${BRIDGE_SERVER_NAME}__`)) {
-					// Models sometimes call a harness tool by its bare name. With --tools "" the CLI has no such
-					// tool, answers it with an error result and the model retries under the MCP name.
+					// A veces los modelos llaman a una herramienta del arnés por su nombre sin prefijo. Con --tools "" la CLI no tiene esa
+					// herramienta, la responde con un resultado de error y el modelo lo reintenta con el nombre MCP.
 					if (this.harnessToolNames.has(block.name)) {
 						this.skippedBareCall = true;
 						return;
@@ -495,9 +495,9 @@ class ClaudeProcess implements LiveProcess {
 	}
 
 	fail(message: string): void {
-		// A parallel request can fail after the admitted slice was handed to
-		// Pi. Retain that failure for its continuation instead of silently
-		// replaying and hiding the compatibility error.
+		// Una petición en paralelo puede fallar después de que la porción admitida se entregara a
+		// Pi. Conserva ese fallo para su continuación en lugar de repetirla en silencio y ocultar
+		// el error de compatibilidad.
 		if (this.sessionId && this.turn.finished && this.toolCallIds.length > 0) this.pendingError = message;
 		this.turn.fail(message, "error");
 		this.kill();
@@ -515,12 +515,12 @@ class ClaudeProcess implements LiveProcess {
 
 	cancelCall(call: PendingToolCall): void {
 		this.cancelledIds.add(call.id);
-		// Already admitted work belongs to Pi and cannot be undone. A queued
-		// request, however, must never become executable after cancellation.
+		// El trabajo ya admitido pertenece a Pi y no se puede deshacer. Una petición en cola, en
+		// cambio, nunca debe volverse ejecutable después de cancelarla.
 		this.sourceCalls = this.sourceCalls.filter((intent) => intent.id !== call.id);
 	}
 
-	/** Only authenticated MCP requests, never stdout intent alone, admit side effects. */
+	/** Solo las peticiones MCP autenticadas, nunca la mera intención en stdout, admiten efectos secundarios. */
 	flushAdmissions(): void {
 		if (this.stopping || this.turn.finished || !this.sourceComplete) return;
 		const pending = this.bridge.getPendingToolCalls();
@@ -540,7 +540,7 @@ class ClaudeProcess implements LiveProcess {
 		this.turn.admit(calls);
 		this.conversation.push(...structuredClone(conversationForReuse([this.turn.getMessage()])));
 		if (this.sessionId) addLiveProcess(this);
-		else this.kill(); // No trusted scope: return the batch, then use fresh replay.
+		else this.kill(); // Sin ámbito de confianza: devuelve el lote y después usa una reproducción nueva.
 	}
 
 	private readonly abort = () => {
@@ -566,8 +566,8 @@ class ClaudeProcess implements LiveProcess {
 			}
 			return;
 		}
-		// Moving on before held calls were answered means the CLI did not
-		// honor this tool wait. Never execute further stdout-only intentions.
+		// Pasar a otra cosa antes de que se respondieran las llamadas retenidas significa que la CLI
+		// no respetó esta espera de herramienta. Nunca ejecutes más intenciones que solo estén en stdout.
 		if (this.turn.finished) {
 			this.fail("claude CLI moved on while harness tool calls were waiting for results");
 			return;
@@ -581,7 +581,7 @@ class ClaudeProcess implements LiveProcess {
 		if (this.turn.finished) { this.kill(); return; }
 		if (event.type === "messageStop" && this.turn.waitingForAdmission) {
 			const intents = this.turn.getIntents();
-			// Only rejected bare calls: keep the turn open for the model's retry in its next message.
+			// Solo llamadas sin prefijo rechazadas: mantén el turno abierto para que el modelo lo reintente en su siguiente mensaje.
 			if (intents.length === 0 && this.turn.skippedBareCall) return;
 			if (intents.length === 0 || new Set(intents.map((call) => call.id)).size !== intents.length) {
 				this.fail("claude CLI emitted an invalid tool batch");
@@ -628,10 +628,10 @@ function continueLiveProcess(turn: ClaudeTurn, owner: symbol, sessionId: string 
 }
 
 function toClaudeEnv(): NodeJS.ProcessEnv {
-	// Preserve native CLI auth/routing, including launch-environment credentials.
-	// Claude Code chooses the account and billing method, not LearnHarness.
-	// Loading user settings also loads ~/.claude/CLAUDE.md and memory files;
-	// the tutor's system prompt must not inherit them.
+	// Conserva la autenticación y el enrutamiento nativos de la CLI, incluidas las credenciales
+	// del entorno de arranque. Claude Code elige la cuenta y el método de facturación, no
+	// LearnHarness. Cargar los ajustes del usuario también carga ~/.claude/CLAUDE.md y los
+	// ficheros de memoria; el prompt de sistema del tutor no debe heredarlos.
 	return {
 		...externalCliEnv(),
 		MCP_TOOL_TIMEOUT: String(MCP_TOOL_TIMEOUT_MS),
@@ -703,7 +703,7 @@ export function createClaudeCodeStreamFunction(runClaude: RunClaude): StreamFunc
 		const turn = new ClaudeTurn(stream, model, new Set(getCurrentTools(context.messages).map((tool) => tool.name)));
 
 		const env = toClaudeEnv();
-		// An existing child must not retain stale authentication/routing after env changes.
+		// Un proceso hijo existente no debe conservar autenticación o enrutamiento obsoletos tras cambiar el env.
 		const configuration = { request: configurationForReuse(model, context, toEffort(options?.reasoning)), env };
 		if (continueLiveProcess(turn, owner, options?.sessionId, configuration, context.messages, options?.signal)) return stream;
 

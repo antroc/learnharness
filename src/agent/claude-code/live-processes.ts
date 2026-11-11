@@ -1,14 +1,14 @@
 export type LiveProcess = { readonly owner: symbol; readonly sessionId: string | undefined; toolCallIds: string[]; kill(): void };
 
-// Tools usually call back within seconds, but a question tool holds its call until the learner
-// answers. Past this, the process is killed and the answer starts a fresh one with a full replay.
-// It stays under MCP_TOOL_TIMEOUT so the process is killed before the CLI gives up on its own.
+// Las herramientas suelen volver a llamar en segundos, pero una herramienta de pregunta retiene su llamada hasta que el alumno
+// responde. Pasado esto, se mata el proceso y la respuesta arranca uno nuevo con una reproducción completa.
+// Se queda por debajo de MCP_TOOL_TIMEOUT para que el proceso muera antes de que la CLI se rinda por su cuenta.
 export const LIVE_PROCESS_IDLE_TIMEOUT_MS = 10 * 60_000;
 
-/** Test seam (runner.ts's pdfModelOverride idiom). */
+/** Juntura para pruebas (el patrón pdfModelOverride de runner.ts). */
 export const liveProcessIdleTimeoutMs = { current: LIVE_PROCESS_IDLE_TIMEOUT_MS };
 
-// Each live process mapped to the timer that kills it if pi never calls back.
+// Cada proceso vivo, asociado al temporizador que lo mata si pi nunca vuelve a llamar.
 const liveProcesses = new Map<LiveProcess, NodeJS.Timeout>();
 
 export function addLiveProcess(process: LiveProcess): void {

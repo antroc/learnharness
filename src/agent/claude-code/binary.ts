@@ -22,8 +22,8 @@ function getWindowsSearchSpec(env: BinaryLookup["env"], homeDir: string): Search
 
 	return {
 		paths,
-		// Direct spawn deliberately uses no shell. A .cmd-only npm install
-		// is not runnable and must not count as an available provider.
+		// El lanzamiento directo no usa shell a propósito. Una instalación de npm solo con .cmd
+		// no es ejecutable y no debe contar como proveedor disponible.
 		names: ["claude.exe"],
 		knownDirs: [
 			paths.join(homeDir, ".local", "bin"),
@@ -61,8 +61,8 @@ export function resolveClaudeBinary({ env, platform, homeDir, cwd = process.cwd(
 
 	for (const name of names) {
 		for (const dir of [...pathDirs, ...knownDirs]) {
-			// Discovery is relative to the server cwd; probes/model work use
-			// different directories and must receive the same absolute identity.
+			// La detección es relativa al cwd del servidor; los sondeos y el trabajo con el modelo usan
+			// directorios distintos y deben recibir la misma identidad absoluta.
 			const candidate = paths.resolve(cwd, dir, name);
 			if (isExecutable(candidate)) return candidate;
 		}

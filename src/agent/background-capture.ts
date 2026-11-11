@@ -1,6 +1,6 @@
-/** Opt-in behavioral captures: one last request/reply pair per background worker run.
- * LH_BACKGROUND_CAPTURE=auditor,extractor (or all). Private diagnostic content;
- * never a credential/header recorder, retention policy, or worker recovery store.
+/** Capturas de comportamiento opcionales: un último par petición/respuesta por cada ejecución de worker en segundo plano.
+ * LH_BACKGROUND_CAPTURE=auditor,extractor (o all). Contenido de diagnóstico privado;
+ * nunca un registrador de credenciales o cabeceras, una política de retención ni un almacén de recuperación de workers.
  */
 import * as fs from "node:fs";
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -37,7 +37,7 @@ interface CaptureRecord {
 	error: unknown;
 }
 
-/** Test seam; production always follows the configured app data root. */
+/** Juntura para pruebas; en producción siempre se sigue la raíz de datos configurada de la app. */
 export const backgroundCaptureDir = { current: path.join(/* turbopackIgnore: true */ PATHS.debug, "background-captures") };
 
 export function backgroundCaptureEnabled(role: ModelRole): boolean {
@@ -45,8 +45,8 @@ export function backgroundCaptureEnabled(role: ModelRole): boolean {
 	return selected?.includes("all") === true || selected?.includes(role) === true;
 }
 
-// Headers and credential fields are not part of behavioral inspection, including
-// when a provider nests HTTP options inside its payload. Never read auth/env keys.
+// Las cabeceras y los campos de credenciales no forman parte de la inspección del comportamiento,
+// tampoco cuando un proveedor anida opciones HTTP dentro de su carga. Nunca leas claves de auth/env.
 const PRIVATE_FIELD = /^(?:headers|authorization|proxyauthorization|apikey|accesstoken|refreshtoken|clientsecret|credentials|password|token)$/i;
 function snapshot(value: unknown): unknown {
 	try {
@@ -83,7 +83,7 @@ export function createBackgroundCapture(input: { role: ModelRole; runId: string;
 			fs.writeFileSync(temporary, `${JSON.stringify(record, null, 2)}\n`, { mode: 0o600 });
 			fs.renameSync(temporary, file);
 		} catch {
-			try { fs.unlinkSync(temporary); } catch { /* Nothing to remove. */ }
+			try { fs.unlinkSync(temporary); } catch { /* Nada que eliminar. */ }
 			if (!warned) {
 				warned = true;
 				console.warn("Background capture could not be saved; the worker will continue normally.");
@@ -96,7 +96,7 @@ export function createBackgroundCapture(input: { role: ModelRole; runId: string;
 			const turn = record.timings.length + 1;
 			record.timings.push({ turn, startedAt: Date.now() });
 			record.request = { turn, model: modelIdentity(model), thinkingLevel: thinkingLevel ?? "off", format: "context", payload: snapshot(context) };
-			// Never pair a new failed request with the previous turn's successful reply.
+			// Nunca emparejes una petición fallida nueva con la respuesta correcta del turno anterior.
 			record.response = null;
 			record.toolResults = [];
 			record.error = null;
@@ -139,21 +139,21 @@ export function createBackgroundCapture(input: { role: ModelRole; runId: string;
 }
 
 export type BackgroundCapture = NonNullable<ReturnType<typeof createBackgroundCapture>>;
-// Next dev can instantiate callers/adapters in different route modules. Keep
-// their association process-wide, like the app's extraction/event registries.
+// Next dev puede instanciar llamadores/adaptadores en módulos de ruta distintos. Mantén
+// su asociación a nivel de proceso, como los registros de extracción y eventos de la app.
 const captureGlobal = globalThis as typeof globalThis & { __lhBackgroundCaptureContext?: AsyncLocalStorage<BackgroundCapture> };
 const activeCapture = captureGlobal.__lhBackgroundCaptureContext ??= new AsyncLocalStorage<BackgroundCapture>();
 const preparedPayloadProviders = new Set(["chatgpt", ...NATIVE_SUBSCRIPTIONS.map((provider) => provider.logicalId)]);
 
-/** Observe an app adapter's FINAL prepared body, after caller replacement and
- * local restrictions. Async-local association keeps concurrent workers isolated
- * without changing provider options or exposing auth/transport metadata. */
+/** Observa el cuerpo FINAL preparado de un adaptador de la app, tras la sustitución por el llamador y
+ * las restricciones locales. La asociación asíncrona local mantiene aislados los workers concurrentes
+ * sin cambiar las opciones del proveedor ni exponer metadatos de autenticación o transporte. */
 export function capturePreparedBackgroundPayload(payload: unknown, model: CaptureModel): void {
 	activeCapture.getStore()?.payload(payload, model);
 }
 
-/** Shared by the native Agent runner and the hand-written PDF/visual loops.
- * Caller callbacks retain their awaited replacement/exception semantics. */
+/** Compartido por el ejecutor nativo de Agent y los bucles de PDF y visuales escritos a mano.
+ * Las callbacks del llamador conservan su semántica de sustitución o excepción esperadas. */
 export function backgroundCaptureStream(streamFn: StreamFunction, capture: BackgroundCapture | undefined): StreamFunction<Api, SimpleStreamOptions> {
 	if (!capture) return streamFn;
 	return (model, context, options) => {
@@ -162,9 +162,9 @@ export function backgroundCaptureStream(streamFn: StreamFunction, capture: Backg
 			...options,
 			onPayload: async (raw, nativeModel) => {
 				const replacement = await options?.onPayload?.(raw, nativeModel);
-				// App subscription adapters still rewrite this payload. They call
-				// the final prepared-body observer themselves; until then retain
-				// the honestly labeled context (also on pre-dispatch failures).
+				// Los adaptadores de suscripción de la app todavía reescriben esta carga. Ellos mismos
+				// llaman al observador del cuerpo final preparado; hasta entonces se conserva el contexto
+				// etiquetado con honestidad (también en los fallos previos al envío).
 				if (!preparedPayloadProviders.has(model.provider)) capture.payload(replacement === undefined ? raw : replacement, nativeModel);
 				return replacement;
 			},

@@ -6,7 +6,7 @@ import { getClaudeBinary } from "./binary.ts";
 
 export type ReadClaudeVersion = (binary: string) => Promise<string>;
 
-/** No shell, auth-status command, model call, or credential-file inspection. */
+/** Sin shell, ni comando de estado de autenticación, ni llamada al modelo, ni inspección de ficheros de credenciales. */
 export const readClaudeVersion: ReadClaudeVersion = (binary) => new Promise((resolve, reject) => {
 	execFile(binary, ["--version"], {
 		cwd: tmpdir(), env: externalCliEnv(), windowsHide: true,
@@ -23,7 +23,7 @@ export async function inspectClaudeInstallation(
 	if (!binary) return { ...base, state: "not-found" };
 	try {
 		const output = await readVersion(binary);
-		// Expose only a version, never arbitrary CLI stdout/stderr or an absolute path.
+		// Expón solo una versión, nunca stdout/stderr arbitrarios de la CLI ni una ruta absoluta.
 		const match = /^(\d+)\.(\d+)\.(\d+)(?: \(Claude Code\))?$/.exec(output.trim());
 		if (!match) return { ...base, state: "version-unchecked" };
 		const parts = match.slice(1).map(Number);

@@ -1,4 +1,4 @@
-// Ported from @earendil-works/pi-coding-agent 1.1.0, dist/utils/exif-orientation.js (MIT).
+// Adaptado de @earendil-works/pi-coding-agent 1.1.0, dist/utils/exif-orientation.js (MIT).
 function readOrientationFromTiff(bytes, tiffStart) {
     if (tiffStart + 8 > bytes.length)
         return 1;
@@ -65,11 +65,11 @@ function findWebpTiffOffset(bytes) {
         if (chunkId === "EXIF") {
             if (dataStart + chunkSize > bytes.length)
                 return -1;
-            // Some WebP files have "Exif\0\0" prefix before the TIFF header
+            // Algunos ficheros WebP tienen el prefijo "Exif\0\0" antes de la cabecera TIFF
             const tiffStart = chunkSize >= 6 && hasExifHeader(bytes, dataStart) ? dataStart + 6 : dataStart;
             return tiffStart;
         }
-        // RIFF chunks are padded to even size
+        // Los chunks RIFF se rellenan hasta un tamaño par
         offset = dataStart + chunkSize + (chunkSize % 2);
     }
     return -1;
@@ -84,11 +84,11 @@ function hasExifHeader(bytes, offset) {
 }
 export function getExifOrientation(bytes) {
     let tiffOffset = -1;
-    // JPEG: starts with FF D8
+    // JPEG: empieza por FF D8
     if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xd8) {
         tiffOffset = findJpegTiffOffset(bytes);
     }
-    // WebP: starts with RIFF....WEBP
+    // WebP: empieza por RIFF....WEBP
     else if (bytes.length >= 12 &&
         bytes[0] === 0x52 &&
         bytes[1] === 0x49 &&
@@ -121,7 +121,7 @@ function rotate90(photon, image, dstIndex) {
     }
     return new photon.PhotonImage(dst, h, w);
 }
-// Flip orientations mutate in-place. Rotations return a new image (caller must free the old one if different).
+// Las orientaciones con volteo modifican en el sitio. Las rotaciones devuelven una imagen nueva (el llamador debe liberar la antigua si es distinta).
 export function applyExifOrientation(photon, image, originalBytes) {
     const orientation = getExifOrientation(originalBytes);
     if (orientation === 1)

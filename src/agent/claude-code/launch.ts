@@ -5,7 +5,7 @@ import type { RunClaude } from "./stream.ts";
 
 export class ClaudeLaunchError extends Error {}
 
-/** Injectable seams keep all verification offline; production uses the installed CLI. */
+/** Las junturas inyectables mantienen toda la verificación sin conexión; producción usa la CLI instalada. */
 export function createClaudeLauncher({
 	findBinary = getClaudeBinary,
 	readVersion = readClaudeVersion,

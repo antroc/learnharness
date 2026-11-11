@@ -1,5 +1,5 @@
-// Ported from @earendil-works/pi-coding-agent 1.1.0, dist/utils/image-convert.js (MIT).
-// Only inline-image conversion is retained; terminal/Kitty registration is not used.
+// Adaptado de @earendil-works/pi-coding-agent 1.1.0, dist/utils/image-convert.js (MIT).
+// Solo se conserva la conversión de imágenes en línea; no se usa el registro de terminal/Kitty.
 import { applyExifOrientation } from "./exif-orientation.mjs";
 import { loadPhoton } from "./photon.mjs";
 
