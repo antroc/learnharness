@@ -5,46 +5,46 @@ import { hasUnresolvedQuestion, hasProbeDone, type LhMessage } from "../../core/
 import type { ChatStore } from "../../core/ports.ts";
 import { buildProbeHandoffSteer, type SteerMessage } from "../../core/contracts.ts";
 
-/** What the probe_done tool closes over. */
+/** Sobre qué se cierra la herramienta probe_done. */
 export interface ProbeDoneContext {
 	chatId: string;
-	/** The storage port (open-question + already-concluded checks). */
+	/** El puerto de almacenamiento (comprobaciones de pregunta abierta + ya concluido). */
 	chatStore: ChatStore;
-	/** Queue the handoff steer (the wake pipeline — src/server/jobs.ts).
-	 *  Injected so this module never imports the server seam. */
+	/** Pone en cola la reorientación de traspaso (la canalización de despertares: src/server/jobs.ts).
+	 *  Se inyecta para que este módulo nunca importe la frontera del servidor. */
 	deliver: (steer: SteerMessage) => void;
 }
 
-/** Does the transcript already carry a concluded probe (any state)?
- *  Wave B: the native scan (any probe_done tool call, any state) — same
- *  semantics the UIMessage part scan had. */
+/** ¿Lleva ya el transcript un sondeo concluido (en cualquier estado)?
+ *  Oleada B: el recorrido nativo (cualquier llamada a probe_done, en cualquier estado): la misma
+ *  semántica que tenía el recorrido de partes de UIMessage. */
 function probeConcluded(messages: readonly LhMessage[]): boolean {
 	return hasProbeDone(messages);
 }
 
 /**
- * probe_done — the probe→planning seam (docs/archive/probe-teach-split.md §2).
+ * probe_done: la frontera sondeo→planificación (docs/archive/probe-teach-split.md §2).
  *
- * SERVER-SIDE. The prober concludes the probe by authoring the learner
- * assessment (the tool INPUT — it streams to the learner live and is
- * durable in the transcript as the tool part itself). Three outcomes:
+ * DEL LADO DEL SERVIDOR. El sondeador concluye el sondeo redactando la evaluación
+ * del alumno (la ENTRADA de la herramienta: llega en streaming al alumno en vivo y es
+ * duradera en el transcript como la propia parte de herramienta). Tres resultados:
  *
- *   ok:false + error — a question is still open ("resolve it first"), or
- *     the probe is already concluded. The refusal returns to the prober as
- *     a tool result; it fixes course and retries (the return-to-agent
- *     doctrine, same as nodeId validation).
- *   ok:true — the assessment is recorded, and the HANDOFF is queued: a
- *     steer through the wake pipeline that fires the teacher's first turn
- *     (plan authoring) the moment the prober's turn ends. Auto-wake is the
- *     user-decided trigger — the learner experiences assessment → plan as
- *     one continuous flow. CONTEXT-SLIM (owner, context diet 2026-10-09):
- *     the call's arguments already carry the assessment (durable, streamed
- *     live), so the agent sees the fixed PROBE_DONE_ACK_TEXT — never an
- *     echo. details = {ok:true} only.
+ *   ok:false + error: todavía hay una pregunta abierta ("resolve it first"), o
+ *     el sondeo ya ha concluido. El rechazo vuelve al sondeador como
+ *     resultado de herramienta; corrige el rumbo y reintenta (la doctrina de
+ *     devolver al agente, igual que la validación de nodeId).
+ *   ok:true: la evaluación queda registrada y se pone en cola el TRASPASO: una
+ *     reorientación por la canalización de despertares que lanza el primer turno del profesor
+ *     (redacción del plan) en cuanto termina el turno del sondeador. El despertar automático es el
+ *     disparador decidido por el usuario: el alumno vive evaluación → plan como
+ *     un único flujo continuo. REDUCIDO EN CONTEXTO (responsable, dieta de contexto 2026-10-09):
+ *     los argumentos de la llamada ya llevan la evaluación (duradera, transmitida
+ *     en vivo), así que el agente ve el PROBE_DONE_ACK_TEXT fijo, nunca una
+ *     repetición. details = solo {ok:true}.
  *
- * The first concluded probe_done (non-failed call plus matching successful
- * result) is also the construction seam: from that result on, every request
- * builds the TEACHER agent. Bare calls and refused results keep probing.
+ * El primer probe_done concluido (llamada no fallida más un resultado correcto
+ * correspondiente) es también la frontera de construcción: a partir de ese resultado, cada petición
+ * construye el agente PROFESOR. Las llamadas sueltas y los resultados rechazados siguen sondeando.
  */
 export function probeDoneTool(ctx: ProbeDoneContext): Record<string, AgentTool<any>> {
 	return {
@@ -59,8 +59,8 @@ export function probeDoneTool(ctx: ProbeDoneContext): Record<string, AgentTool<a
 				"(floor, ceiling, misconceptions, what to build from). It streams to the learner live and becomes " +
 				"the handoff artifact the teacher plans from. Refused while a question is still open, and after " +
 				"the probe is already concluded. After it succeeds, say your closing sentence and end your turn.",
-			// The core-owned schema (contracts/probe.ts) — the SAME schema the UI
-			// parse seam (tool-parts.ts) runs, so boundary-valid ⇔ consumer-parseable.
+			// El esquema propiedad de core (contracts/probe.ts): el MISMO esquema que ejecuta la frontera
+			// de parseo de la interfaz (tool-parts.ts), así que válido en el límite ⇔ parseable por el consumidor.
 			parameters: probeDoneInputSchema,
 			execute: serverExecute("probe_done", probeDoneInputSchema, async (input) => {
 				const record = ctx.chatStore.getChat(ctx.chatId);
@@ -81,14 +81,14 @@ export function probeDoneTool(ctx: ProbeDoneContext): Record<string, AgentTool<a
 					ctx.deliver(buildProbeHandoffSteer(ctx.chatId));
 				} catch (err) {
 					console.error(`[chat ${ctx.chatId}] probe handoff queueing failed:`, err);
-					// The handoff is recoverable-by-design (the next client message
-					// constructs the teacher off the transcript seam) — record the
-					// assessment anyway; the wake is an optimization, not a gate.
+					// El traspaso es recuperable por diseño (el siguiente mensaje del cliente
+					// construye el profesor a partir de la frontera del transcript): se registra la
+					// evaluación de todos modos; el despertar es una optimización, no una barrera.
 				}
-				// Context diet (owner, 2026-10-09): the assessment lives ONCE — as
-				// this call's arguments. content is the fixed ack (the agent never
-				// sees an echo); details = {ok:true} for the record/UI — the
-				// probe-done card reads the call's input, which it always preferred.
+				// Dieta de contexto (responsable, 2026-10-09): la evaluación vive UNA vez, como
+				// los argumentos de esta llamada. content es el acuse fijo (el agente nunca
+				// ve una repetición); details = {ok:true} para el registro/la interfaz: la
+				// tarjeta de probe-done lee la entrada de la llamada, que es lo que siempre prefirió.
 				return {
 					text: PROBE_DONE_ACK_TEXT,
 					details: { ok: true },

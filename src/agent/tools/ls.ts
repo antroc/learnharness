@@ -7,11 +7,11 @@ import { capOutput, formatSize, MAX_OUTPUT_BYTES, resolveSourcePath, sourceSearc
 import { resolvePolicy } from "./file-access.ts";
 
 /**
- * The ls tool — sources v1 (2026-09-19): a Node port of pi's
- * dist/core/tools/ls.js, home-anchored (fs-shared.ts). Schemas and the
- * output format are pi-verbatim; the only semantic deltas: the default
- * directory is the learner's home, and the path description says so.
- * Read-only by construction — readdir/stat only, no mutation APIs.
+ * La herramienta ls: sources v1 (2026-09-19): un port a Node del
+ * dist/core/tools/ls.js de pi, anclado en home (fs-shared.ts). Los esquemas y el
+ * formato de salida son literales de pi; las únicas diferencias semánticas: el directorio
+ * por defecto es el home del alumno, y la descripción de path lo dice.
+ * Solo lectura por construcción: solo readdir/stat, sin API de mutación.
  */
 
 const DEFAULT_LIMIT = 500;
@@ -57,7 +57,7 @@ export const lsTool: AgentTool<typeof lsInput> = {
 			throw new Error(`Cannot read directory: ${(e as Error).message}`);
 		}
 
-		// pi: alphabetical, case-insensitive.
+		// pi: orden alfabético, sin distinguir mayúsculas.
 		entries.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
 		const effectiveLimit = input.limit ?? DEFAULT_LIMIT;
@@ -73,7 +73,7 @@ export const lsTool: AgentTool<typeof lsInput> = {
 				const entryStat = await fs.stat(fullPath);
 				lines.push(entryStat.isDirectory() ? `${entry}/` : entry);
 			} catch {
-				// pi: skip entries it cannot stat
+				// pi: salta las entradas a las que no puede hacer stat
 			}
 		}
 

@@ -4,15 +4,15 @@ import { SEND_TO_USER_TOOL } from "../../core/native-messages.ts";
 import { CLAUDE_CODE_PROVIDER } from "../claude-code/constants.ts";
 import { serverExecute } from "../tool-execute.ts";
 
-/** Claude models get the output tool (their plain text may be summarized
- *  into thinking). Matches Claude across providers (including OpenRouter),
- *  not the API transport. The side-question agent uses this directly. */
+/** Los modelos Claude reciben la herramienta de salida (su texto plano puede resumirse
+ *  dentro del razonamiento). Reconoce Claude en todos los proveedores (incluido OpenRouter),
+ *  no el transporte de la API. El agente de preguntas laterales usa esto directamente. */
 export function needsSendToUser(model: { provider: string; id: string }): boolean {
 	return model.provider === CLAUDE_CODE_PROVIDER || model.id.toLowerCase().includes("claude");
 }
 
-/** One availability rule for the tool and its teacher-only delivery guard.
- * Practice uses ordinary final prose; explicit registries remain caller-owned. */
+/** Una única regla de disponibilidad para la herramienta y su guarda de entrega solo para el profesor.
+ * La práctica usa prosa final normal; los registros explícitos siguen siendo del llamador. */
 export function sendToUserApplies(
 	kind: string,
 	model: { provider: string; id: string },
@@ -29,9 +29,9 @@ const sendToUserInput = Type.Object({
 	}),
 });
 
-/** Claude's documented verbatim mid-turn output channel. Availability is
- * model-gated at the shared conversation-agent construction boundary;
- * the native call remains in history, and the view renders its message. */
+/** El canal documentado de Claude para salida literal a mitad de turno. La disponibilidad tiene
+ * barrera por modelo en el límite de construcción compartido del agente de conversación;
+ * la llamada nativa se queda en el historial y la vista renderiza su mensaje. */
 export const sendToUserTool: AgentTool<typeof sendToUserInput> = {
 	name: SEND_TO_USER_TOOL,
 	label: SEND_TO_USER_TOOL,

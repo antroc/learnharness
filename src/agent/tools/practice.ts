@@ -1,16 +1,16 @@
 /**
- * THE PRACTICE TOOLS (practice sessions, owner design 2026-10-04): the
- * practice agent's ENTIRE toolset — `problem` (pose: terminates the turn;
- * the commitment rides the call's arguments, hidden from the learner UI)
- * and `conclude` (end the problem: normal result, the turn continues so
- * the same reply can reveal + pose the next). The gating law (owner
- * ruling): an agent cannot pose while a problem is active and cannot
- * conclude with nothing active — activeProblemOf is the single fold both
- * gates read.
+ * LAS HERRAMIENTAS DE PRÁCTICA (sesiones de práctica, diseño del responsable del 2026-10-04): TODO
+ * el conjunto de herramientas del agente de práctica: `problem` (plantear: termina el turno;
+ * el compromiso va en los argumentos de la llamada, oculto a la interfaz del alumno)
+ * y `conclude` (terminar el problema: resultado normal, el turno continúa para que
+ * la misma respuesta pueda revelar + plantear el siguiente). La ley de las barreras (decisión del
+ * responsable): un agente no puede plantear mientras haya un problema activo ni puede
+ * concluir sin nada activo; activeProblemOf es el único pliegue que leen ambas
+ * barreras.
  *
- * Mechanics-only descriptions (the doctrine ruling, 2026-10-04): the tool
- * descriptions carry WHAT to pass and WHAT happens — the theory, the
- * commit-before-pose law, the hint ladder all live in the system prompt
+ * Descripciones solo mecánicas (la decisión de doctrina, 2026-10-04): las descripciones de las
+ * herramientas dicen QUÉ pasar y QUÉ ocurre; la teoría, la ley de comprometerse
+ * antes de plantear y la escalera de pistas viven todas en el prompt de sistema
  * (prompts/practice/10-doctrine.md).
  */
 
@@ -30,45 +30,45 @@ import { concludeResult, invalidInputResult, problemResult } from "../tool-execu
 import { healEncodedArguments, healToolRecord } from "./heal.ts";
 
 
-/** The record-reading context the gates need (the plan-tools idiom). */
+/** El contexto de lectura del registro que necesitan las barreras (el patrón de las herramientas de plan). */
 export interface PracticeToolContext {
 	chatId: string;
 	chatStore: { getChat(id: string): { messages: LhMessage[]; kind?: string } | null };
-	/** The WHOLE-graph node list, read fresh per pose (owner round 9 — the
-	 *  mastery-trace contract): targets validate against every proposition,
-	 *  not just the session's picks, so pickless sessions and future
-	 *  graph-tools poses stay valid. Absent (tests) = no validation. */
+	/** La lista de nodos del grafo ENTERO, leída de nuevo en cada planteamiento (ronda 9 del responsable: el
+	 *  contrato de traza de dominio): los objetivos se validan contra todas las proposiciones,
+	 *  no solo contra las elegidas para la sesión, así que las sesiones sin elecciones y los futuros
+	 *  planteamientos con herramientas de grafo siguen siendo válidos. Ausente (pruebas) = sin validación. */
 	graphNodes?: () => ReadonlyArray<Pick<import("../../core/contracts/graph.ts").GraphNode, "id" | "name">>;
-	/** THE RARELY-NEEDED SET (owner round 10, 2026-10-05): the map readers
-	 *  behind the SAME settings gate as the prober's (graphToolsEnabled at
-	 *  the composition root); the research + pdf jobs (both keyless).
-	 *  Each absent context (tests) = absent from the registry. */
+	/** EL CONJUNTO QUE RARA VEZ HACE FALTA (ronda 10 del responsable, 2026-10-05): los lectores del mapa
+	 *  tras la MISMA barrera de ajustes que los del sondeador (graphToolsEnabled en
+	 *  la raíz de composición); las tareas research + pdf (ambas sin clave).
+	 *  Cada contexto ausente (pruebas) = ausente del registro. */
 	graph?: GraphToolContext;
 	jobs?: JobToolContext;
 }
 
-/** TURN-SCOPED GATE STATE (the BKT incident, 2026-10-05): the gates used
- *  to read the STORED record — but the record freezes at the turn's
- *  write-ahead (persistTurn lands only at turn END), so a mid-turn
- *  conclude → pose pair could never see each other: every conclude
- *  succeeded against the stale record and every following pose died on
- *  "a problem is already active" until the model gave up ("the problem
- *  slot is stuck"). The gate seeds ONCE from the record at construction
- *  (one practiceTools per turn — chat-handler builds the agent per
- *  request, so there is no cross-turn leakage), and the executes flip
- *  this closure — the intra-turn truth the record cannot hold yet. */
+/** ESTADO DE LAS BARRERAS CON ÁMBITO DE TURNO (el incidente de BKT, 2026-10-05): las barreras
+ *  leían antes el registro GUARDADO, pero el registro se congela en la escritura anticipada
+ *  del turno (persistTurn solo llega al FINAL del turno), así que un par conclude → pose
+ *  a mitad de turno nunca podía verse mutuamente: cada conclude
+ *  tenía éxito contra el registro obsoleto y cada planteamiento siguiente moría con
+ *  "a problem is already active" hasta que el modelo se rendía («el hueco del problema
+ *  está atascado»). La barrera se siembra UNA vez desde el registro al construirse
+ *  (un practiceTools por turno: chat-handler construye el agente por
+ *  petición, así que no hay fugas entre turnos), y los execute cambian
+ *  este cierre: la verdad dentro del turno que el registro aún no puede contener. */
 export interface PracticeGate {
 	problemActive: boolean;
 }
 
-/** Seed the turn's gate from the record (result-aware activeProblemOf —
- *  only a cleanly-posed problem counts). */
+/** Siembra la barrera del turno desde el registro (activeProblemOf consciente del resultado:
+ *  solo cuenta un problema planteado limpiamente). */
 export function createPracticeGate(ctx: PracticeToolContext): PracticeGate {
 	const record = ctx.chatStore.getChat(ctx.chatId);
 	return { problemActive: record ? activeProblemOf(record.messages) !== null : false };
 }
 
-// ─── problem: the pose ───────────────────────────────────────────────────────
+// ─── problem: el planteamiento ───────────────────────────────────────────────────
 
 export const problemInputObject = practiceProblemInputSchema;
 
@@ -90,12 +90,12 @@ export function problemTool(
 		executionMode: "sequential",
 		prepareArguments: (args: unknown) => {
 			const healed = healEncodedArguments(args, problemInputObject);
-			// TARGET NORMALIZATION (owner round 9): names silently become ids —
-			// the RECORD carries canonical ids (the mastery trace groups on
-			// them); unresolvable strings pass through for execute to reject.
-			// UNTAGGED PROBLEMS (owner round 12): an explicit empty list is
-			// the model saying "no targets" — healed AWAY, so the record's
-			// canonical form is tagged-or-absent, never [].
+			// NORMALIZACIÓN DE OBJETIVOS (ronda 9 del responsable): los nombres se convierten en ids en silencio;
+			// el REGISTRO lleva ids canónicos (la traza de dominio agrupa por
+			// ellos); los strings que no se pueden resolver pasan para que execute los rechace.
+			// PROBLEMAS SIN ETIQUETA (ronda 12 del responsable): una lista vacía explícita es
+			// el modelo diciendo «sin objetivos»: se elimina con la reparación, así que la forma
+			// canónica del registro es con etiquetas o ausente, nunca [].
 			if (!graphNodes) {
 				const bare = (healed as { target?: unknown }).target;
 				return Array.isArray(bare) && bare.length === 0
@@ -119,7 +119,7 @@ export function problemTool(
 	};
 }
 
-/** One synchronous admission for native AND plugin poses; no await can split the gate. */
+/** Una única admisión síncrona para los planteamientos nativos Y de plugins; ningún await puede partir la barrera. */
 export function admitPracticeProblem(gate: PracticeGate, input: { target?: string[] }, graphNodes?: PracticeToolContext["graphNodes"], toolName = "problem") {
 	if (gate.problemActive) return invalidInputResult(toolName, ["a problem is already active — call conclude on it before posing the next one"]);
 	if (graphNodes && input.target?.length) {
@@ -131,7 +131,7 @@ export function admitPracticeProblem(gate: PracticeGate, input: { target?: strin
 	return undefined;
 }
 
-// ─── conclude: the end of a problem ──────────────────────────────────────────
+// ─── conclude: el final de un problema ───────────────────────────────────────────
 
 export const concludeInputObject = Type.Object({
 	outcome: Type.Union(
@@ -190,21 +190,21 @@ export function concludeTool(gate: PracticeGate): AgentTool<typeof concludeInput
 	};
 }
 
-/** The practice toolset (the practice agent's whole registry). */
+/** El conjunto de herramientas de práctica (todo el registro del agente de práctica). */
 export function practiceTools(ctx: PracticeToolContext, gate: PracticeGate = createPracticeGate(ctx)): Record<string, AgentTool<any>> {
-	// ONE gate per turn, shared by native/plugin poses and conclude.
-	// THE RARELY-NEEDED SET (owner round 10): read/ls/find/grep over the
-	// learner's files (always — the same read-only set the teacher and
-	// prober carry), the research + pdf jobs (available without search
-	// keys; demo/visual stay teach-only), and
-	// the prober's map readers when the settings gate opened. None are
-	// toggle-filtered: problem/conclude are the session; these are
-	// exceptions the doctrine says to reach for rarely.
+	// UNA barrera por turno, compartida por los planteamientos nativos/de plugins y conclude.
+	// EL CONJUNTO QUE RARA VEZ HACE FALTA (ronda 10 del responsable): read/ls/find/grep sobre los
+	// ficheros del alumno (siempre: el mismo conjunto de solo lectura que llevan el profesor y el
+	// sondeador), las tareas research + pdf (disponibles sin claves de
+	// búsqueda; demo/visual siguen siendo solo de enseñanza), y
+	// los lectores del mapa del sondeador cuando la barrera de ajustes se abrió. Ninguna se
+	// filtra por interruptores: problem/conclude son la sesión; estas son
+	// excepciones a las que la doctrina dice que se recurra rara vez.
 	const jobs = ctx.jobs ? jobTools(ctx.jobs) : null;
-	// healToolRecord (owner, 2026-10-09 — the whitehead generalization):
-	// the standard argument heal over the WHOLE registry. problem/conclude
-	// keep their own (target-normalizing) prepareArguments as the composed
-	// inner pass; the double heal is idempotent by construction.
+	// healToolRecord (responsable, 2026-10-09: la generalización de whitehead):
+	// la reparación estándar de argumentos sobre TODO el registro. problem/conclude
+	// conservan su propio prepareArguments (que normaliza objetivos) como pasada interna
+	// compuesta; la doble reparación es idempotente por construcción.
 	return healToolRecord({
 		problem: problemTool(gate, ctx.graphNodes),
 		conclude: concludeTool(gate),

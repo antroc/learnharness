@@ -6,48 +6,48 @@ import type { ChatStore } from "../../core/ports.ts";
 import { createTree, PlanTreeError } from "../../core/plan-tree.ts";
 import { parseMermaidPlan } from "./mermaid-plan.ts";
 
-/** The binding-id reminder riding plan_init's slim content (owner,
- *  2026-10-09): plan_init is the exact moment the node ids become
- *  load-bearing — every later quiz/explain call must reference one. The
- *  field-drop incidents (tools_fails_2) showed the turn's tail is where
- *  discipline slips; the reminder lands right there. */
+/** El recordatorio de id vinculante que va en el contenido reducido de plan_init (responsable,
+ *  2026-10-09): plan_init es el momento exacto en que los ids de nodo pasan a ser
+ *  estructurales: toda llamada posterior a quiz/explain debe hacer referencia a uno. Los
+ *  incidentes de campos omitidos (tools_fails_2) mostraron que la cola del turno es donde
+ *  se relaja la disciplina; el recordatorio cae justo ahí. */
 const PLAN_NODE_IDS_REMINDER =
 	"These are the plan's node ids — the only valid nodeId values for every quiz and explain call from here on. Reference them exactly.";
 
-/** What the plan tools close over (the plan-tree half of the tool context). */
+/** Sobre qué se cierran las herramientas de plan (la mitad del árbol del plan del contexto de herramientas). */
 export interface PlanToolContext {
 	chatId: string;
-	/** The storage port plan tools persist through. */
+	/** El puerto de almacenamiento a través del que persisten las herramientas de plan. */
 	chatStore: ChatStore;
 }
 
 /**
- * The plan tool — AUTHOR-ONCE protocol (2026-09-03 design pass): the teacher
- * WRITES the map and never tracks progress. One tool, plan_init, takes the
- * whole dependency map as a mermaid `graph TD` block:
+ * La herramienta de plan: protocolo de AUTORÍA ÚNICA (pasada de diseño del 2026-09-03): el profesor
+ * ESCRIBE el mapa y nunca sigue el progreso. Una herramienta, plan_init, recibe
+ * todo el mapa de dependencias como un bloque mermaid `graph TD`:
  *
- *   - call it ONCE right after the probe concludes, to present the map (the
- *     LEARNER'S ACCEPTANCE of the presented plan, not this call, ends
- *     planning — docs/archive/probe-teach-split.md §4)
- *   - statuses (current / visited / upcoming) are DERIVED from the quiz
- *     nodeId tags the teacher fires (contracts.ts derivePlanStatuses) — the
- *     teacher never declares them, and there is no "done" bookkeeping
- *   - re-call it any time the map is wrong: the new block replaces the tree
- *     wholesale. Node slugs are permanent — the map tracks nothing between
- *     rewrites
- *   - checks name the node they assess (quiz nodeId, validated against the
- *     live tree at the call boundary) — that tag is the only thing statuses
- *     derive from
+ *   - se llama UNA vez justo después de que concluya el sondeo, para presentar el mapa (la
+ *     ACEPTACIÓN DEL ALUMNO del plan presentado, no esta llamada, termina la
+ *     planificación: docs/archive/probe-teach-split.md §4)
+ *   - los estados (current / visited / upcoming) se DERIVAN de las etiquetas nodeId
+ *     de los quiz que lanza el profesor (derivePlanStatuses de contracts.ts): el
+ *     profesor nunca los declara, y no hay contabilidad de «hecho»
+ *   - se vuelve a llamar en cualquier momento en que el mapa esté mal: el bloque nuevo sustituye el árbol
+ *     entero. Los slugs de nodo son permanentes: el mapa no sigue nada entre
+ *     reescrituras
+ *   - las comprobaciones nombran el nodo que evalúan (nodeId del quiz, validado contra el
+ *     árbol vivo en el límite de la llamada): esa etiqueta es lo único de lo que se
+ *     derivan los estados
  *
- * The former mutation tools (add/update/remove node/edge, set_current,
- * mark_done) are gone by design: restructuring is a rewrite, tracking is
- * derived. SERVER-SIDE with execute: parse → validate → persist. The
- * result is CONTEXT-SLIM (owner, context diet 2026-10-09): the model
- * WROTE the mermaid one message ago, so content never echoes the tree —
- * it carries the validated nodeIds + the binding-nodeId reminder (the
- * exact moment the ids become load-bearing); `details` keeps the full
- * tree for the record and the plan popup (latestTree reads it — the
- * agent-invisible channel, serializer-verified).
+ * Las antiguas herramientas de mutación (add/update/remove de nodo/arista, set_current,
+ * mark_done) han desaparecido por diseño: reestructurar es reescribir, el seguimiento se
+ * deriva. DEL LADO DEL SERVIDOR con execute: parsear → validar → persistir. El
+ * resultado es REDUCIDO EN CONTEXTO (responsable, dieta de contexto 2026-10-09): el modelo
+ * ESCRIBIÓ el mermaid hace un mensaje, así que el contenido nunca repite el árbol:
+ * lleva los nodeIds validados + el recordatorio de nodeId vinculante (el
+ * momento exacto en que los ids pasan a ser estructurales); `details` conserva el árbol
+ * completo para el registro y el popup del plan (latestTree lo lee: el
+ * canal invisible para el agente, verificado por el serializador).
  */
 const planInitInput = Type.Object({
 	mermaid: Type.String({
@@ -78,20 +78,20 @@ export function planTools(ctx: PlanToolContext): Record<string, AgentTool<any>> 
 
 				const parsed = parseMermaidPlan(mermaid);
 				if (!parsed.ok || !parsed.plan) {
-					// The parser collects every problem; the teacher fixes and retries.
-					// No tree echo — the model needs the problems, not a restatement of
-					// the map it is rewriting (owner, context diet 2026-10-09).
+					// El parser recoge todos los problemas; el profesor corrige y reintenta.
+					// Sin repetir el árbol: el modelo necesita los problemas, no una reformulación del
+					// mapa que está reescribiendo (responsable, dieta de contexto 2026-10-09).
 					return { ok: false, error: parsed.problems.join("\n") };
 				}
 				try {
-					// createTree validates the structure (duplicate ids, missing
-					// edge endpoints, self-loops, cycles → PlanTreeError).
+					// createTree valida la estructura (ids duplicados, extremos de arista
+					// que faltan, bucles sobre sí mismos, ciclos → PlanTreeError).
 					const next = createTree(parsed.plan.nodes, parsed.plan.edges);
 					chatStore.saveTree(chatId, next);
-					// Context diet: content = the validated nodeIds + the reminder (the
-				// ids just became binding for every quiz/explain call); details =
-					// the full tree for the record/UI — the plan popup's latestTree
-					// seam, agent-invisible (the serializer sends content only).
+					// Dieta de contexto: content = los nodeIds validados + el recordatorio (los
+				// ids acaban de volverse vinculantes para toda llamada a quiz/explain); details =
+					// el árbol completo para el registro/la interfaz: la frontera latestTree del popup del plan,
+					// invisible para el agente (el serializador solo envía content).
 					return {
 						text: JSON.stringify({
 							ok: true,

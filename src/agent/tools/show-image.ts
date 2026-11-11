@@ -6,14 +6,14 @@ import type { ShowImageDetails } from "../../core/contracts.ts";
 import type { ChatStore } from "../../core/ports.ts";
 
 /**
- * show_image (issue #363): put one of the learner's image files into the
- * lesson as-is — the instant, model-free twin of `visual` with an image.
- * Teacher only, always on like the learner-filesystem set.
+ * show_image (issue #363): coloca en la lección uno de los ficheros de imagen del alumno
+ * tal cual: el gemelo instantáneo y sin modelo de `visual` con una imagen.
+ * Solo el profesor, siempre activa como el conjunto del sistema de ficheros del alumno.
  *
- * The picture lands in the record only (`details` → the tool part's
- * output → ImageCard). The teacher's result is ONE text line (owner
- * decision): the image is never re-sent on later turns; read is how the
- * teacher looks at it.
+ * La imagen llega solo al registro (`details` → la salida de la parte de
+ * herramienta → ImageCard). El resultado del profesor es UNA línea de texto (decisión
+ * del responsable): la imagen nunca se reenvía en turnos posteriores; read es como el
+ * profesor la mira.
  */
 
 const showImageInput = Type.Object({

@@ -7,26 +7,26 @@ import { resolveSourcePath } from "./fs-shared.ts";
 import { detectSupportedImageMimeTypeFromFile, processImage } from "../image-processing/index.ts";
 
 /**
- * The read tool — sources v0 (2026-09): a Node port of pi's read semantics
- * for the learner's local files. The flow is learner-owned: he pastes file
- * paths into the chat, the agent reads on its own terms (nothing is
- * auto-injected). Broad local reads remain the scope, except the shared
- * sensitive-location/credential denials and optional folder boundary in fs-shared.ts; this is not a sandbox.
+ * La herramienta read: sources v0 (2026-09): un port a Node de la semántica de read de pi
+ * para los ficheros locales del alumno. El flujo es del alumno: pega rutas de ficheros
+ * en el chat y el agente las lee en sus propios términos (nada se
+ * inyecta automáticamente). El alcance siguen siendo las lecturas locales amplias, salvo las denegaciones
+ * compartidas de ubicaciones sensibles/credenciales y el límite opcional de carpetas de fs-shared.ts; no es un sandbox.
  *
- * Ported behaviors (mirroring pi's dist/core/tools/read.js):
- * - text files: utf-8, offset (1-indexed) / limit slicing, and the
- *   2000-line / 50KB truncation ceiling with actionable "use offset=N"
- *   continuation notices — a huge file never silently floods the context.
- * - image files (jpg/png/gif/webp/bmp): returned as native image content
- *   parts so the vision-capable model actually SEES them (teacher's
- *   glm-5.3-flash accepts image input per pi's zai catalog; tool-execute's
- *   toToolResult maps ImageFileResult to pi's ImageContent).
- * - unreadable/missing files throw — pi turns that into an error tool
- *   result the model sees and recovers from.
+ * Comportamientos portados (reflejo del dist/core/tools/read.js de pi):
+ * - ficheros de texto: utf-8, recorte por offset (desde 1) / limit, y el
+ *   techo de truncado de 2000 líneas / 50 KB con avisos de continuación accionables
+ *   "use offset=N": un fichero enorme nunca inunda el contexto en silencio.
+ * - ficheros de imagen (jpg/png/gif/webp/bmp): se devuelven como partes de contenido de imagen
+ *   nativas para que el modelo con visión los VEA de verdad (el glm-5.3-flash del
+ *   profesor acepta entrada de imagen según el catálogo zai de pi; el toToolResult de
+ *   tool-execute convierte ImageFileResult en el ImageContent de pi).
+ * - los ficheros ilegibles/inexistentes lanzan: pi lo convierte en un resultado de herramienta
+ *   de error que el modelo ve y del que se recupera.
  *
- * Usage guidance ships in the description (the self-contained-tools
- * principle, user-decided 2026-09: system prompts reference only
- * always-on tools — read IS always-on, but its doctrine still lives here).
+ * La guía de uso va en la descripción (el principio de herramientas
+ * autocontenidas, decidido por el usuario 2026-09: los prompts de sistema solo hacen referencia a
+ * herramientas siempre activas; read ES siempre activa, pero su doctrina sigue viviendo aquí).
  */
 
 const MAX_LINES = 2000;
@@ -42,7 +42,7 @@ function formatSize(bytes: number): string {
 	return bytes >= 1024 ? `${(bytes / 1024).toFixed(1)}KB` : `${bytes}B`;
 }
 
-/** Slice + truncate the text body, pi's continuation-notice style. */
+/** Recorta + trunca el cuerpo del texto, al estilo de los avisos de continuación de pi. */
 function readTextSlice(text: string, offset: number | undefined, limit: number | undefined): string {
 	const allLines = text.split("\n");
 	const totalLines = allLines.length;
@@ -50,15 +50,15 @@ function readTextSlice(text: string, offset: number | undefined, limit: number |
 	if (startLine >= totalLines) {
 		throw new Error(`Offset ${offset} is beyond end of file (${totalLines} lines total)`);
 	}
-	// honor an explicit limit first (never beyond EOF)
+	// respetar primero un limit explícito (nunca más allá del EOF)
 	let selected = allLines.slice(startLine, limit !== undefined ? startLine + limit : totalLines);
-	// then the 2000-line ceiling
+	// después el techo de 2000 líneas
 	let truncatedBy: "lines" | "bytes" | null = null;
 	if (selected.length > MAX_LINES) {
 		selected = selected.slice(0, MAX_LINES);
 		truncatedBy = "lines";
 	}
-	// then the 50KB ceiling
+	// después el techo de 50 KB
 	if (Buffer.byteLength(selected.join("\n"), "utf-8") > MAX_BYTES) {
 		while (selected.length > 0 && Buffer.byteLength(selected.join("\n"), "utf-8") > MAX_BYTES) {
 			selected.pop();
@@ -79,18 +79,18 @@ function readTextSlice(text: string, offset: number | undefined, limit: number |
 }
 
 /**
- * The read tool, shared verbatim by the prober and the teacher. Sources v1
- * (2026-09-19): the description is pi-verbatim (user: copy tool usage
- * guidance exactly) — the teaching doctrine moved to the shared prompt
- * fragment (prompts/shared/). Relative paths resolve against the
- * learner's home (fs-shared.ts), the harness's anchor.
+ * La herramienta read, compartida literalmente por el sondeador y el profesor. Sources v1
+ * (2026-09-19): la descripción es literal de pi (usuario: copiar exactamente la guía de uso
+ * de la herramienta); la doctrina de enseñanza se trasladó al fragmento de prompt
+ * compartido (prompts/shared/). Las rutas relativas se resuelven contra el
+ * home del alumno (fs-shared.ts), el ancla del harness.
  */
 export type ReadModel = Pick<Model<Api>, "input" | "inputLimits">;
 
-/** One implementation for every learner-file reader. Bind the active model
- * per agent, rather than sharing mutable model state between conversations.
- * Home-relative paths, text slicing and the app's abort guard stay unchanged;
- * image detection/processing and its notes follow native Pi read behavior. */
+/** Una implementación para todos los lectores de ficheros del alumno. Vincula el modelo activo
+ * por agente, en lugar de compartir estado de modelo mutable entre conversaciones.
+ * Las rutas relativas a home, el recorte de texto y la guarda de abortos de la app no cambian;
+ * la detección/procesado de imágenes y sus notas siguen el comportamiento nativo de read de Pi. */
 export function createReadTool(model?: ReadModel): AgentTool<typeof readInput> {
 	return {
 		name: "read",

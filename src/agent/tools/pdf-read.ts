@@ -7,36 +7,36 @@ import { pdfExtract, pdfInfo, pdfProbe, pdfSearch } from "../subagents/pdf-ops.t
 import { safeFetch } from "./safe-fetch.ts";
 
 /**
- * PDF reading tools for the RESEARCHER sub-agent (owner design B,
- * 2026-10-07): PDFs from the web, with the pdf-reader agent's TEXT
- * capabilities — triage (pdf_info), page-level extraction (pdf_extract),
- * targeted lookup (pdf_search) — woven into the researcher's own loop so
- * page-cited content lands in the brief directly.
+ * Herramientas de lectura de PDF para el subagente INVESTIGADOR (diseño B del responsable,
+ * 2026-10-07): PDF de la web, con las capacidades de TEXTO del agente
+ * pdf-reader (triaje (pdf_info), extracción por páginas (pdf_extract),
+ * búsqueda dirigida (pdf_search)) tejidas en el propio bucle del investigador para que
+ * el contenido citado por página llegue directamente al informe.
  *
- * web_fetch_pdf acquires the file (download, size-capped, probe-validated)
- * into a per-job temp dir; every path-taking tool is SCOPED to that dir
- * (the researcher can never read outside it). pdf_render is deliberately
- * absent: the researcher's model slot has no vision — visual reading of
- * math-heavy pages stays the pdf job's job.
+ * web_fetch_pdf obtiene el fichero (descarga, con límite de tamaño, validada por sondeo)
+ * en un directorio temporal por tarea; toda herramienta que recibe una ruta está ACOTADA a ese directorio
+ * (el investigador nunca puede leer fuera de él). pdf_render falta
+ * a propósito: el hueco de modelo del investigador no tiene visión; la lectura visual de
+ * páginas cargadas de matemáticas sigue siendo trabajo de la tarea pdf.
  *
- * Tool contract (the web.ts law): NEVER throw into the agent loop — every
- * failure path returns a clear error STRING the researcher can adapt to.
+ * Contrato de herramienta (la ley de web.ts): NUNCA lanzar dentro del bucle del agente: todo
+ * camino de fallo devuelve un STRING de error claro al que el investigador puede adaptarse.
  */
 
 const USER_AGENT =
 	"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 const FETCH_TIMEOUT_MS = 60_000;
-/** PDFs run bigger than pages — arxiv papers routinely 5-20 MB. */
+/** Los PDF son más grandes que las páginas: los artículos de arXiv suelen ocupar 5-20 MB. */
 const MAX_PDF_BYTES = 25 * 1024 * 1024;
 
-/** The pdf-reader doctrine's size classes, by page count. */
+/** Las clases de tamaño de la doctrina de pdf-reader, por número de páginas. */
 function sizeClass(pageCount: number): "short" | "medium" | "long" {
 	if (pageCount <= 10) return "short";
 	if (pageCount <= 40) return "medium";
 	return "long";
 }
 
-/** Pages worth a look before any extraction — math- or image-heavy. */
+/** Páginas que merece la pena mirar antes de extraer nada: cargadas de matemáticas o de imágenes. */
 function flaggedPages(info: Awaited<ReturnType<typeof pdfInfo>>): number[] {
 	return info.pages
 		.filter((p) => p.math_density >= 0.03 || p.image_count > 0)
@@ -44,8 +44,8 @@ function flaggedPages(info: Awaited<ReturnType<typeof pdfInfo>>): number[] {
 		.map((p) => p.page);
 }
 
-/** Resolve a tool-supplied path and require it to live INSIDE the job's
- *  pdf dir — the researcher's filesystem ends at the temp dir's wall. */
+/** Resuelve una ruta proporcionada por una herramienta y exige que viva DENTRO del directorio
+ *  pdf de la tarea: el sistema de ficheros del investigador acaba en la pared del directorio temporal. */
 function scopedPath(dir: string, filePath: string): string | null {
 	const root = path.resolve(dir) + path.sep;
 	const resolved = path.resolve(dir, filePath);
@@ -53,8 +53,8 @@ function scopedPath(dir: string, filePath: string): string | null {
 	return resolved;
 }
 
-/** Filename for a downloaded PDF — slug from the URL's last segment plus a
- *  unique suffix (two PDFs from different URLs never collide). */
+/** Nombre de fichero para un PDF descargado: slug a partir del último segmento de la URL más un
+ *  sufijo único (dos PDF de URL distintas nunca chocan). */
 function pdfFileName(url: string): string {
 	try {
 		const last = new URL(url).pathname.split("/").filter(Boolean).pop() ?? "document";
@@ -66,7 +66,7 @@ function pdfFileName(url: string): string {
 	}
 }
 
-/** The download + triage summary the researcher sees from web_fetch_pdf. */
+/** El resumen de descarga + triaje que el investigador ve desde web_fetch_pdf. */
 export interface PdfFetchSummary {
 	path: string;
 	url: string;

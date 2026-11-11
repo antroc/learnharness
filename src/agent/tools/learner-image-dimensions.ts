@@ -1,4 +1,4 @@
-/** Header-only source geometry checks. Never allocate a decoded pixel buffer. */
+/** Comprobaciones de geometría de la fuente solo con la cabecera. Nunca reserva un búfer de píxeles decodificado. */
 export const MAX_LEARNER_IMAGE_BYTES = 25 * 1024 * 1024;
 export const MAX_LEARNER_IMAGE_PIXELS = 16_000_000;
 export const MAX_LEARNER_IMAGE_SIDE = 8192;
@@ -51,7 +51,7 @@ export function checkImageDimensions(bytes: Uint8Array, mime: string): { width: 
 				if (b.readUInt16LE(at) + frame.width > geometry.width || b.readUInt16LE(at + 2) + frame.height > geometry.height) break;
 				const packed = b[at + 8]!;
 				at += 9 + ((packed & 0x80) ? 3 * (1 << ((packed & 7) + 1)) : 0);
-				at++; // LZW minimum code size
+				at++; // tamaño mínimo de código LZW
 				skipBlocks();
 			}
 		}

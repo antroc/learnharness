@@ -7,14 +7,14 @@ import { detectSupportedImageMimeType, detectSupportedImageMimeTypeFromFile, typ
 import { checkImageDimensions, MAX_LEARNER_IMAGE_BYTES } from "./learner-image-dimensions.ts";
 import type { ImageSnapshot } from "../../core/contracts.ts";
 
-/** One bounded, upright, metadata-free snapshot; path is provenance, not identity. */
+/** Una instantánea acotada, enderezada y sin metadatos; la ruta es procedencia, no identidad. */
 export interface LearnerImage extends ImageSnapshot {
 	path: string;
 	snapshotId: string;
 }
 
 export async function checkLearnerImage(rawPath: string): Promise<string> {
-	// Reuse the shared file-access policy, including canonical/symlink checks.
+	// Reutiliza la política de acceso a ficheros compartida, incluidas las comprobaciones canónicas/de enlaces simbólicos.
 	const absolute = resolveSourcePath(rawPath);
 	try {
 		const stat = await fs.stat(absolute);
