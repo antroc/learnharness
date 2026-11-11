@@ -1,20 +1,21 @@
 /**
- * The model catalog's server surface (model-control wave, 2026-09-12;
- * federated since the model-slots wave, 2026-09-20): pi-ai's catalog for
- * every KEYED provider, projected to client-safe DTOs for the picker (GET
- * /api/models), plus the validation gate for settings writes (PUT
- * /api/settings/* — the per-chat settings PUT is retired from the UI;
- * legacy records' per-chat overrides still resolve server-side).
+ * La superficie del catálogo de modelos en el servidor (oleada de control de
+ * modelos, 2026-09-12; federado desde la oleada de ranuras de modelo,
+ * 2026-09-20): el catálogo de pi-ai de cada proveedor CON CLAVE, proyectado a
+ * DTO seguros para el cliente para el selector (GET /api/models), más la
+ * barrera de validación de las escrituras de ajustes (PUT /api/settings/*; el
+ * PUT de ajustes por chat ya no lo usa la interfaz; las sustituciones por chat
+ * de los registros heredados se siguen resolviendo en el servidor).
  *
- * pi-ai owns ALL the data: the catalog (id/name/cost/context/modality/
- * thinkingLevelMap) and the per-model thinking truth
- * (getSupportedThinkingLevels / clampThinkingLevel). This module only
- * projects and validates — no second registry to drift out of sync.
+ * pi-ai es dueño de TODOS los datos: el catálogo (id/name/cost/context/
+ * modality/thinkingLevelMap) y la verdad sobre el razonamiento de cada modelo
+ * (getSupportedThinkingLevels / clampThinkingLevel). Este módulo solo
+ * proyecta y valida: no hay un segundo registro que se desincronice.
  *
- * Federation: `getModels()` is called per keyed provider (federated, the
- * model-slots wave), so a provider appears in the picker exactly when its
- * key is present — piModels() in src/agent/models.ts owns the provider
- * set; nothing here changes.
+ * Federación: `getModels()` se llama por cada proveedor con clave (federado,
+ * oleada de ranuras de modelo), así que un proveedor aparece en el selector
+ * exactamente cuando su clave está presente; piModels() de
+ * src/agent/models.ts es dueño del conjunto de proveedores; aquí no cambia nada.
  */
 
 import { clampThinkingLevel, getSupportedThinkingLevels, type Api, type Model } from "@earendil-works/pi-ai";
@@ -61,20 +62,22 @@ import {
 	type ModelsSettings,
 } from "../core/settings.ts";
 
-/** The picker's client-safe model entry (contract: core/contracts/models.ts). */
+/** La entrada de modelo del selector segura para el cliente (contrato: core/contracts/models.ts). */
 export type ModelDto = ModelCatalogEntry;
 
 /**
- * The conversation agents' resolved default (pure form — the strong slot
- * in, CatalogDefaults out; `catalogDefaults()` below is the fs wrapper).
- * PER-SESSION MODELS (owner, 2026-09-28): every session owns its model +
- * thinking level from birth, stamped verbatim from the strong slot — the
- * STRONG SLOT IS THE NEW-SESSION DEFAULT, and the resolve-time fallback
- * for legacy settings-less records. BYOK (owner, 2026-09-22): there is no
- * factory floor — when the strong slot names no model, the default is
- * NULL and the turn gate refuses with the 503 models_not_configured
- * envelope. An unset thinkingLevel resolves from DEFAULT_THINKING_ORDER at
- * engine build (reported as absent here).
+ * El valor por defecto resuelto de los agentes de conversación (forma pura:
+ * entra la ranura potente y sale CatalogDefaults; `catalogDefaults()` de más
+ * abajo es el envoltorio con el sistema de ficheros). MODELOS POR SESIÓN
+ * (responsable, 2026-09-28): cada sesión es dueña de su modelo + nivel de
+ * razonamiento desde que nace, sellados tal cual desde la ranura potente: LA
+ * RANURA POTENTE ES EL VALOR POR DEFECTO DE LAS SESIONES NUEVAS, y la
+ * alternativa al resolver para los registros heredados sin ajustes. BYOK
+ * (responsable, 2026-09-22): no hay suelo de fábrica; si la ranura potente no
+ * nombra ningún modelo, el valor por defecto es NULL y la barrera del turno lo
+ * rechaza con el sobre 503 models_not_configured. Un thinkingLevel sin definir
+ * se resuelve a partir de DEFAULT_THINKING_ORDER al construir el motor (aquí
+ * se indica como ausente).
  */
 export function catalogDefaultsFor(
 	strong: EffectiveSlot | null,
@@ -88,16 +91,18 @@ export function catalogDefaultsFor(
 	};
 }
 
-/** The conversation agents' resolved default — what a settings-less chat
- *  runs: the strong slot, i.e. the birth-default for new sessions. */
+/** El valor por defecto resuelto de los agentes de conversación (lo que
+ *  ejecuta un chat sin ajustes): la ranura potente, es decir, el valor de
+ *  nacimiento de las sesiones nuevas. */
 export function catalogDefaults(): CatalogDefaults | null {
 	return catalogDefaultsFor(effectiveSettings().models.strong);
 }
 
-/** Project the resolved per-role specs to the client DTO (pure — the
- *  settings UI's "Default: <actual pinned model>" caption reads this).
- *  BYOK (owner, 2026-09-22): an empty chain projects to NULL — the caption
- *  honestly shows "not configured", never a phantom default. */
+/** Proyecta las especificaciones resueltas por rol al DTO del cliente (puro;
+ *  lo lee el rótulo "Default: <modelo fijado real>" de la interfaz de
+ *  ajustes). BYOK (responsable, 2026-09-22): una cadena vacía se proyecta como
+ *  NULL; el rótulo muestra con honestidad "not configured", nunca un valor por
+ *  defecto fantasma. */
 export function rolePinsFor(
 	models: Record<BackgroundModelRole, EffectiveModelSpec | undefined>,
 ): RolePins {
@@ -114,18 +119,19 @@ export function rolePinsFor(
 	return pins;
 }
 
-/** The background roles' RESOLVED pins: the user's agent-models
- *  override → tier slot → nothing — the same resolution the agent wiring
- *  uses (src/server/stores.ts effectiveSettings), so the caption can
- *  never drift from what actually runs. */
+/** Las fijaciones RESUELTAS de los roles en segundo plano: la sustitución de
+ *  agent-models del usuario → ranura del nivel → nada; la misma resolución que
+ *  usa el cableado de los agentes (effectiveSettings de src/server/stores.ts),
+ *  así que el rótulo nunca puede desviarse de lo que se ejecuta de verdad. */
 export function catalogRolePins(): RolePins {
 	return rolePinsFor(effectiveSettings().agent.models);
 }
 
-/** The three slot tiers' RESOLVED pins — effectiveSettings().models
- *  verbatim: the same resolution the engine wiring uses, so the Models
- *  settings page's captions cannot drift from what actually runs. NULL
- *  per tier that holds no model. */
+/** Las fijaciones RESUELTAS de los tres niveles de ranura:
+ *  effectiveSettings().models tal cual; la misma resolución que usa el
+ *  cableado de los motores, así que los rótulos de la página de ajustes de
+ *  modelos no pueden desviarse de lo que se ejecuta de verdad. NULL en cada
+ *  nivel que no tenga modelo. */
 export function catalogSlots(): SlotPins {
 	const slots = effectiveSettings().models;
 	const pins = {} as SlotPins;
@@ -142,10 +148,11 @@ export function catalogSlots(): SlotPins {
 	return pins;
 }
 
-/** The providers surface (model slots wave, 2026-09-20): one row per
- *  plain-key model provider (core/auth-keys.ts's pi-ai-derived table),
- *  with keyPresent read env-wins through the keys seam, fresh per call —
- *  saving a key immediately federates the provider into the picker. */
+/** La superficie de proveedores (oleada de ranuras de modelo, 2026-09-20): una
+ *  fila por proveedor de modelos con clave simple (la tabla de
+ *  core/auth-keys.ts derivada de pi-ai), con keyPresent leído con prioridad
+ *  del entorno mediante la frontera de claves, de nuevo en cada llamada:
+ *  guardar una clave federa al momento el proveedor en el selector. */
 export function catalogProviders(): CatalogProvider[] {
 	piModels();
 	return AUTH_PROVIDER_KEYS.map((p) => ({
@@ -156,22 +163,23 @@ export function catalogProviders(): CatalogProvider[] {
 		{ id: "chatgpt", envVar: "", keyPresent: chatGPTConnected() },
 		{ id: CLAUDE_CODE_PROVIDER, envVar: "", keyPresent: claudeCodeAvailable() },
 		...NATIVE_SUBSCRIPTIONS.map((p) => ({ id: p.logicalId, envVar: "", keyPresent: nativeSubscriptionConnected(p.providerId) })),
-		// The custom endpoint: a row only when usable (base URL set). keyPresent
-		// reflects usability, not key presence (keyless local servers are allowed).
+		// El endpoint personalizado: una fila solo si es utilizable (URL base definida). keyPresent
+		// refleja que es utilizable, no la presencia de clave (se permiten servidores locales sin clave).
 		...(customProviderUsable(effectiveSettings().customProvider)
 			? [{ id: CUSTOM_PROVIDER.id, envVar: CUSTOM_PROVIDER.envVar, keyPresent: customProviderAvailable() }]
 			: []),
 	]).sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** The providers whose key is present — the picker federates exactly
- *  these (a keyless provider's models are unreachable by design; the
- *  Keys page is the discovery surface, same discipline as search). */
+/** Los proveedores cuya clave está presente; el selector federa exactamente
+ *  estos (los modelos de un proveedor sin clave son inalcanzables por diseño;
+ *  la página de claves es la superficie de descubrimiento, con la misma
+ *  disciplina que la búsqueda). */
 function keyedProviderIds(): Set<string> {
 	return new Set(catalogProviders().filter((p) => p.keyPresent).map((p) => p.id));
 }
 
-/** Project one catalog model to the client DTO. */
+/** Proyecta un modelo del catálogo al DTO del cliente. */
 export function toModelDto(model: Model<Api>): ModelDto {
 	return {
 		id: model.id,
@@ -191,14 +199,15 @@ export function toModelDto(model: Model<Api>): ModelDto {
 	};
 }
 
-/** The live-limits index (context-meter amendment, owner 2026-09-23):
- *  provider:id → contextWindow from pi's catalog, over the SAME keyed
- *  providers the picker federates. Native CLI aliases are excluded:
- *  only a session-specific CLI report can provide their denominator.
- *  For other models the stats-bar join holds /api/models' copy,
- *  and the activity feed (observability.ts) resolves job limits
- *  server-side through this. No hardcoded fallback exists anywhere:
- *  a model missing here reads limit-null (usage-only, honest render). */
+/** El índice de límites vivos (enmienda del medidor de contexto, responsable
+ *  2026-09-23): proveedor:id → contextWindow del catálogo de pi, sobre los
+ *  MISMOS proveedores con clave que federa el selector. Se excluyen los alias
+ *  nativos de CLI: solo un informe de la CLI propio de la sesión puede aportar
+ *  su denominador. Para los demás modelos, la unión de la barra de
+ *  estadísticas tiene la copia de /api/models, y el feed de actividad
+ *  (observability.ts) resuelve con esto los límites de las tareas en el
+ *  servidor. No existe ninguna alternativa fija en ningún sitio: un modelo que
+ *  falte aquí se lee con límite null (solo uso, renderizado honesto). */
 export function catalogContextLimits(): Map<string, number> {
 	const keyed = keyedProviderIds();
 	const index = new Map<string, number>();
@@ -212,10 +221,11 @@ export function catalogContextLimits(): Map<string, number> {
 	return index;
 }
 
-/** The full picker payload: every model of every configured provider
- *  (sorted by provider then id — stable, diff-friendly) + the config
- *  defaults a settings-less chat runs + the background roles' resolved
- *  pins (the settings UI's per-role default captions). */
+/** La carga completa del selector: todos los modelos de todos los
+ *  proveedores configurados (ordenados por proveedor y luego por id: estable y
+ *  fácil de comparar) + los valores por defecto de configuración que ejecuta un
+ *  chat sin ajustes + las fijaciones resueltas de los roles en segundo plano
+ *  (los rótulos de valor por defecto por rol de la interfaz de ajustes). */
 export function modelCatalog(): ModelCatalogResponse {
 	const keyed = keyedProviderIds();
 	const models = piModels()
@@ -234,17 +244,19 @@ export function modelCatalog(): ModelCatalogResponse {
 	};
 }
 
-/** One validated outcome for a settings write. */
+/** Un resultado validado para una escritura de ajustes. */
 export type SettingsValidation =
 	| { ok: true }
 	| { ok: false; error: string; supported?: ThinkingLevel[] };
 
-/** Validate a picker write against the catalog (the settings route's gate).
- *  `settings` is replace-whole: absent fields mean "config default".
- *  - model: provider must be configured, id must exist in its catalog.
- *  - thinkingLevel: must be in the resolved model's supported list —
- *    the model the picker writes against (settings.model, else config's
- *    prober/teacher pin; one controller, so the two specs share it). */
+/** Valida una escritura del selector frente al catálogo (la barrera de la ruta
+ *  de ajustes). `settings` reemplaza el conjunto: los campos ausentes
+ *  significan "valor por defecto de la configuración".
+ *  - model: el proveedor debe estar configurado y el id debe existir en su catálogo.
+ *  - thinkingLevel: debe estar en la lista admitida del modelo resuelto, el
+ *    modelo contra el que escribe el selector (settings.model o, si no, la
+ *    fijación prober/teacher de la configuración; un solo control, así que las
+ *    dos especificaciones lo comparten). */
 export function validateChatSettings(settings: ChatSettings): SettingsValidation {
 	const providers = connectionProviderIds();
 	if (settings.model) {
@@ -256,20 +268,20 @@ export function validateChatSettings(settings: ChatSettings): SettingsValidation
 			return { ok: false, error: `No model "${id}" in the ${provider} catalog` };
 		}
 	}
-	// BYOK interlude (owner, 2026-09-22): thinking levels NEVER reject a
-	// write — a model swap with a pinned level JUST WORKS. The WRITE clamps
-	// the pin to the new model's nearest supported level (clampChatLevel
-	// below, applied by the routes) and stores the clamped result; a bare
-	// level with no model anywhere rides unchecked and clamps against
-	// whatever the chain later holds at engine build.
+	// Interludio BYOK (responsable, 2026-09-22): los niveles de razonamiento NUNCA rechazan
+	// una escritura; un cambio de modelo con un nivel fijado SIMPLEMENTE FUNCIONA. La
+	// ESCRITURA acota la fijación al nivel admitido más cercano del modelo nuevo
+	// (clampChatLevel de abajo, aplicado por las rutas) y guarda el resultado acotado; un
+	// nivel suelto sin modelo en ningún sitio pasa sin comprobar y se acota contra lo que
+	// tenga después la cadena al construir el motor.
 	return { ok: true };
 }
 
-/** Validate introduced/replaced model selections, not unchanged saved pins.
- * A disconnected subscription loses its available catalog, but its stored
- * selections must not prevent repairing another slot or editing thinking.
- * Only the SAME slot's provider+id can pass through; runtime admission stays
- * separate. Callers without a stored section retain strict catalog checking. */
+/** Valida las selecciones de modelo introducidas/sustituidas, no las fijaciones guardadas sin cambios.
+ * Una suscripción desconectada pierde su catálogo disponible, pero sus selecciones guardadas no deben
+ * impedir reparar otra ranura o editar el razonamiento. Solo puede pasar el proveedor+id de la MISMA
+ * ranura; la admisión en ejecución sigue siendo independiente. Los llamantes sin sección guardada
+ * mantienen la comprobación estricta contra el catálogo. */
 export function validateModelsSettings(settings: ModelsSettings, stored?: ModelsSettings): SettingsValidation {
 	for (const name of MODEL_SLOTS) {
 		const slot = settings[name];
@@ -293,31 +305,32 @@ function validateSlotSpec(name: ModelSlotName, slot: { model?: { provider: strin
 			return { ok: false, error: `No model "${id}" in the ${provider} catalog` };
 		}
 	}
-	// BYOK interlude (owner, 2026-09-22): the supported-level verdict is
-	// DEAD — a slot write with a pinned level never rejects; the WRITE
-	// clamps the level to the model's nearest supported (clampModelsLevels
-	// below, applied by the route) and stores the clamped result.
+	// Interludio BYOK (responsable, 2026-09-22): el veredicto de nivel admitido está
+	// MUERTO; una escritura de ranura con un nivel fijado nunca se rechaza; la ESCRITURA
+	// acota el nivel al admitido más cercano del modelo (clampModelsLevels de abajo,
+	// aplicado por la ruta) y guarda el resultado acotado.
 	return { ok: true };
 }
 
-// ─── clamp-on-write (owner ruling, interlude 2026-09-22) ─────────────────────
-// A model swap with a pinned thinking level must JUST WORK: the pin
-// translates to the new model's nearest supported level — pi's
-// clampThinkingLevel, the SAME translation piEngineForSpec applies at
-// runtime — and the clamped value is what lands in the record. The
-// server is the truth: the record shows the clamped level after write.
+// ─── acotar al escribir (decisión del responsable, interludio 2026-09-22) ────
+// Un cambio de modelo con un nivel de razonamiento fijado debe SIMPLEMENTE FUNCIONAR:
+// la fijación se traduce al nivel admitido más cercano del modelo nuevo (el
+// clampThinkingLevel de pi, la MISMA traducción que aplica piEngineForSpec en
+// ejecución) y el valor acotado es lo que se guarda en el registro. El servidor es
+// la verdad: el registro muestra el nivel acotado tras la escritura.
 
-/** Clamp one level against one model. Preserve the preference when metadata
- *  is unavailable for an unchanged saved pin; runtime clamps after reconnect. */
+/** Acota un nivel frente a un modelo. Conserva la preferencia cuando no hay metadatos
+ *  para una fijación guardada sin cambios; en ejecución se acota tras reconectar. */
 function clampLevelFor(provider: string, id: string, level: ThinkingLevel): ThinkingLevel {
 	const model = connectionModel(provider, id);
 	return model ? clampThinkingLevel(model, level) : level;
 }
 
-/** The models-section write's level translation: every slot's pinned
- *  thinkingLevel clamps against THE SLOT'S OWN model (the parser requires
- *  a model on every slot write — owner, 2026-09-22). Pure: catalog in,
- *  clamped section out; the route applies it after validation. */
+/** La traducción de niveles de la escritura de la sección de modelos: el
+ *  thinkingLevel fijado de cada ranura se acota frente al PROPIO modelo de la
+ *  ranura (el analizador exige un modelo en cada escritura de ranura;
+ *  responsable, 2026-09-22). Puro: entra el catálogo, sale la sección acotada;
+ *  la ruta lo aplica tras la validación. */
 export function clampModelsLevels(settings: ModelsSettings): ModelsSettings {
 	const out: ModelsSettings = {};
 	for (const name of MODEL_SLOTS) {
@@ -334,11 +347,12 @@ export function clampModelsLevels(settings: ModelsSettings): ModelsSettings {
 	return out;
 }
 
-/** The chat-section write's level translation: a pinned thinkingLevel
- *  clamps against the body's own model, else the record's resolved strong
- *  slot (the conversation chain's fallback — what a settings-less chat
- *  would run). No model anywhere → rides unchecked (runtime clamps at
- *  engine build; the turn gate refuses the model-less chat anyway). */
+/** La traducción de niveles de la escritura de la sección del chat: un
+ *  thinkingLevel fijado se acota frente al propio modelo del cuerpo o, si no,
+ *  frente a la ranura potente resuelta del registro (la alternativa de la
+ *  cadena de conversación: lo que ejecutaría un chat sin ajustes). Sin modelo
+ *  en ningún sitio → pasa sin comprobar (se acota en ejecución al construir el
+ *  motor; de todos modos, la barrera del turno rechaza el chat sin modelo). */
 export function clampChatLevel(settings: ChatSettings, strong: EffectiveSlot | null): ChatSettings {
 	if (settings.thinkingLevel === undefined) return settings;
 	const provider = settings.model?.provider ?? strong?.provider;

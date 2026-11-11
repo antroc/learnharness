@@ -1,4 +1,4 @@
-/** Native ack-now/result-steer-later adapter. Workers own execution and canonical outcomes. */
+/** Adaptador nativo de acuse inmediato y reorientación posterior con el resultado. Los workers controlan la ejecución y los resultados canónicos. */
 import { createHash } from "node:crypto";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { TSchema } from "typebox";
@@ -22,11 +22,11 @@ export interface PluginBackgroundToolDeps<T extends TSchema> extends JobDelivery
 	isActive: () => boolean;
 }
 export interface PluginBackgroundRecoveryDeps extends JobDeliveryDeps {
-	/** Safe host read only; works even for disabled plugins. Bootstrap interrupts unfinished tasks. */
+	/** Solo lectura segura del host; funciona incluso con plugins desactivados. El arranque interrumpe las tareas sin terminar. */
 	readTask: (pluginId: string, taskId?: string, requestId?: string) => PluginTaskRecord | null | Promise<PluginTaskRecord | null>;
 }
 function reason(error: unknown): string { return error instanceof Error ? error.message : String(error); }
-/** Stop waiting, not a claim that arbitrary author code can be forcibly killed. */
+/** Dejar de esperar, no una afirmación de que se pueda matar a la fuerza código arbitrario del autor. */
 function abortable<T>(run: () => T | Promise<T>, signal: AbortSignal): Promise<T> {
 	return new Promise((resolve, reject) => {
 		const aborted = () => { signal.removeEventListener("abort", aborted); reject(new Error("Background operation wait aborted: plugin disabled or operation cancelled")); };
@@ -37,7 +37,7 @@ function abortable<T>(run: () => T | Promise<T>, signal: AbortSignal): Promise<T
 		} catch (error) { signal.removeEventListener("abort", aborted); reject(error); }
 	});
 }
-/** Strict finite JSON snapshot: unsupported data is formatting failure, not storage failure. */
+/** Instantánea JSON estricta y finita: los datos no admitidos son un fallo de formato, no de almacenamiento. */
 function presentationData(value: unknown, ancestors = new Set<object>()): unknown {
 	if (value === null || typeof value === "string" || typeof value === "boolean") return value;
 	if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -69,18 +69,18 @@ function acknowledge(job: JobRecord) {
 function deliver(job: JobRecord, result: PluginBackgroundResult, deps: JobDeliveryDeps): void {
 	const current = deps.jobStore.getJob(job.id);
 	if (current?.delivery?.kind !== "result" || current.delivery.status !== "pending") return;
-	// Session delivery owns this promise. Failed starts cannot rewrite the
-	// terminal computation or keep worker abort/resources registered.
+	// La entrega a la sesión es dueña de esta promesa. Los inicios fallidos no pueden
+	// reescribir el cálculo terminal ni mantener registrados la cancelación/los recursos del worker.
 	void deps.deliver(buildSubagentSteer(job, result)).catch((error: unknown) => {
 		console.error(`[plugin job ${job.id}] result delivery remains pending:`, error);
 	});
 }
 async function notifyFailure(job: JobRecord, error: string, deps: JobDeliveryDeps): Promise<void> {
-	// Not a worker outcome or learner cancellation. The teacher still needs to
-	// learn why its acknowledged dispatch cannot produce a delivered result.
+	// No es un resultado del worker ni una cancelación del alumno. El profesor aún necesita
+	// saber por qué su despacho acusado no puede producir un resultado entregado.
 	if (deps.jobStore.getJob(job.id)?.status !== "running") return;
 	deps.jobStore.updateJob(job.id, { status: "error", error, activity: "delivery failed", delivery: { kind: "failure", status: "pending" } });
-	void deps.deliver(buildJobFailureSteer(job, error)).catch(() => { /* retained session-owned failure notice */ });
+	void deps.deliver(buildJobFailureSteer(job, error)).catch(() => { /* aviso de fallo conservado, propiedad de la sesión */ });
 }
 
 export function createPluginBackgroundTool<T extends TSchema>(deps: PluginBackgroundToolDeps<T>): AgentTool<T> {
@@ -93,8 +93,8 @@ export function createPluginBackgroundTool<T extends TSchema>(deps: PluginBackgr
 		if (preacceptSignal.aborted) throw new Error("Background tool call aborted: plugin disabled or operation cancelled");
 		if (!deps.isActive()) throw new Error("Plugin is disabled");
 		const requestId = `background_${createHash("sha256").update(JSON.stringify([context.chatId, toolCallId])).digest("hex")}`;
-		// An accepted standalone task can survive a failed job write. Never replay
-		// preparation or execution when this host-derived acceptance is known.
+		// Una tarea independiente aceptada puede sobrevivir a una escritura fallida de la tarea.
+		// Nunca se repiten la preparación ni la ejecución cuando se conoce esta aceptación derivada del host.
 		let snapshot = workers.list().find((task) => task.requestId === requestId);
 		if (snapshot && (snapshot.definitionId !== workerId || snapshot.purpose !== "background")) throw new Error("Background request identity belongs to a different worker or purpose");
 		const options = snapshot ? undefined : await abortable(() => prepare.call(definition, input, context), preacceptSignal);
@@ -102,10 +102,10 @@ export function createPluginBackgroundTool<T extends TSchema>(deps: PluginBackgr
 		if (accepted) return acknowledge(accepted);
 		if (preacceptSignal.aborted) throw new Error("Background tool call aborted before worker dispatch: plugin disabled or operation cancelled");
 		if (!deps.isActive()) throw new Error("Plugin disabled before worker dispatch");
-		// After durable acceptance, the task is detached from the calling turn's
-		// executionSignal: only END and the plugin/worker lifetime own it.
-		// start accepts synchronously; ALL execution is deferred to a microtask.
-		// Acceptance + fully linked job persistence have no yield between them.
+		// Tras la aceptación duradera, la tarea se separa del executionSignal del turno que la
+		// llamó: solo END y la vida del plugin/worker la controlan.
+		// start acepta de forma síncrona; TODA la ejecución se aplaza a una microtarea.
+		// Entre la aceptación y la persistencia de la tarea completamente vinculada no hay ninguna cesión.
 		snapshot ??= workers.start(workerId, { ...options!, requestId, purpose: "background" });
 		let job: JobRecord;
 		try {
@@ -125,14 +125,14 @@ export function createPluginBackgroundTool<T extends TSchema>(deps: PluginBackgr
 			unsubscribe?.();
 			let result = fallback(job, outcome);
 			try {
-				// Learner abort already owns its separate durable notice. Keep the
-				// real task outcome without replacing that notice or invoking authors.
+				// La cancelación del alumno ya tiene su propio aviso duradero. Se conserva el resultado
+				// real de la tarea sin sustituir ese aviso ni invocar a los autores.
 				if (jobStore.getJob(job.id)?.status !== "running") {
 					jobStore.updateJob(job.id, { result });
 					return;
 				}
-				// Computation ends now, independently of session delivery. Persist
-				// the real generic outcome BEFORE asynchronous author formatting.
+				// El cálculo termina ahora, con independencia de la entrega a la sesión. Se persiste
+				// el resultado genérico real ANTES del formato asíncrono del autor.
 				jobStore.updateJob(job.id, { result, status: outcome.status === "succeeded" ? "done" : "error",
 					error: outcome.status === "succeeded" ? undefined : outcome.error.message,
 					activity: outcome.status === "succeeded" ? "finished" : "failed",
@@ -155,8 +155,8 @@ export function createPluginBackgroundTool<T extends TSchema>(deps: PluginBackgr
 			} catch (error) {
 				const saved = jobStore.getJob(job.id);
 				if (saved?.result && saved.delivery?.kind === "result") {
-					// The generic outcome was already committed. A later presentation
-					// write failure cannot retroactively fail the worker.
+					// El resultado genérico ya estaba confirmado. Un fallo posterior al escribir la
+					// presentación no puede hacer fallar al worker con efecto retroactivo.
 					console.error(`[plugin job ${job.id}] presentation persistence failed:`, error);
 					deliver(saved, saved.result as PluginBackgroundResult, deps);
 				} else await notifyFailure(job, `Background result persistence failed: ${reason(error)}`, deps);
@@ -171,8 +171,8 @@ export function createPluginBackgroundTool<T extends TSchema>(deps: PluginBackgr
 				if (outcome) void finish(outcome);
 			};
 			unsubscribe = workers.subscribe(snapshot.id, update);
-			// Subscription is ephemeral progress only. The canonical waiter also
-			// settles on disposal, when progress listeners may already be cleared.
+			// La suscripción es solo progreso efímero. La espera canónica también se resuelve
+			// al desecharse, cuando puede que ya se hayan borrado los listeners de progreso.
 			void workers.wait(snapshot.id).then(finish, async (error: unknown) => {
 				if (terminal) return;
 				terminal = true;
@@ -183,7 +183,7 @@ export function createPluginBackgroundTool<T extends TSchema>(deps: PluginBackgr
 			update(workers.get(snapshot.id));
 			if (terminal) unsubscribe();
 		} catch (error) {
-			// A linkage/subscription failure is not a worker failure.
+			// Un fallo de vinculación/suscripción no es un fallo del worker.
 			unsubscribe?.();
 			void notifyFailure(job, `Worker dispatch linkage failed: ${reason(error)}`, deps).finally(() => deps.unregisterAbort(job.id));
 		}
@@ -191,7 +191,7 @@ export function createPluginBackgroundTool<T extends TSchema>(deps: PluginBackgr
 	} };
 }
 
-/** Recovery never calls the plugin, prepares input, or respawns tools/tasks. */
+/** La recuperación nunca llama al plugin, ni prepara la entrada, ni vuelve a lanzar herramientas/tareas. */
 export async function recoverPluginBackgroundJob(job: JobRecord, deps: PluginBackgroundRecoveryDeps): Promise<void> {
 	if (job.kind !== "plugin" || (job.status !== "running" && !(job.delivery?.kind === "result" && job.delivery.status === "pending"))) return;
 	const controller = new AbortController();
@@ -220,7 +220,7 @@ export async function recoverPluginBackgroundJob(job: JobRecord, deps: PluginBac
 			deliver(job, result, deps);
 		}
 	} catch (error) {
-		// An unreadable task might have completed. Never fabricate an outcome.
+		// Puede que una tarea ilegible se completara. Nunca se inventa un resultado.
 		await notifyFailure(job, `Plugin job recovery failed: ${reason(error)}`, deps);
 	} finally { deps.unregisterAbort(job.id); }
 }

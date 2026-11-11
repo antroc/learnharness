@@ -10,9 +10,9 @@ export const MAX_DOCUMENT_PDF_PAGES = 1000;
 const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d];
 const CONTROL = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/;
 
-/** Pure upload conversion only: no learning, provider, or storage services.
- * Compose ONE instance process-wide. The fail-fast slot covers body reading,
- * conversion, and converter teardown, even after the caller has aborted. */
+/** Solo conversión pura de subidas: sin servicios de aprendizaje, proveedores ni almacenamiento.
+ * Compón UNA instancia para todo el proceso. La ranura de fallo rápido cubre la lectura del cuerpo,
+ * la conversión y el desmontaje del conversor, incluso después de que el llamante haya cancelado. */
 export function createPluginDocumentConverter(deps: { convertPdf?: typeof convertPdf } = {}) {
 	const pdfConverter = deps.convertPdf ?? convertPdf;
 	let busy = false;
@@ -43,8 +43,8 @@ export function createPluginDocumentConverter(deps: { convertPdf?: typeof conver
 				let markdown: string;
 				const notices: string[] = [];
 				if (PDF_MAGIC.every((byte, i) => bytes[i] === byte) || /\.pdf$/i.test(file.name)) {
-					// Await the actual converter, never an abort race: its promise includes
-					// loading-task destruction, which must settle before releasing busy.
+					// Se espera al conversor real, nunca a una carrera con la cancelación: su promesa
+					// incluye la destrucción de la tarea de carga, que debe completarse antes de liberar el estado ocupado.
 					let pdf;
 					try { pdf = await pdfConverter(bytes, MAX_DOCUMENT_PDF_PAGES, { signal }); }
 					catch {

@@ -16,14 +16,14 @@ import type { PluginWorkerService } from "../core/plugin-workers.ts";
 import type { ServerEvent } from "../core/events.ts";
 import { safePluginDataDirectory } from "../store/plugin-data-paths.ts";
 
-/** Expected host/transport failure. Exceptions thrown by plugin handlers stay ordinary 500 errors. */
+/** Fallo esperado del host/transporte. Las excepciones que lanzan los handlers de los plugins siguen siendo errores 500 normales. */
 export class PluginHostError extends Error {
 	constructor(public readonly status: number, message: string) {
 		super(message); this.name = "PluginHostError";
 		Object.defineProperty(this, Symbol.for("learnharness.plugin-host-error"), { value: true });
 	}
 }
-/** Works across Next module instances holding the same process-global host. */
+/** Funciona entre instancias de módulo de Next que comparten el mismo host global del proceso. */
 export function isPluginHostError(error: unknown): error is { status: number; message: string } {
 	if (!error || typeof error !== "object") return false;
 	try {
@@ -36,25 +36,25 @@ export function isPluginHostError(error: unknown): error is { status: number; me
 
 export interface PluginHostDependencies {
 	directory: string;
-	/** App-owned flat built packages and a separate writable data root. */
+	/** Paquetes compilados planos propiedad de la app y una raíz de datos escribible aparte. */
 	core?: { directory: string; dataDirectory: string; ids: readonly string[] };
 	appVersion: string;
 	createServices(info: { manifest: PluginManifest; directory: string; dataDirectory: string; signal: AbortSignal; cleanup: (fn: PluginCleanup) => void }): {
 		learning: PluginLearningData; inference: PluginInference; agents: PluginAgentService; workers: PluginWorkerService;
 		createBackgroundTool: PluginBackendContext["createBackgroundTool"];
 	};
-	/** One process-wide pure converter; no backend services are needed for uploads. */
+	/** Un conversor puro para todo el proceso; las subidas no necesitan servicios del backend. */
 	convertDocument?: (request: Request, signal: AbortSignal) => ReturnType<PluginFrontendContext["documents"]["toMarkdown"]>;
 	onChange?: () => void;
 	onNotification?: (notification: PluginNotification) => void;
 	subscribeEvents?: (listener: (event: ServerEvent) => void) => () => void;
-	/** Startup installation/recovery failures, including failures before a package directory exists. */
+	/** Fallos de instalación/recuperación en el arranque, incluidos los que ocurren antes de que exista un directorio de paquete. */
 	installationErrors?: Record<string, string>;
 }
 interface Instructions { agents: Set<PluginAgentKind>; text: string }
 interface Tools { agents: Set<PluginAgentKind>; create: PluginTools["create"] }
 type QuestionDefinition = NativePluginQuestionDefinition;
-/** Frozen per-turn provenance, admitted atomically with ordinary package contributions. */
+/** Procedencia congelada por turno, admitida de forma atómica junto con las contribuciones normales de los paquetes. */
 export interface PluginQuestionContribution {
 	pluginId: string;
 	definition: QuestionDefinition;
@@ -96,7 +96,7 @@ const errorText = (e: unknown) => e instanceof Error ? e.message : String(e);
 const exists = (p: string) => { try { fs.lstatSync(p); return true; } catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return false; throw e; } };
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 const operationId = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
-// Common native provider subset: no punctuation, leading digit, or >64-char names.
+// Subconjunto común de los proveedores nativos: sin puntuación, sin dígito inicial ni nombres de más de 64 caracteres.
 const nativeToolName = /^[A-Za-z_][A-Za-z0-9_-]{0,63}$/;
 const agentKinds: readonly PluginAgentKind[] = ["prober", "teacher", "practice"];
 function targets(agents: PluginAgentKind[]): Set<PluginAgentKind> {
@@ -176,9 +176,9 @@ const mimeTypes: Record<string, string> = {
 	".woff": "font/woff", ".woff2": "font/woff2", ".ico": "image/x-icon", ".txt": "text/plain; charset=utf-8",
 };
 
-/** Injectable, trusted-local-code host. Importing this module does no IO. */
+/** Host inyectable de código local de confianza. Importar este módulo no hace ninguna E/S. */
 export function createPluginHost(deps: PluginHostDependencies) {
-	// Installed packages/state are runtime inputs, not build-time dependencies.
+	// Los paquetes/el estado instalados son entradas en tiempo de ejecución, no dependencias de compilación.
 	const directory = path.resolve(/* turbopackIgnore: true */ deps.directory);
 	const stateFile = path.resolve(/* turbopackIgnore: true */ directory, "..", "plugins-state.json");
 	const core = deps.core ? { ...deps.core, ids: Object.freeze([...deps.core.ids]) } : undefined;
@@ -199,7 +199,7 @@ export function createPluginHost(deps: PluginHostDependencies) {
 	let serial: Promise<unknown> = Promise.resolve();
 	let disposing: Promise<void> | undefined;
 	const assertOpen = () => { if (disposed) throw new PluginHostError(503, "Plugin host is disposed"); };
-	const change = () => { if (disposed) return; try { deps.onChange?.(); } catch { /* Observers do not own host lifecycle. */ } };
+	const change = () => { if (disposed) return; try { deps.onChange?.(); } catch { /* Los observadores no controlan el ciclo de vida del host. */ } };
 	const enqueue = <T>(fn: () => Promise<T>): Promise<T> => {
 		const result = serial.then(fn); serial = result.catch(() => {}); return result;
 	};
@@ -209,7 +209,7 @@ export function createPluginHost(deps: PluginHostDependencies) {
 	async function deactivate(pkg: Package): Promise<string[]> {
 		const activation = pkg.activation;
 		if (!activation) return [];
-		pkg.activation = undefined; // Invalidate callbacks BEFORE abort listeners and cleanup run.
+		pkg.activation = undefined; // Se invalidan los callbacks ANTES de que se ejecuten los listeners de cancelación y la limpieza.
 		activation.ready = false;
 		activation.handlers.clear();
 		activation.instructions.clear();
@@ -236,7 +236,7 @@ export function createPluginHost(deps: PluginHostDependencies) {
 		const cleanup = (fn: PluginCleanup) => {
 			if (typeof fn !== "function") throw new Error("Plugin cleanup must be a function");
 			if (live(pkg, activation)) activation.cleanups.push(fn);
-			else { try { Promise.resolve(fn()).catch(() => {}); } catch { /* Late cleanup still gets a chance to release resources. */ } }
+			else { try { Promise.resolve(fn()).catch(() => {}); } catch { /* La limpieza tardía aún tiene ocasión de liberar recursos. */ } }
 		};
 		try {
 			if (manifest.backend) {
@@ -298,7 +298,7 @@ export function createPluginHost(deps: PluginHostDependencies) {
 						requireLive();
 						if (!operationId.test(name) || typeof handler !== "function") throw new Error("Invalid plugin operation id or handler");
 						if (activation.handlers.has(name)) throw new Error(`Duplicate plugin operation: ${name}`);
-						// Unique token prevents a stale unregister from deleting a replacement.
+						// Un token único impide que una baja obsoleta borre a un sustituto.
 						const registered = (input: unknown) => handler(input);
 						activation.handlers.set(name, registered);
 						return () => { if (activation.handlers.get(name) === registered) activation.handlers.delete(name); };
@@ -310,7 +310,7 @@ export function createPluginHost(deps: PluginHostDependencies) {
 							let subscribed = true;
 							const unsubscribe = deps.subscribeEvents?.(event => {
 								if (!subscribed || !live(pkg, activation)) return;
-								try { Promise.resolve(listener(event)).catch(() => {}); } catch { /* Isolate plugin listeners. */ }
+								try { Promise.resolve(listener(event)).catch(() => {}); } catch { /* Aislar los listeners de los plugins. */ }
 							});
 							const off = () => { if (subscribed) { subscribed = false; unsubscribe?.(); } };
 							cleanup(off); return off;
@@ -318,14 +318,14 @@ export function createPluginHost(deps: PluginHostDependencies) {
 						emit(topic, data) {
 							if (!live(pkg, activation)) return;
 							if (!operationId.test(topic)) throw new Error("Invalid plugin notification topic");
-							try { deps.onNotification?.({ pluginId: manifest.id, topic, data }); } catch { /* Isolate observers. */ }
+							try { deps.onNotification?.({ pluginId: manifest.id, topic, data }); } catch { /* Aislar a los observadores. */ }
 						},
 					},
 				};
 				if (!pkg.backend) {
 					const entry = regularFile(pkg.directory, manifest.backend);
-					// This absolute runtime path is deliberately NOT an import/require in
-					// Next's module graph. Ship scripts/plugin-loader.cjs alongside app.
+					// Esta ruta absoluta en tiempo de ejecución NO es a propósito un import/require en el
+					// grafo de módulos de Next. Distribuye scripts/plugin-loader.cjs junto a la app.
 					const sidecar = path.join(process.cwd(), "scripts", "plugin-loader.cjs");
 					const nativeRequire = createRequire(sidecar);
 					const loader = nativeRequire(sidecar) as { load(filename: string): PluginBackendModule };
@@ -368,8 +368,8 @@ export function createPluginHost(deps: PluginHostDependencies) {
 				candidate = { rootDirectory: root, directory: origin === "core" ? root : path.join(/* turbopackIgnore: true */ root, "dist"), files: new Map(), info: { id, origin, enabled: false, status: "error", error: errorText(e), revision: "" }, blocked: true };
 			}
 			const current = packages.get(id);
-			// An unbuilt/invalid package has never admitted executable code. Its
-			// first valid build is ordinary discovery, not a code reload.
+			// Un paquete sin compilar/no válido nunca ha admitido código ejecutable. Su
+			// primera compilación válida es un descubrimiento normal, no una recarga de código.
 			if (current && !(current.blocked && !current.info.manifest)) {
 				if (failed(id)) {
 					await deactivate(current); current.blocked = true; current.info.status = "error";
@@ -392,14 +392,14 @@ export function createPluginHost(deps: PluginHostDependencies) {
 	async function initializeInternal(): Promise<void> {
 		assertOpen();
 		if (initialized) return;
-		const state = readState(stateFile); // Never hide corrupt/future state or execute code first.
+		const state = readState(stateFile); // Nunca se oculta un estado dañado/futuro ni se ejecuta código antes.
 		fs.mkdirSync(directory, { recursive: true });
 		if (!fs.lstatSync(directory).isDirectory() || fs.lstatSync(directory).isSymbolicLink()) throw new Error("Unsafe plugins directory");
 		await discover(state);
 		initialized = true; change();
 	}
 
-	/** One synchronous per-turn snapshot. Failed packages contribute nothing, not even instructions. */
+	/** Una instantánea síncrona por turno. Los paquetes fallidos no aportan nada, ni siquiera instrucciones. */
 	function agentContributions(context: PluginToolContext, reservedToolNames: readonly string[]): PluginAgentContributions {
 		assertOpen();
 		if (!initialized) throw new PluginHostError(503, "Plugin host is not initialized");
@@ -407,7 +407,7 @@ export function createPluginHost(deps: PluginHostDependencies) {
 		const turn = Object.freeze({ chatId: context.chatId, agent: context.agent });
 		const names = new Set(reservedToolNames);
 		const result: PluginAgentContributions = { instructions: [], tools: [] };
-		// Capture ALL registration lists before any factory can change registrations.
+		// Se capturan TODAS las listas de registro antes de que ninguna fábrica pueda cambiar los registros.
 		const contributions = [...packages.keys()].sort().flatMap(id => {
 			const pkg = packages.get(id)!, activation = pkg.activation;
 			return pkg.info.enabled && activation?.ready && live(pkg, activation)
@@ -423,7 +423,7 @@ export function createPluginHost(deps: PluginHostDependencies) {
 					if (!live(pkg, activation)) break;
 					const created: unknown = factory.create(turn);
 					if (!Array.isArray(created)) {
-						// A contract-violating async factory must not leak an unhandled rejection.
+						// Una fábrica asíncrona que incumple el contrato no debe dejar escapar un rechazo sin gestionar.
 						if (created && typeof (created as { then?: unknown }).then === "function") void Promise.resolve(created).catch(() => {});
 						throw new Error("Plugin tool factory must synchronously return a native tool array");
 					}
@@ -492,7 +492,7 @@ export function createPluginHost(deps: PluginHostDependencies) {
 					delete pkg.contributionWarning;
 					if (pkg.restart) pkg.info.error = pkg.restart;
 					else delete pkg.info.error;
-					change(); // The current loadout recovered; independent package diagnostics remain.
+					change(); // La configuración de carga actual se recuperó; los diagnósticos independientes de los paquetes se mantienen.
 				}
 			} catch (e) {
 				if (!live(pkg, activation)) continue;
@@ -500,7 +500,7 @@ export function createPluginHost(deps: PluginHostDependencies) {
 				if (pkg.contributionWarning !== warning) {
 					pkg.contributionWarning = warning;
 					pkg.info.error = [pkg.restart, warning].filter(Boolean).join("; ");
-					change(); // Activation stays active: views, assets and operations remain usable.
+					change(); // La activación sigue activa: las vistas, los recursos y las operaciones siguen siendo utilizables.
 				}
 			}
 		}
@@ -544,7 +544,7 @@ export function createPluginHost(deps: PluginHostDependencies) {
 			return [...packages.values()].map(({ info }) => ({ ...info, ...(info.manifest ? { manifest: { ...info.manifest } } : {}) })).sort((a, b) => a.id.localeCompare(b.id));
 		},
 		setEnabled(id: string, enabled: boolean): Promise<void> {
-			// Let a cooperative in-flight activation finish so queued teardown cannot deadlock.
+			// Se deja terminar una activación cooperativa en curso para que el desmontaje en cola no pueda bloquearse.
 			if (!enabled) {
 				const activation = packages.get(id)?.activation;
 				if (activation && !activation.ready) activation.controller.abort();
@@ -553,7 +553,7 @@ export function createPluginHost(deps: PluginHostDependencies) {
 				assertOpen(); await initializeInternal();
 				if (!PLUGIN_ID_PATTERN.test(id) || typeof enabled !== "boolean") throw new PluginHostError(400, "Invalid plugin enable request");
 				const pkg = get(id);
-				const state = readState(stateFile); // Recheck before overwriting externally changed state.
+				const state = readState(stateFile); // Se vuelve a comprobar antes de sobrescribir un estado cambiado desde fuera.
 				state.enabled[id] = enabled; writeState(stateFile, state);
 				if (enabled && pkg.activation?.ready) return;
 				pkg.info.enabled = enabled;
@@ -563,7 +563,7 @@ export function createPluginHost(deps: PluginHostDependencies) {
 					pkg.info.status = failures.length || pkg.blocked ? "error" : "disabled";
 					pkg.info.error = failures.length ? `Cleanup: ${failures.join("; ")}` : pkg.restart ?? (pkg.blocked ? pkg.info.error : undefined);
 				} else {
-					// Discover edits BEFORE first native evaluation or reactivation.
+					// Se descubren las ediciones ANTES de la primera evaluación nativa o de la reactivación.
 					await discover(state);
 					await activate(pkg);
 				}
@@ -616,7 +616,7 @@ export function createPluginHost(deps: PluginHostDependencies) {
 		},
 		dispose(): Promise<void> {
 			if (disposing) return disposing;
-			disposed = true; // Immediately fence callers, including queued work.
+			disposed = true; // Se bloquea de inmediato a los llamantes, incluido el trabajo en cola.
 			for (const pkg of packages.values()) pkg.activation?.controller.abort();
 			disposing = enqueue(async () => {
 				for (const pkg of packages.values()) { await deactivate(pkg); pkg.info.status = "disabled"; }
