@@ -1,66 +1,75 @@
 "use client";
 
 /**
- * The home knowledge-graph view (W4; vision §1 "Rendering (DECIDED)").
+ * La vista del grafo de conocimiento de Inicio (W4; visión §1 «Rendering
+ * (DECIDED)»).
  *
- * ARCHITECTURE (2026-09-13, decided after the research pass —
- * docs/research/graph-rendering.md, Option B): sigma.js is GONE. The
- * renderer is now a hand-rolled single Canvas 2D (./graph-canvas.ts) —
- * a DUMB DRAW FUNCTION over plain data with ONE requestAnimationFrame
- * loop and a dirty flag. Everything that made the sigma era fragile is
- * structurally impossible now: hulls cannot lag nodes (one loop, one
- * camera, one frame), settings changes cannot shift anything (the
- * camera lives in the renderer and no rebuild ever happens), and the
- * per-camera-event full-canvas repaints (GPU spikes + coil whine) are
- * gone (at most one draw per frame, and NO frame at all while idle).
+ * ARQUITECTURA (2026-09-13, decidida tras la pasada de investigación —
+ * docs/research/graph-rendering.md, opción B): sigma.js HA DESAPARECIDO. El
+ * renderizador es ahora un único Canvas 2D hecho a mano (./graph-canvas.ts) —
+ * una FUNCIÓN DE DIBUJO TONTA sobre datos planos con UN bucle de
+ * requestAnimationFrame y un indicador de sucio. Todo lo que hacía frágil la
+ * época de sigma es ahora estructuralmente imposible: las envolventes no pueden
+ * ir por detrás de los nodos (un bucle, una cámara, un fotograma), los cambios
+ * de ajustes no pueden desplazar nada (la cámara vive en el renderizador y
+ * nunca hay una reconstrucción), y han desaparecido los repintados del canvas
+ * entero por cada evento de cámara (picos de GPU + pitido de bobinas) (como
+ * mucho un dibujo por fotograma, y NINGÚN fotograma en reposo).
  *
- * Layout fallback (ledger absent): ONE synchronous incrementalLayout
- * pass (d3-force, core/layout.ts) inside a useEffect writes world-space
- * x/y, then the positions are handed to the renderer as data. No layout
- * animation ever starts; the only animation is the
- * short hover fade, strictly bounded in time — idle CPU is zero (the
- * loop schedules no rAF until something actually changes).
+ * Alternativa de layout (sin registro): UNA pasada síncrona de
+ * incrementalLayout (d3-force, core/layout.ts) dentro de un useEffect escribe
+ * x/y en el espacio del mundo, y luego las posiciones se pasan al renderizador
+ * como datos. Nunca empieza ninguna animación de layout; la única animación es
+ * el breve fundido del hover, estrictamente acotado en el tiempo — la CPU en
+ * reposo es cero (el bucle no programa ningún rAF hasta que algo cambia de verdad).
  *
- * The component's job is everything AROUND drawing: fetch + refetch the
- * snapshot, run the layout, resolve theme colors to hex, filter via the
- * search box, own the settings panel / detail card / import button /
- * pipeline chips, and FEED the renderer (data, settings, visibility).
- * The renderer's contract stays presentation-only — which is exactly
- * what the upcoming playground and cluster-first layout work needs: a
- * renderer that draws whatever data it is given, never questioning it.
+ * El trabajo del componente es todo lo que RODEA al dibujo: leer + volver a
+ * leer la instantánea, ejecutar el layout, resolver los colores del tema a
+ * hexadecimal, filtrar con el cuadro de búsqueda, ser responsable del panel de
+ * ajustes / la tarjeta de detalle / el botón de importar / los chips del
+ * proceso, y ALIMENTAR al renderizador (datos, ajustes, visibilidad). El
+ * contrato del renderizador sigue siendo solo de presentación — que es
+ * exactamente lo que necesita el trabajo que viene del playground y del layout
+ * por clústeres primero: un renderizador que dibuja los datos que se le den,
+ * sin cuestionarlos nunca.
  *
- * Visual semantics, all preserved verbatim from the sigma era:
- *   - Node labels (the short extractor-coined names) wrap under the
- *     node; one GLOBAL zoom gate fades them together (no per-node pop).
- *   - Hover: a soft glow halo in the node's own color at a constant
- *     radius, opacity cross-faded ~180ms with the name brightening on
- *     the same factor; the whole halo is hit-testable (picking pad).
- *   - Cluster hulls (vision §1): soft layered translucent fills + a
- *     dashed boundary per cluster, stable hue from the cluster id; the
- *     region label at the centroid fades in over the exact zoom span
- *     node labels fade out (THE single zoom control) — and is
- *     toggleable in the settings panel (hulls always draw).
- *   - The persisted labelZoom setting keeps sigma's camera-ratio
- *     convention (1 = fit zoom, SMALLER = zoomed in): labels until
- *     zoom 0.5x means labels appear once zoomed in past 2x fit.
- *   - Click a node -> the detail card anchored just below it (flipping
- *     above near the bottom edge); any camera move dismisses it.
- *     Clicking the empty stage closes it. Search filtering hides nodes
- *     (and their edges) from rendering, picking, hover, AND labels;
- *     an open card closes if its node is filtered out.
+ * Semántica visual, toda conservada tal cual de la época de sigma:
+ *   - Las etiquetas de nodo (los nombres cortos acuñados por el extractor) se
+ *     ajustan bajo el nodo; una única barrera GLOBAL de zoom las desvanece
+ *     juntas (nada de aparecer nodo a nodo).
+ *   - Hover: un halo suave y brillante del propio color del nodo con un radio
+ *     constante, con la opacidad en fundido cruzado ~180 ms y el nombre
+ *     aclarándose con el mismo factor; todo el halo se puede probar (margen de
+ *     selección).
+ *   - Envolventes de los clústeres (visión §1): rellenos translúcidos suaves en
+ *     capas + un borde discontinuo por clúster, con un tono estable a partir del
+ *     id del clúster; la etiqueta de región en el centroide aparece a lo largo
+ *     exactamente del mismo tramo de zoom en que se desvanecen las etiquetas de
+ *     nodo (EL único control de zoom) — y se puede conmutar en el panel de
+ *     ajustes (las envolventes se dibujan siempre).
+ *   - El ajuste persistido labelZoom conserva la convención de ratio de cámara
+ *     de sigma (1 = zoom de encaje, MENOR = más zoom): etiquetas hasta zoom 0.5x
+ *     significa que las etiquetas aparecen al acercar más allá de 2x el encaje.
+ *   - Clic en un nodo -> la tarjeta de detalle anclada justo debajo (se da la
+ *     vuelta hacia arriba cerca del borde inferior); cualquier movimiento de
+ *     cámara la cierra. Hacer clic en el escenario vacío la cierra. El filtrado
+ *     de la búsqueda oculta los nodos (y sus aristas) del renderizado, la
+ *     selección, el hover Y las etiquetas; una tarjeta abierta se cierra si su
+ *     nodo queda filtrado.
  *
- * Rendering settings (2026-09-13): the gear in the search panel reveals
- * five sliders (node size, edge width, arrowhead length, label size, the
- * zoom threshold), and the cluster-labels checkbox. (The supports-edge
- * draw toggle + thickness slider died with supports edges themselves —
- * chains-primary, 2026-09-30.) SERVER-persisted
- * (data/render-settings.json via /api/graph/render-settings): loaded
- * once after mount, saved debounced on every user change — one source
- * of truth shared by every browser. The label-zoom slider is log-scaled
- * (its useful band 0.25–0.5 sits mid-slider, not crammed at the left)
- * and displays normalized units where the default 0.5 reads as "1×".
- * Settings apply by just redrawing — no rebuild, no re-layout, and the
- * camera never moves.
+ * Ajustes de renderizado (2026-09-13): el engranaje del panel de búsqueda
+ * muestra cinco deslizadores (tamaño de nodo, grosor de arista, longitud de la
+ * punta de flecha, tamaño de etiqueta, el umbral de zoom) y la casilla de las
+ * etiquetas de clúster. (El conmutador de dibujo de las aristas de apoyo + el
+ * deslizador de grosor murieron con las propias aristas de apoyo — primero las
+ * cadenas, 2026-09-30.) Persistidos en el SERVIDOR
+ * (data/render-settings.json mediante /api/graph/render-settings): se cargan una
+ * vez tras el montaje y se guardan con debounce en cada cambio del usuario — una
+ * única fuente de verdad compartida por todos los navegadores. El deslizador del
+ * zoom de etiquetas es logarítmico (su banda útil 0,25–0,5 queda en el centro,
+ * no apretujada a la izquierda) y muestra unidades normalizadas en las que el
+ * 0,5 por defecto se lee como «1×». Los ajustes se aplican con solo volver a
+ * dibujar — sin reconstrucción ni nuevo layout, y la cámara nunca se mueve.
  */
 
 import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -115,25 +124,25 @@ import {
 	toSliderPosition,
 } from "@/src/core";
 
-/** The uniform node look (no state classes — canvas wants hex, not oklch):
- *  the accent color, until the state model lands. */
+/** El aspecto uniforme de los nodos (sin clases de estado — el canvas quiere
+ *  hexadecimal, no oklch): el color de acento, hasta que llegue el modelo de estados. */
 const NODE_COLOR_TOKEN = "--primary";
 
-/** Per-device graph camera persistence (zoom+pan view state). v1 in the
- *  key: the stored shape is the renderer's d3 transform {k, x, y}. */
+/** Persistencia por dispositivo de la cámara del grafo (estado de la vista
+ *  zoom+desplazamiento). v1 en la clave: la forma guardada es la transformación de d3 del renderizador {k, x, y}. */
 const CAMERA_STORAGE_KEY = "lh.graph.camera.v1";
 
-// ---- Render settings (the settings-panel controls) ------------------------
+// ---- Ajustes de renderizado (los controles del panel de ajustes) ----------
 //
-// The shape, defaults, sanitizer, and slider mappings live in
-// src/core/render-settings.ts (shared with the server store + tests).
+// La forma, los valores por defecto, el saneador y las correspondencias de los deslizadores viven en
+// src/core/render-settings.ts (compartido con el almacén del servidor + las pruebas).
 
 type RenderSettings = GraphRenderSettings;
 
 /**
- * Pure filter predicate for the search panel: a node is visible when the
- * query is empty or matches its name or statement (case-insensitive).
- * Exported for tests; the visibility feed just consumes its verdict.
+ * Predicado de filtro puro para el panel de búsqueda: un nodo es visible cuando
+ * la consulta está vacía o coincide con su nombre o su enunciado (sin distinguir
+ * mayúsculas). Exportado para las pruebas; el feed de visibilidad solo consume su veredicto.
  */
 export function isNodeVisible(node: Pick<GraphNode, "name" | "statement">, query: string): boolean {
 	const q = query.trim().toLowerCase();
@@ -141,28 +150,30 @@ export function isNodeVisible(node: Pick<GraphNode, "name" | "statement">, query
 	return node.name.toLowerCase().includes(q) || node.statement.toLowerCase().includes(q);
 }
 
-/** In-place sessions patch for a live rename (rename-shuffle fix,
- *  2026-09-23). The OLD path built a fresh snapshot object, which
- *  flowed through the [snapshot]-keyed setData effect → geometry
- *  rebuild → last-fetched ledger became authoritative + pending drag
- *  commit cancelled → the graph visibly rewound whenever display had
- *  drifted. This seam NEVER changes object identity: same snapshot
- *  reference, same clusters array — so the data feed cannot re-fire.
- *  The display refresh rides a separate tick state, and the cluster
- *  label itself goes through the renderer's label-only channel
- *  (setClusterLabels). Exported for tests; pure display state only —
- *  the server derives the same join on its next read. */
+/** Parche en su sitio de las sesiones para un renombrado en vivo (arreglo de la
+ *  mezcla al renombrar, 2026-09-23). La ruta ANTIGUA montaba un objeto de
+ *  instantánea nuevo, que pasaba por el efecto setData con clave [snapshot] →
+ *  reconstrucción de la geometría → el último registro leído pasaba a ser
+ *  autoritativo + se cancelaba la confirmación de arrastre pendiente → el grafo
+ *  se rebobinaba visiblemente siempre que lo mostrado se hubiera desviado. Esta
+ *  frontera NUNCA cambia la identidad de los objetos: la misma referencia de
+ *  instantánea, el mismo array de clústeres — así que el feed de datos no puede
+ *  volver a dispararse. El refresco de lo mostrado va en un estado de tick
+ *  aparte, y la propia etiqueta del clúster pasa por el canal solo de etiquetas
+ *  del renderizador (setClusterLabels). Exportada para las pruebas; solo estado
+ *  de presentación puro — el servidor deriva la misma unión en su siguiente lectura. */
 export function renameSessionsPatch(snapshot: Pick<GraphSnapshot, "sessions">, id: string, title: string): void {
 	snapshot.sessions[id] = title;
 }
 
-/** Seed positions for nodes the ledger doesn't know yet (hygiene,
- *  2026-09-23 fix wave): they used to fall through to a ?? 0 and dump
- *  at the origin. Place them on a deterministic ring around the known
- *  positions' centroid — angle hashed from the id (FNV-1a), golden-angle
- *  spiral offset so even hash collisions spread. Stable across
- *  remounts, far enough off the mass to see, and they relax with the
- *  pack on the next drag. In-place on the provided map; pure otherwise. */
+/** Posiciones semilla para los nodos que el registro aún no conoce (higiene,
+ *  oleada de arreglos del 2026-09-23): antes caían en un ?? 0 y se amontonaban en
+ *  el origen. Se colocan en un anillo determinista alrededor del centroide de las
+ *  posiciones conocidas — ángulo a partir del hash del id (FNV-1a), desplazamiento
+ *  en espiral de ángulo áureo para que incluso las colisiones de hash se
+ *  repartan. Estables entre remontajes, lo bastante lejos de la masa para verse,
+ *  y se relajan con el conjunto en el siguiente arrastre. Modifica en su sitio el
+ *  mapa dado; en lo demás es pura. */
 export function seedMissingNodePositions(
 	nodes: readonly { id: string }[],
 	positions: Map<string, { x: number; y: number }>,
@@ -183,8 +194,8 @@ export function seedMissingNodePositions(
 	const radius = Math.max(maxX - minX, maxY - minY, 40) * 0.7 + 20;
 	const missing = nodes.filter((n) => !positions.has(n.id));
 	missing.forEach((n, i) => {
-		// FNV-1a hash → [0,1) → angle; the golden-angle spiral offset
-		// both spreads collisions and staggers long paths deterministically.
+		// Hash FNV-1a → [0,1) → ángulo; el desplazamiento en espiral de ángulo áureo
+		// reparte las colisiones y escalona de forma determinista las rutas largas.
 		let h = 0x811c9dc5;
 		for (let c = 0; c < n.id.length; c++) {
 			h ^= n.id.charCodeAt(c);
@@ -199,9 +210,9 @@ export function seedMissingNodePositions(
 	return positions;
 }
 
-// ---- Color helpers (canvas wants hex, not oklch) ---------------------------
+// ---- Auxiliares de color (el canvas quiere hexadecimal, no oklch) ----------
 
-/** Resolve a CSS variable (oklch in this app) to #rrggbb via the canvas. */
+/** Resuelve una variable CSS (oklch en esta app) a #rrggbb a través del canvas. */
 function cssColorToHex(css: string): string {
 	const canvas = document.createElement("canvas");
 	canvas.width = 1;
@@ -221,25 +232,25 @@ function tokenHex(cssVar: string): string {
 	return value ? cssColorToHex(value) : "#888888";
 }
 
-// ---- Component ------------------------------------------------------------
+// ---- Componente -----------------------------------------------------------
 
 interface Selection {
 	node: GraphNode;
-	/** The sources that touched this node: chat ids (deep-linkable sessions)
-	 *  and notes-source ids ("src_…" — imported files, static entries). */
+	/** Los orígenes que tocaron este nodo: ids de chat (sesiones enlazables) e ids
+	 *  de orígenes de notas ("src_…" — ficheros importados, entradas estáticas). */
 	sourceIds: string[];
-	/** Node position in container pixels (at click time; camera moves
-	 *  dismiss the card, so it never needs re-anchoring). */
+	/** Posición del nodo en píxeles del contenedor (en el momento del clic; los
+	 *  movimientos de cámara cierran la tarjeta, así que nunca hay que reanclarla). */
 	anchor: { x: number; y: number };
 }
 
-/** One labeled range row for the rendering-settings panel. */
-/** Compact size display for the log sliders: "2", "1.6", "0.75". */
+/** Una fila de rango con etiqueta para el panel de ajustes de renderizado. */
+/** Visualización compacta del tamaño para los deslizadores logarítmicos: "2", "1.6", "0.75". */
 function sizeDisplay(v: number): string {
 	return `${v >= 1 ? Math.round(v * 10) / 10 : Math.round(v * 100) / 100}`;
 }
 
-/** Compact token display: 45231 → "45.2k"; absent → "—". */
+/** Visualización compacta de tokens: 45231 → "45.2k"; ausente → "—". */
 function fmtTokens(n: number | undefined): string {
 	if (n === undefined) return "—";
 	if (n < 1000) return String(Math.round(n));
@@ -247,7 +258,7 @@ function fmtTokens(n: number | undefined): string {
 	return `${(n / 1_000_000).toFixed(2)}M`;
 }
 
-/** Relative time for run rows: "now", "12m", "3h", "2d". */
+/** Tiempo relativo para las filas de ejecuciones: "now", "12m", "3h", "2d". */
 function timeAgo(startedAt: number): string {
 	const mins = Math.round((Date.now() - startedAt) / 60_000);
 	if (mins < 1) return "now";
@@ -257,8 +268,8 @@ function timeAgo(startedAt: number): string {
 	return `${Math.round(hours / 24)}d`;
 }
 
-/** Run/stage cost at 3 decimals (pipeline pennies are real money at this
- *  scale); headline totals use 2. Null (unpriced model) renders "—". */
+/** Coste de la ejecución/fase con 3 decimales (los céntimos del proceso son
+ *  dinero real a esta escala); los totales de cabecera usan 2. Null (modelo sin precio) muestra "—". */
 function fmtRunCost(dollars: number | null, providers: readonly string[] = []): string {
 	return planCostLabel(dollars, providers, (value) => `$${value.toFixed(3)}`);
 }
@@ -274,20 +285,21 @@ function graphUsageLabel(costs: Pick<GraphCostSummary, "stages">): string {
 }
 
 /**
- * The cost figures the UI DISPLAYS (owner refinement round, 2026-09-24):
- * extraction + audit only. Cluster naming is dead — labels are session
- * titles / file names — so the core's naming fold (and its historical
- * spend) is deliberately not shown anywhere: the pill and the panel must
- * agree, and both read THIS, never GraphCostSummary.totalDollars.
- * (The core fold's naming stage was then culled outright — 2026-09-24 —
- * so the recent-runs list carries extraction runs only.)
+ * Las cifras de coste que MUESTRA la interfaz (ronda de ajustes del responsable,
+ * 2026-09-24): solo extracción + auditoría. El nombrado de clústeres está muerto
+ * — las etiquetas son títulos de sesión / nombres de fichero —, así que el
+ * plegado de nombrado del núcleo (y su gasto histórico) a propósito no se
+ * muestra en ningún sitio: la píldora y el panel deben coincidir, y los dos leen
+ * ESTO, nunca GraphCostSummary.totalDollars. (Después, la fase de nombrado del
+ * plegado del núcleo se eliminó del todo — 2026-09-24 —, así que la lista de
+ * ejecuciones recientes solo lleva ejecuciones de extracción.)
  */
 export function displayCostTotals(costs: Pick<GraphCostSummary, "stages">): {
 	totalDollars: number;
 	unpricedRuns: number;
 } {
-	// The two live stages (the spine came and went on one day,
-	// 2026-09-30 — digest-aware extraction replaced it).
+	// Las dos fases vivas (la columna vertebral vino y se fue en un solo día,
+	// 2026-09-30 — la extracción consciente de los resúmenes la sustituyó).
 	return {
 		totalDollars: costs.stages.extraction.dollars + costs.stages.audit.dollars,
 		unpricedRuns: costs.stages.extraction.unpricedRuns + costs.stages.audit.unpricedRuns,
@@ -295,25 +307,26 @@ export function displayCostTotals(costs: Pick<GraphCostSummary, "stages">): {
 }
 
 /**
- * The graph-pipeline cost control (2026-09-20 placement wave): a bare
- * cumulative-dollars number — no pill chrome (owner: "just a number"),
- * hover-highlighted, click toggles the breakdown panel. Same dismiss
- * pattern as the settings gear: outside click or Escape closes. The
- * panel is viewport-capped + scrollable like the coverage dropdown.
+ * El control de coste del proceso del grafo (oleada de colocación del
+ * 2026-09-20): un número desnudo de dólares acumulados — sin cromo de píldora
+ * (responsable: «solo un número»), resaltado al pasar el ratón; el clic abre o
+ * cierra el panel de desglose. El mismo patrón de cierre que el engranaje de
+ * ajustes: un clic fuera o Escape lo cierran. El panel tiene tope de viewport y
+ * se puede desplazar, como el desplegable de cobertura.
  */
-/** Exported for the chains home (graph rendering off, owner
- * 2026-10-06): the same bare cumulative-dollars pill + panel. */
+/** Exportado para el Inicio de cadenas (renderizado del grafo desactivado,
+ * responsable 2026-10-06): la misma píldora desnuda de dólares acumulados + el panel. */
 export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 	const [open, setOpen] = useState(false);
-	// Click anywhere outside (or Escape) closes the panel — the root
-	// wraps button + panel, so the toggle itself keeps working.
+	// Un clic en cualquier sitio fuera (o Escape) cierra el panel — la raíz
+	// envuelve botón + panel, así que el propio conmutador sigue funcionando.
 	const rootRef = useRef<HTMLDivElement>(null);
 	const panelRef = useRef<HTMLDivElement>(null);
 	const popupLayer = usePopoverDismiss(rootRef, open, () => setOpen(false), { layerRootRef: panelRef });
 	return (
 		<div ref={rootRef} className="relative">
 			<Hint
-				// Trimmed (owner, subtlety round 2026-09-25).
+				// Recortado (responsable, ronda de sutileza 2026-09-25).
 				label="Graph costs — click for details"
 				side="bottom"
 			>
@@ -338,22 +351,23 @@ export function GraphCostControl({ costs }: { costs: GraphCostSummary }) {
 }
 
 /**
- * The cost control's expanded panel: stage totals (extraction / audit —
- * dollars headline, tokens secondary) + the recent-runs list.
- * Presentational: the fold happens server-side (core/cost-summary.ts);
- * dollars are inferred read-time, never stored. Cluster naming is GONE
- * from the panel (owner refinement round, 2026-09-24): labels are session
- * titles / file names now, the namer is dead, and its historical spend is
- * not tracked anymore — the headline sums the displayed stages only and
- * naming-kind runs never reach the list.
+ * El panel desplegado del control de coste: totales por fase (extracción /
+ * auditoría — dólares como cabecera, tokens como dato secundario) + la lista de
+ * ejecuciones recientes. De presentación: el plegado ocurre en el servidor
+ * (core/cost-summary.ts); los dólares se infieren al leer, nunca se guardan. El
+ * nombrado de clústeres HA DESAPARECIDO del panel (ronda de ajustes del
+ * responsable, 2026-09-24): las etiquetas son ahora títulos de sesión / nombres
+ * de fichero, el nombrador está muerto y su gasto histórico ya no se sigue — la
+ * cabecera suma solo las fases mostradas y las ejecuciones de tipo nombrado
+ * nunca llegan a la lista.
  */
 function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 	const stageRows: [string, GraphCostSummary["stages"]["extraction"]][] = [
 		["Extraction", costs.stages.extraction],
 		["Audit", costs.stages.audit],
 	];
-	// The displayed figures come from displayCostTotals (naming excluded —
-	// the pill and this panel must agree).
+	// Las cifras mostradas salen de displayCostTotals (sin el nombrado —
+	// la píldora y este panel deben coincidir).
 	const { unpricedRuns } = displayCostTotals(costs);
 	return (
 		<div className="w-80 max-w-[calc(100vw-1.5rem)] rounded-xl border bg-card/95 p-3 text-xs shadow-lg backdrop-blur">
@@ -407,10 +421,11 @@ function GraphCostPanel({ costs }: { costs: GraphCostSummary }) {
 }
 
 /**
- * The rendering-settings gear + its collapsible panel (owner, graph-view
- * round 2): its own container at the top right, separate from the search
- * box and the import button — clicking the gear expands/collapses the
- * panel, which drops below the button, right-aligned with it.
+ * El engranaje de ajustes de renderizado + su panel plegable (responsable,
+ * ronda 2 de la vista de grafo): su propio contenedor arriba a la derecha,
+ * separado del cuadro de búsqueda y del botón de importar — hacer clic en el
+ * engranaje despliega/pliega el panel, que cae bajo el botón, alineado a la
+ * derecha con él.
  */
 function GraphSettingsControl({
 	settings,
@@ -420,8 +435,8 @@ function GraphSettingsControl({
 	changeSettings: (update: (cur: RenderSettings) => RenderSettings) => void;
 }) {
 	const [open, setOpen] = useState(false);
-	// Click anywhere outside (or Escape) closes the panel (2026-09-17) —
-	// the root wraps button + panel, so the toggle itself keeps working.
+	// Un clic en cualquier sitio fuera (o Escape) cierra el panel (2026-09-17) —
+	// la raíz envuelve botón + panel, así que el propio conmutador sigue funcionando.
 	const rootRef = useRef<HTMLDivElement>(null);
 	const panelRef = useRef<HTMLDivElement>(null);
 	const popupLayer = usePopoverDismiss(rootRef, open, () => setOpen(false), { layerRootRef: panelRef });
@@ -430,7 +445,7 @@ function GraphSettingsControl({
 	return (
 		<div ref={rootRef} className="relative">
 			<Hint
-				// User language (tooltip wave) — "rendering" is internal.
+				// Lenguaje del usuario (oleada de tooltips) — "rendering" es interno.
 				label="Graph display settings"
 				side="bottom"
 			>
@@ -446,23 +461,23 @@ function GraphSettingsControl({
 			</button>
 			</Hint>
 			{open && (
-				// Viewport-capped + internally scrollable — the coverage
-				// dropdown's exact pattern (owner, 2026-09-17): max-h keeps a
-				// floor of free space above the window bottom at any height,
-				// and the overflow-y-auto column (which also zeroes the flex
-				// item's min-height) scrolls instead of stretching the page.
-				// w-72 + inner pr (owner, 2026-09-20): the scrollbar used to
-				// press against the content — the panel widens so the scroll
-				// gutter gets real air. Spacing concentric: content -> 10px
-				// (pr-2.5) -> scrollbar -> 10px (p-2.5) -> panel edge. The
-				// scrollbar itself does NOT move: it stays pinned at the same
-				// distance from the panel's right border.
+				// Con tope de viewport + desplazable por dentro — el patrón exacto del
+				// desplegable de cobertura (responsable, 2026-09-17): max-h mantiene un
+				// suelo de espacio libre por encima del borde inferior de la ventana a cualquier altura,
+				// y la columna overflow-y-auto (que además pone a cero el min-height del elemento
+				// flex) se desplaza en vez de estirar la página.
+				// w-72 + pr interior (responsable, 2026-09-20): la barra de scroll se
+				// pegaba al contenido — el panel se ensancha para que el margen del scroll
+				// tenga aire de verdad. Espaciado concéntrico: contenido -> 10px
+				// (pr-2.5) -> barra de scroll -> 10px (p-2.5) -> borde del panel. La
+				// barra de scroll en sí NO se mueve: sigue fija a la misma
+				// distancia del borde derecho del panel.
 				<div ref={panelRef} style={{ zIndex: INTERACTION_LAYER_Z_BASE + popupLayer.order }} className="absolute right-0 top-full mt-2 flex max-h-[60vh] w-72 flex-col rounded-xl border bg-card/85 p-2.5 shadow-lg backdrop-blur">
 					<div className="flex flex-col gap-2 overflow-y-auto pr-2.5">
-							{/* Size/zoom/region sliders: LADDER-mapped 0-100, step 10 (11
-							    stops, every DEFAULT dead-center at 50, every value a nice
-							    number — src/core/render-settings.ts). Physics keeps the
-							    fine-grained log sliders (step 5). */}
+							{/* Deslizadores de tamaño/zoom/región: con correspondencia de ESCALERA 0-100, paso 10 (11
+							posiciones, cada valor POR DEFECTO justo en el centro, en 50, cada valor un número
+							redondo — src/core/render-settings.ts). La física conserva los
+							deslizadores logarítmicos de grano fino (paso 5). */}
 							<SettingSlider
 								label="Node size"
 								min={0}
@@ -503,7 +518,7 @@ function GraphSettingsControl({
 								onChange={(p) =>
 									changeSettings((cur) => ({ ...cur, labelSize: fromLadderPosition(p, LABEL_SIZE_LADDER) }))}
 							/>
-							{/* Display is absolute (ratio / 0.5): "1×" is the default, dead-center (owner, 2026-10-07). */}
+							{/* La visualización es absoluta (ratio / 0,5): «1×» es el valor por defecto, justo en el centro (responsable, 2026-10-07). */}
 							<SettingSlider
 								label="Labels until zoom"
 								min={0}
@@ -514,13 +529,13 @@ function GraphSettingsControl({
 								onChange={(p) =>
 									changeSettings((cur) => ({ ...cur, labelZoom: fromLadderPosition(p, LABEL_ZOOM_LADDER) }))}
 							/>
-							{/* Regions: the blurred cluster tints. Sliders + a fixed-set
-						    dropdown for the bitmap resolution (it's a discrete
-						    choice, not a free number). Server-persisted like the
-						    sizes; every range end was sweep-validated on the real
-						    graph. The enable switch is a COMPUTE switch: off skips
-						    the whole build (splat/blur/readback/blit), not just
-						    the paint. */}
+							{/* Regiones: los tintes desenfocados de los clústeres. Deslizadores + un
+						desplegable de valores fijos para la resolución del mapa de bits (es una
+						elección discreta, no un número libre). Persistidos en el servidor como los
+						tamaños; cada extremo de rango se validó con un barrido sobre el grafo
+						real. El interruptor de activación es un interruptor de CÁLCULO: desactivado se salta
+						toda la construcción (salpicado/desenfoque/relectura/volcado), no solo
+						el pintado. */}
 						<div className="mt-1.5 flex flex-col gap-1.5 border-t pt-1.5">
 							<span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
 								Regions
@@ -603,11 +618,11 @@ function GraphSettingsControl({
 									))}
 								</select>
 							</label>
-							{/* Cluster labels moved here 2026-09-16 (user: cluster
-							    stuff lives in the regions section). Decoupled from
-							    the Background colors switch above — labels follow
-							    their own clusterLabels toggle. Size is screen px
-							    (constant at any zoom, unlike node labels). */}
+							{/* Las etiquetas de clúster se trajeron aquí el 2026-09-16 (usuario: lo de
+							los clústeres vive en la sección de regiones). Desacopladas del
+							interruptor Background colors de arriba — las etiquetas siguen
+							su propio conmutador clusterLabels. El tamaño es en px de pantalla
+							(constante con cualquier zoom, a diferencia de las etiquetas de nodo). */}
 							<label className="flex cursor-pointer items-center justify-between text-[11px] text-muted-foreground">
 								<span>Cluster labels</span>
 								<input
@@ -632,16 +647,16 @@ function GraphSettingsControl({
 									}))}
 							/>
 						</div>
-						{/* Physics: the live sim's forces. Every value feeds the SAME
-						    engine the server settle runs (createGraphSimulation);
-						    changing one rebuilds the sim from the current positions —
-						    drag mid-settle re-anneals, pins survive. Sliders over
-						    sweep-validated ranges (src/core/render-settings.ts):
-						    range ends and all four corners settle cleanly — no NaN,
-						    no explosion, no non-settle. Repulsion is displayed as
-						    the negative it is; cluster pull's far left = off.
-						    Order (user 2026-09-17): general forces first; depth
-						    anchor + its gray-out-able controls last. */}
+						{/* Física: las fuerzas de la simulación viva. Cada valor alimenta el MISMO
+						motor que ejecuta el asentamiento del servidor (createGraphSimulation);
+						cambiar uno reconstruye la simulación desde las posiciones actuales —
+						arrastrar a mitad de asentamiento vuelve a recocer, las fijaciones sobreviven. Deslizadores sobre
+						rangos validados con barridos (src/core/render-settings.ts):
+						los extremos de rango y las cuatro esquinas se asientan limpiamente — sin NaN,
+						sin explosiones, sin quedarse sin asentar. La repulsión se muestra como
+						el negativo que es; el extremo izquierdo de la atracción del clúster = desactivada.
+						Orden (usuario 2026-09-17): primero las fuerzas generales; el ancla
+						de profundidad + sus controles que pueden quedar en gris, al final. */}
 						<div className="mt-1.5 flex flex-col gap-1.5 border-t pt-1.5">
 							<span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
 								Physics
@@ -724,10 +739,10 @@ function GraphSettingsControl({
 										physics: { ...cur.physics, velocityDecay: fromSliderPosition(p, VELOCITY_DECAY_RANGE.min, VELOCITY_DECAY_RANGE.max) },
 									}))}
 							/>
-							{/* Depth anchor LAST (user 2026-09-17): general
-							    forces first, then the mode + its conditional
-							    controls at the very bottom — the grayed group reads
-							    as a self-contained sub-section. */}
+							{/* El ancla de profundidad AL FINAL (usuario 2026-09-17): primero las
+							fuerzas generales y después el modo + sus controles
+							condicionales abajo del todo — el grupo en gris se lee
+							como una subsección autónoma. */}
 							<label className="flex items-center justify-between gap-2 text-xs">
 								Depth anchor
 								<select
@@ -795,14 +810,15 @@ function GraphSettingsControl({
 	);
 }
 
-/** The top-chrome actions row's body (empty-graph chrome wave, owner
- *  2026-09-25): Import Notes renders ALWAYS (graph enabled) — it's the
- *  one action that works on an empty graph, the entry point itself;
- *  search + settings render only when the snapshot has nodes (dead
- *  controls are lies — the honesty principle). The two gated controls
- *  fade in on their mount (graph-chrome-fade-in, globals.css — the
- *  appear-once transition as the first nodes land). Exported pure for
- *  the empty/populated SSR pins (the DeleteNodeBody pattern). */
+/** El cuerpo de la fila de acciones del cromo superior (oleada del cromo del
+ *  grafo vacío, responsable 2026-09-25): Import Notes se renderiza SIEMPRE (con
+ *  el grafo activado) — es la única acción que funciona con un grafo vacío, el
+ *  propio punto de entrada; la búsqueda + los ajustes solo se renderizan cuando
+ *  la instantánea tiene nodos (los controles muertos son mentiras — el principio
+ *  de honestidad). Los dos controles con barrera aparecen con un fundido al
+ *  montarse (graph-chrome-fade-in, globals.css — la transición de aparecer una
+ *  vez cuando llegan los primeros nodos). Exportado como función pura para las
+ *  fijaciones SSR de vacío/poblado (el patrón de DeleteNodeBody). */
 export function GraphChromeRow({
 	isEmpty,
 	query,
@@ -818,15 +834,15 @@ export function GraphChromeRow({
 	isEmpty: boolean;
 	query: string;
 	onQuery: (v: string) => void;
-	/** The search panel's "No matching nodes." note (computed by the
-	 *  wrapper — it owns visibleIds + the snapshot). */
+	/** La nota "No matching nodes." del panel de búsqueda (la calcula el
+	 *  envoltorio — es responsable de visibleIds + la instantánea). */
 	noMatch: boolean;
 	importing: boolean;
 	searchInputRef: React.RefObject<HTMLInputElement | null>;
 	onImportFiles: (files: FileList | null) => void;
 	settings: GraphRenderSettings;
 	changeSettings: (update: (cur: RenderSettings) => RenderSettings) => void;
-	/** Opens the chain table overlay (the chains-overlay plan,
+	/** Abre el overlay de la tabla de cadenas (el plan del overlay de cadenas,
 	 *  2026-09-29). */
 	onOpenChains: () => void;
 }) {
@@ -835,7 +851,7 @@ export function GraphChromeRow({
 			{!isEmpty && (
 				<div className="graph-chrome-fade-in w-56 min-w-0 shrink rounded-xl border bg-card/85 px-1 py-[3px] shadow-lg backdrop-blur">
 					<Hint
-						// ⌘F focuses node search (surface-scoped registry action).
+						// ⌘F enfoca la búsqueda de nodos (acción del registro con ámbito de superficie).
 						label="Search nodes"
 						action="find"
 						side="bottom"
@@ -858,8 +874,8 @@ export function GraphChromeRow({
 					)}
 				</div>
 			)}
-			{/* The chain table (chains overlay, owner plan 2026-09-29). Own
-			    container (36px band), between the search and Import. */}
+			{/* La tabla de cadenas (overlay de cadenas, plan del responsable 2026-09-29). Su
+			propio contenedor (franja de 36px), entre la búsqueda e Import. */}
 			<div className="graph-chrome-fade-in shrink-0 rounded-xl border bg-card/85 px-1 py-[3px] shadow-lg backdrop-blur">
 					<Hint label="Every reasoning chain" side="bottom">
 						<button
@@ -873,15 +889,15 @@ export function GraphChromeRow({
 						</button>
 					</Hint>
 				</div>
-			{/* Import notes — its own container (36px, header band); ALWAYS
-			    rendered (the empty-graph ruling above — the entry point). */}
+			{/* Importar notas — su propio contenedor (36px, franja de cabecera); SIEMPRE
+			renderizado (la decisión del grafo vacío de arriba — el punto de entrada). */}
 			<NotesImportControl importing={importing} onImportFiles={onImportFiles} />
 			{!isEmpty && (
-				// Rendering settings — own component; the gear toggles it. The
-				// gear sits at the far right (owner, round 3) so its panel drops
-				// at the very right edge, over less of the graph. The fade wrapper
-				// is a plain shrink-0 flex child — the panel itself positions
-				// within GraphSettingsControl's own relative root, unaffected.
+				// Ajustes de renderizado — componente propio; el engranaje lo conmuta. El
+				// engranaje está en el extremo derecho (responsable, ronda 3) para que su panel caiga
+				// en el borde derecho del todo, tapando menos grafo. El envoltorio del fundido
+				// es un hijo flex shrink-0 normal — el propio panel se posiciona
+				// dentro de la raíz relativa de GraphSettingsControl, sin verse afectado.
 				<div className="graph-chrome-fade-in shrink-0">
 					<GraphSettingsControl settings={settings} changeSettings={changeSettings} />
 				</div>
@@ -896,11 +912,11 @@ export function GraphView({
 	onPracticeSelectionChange,
 	onChainSelectClose,
 }: {
-	/** PRACTICE SELECT (owner vision, 2026-10-04): the LIFTED, persistent
-	 *  pick set — every check/clear in the chain table (however opened)
-	 *  reports the full node list up immediately; the composer-side chip
-	 *  reflects it live. chainSelectOpen still drives the picker mode
-	 *  (Done instead of Delete). */
+	/** SELECCIÓN PARA PRÁCTICA (visión del responsable, 2026-10-04): el conjunto
+	 *  elegido ELEVADO y persistente — cada marcar/limpiar en la tabla de cadenas (se
+	 *  abra como se abra) comunica hacia arriba la lista completa de nodos de
+	 *  inmediato; el chip del lado del compositor lo refleja en vivo. chainSelectOpen
+	 *  sigue dirigiendo el modo selector (Done en lugar de Delete). */
 	chainSelectOpen?: boolean;
 	practiceSelection?: ReadonlySet<string>;
 	onPracticeSelectionChange?: (nodes: { id: string; name: string; statement: string }[]) => void;
@@ -913,32 +929,32 @@ export function GraphView({
 	const { resolvedMode, colors } = useAppearance();
 	const [snapshot, setSnapshot] = useState<GraphSnapshot | null>(null);
 	const [selected, setSelected] = useState<Selection | null>(null);
-	// The latest snapshot for the renderer's click callbacks (they are
-	// constructed once, so they read through this ref, never a closure).
+	// La última instantánea para los callbacks de clic del renderizador (se
+	// construyen una vez, así que leen a través de esta ref, nunca de un closure).
 	const snapshotRef = useRef<GraphSnapshot | null>(null);
 	snapshotRef.current = snapshot;
 
-	// Search panel state: the query text + the settings section toggle.
+	// Estado del panel de búsqueda: el texto de la consulta + el conmutador de la sección de ajustes.
 	const [query, setQuery] = useState("");
-	// Surface-scoped Find: the chains overlay owns it while open.
+	// Find con ámbito de superficie: el overlay de cadenas lo tiene mientras está abierto.
 	const searchInputRef = useRef<HTMLInputElement>(null);
-	// Render settings: SERVER-persisted (data/render-settings.json via
-	// /api/graph/render-settings) — sizes AND the region/physics sections
-	// (user-facing since 2026-09-13; the dev-session era is over). Loaded
-	// once after mount; every user change saves back, debounced. Defaults
-	// render until the load resolves — a fraction of a second at worst.
+	// Ajustes de renderizado: persistidos en el SERVIDOR (data/render-settings.json mediante
+	// /api/graph/render-settings) — los tamaños Y las secciones de región/física
+	// (de cara al usuario desde el 2026-09-13; la época de la sesión de desarrollo terminó). Se cargan
+	// una vez tras el montaje; cada cambio del usuario se guarda de vuelta, con debounce. Los valores
+	// por defecto se renderizan hasta que se resuelve la carga — una fracción de segundo como mucho.
 	const [settings, setSettings] = useState<GraphRenderSettings>(DEFAULT_RENDER_SETTINGS);
-	// The two nested sections, unpacked for the renderer feed effects
-	// below (same names the old session state had).
+	// Las dos secciones anidadas, desempaquetadas para los efectos de alimentación del
+	// renderizador de más abajo (los mismos nombres que tenía el antiguo estado de sesión).
 	const regionTuning = settings.regions;
 	const physicsTuning = settings.physics;
 	const settingsRef = useRef(settings);
 	settingsRef.current = settings;
-	// True once the user has moved a control this mount: the server copy
-	// must never clobber a (possibly newer) local change.
+	// True en cuanto el usuario ha movido un control en este montaje: la copia del servidor
+	// nunca debe machacar un cambio local (posiblemente más nuevo).
 	const userTouched = useRef(false);
-	// True once the initial GET settled — saves are held back until then,
-	// so merely mounting never PUTs defaults over the server copy.
+	// True en cuanto se asentó el GET inicial — hasta entonces se retienen los guardados,
+	// para que montar sin más nunca envíe con PUT los valores por defecto encima de la copia del servidor.
 	const serverLoaded = useRef(false);
 	const savePending = useRef(false);
 	const changeSettings = (update: (cur: RenderSettings) => RenderSettings) => {
@@ -956,16 +972,16 @@ export function GraphView({
 		fetch("/api/graph/render-settings")
 			.then((res) => (res.ok ? (res.json() as Promise<unknown>) : null))
 			.then((raw) => {
-				// Apply only if the user hasn't already moved a slider —
-				// if they outran the network, their change wins.
+				// Aplica solo si el usuario no ha movido ya un deslizador —
+				// si se adelantó a la red, gana su cambio.
 				if (raw !== null && !userTouched.current) setSettings(sanitizeRenderSettings(raw));
 			})
 			.catch(() => {
-				// server unreachable → in-memory defaults keep working
+				// servidor inalcanzable → los valores por defecto en memoria siguen funcionando
 			})
 			.finally(() => {
 				serverLoaded.current = true;
-				// A change made during the fetch was held back — send now.
+				// Se retuvo un cambio hecho durante la lectura — envíalo ahora.
 				if (savePending.current) {
 					savePending.current = false;
 					saveToServer(settingsRef.current);
@@ -973,23 +989,23 @@ export function GraphView({
 			});
 	}, []);
 	useEffect(() => {
-		if (!userTouched.current) return; // mount-run / server-apply: no save
+		if (!userTouched.current) return; // ejecución al montar / aplicación del servidor: no se guarda
 		if (!serverLoaded.current) {
-			savePending.current = true; // hold until the GET settles
+			savePending.current = true; // espera a que se asiente el GET
 			return;
 		}
 		const id = setTimeout(() => saveToServer(settings), 400);
 		return () => clearTimeout(id);
 	}, [settings]);
 
-	// The renderer instance lives across snapshot refetches and settings
-	// changes (its camera is never reset by either); `posRef` carries the
-	// frozen layout out of the layout effect.
+	// La instancia del renderizador sobrevive a las relecturas de la instantánea y a los cambios
+	// de ajustes (ninguno de los dos reinicia su cámara); `posRef` saca el
+	// layout congelado del efecto de layout.
 	const rendererRef = useRef<GraphCanvasRenderer | null>(null);
 	const posRef = useRef<Map<string, { x: number; y: number }> | null>(null);
 
-	// The id set that survives the current search — consumed by the
-	// visibility feed and the "no matches" hint.
+	// El conjunto de ids que sobrevive a la búsqueda actual — lo consumen el
+	// feed de visibilidad y la pista de "no matches".
 	const visibleIds = useMemo(() => {
 		const set = new Set<string>();
 		if (snapshot)
@@ -999,11 +1015,11 @@ export function GraphView({
 		return set;
 	}, [snapshot, query]);
 
-	// Fetch the derived graph. Re-runs when a background pipeline run
-	// finishes (refreshTick) — its merges just landed in the ledger.
+	// Lee el grafo derivado. Se vuelve a ejecutar cuando termina una ejecución del proceso en
+	// segundo plano (refreshTick) — sus fusiones acaban de llegar al registro.
 	const [refreshTick, setRefreshTick] = useState(0);
-	// The chain table overlay (chains-overlay plan, 2026-09-29) —
-	// component-local: a browsing surface, not graph state.
+	// El overlay de la tabla de cadenas (plan del overlay de cadenas, 2026-09-29) —
+	// local al componente: una superficie para explorar, no estado del grafo.
 	const [chainsOpen, setChainsOpen] = useState(false);
 	useEffect(() => {
 		if (chainsOpen) return;
@@ -1011,9 +1027,9 @@ export function GraphView({
 		window.addEventListener("lh:kbd-find", onFind);
 		return () => window.removeEventListener("lh:kbd-find", onFind);
 	}, [chainsOpen, interactions]);
-	// PRACTICE SELECT (2026-10-04): the parent's chip drives the select
-	// mode; closing (either the picker's confirm or its X) reports back so
-	// the chip's open state and the table's never disagree.
+	// SELECCIÓN PARA PRÁCTICA (2026-10-04): el chip del padre dirige el modo de
+	// selección; al cerrar (con la confirmación del selector o con su X) se comunica de vuelta para que
+	// el estado abierto del chip y el de la tabla nunca discrepen.
 	useEffect(() => {
 		if (chainSelectOpen) setChainsOpen(true);
 	}, [chainSelectOpen]);
@@ -1030,14 +1046,14 @@ export function GraphView({
 		};
 	}, [refreshTick]);
 
-	// Notes import (the format-agnostic front door): file picker → POST
-	// /api/graph/import; the runs surface in the status chips below, and the
-	// graph refetches when they finish (the runs-empty transition).
-	// The dock's start-site nudge (accuracy wave, 2026-09-19): the import
-	// POST awaits the WHOLE pipeline server-side, so the run registers long
-	// before the response — nudge at click and again at +600ms to catch the
-	// start; from its first setPhase the run announces itself on the events
-	// channel (S5), and the dock rides those announcements thereafter.
+	// Importación de notas (la puerta de entrada independiente del formato): selector de ficheros → POST
+	// /api/graph/import; las ejecuciones aparecen en los chips de estado de más abajo, y el
+	// grafo se vuelve a leer cuando terminan (la transición a ejecuciones vacías).
+	// El empujón del sitio de inicio del dock (oleada de precisión, 2026-09-19): el POST de
+	// importación espera a TODO el proceso en el servidor, así que la ejecución se registra mucho
+	// antes de la respuesta — empuja al hacer clic y otra vez a los +600 ms para atrapar el
+	// inicio; desde su primer setPhase la ejecución se anuncia a sí misma en el canal
+	// de eventos (S5), y a partir de ahí el dock va con esos anuncios.
 	const refreshActivity = useActivity().refresh;
 	const notesImport = useNotesImport({
 		onStart: () => {
@@ -1047,19 +1063,19 @@ export function GraphView({
 	});
 	const { importing, onImportFiles } = notesImport;
 
-	// Background pipeline status: read /api/graph/status; whenever a run
-	// LEAVES the feed (finished / aborted / failed), refetch the graph.
-	// A run only leaves the registry after its merge + settle + usage
-	// persist complete, so disappearance ⇒ the graph change is already on
-	// disk. The old some→none transition batched PARALLEL runs into one
-	// reveal (owner 2026-09-28): with serialized audits, the first run's
-	// merge is its own graph change and must surface immediately, not wait
-	// for the whole feed to drain. A redundant fetch on aborted runs is
-	// free — the same doctrine as the deletion-refresh path below.
-	// Tracked by ROW id (the registry JOB key — source id, or "src#i" for
-	// chunk jobs), NOT chatId: chatId-scoping re-batched per-chunk jobs
-	// into one end-of-import reveal (the exact bug this rule exists to
-	// prevent — a chunk's row leaving IS its merge landing).
+	// Estado del proceso en segundo plano: lee /api/graph/status; siempre que una ejecución
+	// SALE del feed (terminada / abortada / fallida), vuelve a leer el grafo.
+	// Una ejecución solo sale del registro después de que terminen su fusión + asentamiento + persistencia
+	// del uso, así que su desaparición ⇒ el cambio del grafo ya está en
+	// disco. La antigua transición de alguna→ninguna agrupaba las ejecuciones PARALELAS en una sola
+	// revelación (responsable 2026-09-28): con las auditorías serializadas, la fusión de la primera ejecución
+	// es su propio cambio del grafo y debe aparecer de inmediato, no esperar
+	// a que se vacíe todo el feed. Una lectura redundante con las ejecuciones abortadas sale
+	// gratis — la misma doctrina que la ruta de refresco por borrado de más abajo.
+	// Se sigue por id de FILA (la clave de TAREA del registro — id de origen, o "src#i" para
+	// las tareas por fragmento), NO por chatId: el ámbito por chatId volvía a agrupar las tareas por fragmento
+	// en una única revelación al final de la importación (el fallo exacto que esta regla existe para
+	// evitar — que la fila de un fragmento salga ES que llega su fusión).
 	const [pipelineRuns, setPipelineRuns] = useState<{ id: string; chatId: string; title: string; phase: string; startedAt: number }[]>([]);
 	const rowIdsRef = useRef<Set<string>>(new Set());
 	const readPipelineStatus = useCallback(() => {
@@ -1071,15 +1087,15 @@ export function GraphView({
 				if ([...rowIdsRef.current].some((id) => !ids.has(id))) setRefreshTick((t) => t + 1);
 				rowIdsRef.current = ids;
 			})
-			.catch(() => {}); // status is cosmetic — never surface read errors
+			.catch(() => {}); // el estado es cosmético — nunca muestres los errores de lectura
 	}, []);
-	// PUSH (S7, 2026-10-02): the standing 2s poll is RETIRED — the
-	// extraction registry announces every phase transition and every
-	// finish (activity-changed), so each read lands exactly when truth
-	// moved. The per-chunk reveal semantics are PRESERVED event-for-event:
-	// setPhase + finishExtraction fire per part, so a chunk's row leaving
-	// is still its own, immediately-visible merge landing. Debounced (the
-	// S4 law); resync heals a reconnect that ate events.
+	// PUSH (S7, 2026-10-02): el sondeo permanente de 2 s está RETIRADO — el
+	// registro de extracción anuncia cada transición de fase y cada
+	// final (activity-changed), así que cada lectura llega justo cuando se movió
+	// la verdad. La semántica de revelación por fragmento se CONSERVA evento a evento:
+	// setPhase + finishExtraction se disparan por parte, así que la salida de la fila de un fragmento
+	// sigue siendo su propia fusión, visible de inmediato. Con debounce (la
+	// ley de S4); la resincronización repara una reconexión que se comió eventos.
 	const statusDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 	useServerEvent("activity-changed", () => {
 		if (statusDebounceRef.current) clearTimeout(statusDebounceRef.current);
@@ -1096,13 +1112,13 @@ export function GraphView({
 		};
 	}, [readPipelineStatus]);
 
-	// Graph pipeline costs (2026-09 cost metrics wave): the cumulative fold
-	// of the usage channels (chat + notes extraction runs; the dead namer's
-	// channel is not displayed anymore, owner 2026-09-24)
-	// behind the bottom-left cost pill. Fetched once on mount and refetched
-	// when a pipeline run finishes (running -> none) so fresh spend lands
-	// without a manual reload. Best-effort: a fetch failure never blocks
-	// the view — the pill just stays on its last numbers.
+	// Costes del proceso del grafo (oleada de métricas de coste de 2026-09): el plegado acumulado
+	// de los canales de uso (ejecuciones de extracción de chat + notas; el canal del nombrador
+	// muerto ya no se muestra, responsable 2026-09-24)
+	// detrás de la píldora de coste de abajo a la izquierda. Se lee una vez al montar y se vuelve a leer
+	// cuando termina una ejecución del proceso (en ejecución -> ninguna) para que el gasto nuevo llegue
+	// sin recargar a mano. En la medida de lo posible: un fallo de lectura nunca bloquea
+	// la vista — la píldora simplemente se queda con sus últimas cifras.
 	const [costs, setCosts] = useState<GraphCostSummary | null>(null);
 	const refreshCosts = useCallback(() => {
 		fetch("/api/graph/costs")
@@ -1113,9 +1129,9 @@ export function GraphView({
 	useEffect(() => {
 		refreshCosts();
 	}, [refreshCosts]);
-	// The same disappearance rule as the snapshot refresh (owner
-	// 2026-09-28): usage persists per JOB (per-chunk jobs), so costs refresh
-	// per job row — not only when the whole feed drains.
+	// La misma regla de desaparición que el refresco de la instantánea (responsable
+	// 2026-09-28): el uso se persiste por TAREA (tareas por fragmento), así que los costes se refrescan
+	// por fila de tarea — no solo cuando se vacía todo el feed.
 	const prevRunIds = useRef(new Set<string>());
 	useEffect(() => {
 		const gone = [...prevRunIds.current].some((id) => !pipelineRuns.some((r) => r.id === id));
@@ -1123,13 +1139,13 @@ export function GraphView({
 		prevRunIds.current = new Set(pipelineRuns.map((r) => r.id));
 	}, [pipelineRuns, refreshCosts]);
 
-	/* Deletion refresh (wave 6 chunk A): the DELETE /api/chats/:id response
-	   carries the new graphRevision, and the sidebar (which owns the delete
-	   flow) announces it as lh:graph-revision. The status poll above can't
-	   see a deletion — no pipeline run ever disappears from the feed for
-	   it — so this event is the one seam. Refetch the snapshot and the
-	   costs on every announcement: deletions are rare, a redundant fetch
-	   is free. */
+	/* Refresco por borrado (oleada 6, fragmento A): la respuesta de DELETE /api/chats/:id
+	lleva la nueva graphRevision, y la barra lateral (responsable del flujo de
+	borrado) la anuncia como lh:graph-revision. El sondeo de estado de arriba no puede
+	ver un borrado — ninguna ejecución del proceso desaparece nunca del feed por
+	ello —, así que este evento es la única frontera. Vuelve a leer la instantánea y los
+	costes con cada anuncio: los borrados son raros, una lectura redundante
+	sale gratis. */
 	useEffect(() => {
 		const onRevision = () => {
 			setRefreshTick((t) => t + 1);
@@ -1139,18 +1155,18 @@ export function GraphView({
 		return () => window.removeEventListener("lh:graph-revision", onRevision);
 	}, [refreshCosts]);
 
-	/* Live rename labels (rename-shuffle fix, 2026-09-23): a session
-	   rename anywhere (sidebar inline row, chat header) announces itself
-	   as lh:chat-renamed {id, title} — and the birth-session partition
-	   means that title IS the cluster label. The label update goes
-	   through the renderer's label-only channel (setClusterLabels): NO
-	   new snapshot object, NO setData, NO geometry rebuild — so the
-	   position ledger can't assert itself and a pending drag commit
-	   survives. The sessions map (the detail card's provenance line)
-	   patches in place; a tick bump re-renders the view so an open
-	   detail card reads the fresh title. Unlabeled clusters keep their
-	   hull-only silence — the null-label guard lives in the channel
-	   (applyClusterLabels): a rename can't reach a gone record. */
+	/* Etiquetas vivas al renombrar (arreglo de la mezcla al renombrar, 2026-09-23): el
+	renombrado de una sesión en cualquier sitio (fila en línea de la barra lateral, cabecera del chat) se anuncia
+	como lh:chat-renamed {id, title} — y la partición por sesión de nacimiento
+	significa que ese título ES la etiqueta del clúster. La actualización de la etiqueta pasa
+	por el canal solo de etiquetas del renderizador (setClusterLabels): NADA de
+	objeto de instantánea nuevo, NADA de setData, NADA de reconstrucción de la geometría — así que el
+	registro de posiciones no puede imponerse y una confirmación de arrastre pendiente
+	sobrevive. El mapa de sesiones (la línea de procedencia de la tarjeta de detalle)
+	se parchea en su sitio; un incremento del tick vuelve a renderizar la vista para que una tarjeta de
+	detalle abierta lea el título nuevo. Los clústeres sin etiqueta conservan su
+	silencio de solo envolvente — la guarda de la etiqueta null vive en el canal
+	(applyClusterLabels): un renombrado no puede alcanzar un registro desaparecido. */
 	const [, setLabelTick] = useState(0);
 	useEffect(() => {
 		const onRenamed = (e: Event) => {
@@ -1164,7 +1180,7 @@ export function GraphView({
 		const onSourceRenamed = (event: Event) => {
 			const { id, title } = (event as CustomEvent<{ id?: string; title?: string }>).detail ?? {};
 			if (typeof id !== "string" || typeof title !== "string") return;
-			// Label-only channel: never rebuild geometry or rewrite fileSources.
+			// Canal solo de etiquetas: nunca reconstruyas la geometría ni reescribas fileSources.
 			rendererRef.current?.setClusterLabels(new Map([[id, title]]));
 		};
 		window.addEventListener("lh:chat-renamed", onRenamed);
@@ -1172,11 +1188,11 @@ export function GraphView({
 		return () => { window.removeEventListener("lh:chat-renamed", onRenamed); window.removeEventListener("lh:source-renamed", onSourceRenamed); };
 	}, []);
 
-	// The node context menu (node interlude): right-click a node → Delete.
-	// The anchor is a zero-size div positioned at the pointer inside the
-	// canvas container — MenuShell's placement machine measures it like
-	// any element. Camera moves close the menu (it would float stale);
-	// the dismissal contract is the sidebar's (wave 6).
+	// El menú contextual de los nodos (interludio de nodos): clic derecho en un nodo → Delete.
+	// El ancla es un div de tamaño cero colocado en el puntero dentro del
+	// contenedor del canvas — la máquina de colocación de MenuShell lo mide como
+	// cualquier elemento. Los movimientos de cámara cierran el menú (quedaría flotando obsoleto);
+	// el contrato de cierre es el de la barra lateral (oleada 6).
 	const [ctxNode, setCtxNode] = useState<{ id: string; name: string; x: number; y: number } | null>(null);
 	const ctxAnchorRef = useRef<HTMLDivElement | null>(null);
 	const [deletingNode, setDeletingNode] = useState<{ id: string; name: string } | null>(null);
@@ -1193,16 +1209,16 @@ export function GraphView({
 		return () => document.removeEventListener("pointerdown", onPointerDown);
 	}, [ctxNode, interactions]);
 
-	// Layout (Option A): the positions ledger (written by the server's
-	// incremental settle after every merge) IS the layout — the renderer
-	// receives it as frozen data. The local one-shot forceAtlas2 pass runs
-	// ONLY as a fallback when the ledger is absent (a graph never merged
-	// through the pipeline, e.g. tests or a fresh install).
+	// Layout (opción A): el registro de posiciones (que escribe el asentamiento
+	// incremental del servidor tras cada fusión) ES el layout — el renderizador
+	// lo recibe como datos congelados. La pasada local única de forceAtlas2 se ejecuta
+	// SOLO como alternativa cuando falta el registro (un grafo nunca fusionado
+	// a través del proceso, p. ej. pruebas o una instalación nueva).
 	useEffect(() => {
 		if (!snapshot || snapshot.nodes.length === 0) return;
-		// The ledger path: every positioned node uses its resting position;
-		// nodes the ledger doesn't know yet (raced mid-settle) fall through
-		// to seeded scatter below.
+		// La ruta del registro: cada nodo con posición usa su posición de reposo;
+		// los nodos que el registro aún no conoce (en carrera a mitad de asentamiento) pasan
+		// a la dispersión con semilla de más abajo.
 		const ledger = snapshot.positions;
 		if (ledger) {
 			const positions = new Map<string, { x: number; y: number }>();
@@ -1211,37 +1227,37 @@ export function GraphView({
 				if (p) positions.set(node.id, { x: p.x, y: p.y });
 			}
 			if (positions.size > 0) {
-				// Hygiene (2026-09-23 fix wave): nodes the ledger doesn't know
-				// yet (raced mid-settle) get seeded ring positions instead of
-				// the old ?? 0 origin dump.
+				// Higiene (oleada de arreglos del 2026-09-23): los nodos que el registro aún no
+				// conoce (en carrera a mitad de asentamiento) reciben posiciones de anillo con semilla en vez de
+				// amontonarse en el origen con el antiguo ?? 0.
 				posRef.current = seedMissingNodePositions(snapshot.nodes, positions);
 				return () => {
 					posRef.current = null;
 				};
 			}
 		}
-		// Bootstrap fallback: the ledger is absent (fresh graph) — run
-		// the SAME engine the server settle uses (d3-force via
-		// incrementalLayout, seeded deterministic) and freeze the result.
-		// Deterministic for a given node set across remounts.
+		// Alternativa de arranque: falta el registro (grafo nuevo) — ejecuta
+		// el MISMO motor que usa el asentamiento del servidor (d3-force mediante
+		// incrementalLayout, determinista con semilla) y congela el resultado.
+		// Determinista para un conjunto de nodos dado entre remontajes.
 		posRef.current = incrementalLayout(snapshot.nodes, snapshot.edges, new Map());
 		return () => {
 			posRef.current = null;
 		};
 	}, [snapshot]);
 
-	// Construct the renderer once the canvas exists; destroy when it goes
-	// away (the empty-graph placeholder replaces it). The callbacks are
-	// created once and read through refs, so they never go stale.
+	// Construye el renderizador en cuanto existe el canvas; destrúyelo cuando
+	// desaparezca (el provisional del grafo vacío lo sustituye). Los callbacks se
+	// crean una vez y leen a través de refs, así que nunca quedan obsoletos.
 	const isEmpty = snapshot === null || snapshot.nodes.length === 0;
 	useEffect(() => {
 		if (isEmpty) return;
 		const canvas = canvasRef.current;
 		if (!canvas) return;
-		// Persisted camera (2026-09-15): the graph reopens exactly where the
-		// user left it — zoom AND pan, in localStorage (per-device view
-		// state, deliberately NOT the server settings ledger). Absent or
-		// corrupt → undefined → the renderer fits on first open, ever.
+		// Cámara persistida (2026-09-15): el grafo se reabre exactamente donde lo
+		// dejó el usuario — zoom Y desplazamiento, en localStorage (estado de la vista por dispositivo,
+		// a propósito NO en el registro de ajustes del servidor). Ausente o
+		// corrupta → undefined → el renderizador encaja en la primera apertura, de todas las que haya.
 		let initialCamera: { k: number; x: number; y: number } | null = null;
 		try {
 			const stored = localStorage.getItem(CAMERA_STORAGE_KEY);
@@ -1255,10 +1271,10 @@ export function GraphView({
 					initialCamera = { k: parsed.k, x: parsed.x, y: parsed.y };
 			}
 		} catch {
-			// Corrupt entry → treat as absent; the renderer fits.
+			// Entrada corrupta → se trata como ausente; el renderizador encaja.
 		}
-		// Debounced camera writes: a pan emits hundreds of transforms per
-		// second; one trailing write per quiet spell is plenty.
+		// Escrituras de la cámara con debounce: un desplazamiento emite cientos de transformaciones por
+		// segundo; con una escritura final por cada momento de calma basta y sobra.
 		let cameraTimer: ReturnType<typeof setTimeout> | null = null;
 		let lastCamera: { k: number; x: number; y: number } | null = null;
 		const persistCamera = (t: { k: number; x: number; y: number }) => {
@@ -1269,7 +1285,7 @@ export function GraphView({
 				try {
 					localStorage.setItem(CAMERA_STORAGE_KEY, JSON.stringify(t));
 				} catch {
-					// Storage full/blocked: camera persistence is best-effort.
+					// Almacenamiento lleno/bloqueado: la persistencia de la cámara es en la medida de lo posible.
 				}
 			}, 250);
 		};
@@ -1287,10 +1303,10 @@ export function GraphView({
 					});
 				},
 				onStageClick: () => setSelected(null),
-				// Right-click → the node context menu (node interlude). Null
-				// (empty stage) closes a stale menu; a pick opens one anchored
-				// at the pointer. The name comes from the snapshot — what the
-				// canvas shows is what the menu and dialog speak.
+				// Clic derecho → el menú contextual del nodo (interludio de nodos). Null
+				// (escenario vacío) cierra un menú obsoleto; una selección abre uno anclado
+				// en el puntero. El nombre sale de la instantánea — lo que muestra el
+				// canvas es lo que dicen el menú y el diálogo.
 				onContext: (nodeId, pos) => {
 					if (nodeId === null) {
 						setCtxNode(null);
@@ -1300,17 +1316,17 @@ export function GraphView({
 					if (!node) return;
 					setCtxNode({ id: node.id, name: node.name, x: pos.x, y: pos.y });
 				},
-				// Any camera move detaches the card from its node — close
-				// it, and (debounced) remember where the camera stands. The
-				// context menu closes with it: a menu floating over a moved
-				// graph is anchored to nothing.
+				// Cualquier movimiento de cámara despega la tarjeta de su nodo — ciérrala
+				// y (con debounce) recuerda dónde está la cámara. El
+				// menú contextual se cierra con ella: un menú flotando sobre un grafo
+				// movido no está anclado a nada.
 				onCameraMove: (t) => {
 					setSelected(null);
 					setCtxNode(null);
 					persistCamera(t);
 				},
-				// Live physics settled: persist the new rest state. Fire-and-
-				// forget — the next snapshot fetch carries the ledger anyway.
+				// La física viva se asentó: persiste el nuevo estado de reposo. Disparar y
+				// olvidar — la siguiente lectura de la instantánea trae el registro de todos modos.
 				onCommit: (positions) => {
 					void fetch("/api/graph/positions", {
 						method: "PUT",
@@ -1324,27 +1340,27 @@ export function GraphView({
 		rendererRef.current = renderer;
 		return () => {
 			rendererRef.current = null;
-			// Flush a pending camera write so an unmount <250ms after a
-			// move still persists the user's last standpoint.
+			// Vuelca una escritura de cámara pendiente para que un desmontaje <250 ms después de un
+			// movimiento siga persistiendo la última posición del usuario.
 			if (cameraTimer && lastCamera) {
 				clearTimeout(cameraTimer);
 				cameraTimer = null;
 				try {
 					localStorage.setItem(CAMERA_STORAGE_KEY, JSON.stringify(lastCamera));
 				} catch {
-					// best-effort
+					// en la medida de lo posible
 				}
 			}
 			renderer.destroy();
 		};
 	}, [isEmpty]);
 
-	// Feed #1 — data: positions + edges + clusters + resolved colors. Runs
-	// after the layout effect (same commit, declaration order) and after
-	// the construct effect, so the renderer exists and positions are fresh.
-	// Palette changes (including same-mode theme switches and overrides)
-	// must refresh the canvas's captured paint, not just DOM CSS. The
-	// provider applies tokens in a layout effect before this passive feed.
+	// Feed n.º 1 — datos: posiciones + aristas + clústeres + colores resueltos. Se ejecuta
+	// después del efecto de layout (el mismo commit, orden de declaración) y después
+	// del efecto de construcción, así que el renderizador existe y las posiciones están frescas.
+	// Los cambios de paleta (incluidos los cambios de tema en el mismo modo y las sustituciones)
+	// deben refrescar el pintado capturado del canvas, no solo el CSS del DOM. El
+	// proveedor aplica los tokens en un efecto de layout antes de este feed pasivo.
 	useEffect(() => {
 		const renderer = rendererRef.current;
 		const positions = posRef.current;
@@ -1367,44 +1383,44 @@ export function GraphView({
 				hoverText: tokenHex("--foreground"),
 				clusterLightness: CLUSTER_LIGHTNESS[resolvedMode],
 			},
-			// Match the app typography (Geist via the body's stack).
+			// Coincide con la tipografía de la app (Geist mediante la pila del body).
 			fontFamily: getComputedStyle(document.body).fontFamily,
 		});
 	}, [snapshot, isEmpty, resolvedMode, colors]);
 
-	// Feed #2 — settings: just marks the frame dirty. No rebuild, no
-	// re-layout, no camera touch (the whole point of the new renderer).
+	// Feed n.º 2 — ajustes: solo marca el fotograma como sucio. Sin reconstrucción,
+	// sin nuevo layout, sin tocar la cámara (todo el sentido del nuevo renderizador).
 	const deferredSettings = useDeferredValue(settings);
 	useEffect(() => {
 		rendererRef.current?.setSettings(deferredSettings);
 	}, [deferredSettings, isEmpty]);
 
-	// Feed #3 — visibility: hidden nodes drop out of rendering, picking,
-	// hover, AND labels; edges drop when either endpoint is hidden.
+	// Feed n.º 3 — visibilidad: los nodos ocultos salen del renderizado, la selección,
+	// el hover Y las etiquetas; las aristas salen cuando cualquiera de sus extremos está oculto.
 	useEffect(() => {
 		rendererRef.current?.setVisible(query.trim() ? visibleIds : null);
-		// The open detail card cannot outlive its node's visibility.
+		// La tarjeta de detalle abierta no puede sobrevivir a la visibilidad de su nodo.
 		setSelected((sel) => (sel && visibleIds.has(sel.node.id) ? sel : null));
 	}, [visibleIds, query]);
 
-	// Feed #4 — region tuning. `isEmpty` in the deps (same as Feed #2):
-	// the settings fetch resolves BEFORE the snapshot creates the renderer,
-	// so the load-time run hits a null renderer and would never re-fire —
-	// the renderer would silently keep the default tuning forever.
+	// Feed n.º 4 — ajuste de las regiones. `isEmpty` en las dependencias (igual que el feed n.º 2):
+	// la lectura de los ajustes se resuelve ANTES de que la instantánea cree el renderizador,
+	// así que la ejecución en la carga da con un renderizador null y nunca volvería a dispararse —
+	// el renderizador se quedaría en silencio con el ajuste por defecto para siempre.
 	useEffect(() => {
 		rendererRef.current?.setRegionTuning(regionTuning);
 	}, [regionTuning, isEmpty]);
 
-	// Feed #5 — physics tuning: rebuilds the live sim in place (drag pins
-	// survive; a mid-settle change re-anneals, the honest response). Same
-	// isEmpty dep as Feed #4 — see there.
+	// Feed n.º 5 — ajuste de la física: reconstruye la simulación viva en su sitio (las fijaciones de arrastre
+	// sobreviven; un cambio a mitad de asentamiento vuelve a recocer, la respuesta honesta). La misma
+	// dependencia isEmpty que el feed n.º 4 — ver allí.
 	useEffect(() => {
 		rendererRef.current?.setPhysicsTuning(physicsTuning);
 	}, [physicsTuning, isEmpty]);
 
-	// Position the detail card: below the clicked node, flipped above near
-	// the bottom edge, clamped horizontally. Imperative (ref + layout effect,
-	// before paint) because the flip needs the card's measured height.
+	// Coloca la tarjeta de detalle: bajo el nodo en el que se hizo clic, dada la vuelta hacia arriba cerca
+	// del borde inferior, acotada en horizontal. Imperativo (ref + efecto de layout,
+	// antes de pintar) porque darle la vuelta necesita la altura medida de la tarjeta.
 	useLayoutEffect(() => {
 		const card = cardRef.current;
 		const container = containerRef.current;
@@ -1429,7 +1445,7 @@ export function GraphView({
 	return (
 		<div className="relative h-full w-full">
 			{isEmpty ? (
-				// The empty graph keeps the first action clear without zero-valued statistics.
+				// El grafo vacío deja clara la primera acción sin estadísticas a cero.
 				<div className="flex h-full w-full items-center justify-center px-4">
 					<div className="flex flex-col items-center gap-3 text-center text-muted-foreground">
 						<WaypointsIcon className="size-10 opacity-40" strokeWidth={1.25} />
@@ -1442,12 +1458,12 @@ export function GraphView({
 				</div>
 			) : (
 				<div ref={containerRef} className="relative h-full w-full">
-					{/* THE single canvas: every layer (hulls, edges, nodes, both
-					    label systems, hover) draws into it, once per frame. */}
+					{/* EL único canvas: todas las capas (envolventes, aristas, nodos, los dos
+					sistemas de etiquetas, hover) se dibujan en él, una vez por fotograma. */}
 					<canvas ref={canvasRef} className="block h-full w-full touch-none" />
-					{/* The context menu's anchor: a zero-size point at the
-					    right-click position (canvas-relative == container-relative,
-					    the canvas fills this div). */}
+					{/* El ancla del menú contextual: un punto de tamaño cero en la
+					posición del clic derecho (relativa al canvas == relativa al contenedor;
+					el canvas llena este div). */}
 					{ctxNode !== null && (
 						<div
 							ref={ctxAnchorRef}
@@ -1457,10 +1473,10 @@ export function GraphView({
 				</div>
 			)}
 
-			{/* The node context menu (node interlude): Delete is its one action
-			    (the same MenuShell discipline as the sidebar's session menu —
-			    placement, focus, arrow cycling; the dismissal effect above owns
-			    the contract). */}
+			{/* El menú contextual de los nodos (interludio de nodos): Delete es su única acción
+			(la misma disciplina de MenuShell que el menú de sesión de la barra lateral —
+			colocación, foco, recorrido con flechas; el efecto de cierre de arriba es responsable
+			del contrato). */}
 			{ctxNode !== null && (
 				<MenuShell
 					anchorRef={ctxAnchorRef}
@@ -1483,19 +1499,19 @@ export function GraphView({
 				</MenuShell>
 			)}
 
-			{/* The full-death confirm dialog (node interlude) — portaled to
-			    body by the component itself, lives here for state locality. */}
+			{/* El diálogo de confirmación de muerte completa (interludio de nodos) — el propio
+			componente lo lleva a un portal en el body; vive aquí por localidad del estado. */}
 			<DeleteNodeDialog
 				nodes={deletingNode ? [deletingNode] : null}
 				onClose={() => setDeletingNode(null)}
 				onDeleted={(nodeIds, graphRevision) => {
-					// Close the dialog; close the detail card if it pointed here
-					// (the refetch would close it anyway, but the same frame
-					// should not show a card for a node the user just killed).
+					// Cierra el diálogo; cierra la tarjeta de detalle si apuntaba aquí
+					// (la relectura la cerraría de todos modos, pero en el mismo fotograma
+					// no debería verse una tarjeta de un nodo que el usuario acaba de eliminar).
 					setDeletingNode(null);
 					if (selected && nodeIds.includes(selected.node.id)) setSelected(null);
-					// The wave-6 chain: every listener refetches on this. Clusters
-					// shrink / unrender below the minimum on the server's read.
+					// La cadena de la oleada 6: todos los oyentes vuelven a leer con esto. Los clústeres
+					// encogen / dejan de renderizarse por debajo del mínimo en la lectura del servidor.
 					window.dispatchEvent(new CustomEvent("lh:graph-revision", { detail: { graphRevision } }));
 				}}
 			/>
@@ -1504,42 +1520,42 @@ export function GraphView({
 
 			<PluginGraphActions />
 
-			{/* Legend + filters: search box and per-state toggle rows. */}
-			{/* Top-right controls — separate floating containers (owner,
-			    graph-view round 2). Row order (2026-09-17): search,
-			    coverage, import, gear — coverage sits between search and
-			    import; the gear keeps the corner. items-start (not center)
-			    so the search container's no-match note can grow downward
-			    without shifting its siblings — every control is 36px tall
-			    (header band, 2026-09-20), top alignment pins the row.
-			    Coverage renders even when the graph is EMPTY — an empty
-			    graph with unextracted sessions is exactly when it matters
-			    (extract → the graph gains nodes).
-			    lh-no-drag (2026-09-17): home.tsx's floating drag strip
-			    underlays this row — Electron's drag mask ignores z-index,
-			    so without an explicit carve-out the controls were
-			    unclickable in the desktop app (owner report). The old
-			    flex-wrap (narrow-window wave, 2026-09-17) folded the row
-			    onto two lines below the sidebar threshold — owner rejected
-			    it (2026-09-20): one row always, the search shrinks (see
-			    the header-band comment on the column below). */}
-			{/* Header band (owner, 2026-09-20): the controls sit IN the
-			    header's visual row — top-2 aligns with the sidebar toggle's
-			    band (header py-2, toggle h-9), every control slimmed to 36px.
-			    The width cap lives HERE on the absolute element (100% resolves
-			    against the full-bleed parent) — the row NEVER wraps (owner
-			    rejected the two-row fold); in narrow windows the search is
-			    the flexible element and shrinks instead. */}
+			{/* Leyenda + filtros: cuadro de búsqueda y filas de conmutadores por estado. */}
+			{/* Controles de arriba a la derecha — contenedores flotantes separados (responsable,
+			ronda 2 de la vista de grafo). Orden de la fila (2026-09-17): búsqueda,
+			cobertura, importar, engranaje — la cobertura va entre la búsqueda y
+			importar; el engranaje se queda con la esquina. items-start (no center),
+			para que la nota de sin coincidencias del contenedor de búsqueda pueda crecer hacia abajo
+			sin desplazar a sus hermanos — todos los controles miden 36px de alto
+			(franja de cabecera, 2026-09-20), y la alineación superior fija la fila.
+			La cobertura se renderiza incluso cuando el grafo está VACÍO — un grafo
+			vacío con sesiones sin extraer es justo cuando importa
+			(extraer → el grafo gana nodos).
+			lh-no-drag (2026-09-17): la franja flotante de arrastre de home.tsx queda
+			por debajo de esta fila — la máscara de arrastre de Electron ignora z-index,
+			así que sin un recorte explícito no se podía hacer clic en los controles
+			en la app de escritorio (informe del responsable). El antiguo
+			flex-wrap (oleada de ventanas estrechas, 2026-09-17) partía la fila
+			en dos líneas por debajo del umbral de la barra lateral — el responsable lo rechazó
+			(2026-09-20): siempre una fila, la búsqueda encoge (ver
+			el comentario de la franja de cabecera en la columna de más abajo). */}
+			{/* Franja de cabecera (responsable, 2026-09-20): los controles van EN la
+			fila visual de la cabecera — top-2 se alinea con la franja del conmutador de la barra lateral
+			(cabecera py-2, conmutador h-9), con todos los controles adelgazados a 36px.
+			El tope de ancho vive AQUÍ, en el elemento absoluto (el 100 % se resuelve
+			respecto al padre a sangre) — la fila NUNCA se parte (el responsable
+			rechazó el plegado en dos filas); en ventanas estrechas la búsqueda es
+			el elemento flexible y encoge en su lugar. */}
 			<div className="lh-no-drag lh-wco-floating absolute right-2 top-2 z-10 flex max-w-[calc(100%-5.5rem)] flex-col items-end gap-2">
-			{/* z-20 (2026-09-20): the row paints above the cost number below
-			    it — without this, the later-in-DOM cost control layered over
-			    the settings/coverage dropdowns (owner report), still hoverable
-			    and clickable on top of them. The row is a stacking context, so
-			    its open dropdowns cover the number; clicks land on the panel. */}
+			{/* z-20 (2026-09-20): la fila se pinta encima del número de coste de debajo
+			— sin esto, el control de coste, que va más tarde en el DOM, quedaba encima
+			de los desplegables de ajustes/cobertura (informe del responsable), y aún se podía pasar el ratón
+			y hacer clic sobre ellos. La fila es un contexto de apilado, así que
+			sus desplegables abiertos tapan el número; los clics caen en el panel. */}
 			<div className="relative z-20 flex min-w-0 items-start gap-2">
-				{/* The actions row (empty-graph chrome wave, owner 2026-09-25):
-				    Import Notes always — the empty graph's entry point; search +
-				    settings only when nodes exist, fading in on their mount. */}
+				{/* La fila de acciones (oleada del cromo del grafo vacío, responsable 2026-09-25):
+				Import Notes siempre — el punto de entrada del grafo vacío; la búsqueda +
+				los ajustes solo cuando hay nodos, con un fundido al montarse. */}
 				<GraphChromeRow
 					isEmpty={isEmpty}
 					query={query}
@@ -1556,12 +1572,12 @@ export function GraphView({
 
 			<NotesImportErrors errors={notesImport.errors} />
 			<NotesImportNotices notices={notesImport.notices} />
-			{/* Top-right tail (owner, 2026-09-20): the pipeline cost number —
-			    just a number, hover-highlighted, dropdown breakdown — then
-			    the running-pipeline pills under it. Lives BELOW the actions
-			    row so narrow windows can never push it over the composer
-			    the way the old bottom-left stack did; the whole top-right
-			    cluster is one column, right-aligned. */}
+			{/* Cola de arriba a la derecha (responsable, 2026-09-20): el número de coste del proceso —
+			solo un número, resaltado al pasar el ratón, con desglose desplegable — y luego
+			las píldoras de los procesos en ejecución debajo. Vive DEBAJO de la fila de
+			acciones para que las ventanas estrechas nunca puedan empujarlo encima del compositor,
+			como hacía la antigua pila de abajo a la izquierda; todo el grupo de arriba a la
+			derecha es una columna, alineada a la derecha. */}
 			{costs && costs.runs.length > 0 && <GraphCostControl costs={costs} />}
 			{pipelineRuns.map((run) => (
 				<div
@@ -1579,12 +1595,12 @@ export function GraphView({
 			{selected && !isEmpty && (
 				<div
 					ref={cardRef}
-					// Positioned imperatively in the layout effect above; hidden
-					// until placed so the flip never flashes in the wrong spot.
+					// Se coloca de forma imperativa en el efecto de layout de arriba; oculta
+					// hasta que se coloca, para que darle la vuelta nunca destelle en el sitio equivocado.
 					style={{ visibility: "hidden", left: 0, top: 0 }}
-					// lh-no-drag: the card is placed anywhere on the canvas —
-					// when it lands in the top strip it must stay interactive
-					// over home.tsx's drag surface (2026-09-17).
+					// lh-no-drag: la tarjeta se coloca en cualquier punto del canvas —
+					// cuando cae en la franja superior debe seguir siendo interactiva
+					// sobre la superficie de arrastre de home.tsx (2026-09-17).
 					className="lh-no-drag absolute z-10 w-80 max-w-[calc(100%-1rem)] rounded-xl border bg-card p-4 text-left shadow-lg"
 				>
 					<div className="text-sm font-medium leading-snug">{selected.node.name}</div>
@@ -1593,8 +1609,8 @@ export function GraphView({
 						<div className="mt-3 flex flex-col gap-1">
 							<div className="text-xs text-muted-foreground">Sessions</div>
 							{selected.sourceIds.map((sourceId) => {
-								// An imported-notes file: a STATIC entry — the path,
-								// plain text, never a link (no session to open).
+								// Un fichero de notas importado: una entrada ESTÁTICA — la ruta,
+								// texto plano, nunca un enlace (no hay sesión que abrir).
 								if (snapshot?.fileSources?.[sourceId] !== undefined) {
 									return (
 										<div key={sourceId} className="flex items-center gap-1.5">
@@ -1605,7 +1621,7 @@ export function GraphView({
 										</div>
 									);
 								}
-								// A real session: deep-linkable provenance.
+								// Una sesión real: procedencia enlazable.
 								return (
 									<div key={sourceId} className="flex items-center gap-1.5">
 										<Link
@@ -1624,19 +1640,19 @@ export function GraphView({
 					)}
 				</div>
 			)}
-			{/* The chain table overlay (chains-overlay plan, 2026-09-29):
-			    ABSOLUTE INSIDE the graph area (the session-overlay idiom —
-			    never a body portal) so the app chrome stays sharp and
-			    reachable; the overlay itself is read-only toward the graph
-			    and owns its selection.
-			    LAST CHILD OF THE ROOT, DELIBERATELY (owner, 2026-09-29
-			    night): app-region subtraction resolves by DOM order, not
-			    z-index — mounted earlier, the chrome's lh-no-drag column
-			    punched dead zones through the overlay's TopBar drag band
-			    (over the counts, around the search field). A full-bleed
-			    surface covering a drag band must paint AFTER everything it
-			    covers. (DeleteNodeDialog is body-portaled — DOM-irrelevant
-			    here.) */}
+			{/* El overlay de la tabla de cadenas (plan del overlay de cadenas, 2026-09-29):
+			ABSOLUTO DENTRO del área del grafo (el modismo de los overlays de sesión —
+			nunca un portal en el body) para que el cromo de la app siga nítido y
+			accesible; el propio overlay es de solo lectura respecto al grafo
+			y es responsable de su selección.
+			ÚLTIMO HIJO DE LA RAÍZ, A PROPÓSITO (responsable, noche del 2026-09-29):
+			la resta de app-region se resuelve por orden en el DOM, no por
+			z-index — montada antes, la columna lh-no-drag del cromo
+			abría zonas muertas en la franja de arrastre de la TopBar del overlay
+			(sobre los recuentos, alrededor del campo de búsqueda). Una superficie a sangre
+			que tapa una franja de arrastre debe pintarse DESPUÉS de todo lo que
+			tapa. (DeleteNodeDialog va en un portal en el body — el DOM no importa
+			aquí.) */}
 			<ChainTableOverlay
 				open={chainsOpen}
 				nodes={snapshot?.propositions ?? []}
@@ -1650,8 +1666,8 @@ export function GraphView({
 				selectMode={chainSelectOpen}
 				controlledSelection={practiceSelection}
 				onSelectionChange={(ids) => {
-					// Resolve ids → nodes against the live snapshot; the
-					// caller holds the pick set (count + seed).
+					// Resuelve ids → nodos contra la instantánea viva; quien
+					// llama tiene el conjunto elegido (recuento + semilla).
 					const props = snapshot?.propositions ?? [];
 					const picked: { id: string; name: string; statement: string }[] = [];
 					for (const id of ids) {
