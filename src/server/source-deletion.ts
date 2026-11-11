@@ -23,20 +23,20 @@ export function parseSourceDeletion(raw: unknown): SourceDeletionRequest {
 	return result;
 }
 
-/** A single synchronous deletion stretch, after the same global extraction
- * refusal as the old chains-view deletion. No imports or turns are cancelled.
- * Missing entries are harmless on retry after a partially completed I/O failure. */
+/** Un único tramo síncrono de borrado, tras el mismo rechazo global por extracción que el
+ * antiguo borrado de la vista de cadenas. No se cancelan importaciones ni turnos. Las entradas
+ * ausentes no causan daño al reintentar tras un fallo de E/S parcialmente completado. */
 export function deleteSources(raw: unknown): SourceDirectory & { graphRevision: number } {
 	const request = parseSourceDeletion(raw);
-	const directory = sourceDirectory.read(); // validate organization before any destructive write
+	const directory = sourceDirectory.read(); // se valida la organización antes de cualquier escritura destructiva
 	const targets = directory.sources.filter((s) => request.sourceIds.includes(s.id));
 	if (targets.length && extractionStatuses().length) throw new SourceDeletionError("An extraction is running — try again when the activity dock drains.", 409, "extraction_running");
 	if (request.deleteSessions) for (const entry of targets) if (entry.kind === "chat") {
 		const blocker = runningWorkBlocker(entry.id);
 		if (blocker) throw new SourceDeletionError(blocker.error, blocker.status, blocker.code);
 	}
-	// Clear the whole selected batch in one graph rewrite. Kept chats lose
-	// coverage/checkpoints too, so their unchanged messages can be re-extracted.
+	// Se limpia todo el lote seleccionado en una sola reescritura del grafo. Los chats conservados
+	// también pierden la cobertura/los puntos de control, para que sus mensajes sin cambios puedan volver a extraerse.
 	deleteSourcesTraces(stores.graphStore, new Set(targets.map((s) => s.id)), "delete-nodes");
 	stores.graphStore.deleteSources(new Set(targets.filter((s) => s.kind === "notes").map((s) => s.id)));
 	const removed = new Set(request.sourceIds.filter((id) => !directory.sources.some((s) => s.id === id)));
@@ -50,8 +50,8 @@ export function deleteSources(raw: unknown): SourceDirectory & { graphRevision: 
 	const state = structuredClone(directory.organization);
 	state.placements = Object.fromEntries(Object.entries(state.placements).filter(([id]) => !removed.has(id)));
 	const remainingSources = new Set(sourceDirectory.read().sources.map((s) => s.id));
-	// Bottom-up fixed point: remove selected empty descendants, then their
-	// emptied ancestors. Kept conversations and unselected entries block removal.
+	// Punto fijo de abajo arriba: se quitan los descendientes vacíos seleccionados y luego sus
+	// ancestros que se han quedado vacíos. Las conversaciones conservadas y las entradas no seleccionadas impiden quitarlos.
 	let changed = true;
 	while (changed) {
 		changed = false;

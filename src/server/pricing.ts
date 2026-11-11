@@ -1,6 +1,6 @@
-/** Read-time API-dollar estimates. Pi owns both rates and arithmetic.
- * Catalog resolution is key-independent; no provider dispatch/auth is needed.
- * Never mutate saved native messages: calculateCost mutates its usage.cost.
+/** Estimaciones en dólares de API en el momento de la lectura. Pi es dueño de las tarifas y de la aritmética.
+ * La resolución del catálogo no depende de las claves; no hace falta despacho ni autenticación del proveedor.
+ * Nunca se modifican los mensajes nativos guardados: calculateCost modifica su usage.cost.
  */
 import { calculateCost, type Usage } from "@earendil-works/pi-ai";
 import { piModels } from "../agent/models.ts";
@@ -11,8 +11,8 @@ import { isSubscriptionModel, sessionCost as foldSessionCost, turnCost as foldTu
 
 function catalogModel(id: string) {
 	const colon = id.indexOf(":");
-	// Native CLI routing determines billing. Adapter zero-rate placeholders
-	// must never become an apparent $0 estimate or subscription classification.
+	// El enrutado nativo de la CLI determina la facturación. Los valores provisionales a
+	// tarifa cero del adaptador nunca deben convertirse en una estimación aparente de 0 $ ni en una clasificación de suscripción.
 	if (colon < 0 || isSubscriptionModel(id) || [CLAUDE_CODE_PROVIDER, CUSTOM_PROVIDER.id].includes(id.slice(0, colon))) return undefined;
 	return piModels().getModel(id.slice(0, colon), id.slice(colon + 1));
 }
@@ -26,8 +26,8 @@ export function callCost(call: Partial<CallUsage>, modelId: string): number | nu
 	const cacheWrite = call.cacheWriteTokens ?? 0;
 	const cacheWrite1h = call.cacheWrite1hTokens ?? 0;
 	if ([input, output, cacheRead, cacheWrite, cacheWrite1h].some((v) => !Number.isFinite(v) || v < 0) || cacheWrite1h > cacheWrite) return null;
-	// Old records discarded this split. Only price them if it cannot affect
-	// the result; do not invent short-retention precision from a missing field.
+	// Los registros antiguos descartaban este desglose. Solo se les pone precio si no puede
+	// afectar al resultado; no se inventa precisión de retención corta a partir de un campo ausente.
 	if (cacheWrite > 0 && call.cacheWrite1hTokens === undefined &&
 		[model.cost, ...(model.cost.tiers ?? [])].some((rate) => rate.cacheWrite !== 2 * rate.input)) return null;
 	const usage: Usage = {

@@ -62,8 +62,8 @@ function gradingOutcome(value: unknown): PluginQuestionGradingOutcome {
 	return freezePluginQuestionValue(copy) as PluginQuestionGradingOutcome;
 }
 function gradingError(error: unknown): string {
-	// A plugin may throw any value, including an object with a throwing message getter.
-	try { if (error instanceof Error && typeof error.message === "string") return error.message; } catch { /* safe generic below */ }
+	// Un plugin puede lanzar cualquier valor, incluido un objeto con un getter de message que lanza.
+	try { if (error instanceof Error && typeof error.message === "string") return error.message; } catch { /* genérico seguro más abajo */ }
 	return "An error occurred.";
 }
 
@@ -74,7 +74,7 @@ export interface PreparedPluginQuestionSubmission {
 	finish(record: { id: string; messages: LhMessage[] }, grading?: PluginQuestionGradingOutcome): LhMessage[];
 }
 
-/** Synchronous validation/capture only. The caller owns session exclusion and the single write-ahead. */
+/** Solo validación/captura síncrona. El llamante se encarga de la exclusión de la sesión y de la única escritura anticipada. */
 export function preparePluginQuestionSubmission(record: { id: string; messages: LhMessage[] }, input: PluginQuestionAnswerInput, resolve: QuestionTypeResolver): PreparedPluginQuestionSubmission {
 	const snapshot = requireCurrent(record.messages, input);
 	const savedContract = JSON.stringify(snapshot), chatId = record.id;
@@ -83,7 +83,7 @@ export function preparePluginQuestionSubmission(record: { id: string; messages: 
 	const { signal: activationSignal, requireActive } = resolution;
 	const gradeAnswer = resolution.definition.gradeAnswer;
 	const requireAuthority = (signal?: AbortSignal) => {
-		// This exact captured closure proves activation AND registration identity, even after re-registration.
+		// Este cierre capturado exacto demuestra la identidad de activación Y de registro, incluso tras volver a registrarse.
 		try { requireActive.call(resolution); }
 		catch { throw new ChatInputError("Question unavailable"); }
 		if (activationSignal.aborted || signal?.aborted) throw new ChatInputError("Question unavailable");
@@ -126,15 +126,15 @@ export function preparePluginQuestionSubmission(record: { id: string; messages: 
 			requireAuthority(combined);
 			let outcome: PluginQuestionGradingOutcome;
 			try {
-				// Freeze only our owned JSON. Deep freezing this context would freeze a LIVE AbortSignal.
+				// Solo se congela nuestro propio JSON. Congelar en profundidad este contexto congelaría un AbortSignal VIVO.
 				const context = Object.freeze({ chatId, questionId: snapshot.questionId, variant: snapshot.variant,
 					contractVersion: snapshot.contractVersion, input: snapshot.input, answer: answer.value, signal: combined });
-				// Do not race cancellation: ownership must remain held until the underlying callback settles.
+				// No se compite con la cancelación: la propiedad debe mantenerse hasta que se resuelva el callback subyacente.
 				const result = await gradeAnswer!(context);
 				requireAuthority(combined);
 				outcome = { result: freezePluginQuestionValue(clonePluginQuestionJson(result)) };
 			} catch (error) {
-				// Only our signal/authority determines cancellation, never a callback error's name.
+				// Solo nuestra señal/autoridad determina la cancelación, nunca el nombre del error de un callback.
 				requireAuthority(combined);
 				outcome = { error: gradingError(error) };
 			}
@@ -156,7 +156,7 @@ export function preparePluginQuestionSubmission(record: { id: string; messages: 
 	};
 }
 
-/** Historical synchronous callers can only submit saved ungraded questions. */
+/** Los llamantes síncronos históricos solo pueden enviar preguntas guardadas sin calificar. */
 export function preparePluginQuestionAnswer(record: { id: string; messages: LhMessage[] }, input: PluginQuestionAnswerInput, resolve: QuestionTypeResolver): LhMessage[] {
 	const prepared = preparePluginQuestionSubmission(record, input, resolve);
 	if (prepared.grade) throw new ChatInputError("This question requires grading before acceptance");
@@ -171,7 +171,7 @@ function cancellation(occurrence: PluginQuestionOccurrence, questionId: string |
 	return nativeResult(occurrence, details, text);
 }
 
-/** Projection verifies real native occurrence and genuine bound results, never metadata alone. */
+/** La proyección verifica la aparición nativa real y los resultados vinculados genuinos, nunca solo metadatos. */
 function unreadablePending(messages: readonly LhMessage[]): { occurrence: PluginQuestionOccurrence; questionId?: string; quietEligible: boolean } | undefined {
 	const call = pluginQuestionCallsOf(messages).find(call => call.status === "unreadable");
 	if (!call || call.annotation.status !== "unreadable") return undefined;
@@ -180,8 +180,8 @@ function unreadablePending(messages: readonly LhMessage[]): { occurrence: Plugin
 	return {
 		occurrence: call.occurrence,
 		...(questionId ? { questionId } : {}),
-		// Explicit dismissal supplies the exact actual occurrence even when the map is malformed.
-		// Quiet cancellation has no such human target: require readable saved identity as well.
+		// Un descarte explícito aporta la aparición real exacta incluso cuando el mapa está mal formado.
+		// Una cancelación silenciosa no tiene ese destino humano: también exige una identidad guardada legible.
 		quietEligible: !!binding && samePluginQuestionOccurrence(binding.occurrence, call.occurrence),
 	};
 }
@@ -199,7 +199,7 @@ export function preparePluginQuestionDismissal(record: { messages: LhMessage[] }
 	return [cancellation(unreadable.occurrence, unreadable.questionId, "dismissed")];
 }
 
-/** Response-only readiness. Never persisted and never grants authority independently. */
+/** Disponibilidad solo en la respuesta. Nunca se persiste y nunca concede autoridad por sí sola. */
 export function pluginQuestionAvailabilityOf(record: { messages: LhMessage[] }, resolve?: QuestionTypeResolver): { questionId: string; status: "available" | "unavailable" } | undefined {
 	const pending = pendingPluginQuestionOf(record.messages);
 	if (!pending) return undefined;
@@ -210,7 +210,7 @@ export function pluginQuestionAvailabilityOf(record: { messages: LhMessage[] }, 
 			current.requireActive();
 			available = true;
 		}
-	} catch { /* unavailable remains a readable pending question */ }
+	} catch { /* no disponible sigue siendo una pregunta pendiente legible */ }
 	return { questionId: pending.questionId, status: available ? "available" : "unavailable" };
 }
 
@@ -224,13 +224,13 @@ export function pluginQuestionCompatibilityAppends(record: { messages: LhMessage
 	return unreadable?.quietEligible ? [cancellation(unreadable.occurrence, unreadable.questionId, "unreadable-protocol")] : [];
 }
 
-/** Re-read after startup awaits; never write over an active native turn. No migration or wake. */
+/** Se vuelve a leer tras las esperas del arranque; nunca se escribe sobre un turno nativo activo. Sin migración ni despertar. */
 export async function reconcilePluginQuestionCompatibility(chatStore: ChatStore, chatId: string): Promise<void> {
 	if (isTurnRunning(chatId)) return;
 	const initial = chatStore.getChat(chatId);
 	if (!initial || (!pendingPluginQuestionOf(initial.messages) && !unreadablePending(initial.messages))) return;
 	let host: Awaited<ReturnType<typeof getPluginHost>>;
-	try { host = await getPluginHost(); } catch { return; } // unavailable keeps the saved question pending
+	try { host = await getPluginHost(); } catch { return; } // no disponible mantiene pendiente la pregunta guardada
 	if (isTurnRunning(chatId)) return;
 	const record = chatStore.getChat(chatId);
 	if (!record) return;

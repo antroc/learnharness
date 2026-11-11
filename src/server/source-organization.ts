@@ -20,7 +20,7 @@ export function createSourceDirectory(deps: { chatStore: ChatStore; graphStore: 
 			id: s.id, kind: "notes", label: placementOf(organization, s.id)?.name ?? sourceFileLabel(s.filePath),
 			filePath: s.filePath, createdAt: s.importedAt,
 		});
-		// Preserve graph groups whose naming record is gone; do not resurrect a chat.
+		// Se conservan los grupos del grafo cuyo registro de nombres ha desaparecido; no se resucita un chat.
 		for (const node of getGraph(deps.graphStore).nodes) for (const p of node.provenance) {
 			if (!entries.has(p.chatId)) entries.set(p.chatId, { id: p.chatId, kind: "missing", label: null, createdAt: null });
 		}
@@ -51,13 +51,13 @@ export function createSourceDirectory(deps: { chatStore: ChatStore; graphStore: 
 		}
 		return { ...read(), ...(createdFolderId ? { createdFolderId } : {}) };
 	}
-	/** Before starting the file's existing extraction pipeline. The source key
-	 * is the pipeline's unchanged path hash; no source text is stored here. */
+	/** Antes de iniciar el proceso de extracción existente del fichero. La clave de
+	 * la fuente es el hash de ruta sin cambios del proceso; aquí no se guarda texto de la fuente. */
 	function registerImport(filePath: string): void {
 		const id = `src_${createHash("sha256").update(filePath).digest("hex").slice(0, 12)}`;
 		const state = deps.sourceOrganizationStore.read();
-		// Legacy imports with no organization record already live at root.
-		// Explicitly preserve that placement on re-import too.
+		// Las importaciones heredadas sin registro de organización ya viven en la raíz.
+		// Esa ubicación se conserva también explícitamente al volver a importar.
 		if (!placementOf(state, id) && deps.graphStore.readSources().some((s) => s.id === id)) {
 			state.placements = { ...state.placements, [id]: { folderId: null } };
 			deps.sourceOrganizationStore.write(state);
@@ -71,8 +71,8 @@ export function createSourceDirectory(deps: { chatStore: ChatStore; graphStore: 
 
 export const sourceDirectory = createSourceDirectory(stores);
 
-/** Bound actual JSON bytes as well as declared size; never buffer an unbounded
- * operation body. A cancelled tee must not delay the refusal. */
+/** Se acotan los bytes JSON reales además del tamaño declarado; nunca se almacena en búfer
+ * el cuerpo de una operación sin límite. Un tee cancelado no debe retrasar el rechazo. */
 export async function readOrganizationAction(request: Request): Promise<unknown> {
 	const limit = 64 * 1024;
 	if (Number(request.headers.get("content-length")) > limit) {

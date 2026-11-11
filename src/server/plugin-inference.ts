@@ -11,8 +11,8 @@ import { NATIVE_SUBSCRIPTIONS } from "../core/contracts/subscriptions.ts";
 import { providerKeyMissing } from "../core/settings.ts";
 import { validatePluginInferenceOptions as optionsFor } from "../core/plugin-validation.ts";
 
-/** Complete dependency seam for off-network tests; production defaults are lazy
- * so supplying it never initializes host stores, accounts, or model collections. */
+/** Frontera de dependencias completa para pruebas sin red; los valores de producción son perezosos,
+ * así que aportarla nunca inicializa almacenes del host, cuentas ni colecciones de modelos. */
 export interface PluginInferenceDeps {
 	catalog(): ModelCatalogResponse | Promise<ModelCatalogResponse>;
 	providerKeyPresent(provider: string): boolean | Promise<boolean>;
@@ -27,7 +27,7 @@ const levels = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
 const subscription = (provider: string) => provider === "chatgpt" || NATIVE_SUBSCRIPTIONS.some((p) => p.logicalId === provider);
 function abortError(): Error { return new DOMException("Plugin inference cancelled or disabled", "AbortError"); }
 function check(signal: AbortSignal): void { if (signal.aborted) throw abortError(); }
-/** Cancel the wait, not just the eventual transport. Removes listeners on every path. */
+/** Cancela la espera, no solo el transporte final. Quita los listeners en todas las rutas. */
 async function bounded<T>(value: PromiseLike<T> | T, signal: AbortSignal): Promise<T> {
 	check(signal);
 	let abort!: () => void;
@@ -52,9 +52,9 @@ function failure(engine: PiEngine, partial: AssistantMessage | undefined, aborte
 			: "Plugin inference transport failed or ended without a terminal response" };
 }
 
-/** Pull-through native stream: one consumer, no second event queue/history.
- * result() can drive an otherwise unconsumed stream, as native SDK streams do.
- * Terminal result is installed BEFORE yielding it (Agent reads result at that seam). */
+/** Flujo nativo bajo demanda: un consumidor, sin una segunda cola/historial de eventos.
+ * result() puede consumir un flujo que nadie más consume, como hacen los flujos nativos del SDK.
+ * El resultado terminal se instala ANTES de entregarlo (Agent lee result en esa frontera). */
 class PluginStream extends AssistantMessageEventStream {
 	private started = false;
 	constructor(private readonly generate: (finish: (m: AssistantMessage) => void) => AsyncGenerator<AssistantMessageEvent>) { super(); }
@@ -64,15 +64,16 @@ class PluginStream extends AssistantMessageEventStream {
 		return this.generate((message) => super.end(message));
 	}
 	override result(): Promise<AssistantMessage> {
-		if (!this.started) void (async () => { for await (const _event of this) { /* drain without retaining events */ } })().catch(() => {});
+		if (!this.started) void (async () => { for await (const _event of this) { /* vaciar sin retener eventos */ } })().catch(() => {});
 		return super.result();
 	}
 }
 
-/** Last-known host catalog only: this does not refresh accounts behind the
- * plugin's back. Connection refresh remains owned by existing Providers flows.
- * All inference uses existing transports (including consent, quota and scope
- * cancellation), with no API-key fallback or automatic background→user retry. */
+/** Solo el último catálogo conocido del host: esto no refresca cuentas a espaldas
+ * del plugin. El refresco de las conexiones sigue en manos de los flujos de Providers
+ * existentes. Toda la inferencia usa los transportes existentes (incluidos el
+ * consentimiento, la cuota y la cancelación por ámbito), sin alternativa con clave API
+ * ni reintento automático de segundo plano→usuario. */
 export function createPluginInference(
 	{ signal, dataDirectory }: { signal: AbortSignal; dataDirectory: string },
 	injected?: PluginInferenceDeps,
@@ -105,8 +106,8 @@ export function createPluginInference(
 	const onUsage = (model: PluginModelSpec, usage: Usage) => {
 		if (signal.aborted || !usageWasAdmitted(usage)) return;
 		const spec = modelSpec(model);
-		// Explicit projection: never serialize transport models, request content,
-		// account leases, arbitrary caller properties, or credentials.
+		// Proyección explícita: nunca se serializan modelos de transporte, contenido de la
+		// petición, préstamos de cuenta, propiedades arbitrarias del llamante ni credenciales.
 		const row = { timestamp: new Date().toISOString(), model: spec, usage: {
 			input: usage.input, output: usage.output, cacheRead: usage.cacheRead, cacheWrite: usage.cacheWrite, totalTokens: usage.totalTokens,
 			cost: { input: usage.cost.input, output: usage.cost.output, cacheRead: usage.cost.cacheRead, cacheWrite: usage.cost.cacheWrite, total: usage.cost.total },
@@ -136,7 +137,7 @@ export function createPluginInference(
 				const lifecycle: SubscriptionDispatchLifecycle = {
 					captured: () => { check(combined); },
 					beforeDispatch: () => { check(combined); admitted = true; },
-					noDispatch: () => { /* No admission is not a billed provider call. */ },
+					noDispatch: () => { /* Sin admisión no hay llamada facturada al proveedor. */ },
 				};
 				const finalize = (message: AssistantMessage) => {
 					if (!admitted) markUnadmittedUsage(message.usage);
@@ -144,8 +145,8 @@ export function createPluginInference(
 				};
 				try {
 					check(combined);
-					// Managed Agent passes private runtime hooks/options in its config;
-					// do NOT forward that bag to provider transports. Auth stays host-owned.
+					// Managed Agent pasa hooks/opciones privados de ejecución en su configuración;
+					// NO se reenvía ese paquete a los transportes de los proveedores. La autenticación sigue en manos del host.
 					const { temperature, maxTokens, cacheRetention, reasoning, thinkingBudgets, toolChoice, timeoutMs, maxRetries, maxRetryDelayMs, metadata } = (runtime ?? {}) as SimpleStreamOptions;
 					const safe = optionsFor(Object.fromEntries(Object.entries({ temperature, maxTokens, cacheRetention, reasoning, thinkingBudgets, toolChoice, timeoutMs, maxRetries, maxRetryDelayMs, metadata, ...boundOptions }).filter(([, value]) => value !== undefined)));
 					if (safe.reasoning !== undefined && safe.reasoning !== base.level) throw new Error("Set model.thinkingLevel instead of overriding engine reasoning");
@@ -177,9 +178,9 @@ export function createPluginInference(
 					}
 				} finally {
 					controller.abort();
-					// Resolve a pending SDK next()/result() before returning the iterator.
-					// Native producers ignore pushes after end, so an early-detached view
-					// cannot leave an accumulating queue or a stranded iterator wait.
+					// Se resuelve cualquier next()/result() pendiente del SDK antes de devolver el iterador.
+					// Los productores nativos ignoran lo que se empuja tras el final, así que una vista
+					// separada pronto no puede dejar una cola que crece ni una espera del iterador varada.
 					combined.removeEventListener("abort", stopSource);
 					if (source) source.end(finalMessage ?? failure(base, partial, true));
 					if (!terminal) finish(failure(base, partial, true));

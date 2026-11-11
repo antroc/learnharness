@@ -1,10 +1,10 @@
-/** Live metadata only. Never read task history to render the activity feed. */
+/** Solo metadatos vivos. Nunca se lee el historial de tareas para mostrar el feed de actividad. */
 import type { PluginWorkerActivityMetadata } from "../agent/plugin-workers.ts";
 import { emit } from "../core/events.ts";
 
 export interface PluginWorkerActivity extends Omit<PluginWorkerActivityMetadata, "id" | "status"> {
 	status: "queued" | "running";
-	/** Opaque activity/abort identity, not a chat or a durable job. */
+	/** Identidad opaca de actividad/cancelación, no un chat ni una tarea duradera. */
 	id: string;
 	taskId: string;
 	pluginId: string;
@@ -21,7 +21,7 @@ function registry(): Map<string, Activation> {
 	return global.__lhPluginWorkerActivity ??= new Map();
 }
 
-/** One registration per activation. Old signals/callbacks cannot erase a replacement. */
+/** Un registro por activación. Las señales/callbacks antiguos no pueden borrar a un sustituto. */
 export function registerPluginWorkerActivity(deps: {
 	pluginId: string;
 	pluginName: string;
@@ -57,12 +57,12 @@ export function registerPluginWorkerActivity(deps: {
 	};
 }
 
-/** Read-only projection across active services; no filesystem or task subscriptions. */
+/** Proyección de solo lectura sobre los servicios activos; sin suscripciones al sistema de ficheros ni a tareas. */
 export function pluginWorkerActivities(): PluginWorkerActivity[] {
 	return [...registry().values()].flatMap(activation => [...activation.rows.values()].map(row => structuredClone(row)));
 }
 
-/** Only the currently active service may receive END. Storage/cancellation errors propagate. */
+/** Solo el servicio activo en ese momento puede recibir END. Los errores de almacenamiento/cancelación se propagan. */
 export function abortPluginWorkerActivity(id: string): boolean {
 	const separator = id.indexOf(":");
 	if (separator < 1) return false;

@@ -1,7 +1,7 @@
-/** Combined side-question service: #487's durable, server-owned lifecycle
- * behind #451's floating companion. One thread per explanation/check segment.
- * Every main request captures new raw activity across all threads. Delivery
- * is append-only; a live helper never delays the teacher. */
+/** Servicio combinado de preguntas laterales: el ciclo de vida duradero, propio del servidor,
+ * de #487 tras el compañero flotante de #451. Un hilo por segmento de explicación/comprobación.
+ * Cada petición principal captura la nueva actividad en bruto de todos los hilos. La entrega
+ * es de solo añadido; un auxiliar vivo nunca retrasa al profesor. */
 import { emit } from "../core/events.ts";
 import type { ChatRecord, SideChatMessage, SideChatThread } from "../core/contracts.ts";
 import type { ChatStore } from "../core/ports.ts";
@@ -49,8 +49,8 @@ export interface SideChatService {
 	list(chatId: string): { threads: SideChatThread[]; answering: Record<string, string> } | null;
 	ask(chatId: string, input: SideAskInput): Promise<Response>;
 	watch(chatId: string, threadId: string): Response;
-	/** Pure snapshot, including current streamed text. The caller publishes
-	 * new deltas at model-request boundaries, without waiting for a helper. */
+	/** Instantánea pura, incluido el texto emitido hasta el momento. El llamante
+	 * publica los deltas nuevos en las fronteras de petición al modelo, sin esperar a ningún auxiliar. */
 	snapshot(chatId: string): SideChatThread[];
 	setOpen(chatId: string, threadId: string, open: boolean): SideChatThread | "unknown-chat" | "unknown-thread";
 	stop(chatId: string, threadId: string): boolean;
@@ -86,7 +86,7 @@ export function createSideChatService(deps: SideChatDeps): SideChatService {
 				const close = () => {
 					if (closed) return;
 					closed = true;
-					try { stream.close(); } catch { /* detached view */ }
+					try { stream.close(); } catch { /* vista separada */ }
 				};
 				const listener = (event: SideStreamEvent) => {
 					write(event);
@@ -105,7 +105,7 @@ export function createSideChatService(deps: SideChatDeps): SideChatService {
 					close();
 				});
 			},
-			cancel() { detach(); }, // closing/reloading a view does not kill the call
+			cancel() { detach(); }, // cerrar/recargar una vista no mata la llamada
 		});
 		return new Response(body, { headers: { "Content-Type": "application/x-ndjson; charset=utf-8", "Cache-Control": "no-cache, no-transform" } });
 	}
@@ -123,7 +123,7 @@ export function createSideChatService(deps: SideChatDeps): SideChatService {
 		if (!initial) return Response.json({ error: "Unknown chat" }, { status: 404 });
 		const engine = await deps.engineFor(initial);
 		if (engine instanceof Response) return engine;
-		// No awaits between reading, deduplicating, saving and registration.
+		// Sin awaits entre leer, quitar duplicados, guardar y registrar.
 		const record = deps.chatStore.getChat(chatId);
 		if (!record) return Response.json({ error: "Unknown chat" }, { status: 404 });
 		const threads = record.sideChats ?? [];
@@ -134,7 +134,7 @@ export function createSideChatService(deps: SideChatDeps): SideChatService {
 			if (!segment) return Response.json({ error: "The source is not a teaching segment in this session" }, { status: 400 });
 			target = threads.find((thread) => thread.anchor.messageId === segment) ?? newSideThread({
 				...input.anchor, messageId: segment, partId: `${segment}-t0`, blockIndex: 0,
-				// The client chooses a segment, not what the tutor allegedly said.
+				// El cliente elige un segmento, no lo que supuestamente dijo el tutor.
 				blockText: userFacingTextOf(record.messages.find((message) => message.id === segment && message.role === "assistant")?.content ?? [], failedOutputCallIds(record.messages)).join("\n\n").slice(0, 4_000) || "This teaching segment and its associated question.",
 			});
 		}
@@ -162,7 +162,7 @@ export function createSideChatService(deps: SideChatDeps): SideChatService {
 		if (input.retry) {
 			const last = target.messages.at(-1);
 			if (last?.role === "assistant" && last.error !== undefined) {
-				// Keep failed evidence in durable/UI history; omit only from this retry request.
+				// Las pruebas fallidas se mantienen en el historial duradero/de la interfaz; solo se omiten de esta petición de reintento.
 				modelThread = { ...target, messages: target.messages.slice(0, target.messages.findLastIndex((message) => message.role === "user") + 1) };
 			} else if (!sideThreadAwaitsAnswer(target)) return Response.json({ error: "Nothing to retry" }, { status: 409 });
 		} else {
@@ -190,7 +190,7 @@ export function createSideChatService(deps: SideChatDeps): SideChatService {
 		};
 		runs.set(key, run);
 		const broadcast = (event: SideStreamEvent) => {
-			for (const listener of [...run.listeners]) { try { listener(event); } catch { /* detached view */ } }
+			for (const listener of [...run.listeners]) { try { listener(event); } catch { /* vista separada */ } }
 		};
 		announce(chatId);
 		run.settled = (async () => {
@@ -217,7 +217,7 @@ export function createSideChatService(deps: SideChatDeps): SideChatService {
 							cacheWriteTokens: result.usage.cacheWrite, cacheWrite1hTokens: result.usage.cacheWrite1h ?? 0,
 							reasoningTokens: result.usage.reasoning ?? 0,
 						}] });
-					} catch { /* deleted session has no usage destination */ }
+					} catch { /* una sesión borrada no tiene destino para el uso */ }
 				}
 			} catch (error) {
 				console.error(`[chat ${chatId}] side answer failed to save:`, error);

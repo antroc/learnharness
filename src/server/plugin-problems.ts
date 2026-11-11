@@ -18,7 +18,7 @@ export interface PreparedPluginProblemSubmission {
   process?: (signal: AbortSignal) => Promise<PluginProblemProcessingOutcome>;
   finish(record: { id: string; kind?: string; messages: LhMessage[] }, processing?: PluginProblemProcessingOutcome): LhMessage[];
 }
-/** VALIDATE → optional PROCESS → SAVE → CONTINUE. Processing never concludes a problem. */
+/** VALIDAR → PROCESAR (opcional) → GUARDAR → CONTINUAR. El procesamiento nunca concluye un problema. */
 export function preparePluginProblemSubmission(record: { id: string; kind?: string; messages: LhMessage[] }, input: PluginProblemSubmissionInput, resolve: ProblemTypeResolver): PreparedPluginProblemSubmission {
   const snapshot = requirePluginProblemTarget(record, input), chatId = record.id, captured = JSON.stringify(snapshot);
   const target = { problemId: snapshot.problemId, occurrence: freezePluginQuestionValue(clonePluginQuestionJson(input.occurrence)) as unknown as PluginProblemSubmissionInput["occurrence"] };
@@ -58,7 +58,7 @@ export function preparePluginProblemSubmission(record: { id: string; kind?: stri
       } catch (error) {
         requireAuthority(combined);
         let message = "An error occurred.";
-        try { if (error instanceof Error && typeof error.message === "string") message = error.message; } catch { /* safe generic */ }
+        try { if (error instanceof Error && typeof error.message === "string") message = error.message; } catch { /* genérico seguro */ }
         outcome = { error: message };
       }
       requireAuthority(combined); processingSettled = true;
@@ -76,7 +76,7 @@ export function preparePluginProblemSubmission(record: { id: string; kind?: stri
     },
   };
 }
-/** Response-only readiness; disabled/missing/incompatible types never fall back to native thinking. */
+/** Disponibilidad solo en la respuesta; los tipos desactivados/ausentes/incompatibles nunca recurren al razonamiento nativo. */
 export function pluginProblemAvailabilityOf(record: { messages: readonly LhMessage[] }, resolve?: ProblemTypeResolver): { problemId: string; status: "available" | "unavailable" } | undefined {
   const snapshot = activeProblemOf(record.messages)?.pluginProblem;
   if (!snapshot) return undefined;
@@ -86,6 +86,6 @@ export function pluginProblemAvailabilityOf(record: { messages: readonly LhMessa
     if (current?.status === "available" && !current.signal.aborted && (!snapshot.requiresSubmissionRefinement || current.definition.validateSubmission) && (!snapshot.requiresProcessing || current.definition.processSubmission)) {
       current.requireActive(); available = true;
     }
-  } catch { /* unavailable is honest */ }
+  } catch { /* no disponible es lo honesto */ }
   return { problemId: snapshot.problemId, status: available ? "available" : "unavailable" };
 }

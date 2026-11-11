@@ -11,9 +11,9 @@ export interface PluginLearningDeps {
 	readMetadata(name: "render-settings.json" | "format.json"): unknown;
 }
 
-/** A deliberately thin, read-only facade. Every read is fresh; this is not a
- * transaction spanning several files. Native transcript content is preserved.
- * Raw ledgers use the same version guards and validation as the core store. */
+/** Una fachada deliberadamente fina y de solo lectura. Cada lectura es nueva; no es una
+ * transacción que abarque varios ficheros. Se conserva el contenido nativo de la transcripción.
+ * Los registros en bruto usan las mismas protecciones de versión y la misma validación que el almacén del núcleo. */
 export function createPluginLearningData(deps: PluginLearningDeps): PluginLearningData {
 	const readers: { [K in keyof PluginGraphFileData]: () => PluginGraphFileData[K] } = {
 		"nodes.jsonl": () => deps.graphStore.readNodes(),

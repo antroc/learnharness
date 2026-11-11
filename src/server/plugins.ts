@@ -24,7 +24,7 @@ import { isTurnRunning } from "./turn-liveness.ts";
 import { compactionInFlight } from "./compaction.ts";
 
 export const pluginDirectory = path.join(/* turbopackIgnore: true */ PATHS.data, "plugins");
-// Explicitly staged by build-server, not discovered by Next's filesystem tracer.
+// Lo prepara explícitamente build-server; no lo descubre el trazador del sistema de ficheros de Next.
 const core = {
 	directory: path.join(/* turbopackIgnore: true */ PATHS.root, "core-plugins"),
 	dataDirectory: path.join(/* turbopackIgnore: true */ PATHS.data, "core-plugin-data"),
@@ -35,8 +35,8 @@ type Host = ReturnType<typeof createPluginHost>;
 interface Runtime { host: Host; ready: Promise<void> }
 interface PluginGlobal { __lhPlugins?: Runtime }
 
-/** Single composition for every Next entry. Importing this module does not load
- * plugin code or touch plugin storage; instrumentation (or a route) initializes it. */
+/** Una sola composición para todas las entradas de Next. Importar este módulo no carga
+ * código de plugins ni toca su almacenamiento; lo inicializa instrumentation (o una ruta). */
 function runtime(): Runtime {
 	const global = globalThis as typeof globalThis & PluginGlobal;
 	if (global.__lhPlugins) return global.__lhPlugins;
@@ -52,8 +52,8 @@ function runtime(): Runtime {
 	const installationErrors: Record<string, string> = Object.create(null);
 	const host = createPluginHost({
 		directory: pluginDirectory, core, appVersion: packageJson.version, installationErrors,
-		// The process-global runtime owns one admission slot across all plugins
-		// and every separately compiled Next route module.
+		// El runtime global del proceso tiene una única ranura de admisión para todos los
+		// plugins y para cada módulo de ruta de Next compilado por separado.
 		convertDocument: createPluginDocumentConverter().convert,
 		createServices({ manifest, dataDirectory, signal }) {
 			const inference = createPluginInference({ signal, dataDirectory });
@@ -85,15 +85,15 @@ function runtime(): Runtime {
 		onChange: () => emit("plugins-changed", {}),
 		onNotification: (notification) => emit("plugin-message", notification),
 	});
-	// Defer recovery/activation until the process-wide holder is published.
+	// Se aplazan la recuperación/activación hasta que se publique el contenedor global del proceso.
 	const ready = Promise.resolve().then(async () => {
 		setPluginJobRecovery(job => recoverPluginBackgroundJob(job, {
 			jobStore: stores.jobStore, deliver: deliverJobResult,
 			readTask: (pluginId, taskId, requestId) => readPluginTaskRecord(pluginDirectory, pluginId, taskId, requestId, coreData),
 			registerAbort: registerJobAbort, unregisterAbort: unregisterJobAbort,
 		}));
-		// Exclusive bootstrap sweep, including disabled packages whose services
-		// will not construct. Read-only job recovery never activates plugin code.
+		// Barrido exclusivo del arranque, incluidos los paquetes desactivados cuyos servicios
+		// no se construirán. La recuperación de tareas de solo lectura nunca activa código de plugins.
 		for (const [id, error] of Object.entries(recoverPluginTaskRecords(pluginDirectory, coreData))) {
 			installationErrors[id] = `Task recovery failed: ${error}`;
 		}
@@ -109,11 +109,11 @@ export async function getPluginHost(): Promise<Host> {
 	await ready;
 	return host;
 }
-/** Await startup once; actual factories run synchronously during per-turn Agent construction. */
+/** Espera una vez al arranque; las fábricas reales se ejecutan de forma síncrona al construir el Agent de cada turno. */
 export async function getPluginAgentContributions(): Promise<NonNullable<AgentBuildOptions["pluginContributions"]>> {
 	return (await getPluginHost()).agentContributions;
 }
-/** Await startup before reading canonical truth; the returned resolver itself is synchronous. */
+/** Espera al arranque antes de leer la verdad canónica; el resolutor devuelto es síncrono. */
 export async function getPluginQuestionTypeResolver(): Promise<Host["resolveQuestionType"]> {
 	return (await getPluginHost()).resolveQuestionType;
 }

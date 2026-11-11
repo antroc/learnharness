@@ -2,7 +2,7 @@ import { isPluginHostError } from "./plugin-host.ts";
 import { apiRequestRefusal } from "./desktop-access.ts";
 import type { PluginFrontendContext, PluginInfo } from "../core/plugins.ts";
 
-/** Thin HTTP adapter, separately injectable so its tests never boot plugins. */
+/** Adaptador HTTP fino, inyectable por separado para que sus pruebas nunca arranquen plugins. */
 export interface PluginTransportHost {
 	list(): PluginInfo[];
 	conflicts(): { id: string; error: string }[];
@@ -59,9 +59,9 @@ export function createPluginTransport(deps: { getHost(): Promise<PluginTransport
 	};
 }
 
-/** This one streamed route must avoid Proxy's silently truncated body clone.
- * Preserve the identical mode-aware API policy before ANY params/body/host
- * work, including unsupported methods and framework-style OPTIONS responses. */
+/** Esta ruta en streaming concreta debe evitar el clon del cuerpo que Proxy trunca en silencio.
+ * Se conserva la misma política de API consciente del modo antes de CUALQUIER trabajo con
+ * params/cuerpo/host, incluidos los métodos no admitidos y las respuestas OPTIONS al estilo del framework. */
 export function createPluginDocumentRoute(transport: Pick<ReturnType<typeof createPluginTransport>, "convertDocument">) {
 	const refusal = (request: Request) => {
 		const error = apiRequestRefusal(request);

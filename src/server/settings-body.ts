@@ -1,14 +1,16 @@
 /**
- * The shared settings-PUT body parsers — one seam per settings surface.
- * Extracted verbatim from the per-chat route (default-settings wave,
- * 2026-09-18): identical parse, identical errors. The section parsers
- * (settings-storage wave, 2026-09-19) follow the same house rules.
+ * Los analizadores compartidos del cuerpo de los PUT de ajustes: una frontera
+ * por superficie de ajustes. Extraídos tal cual de la ruta por chat (oleada de
+ * ajustes por defecto, 2026-09-18): mismo análisis, mismos errores. Los
+ * analizadores de sección (oleada de almacenamiento de ajustes, 2026-09-19)
+ * siguen las mismas reglas de la casa.
  *
- * Replace-whole semantics: the client sends the complete desired SECTION;
- * absent fields are absent overrides ({} clears everything). No merges, so
- * a stale client can never resurrect a cleared override. Unknown body keys
- * are dropped (same tolerance as parseSettingsBody) — unknown DISK keys are
- * a different concern and are preserved by the sanitizer (core/settings.ts).
+ * Semántica de reemplazo completo: el cliente envía la SECCIÓN deseada
+ * completa; los campos ausentes son sustituciones ausentes ({} lo borra todo).
+ * Sin fusiones, así que un cliente obsoleto nunca puede resucitar una
+ * sustitución borrada. Las claves desconocidas del cuerpo se descartan (la
+ * misma tolerancia que parseSettingsBody); las claves desconocidas EN DISCO
+ * son otro asunto y el saneador las conserva (core/settings.ts).
  */
 
 import path from "node:path";
@@ -34,7 +36,7 @@ import { isSearchEngineId, SEARCH_ENGINES } from "../core/search.ts";
 import { isDictationLanguage } from "../core/dictation.ts";
 import { parseFileAccessSettings } from "../core/file-access.ts";
 
-/** Parsed-or-rejected — `ok: false` carries the 400's error message. */
+/** Analizado o rechazado: `ok: false` lleva el mensaje de error del 400. */
 export type SettingsBodyResult<T> =
 	| { ok: true; settings: T }
 	| { ok: false; error: string };
@@ -65,18 +67,18 @@ export function parseSettingsBody(body: unknown): SettingsBodyResult<ChatSetting
 		}
 		settings.thinkingLevel = raw.thinkingLevel as ThinkingLevel;
 	}
-	// Wave 7 killed the graph-context injection (owner: zero configuration
-	// beyond chat models — the prober reads its map through tools now); its
-	// budget dial is gone with it. A stale client sending the old key has
-	// it silently dropped here (forward-compatible, like any unknown key).
+	// La oleada 7 eliminó la inyección del contexto del grafo (responsable: cero configuración
+	// más allá de los modelos del chat; el sondeador lee ahora su mapa mediante herramientas);
+	// su control de presupuesto desapareció con ella. A un cliente obsoleto que envíe la clave
+	// antigua se le descarta aquí en silencio (compatible hacia delante, como cualquier clave desconocida).
 	return { ok: true, settings };
 }
 
-// ─── Section parsers (settings-storage wave, 2026-09-19) ────────────────────
-// One parser per settings.json section; the route maps the URL section to
-// its parser via SETTINGS_SECTIONS below. Same discipline as
-// parseSettingsBody: strict on every known field (a bad type/shape is a
-// 400, never a silent clamp/drop), unknown keys dropped.
+// ─── Analizadores de sección (oleada de almacenamiento de ajustes, 2026-09-19) ───
+// Un analizador por sección de settings.json; la ruta asocia la sección de la URL a
+// su analizador mediante SETTINGS_SECTIONS, más abajo. La misma disciplina que
+// parseSettingsBody: estricta con cada campo conocido (un tipo/forma incorrectos son
+// un 400, nunca un acotado/descarte silencioso); las claves desconocidas se descartan.
 
 function asRecord(body: unknown): Record<string, unknown> | null {
 	if (!body || typeof body !== "object" || Array.isArray(body)) return null;
@@ -97,7 +99,7 @@ export function parseGeneralSettingsBody(body: unknown): SettingsBodyResult<Gene
 	return { ok: true, settings };
 }
 
-/** claudeCode: explicit app-wide opt-in. Empty section resets to off. */
+/** claudeCode: opción explícita para toda la app. Una sección vacía la restablece a desactivada. */
 export function parseClaudeCodeSettingsBody(body: unknown): SettingsBodyResult<{ enabled?: boolean }> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
@@ -106,8 +108,8 @@ export function parseClaudeCodeSettingsBody(body: unknown): SettingsBodyResult<{
 	return { ok: true, settings: { enabled: raw.enabled } };
 }
 
-/** agent.models: only the six known background roles; each override's
- *  fields mirror ChatSettings (model pair + independent thinkingLevel). */
+/** agent.models: solo los seis roles en segundo plano conocidos; los campos
+ *  de cada sustitución reflejan ChatSettings (par de modelo + thinkingLevel independiente). */
 function parseRoleOverride(value: unknown, role: string): { ok: true; override: RoleModelOverride } | { ok: false; error: string } {
 	const raw = asRecord(value);
 	if (!raw) return { ok: false, error: `${role} must be an object` };
@@ -135,7 +137,7 @@ function parseRoleOverride(value: unknown, role: string): { ok: true; override: 
 	return { ok: true, override };
 }
 
-/** A boolean map (tools / prompts switches): every value must be boolean. */
+/** Un mapa de booleanos (interruptores de tools / prompts): todos los valores deben ser booleanos. */
 function parseBooleanMap(value: unknown, field: string): { map?: Record<string, boolean>; error?: string } {
 	if (value === undefined) return {};
 	const raw = asRecord(value);
@@ -148,9 +150,9 @@ function parseBooleanMap(value: unknown, field: string): { map?: Record<string, 
 	return { map: out };
 }
 
-/** agent: { workerRequestConcurrency?, models?, tools?, prompts? } — model/thinking validity against
- *  the catalog is checked by the route (validateChatSettings discipline);
- *  prompt switch-on membership is checked by the route (needs the store). */
+/** agent: { workerRequestConcurrency?, models?, tools?, prompts? }; la validez de modelo/razonamiento
+ *  frente al catálogo la comprueba la ruta (disciplina de validateChatSettings); la pertenencia de
+ *  los prompts que se activan la comprueba la ruta (necesita el almacén). */
 export function parseAgentSettingsBody(body: unknown): SettingsBodyResult<AgentSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
@@ -179,12 +181,12 @@ export function parseAgentSettingsBody(body: unknown): SettingsBodyResult<AgentS
 	const tools = parseBooleanMap(raw.tools, "tools");
 	if (tools.error) return { ok: false, error: tools.error };
 	if (tools.map) {
-		// Unknown tool keys are rejected at WRITE time (user decision
-		// 2026-09-19): the delta is inert while unread, but once the bridge
-		// honors it a persisted bogus key would drift. The writable set is
-		// the job tools + the quizzing-mechanics switch (explain, owner
-		// 2026-09-27). The read-side sanitizer stays lenient for
-		// forward-compat.
+		// Las claves de herramienta desconocidas se rechazan al ESCRIBIR (decisión del usuario
+		// 2026-09-19): el delta es inerte mientras no se lee, pero en cuanto el puente lo
+		// respete, una clave falsa persistida se desviaría. El conjunto escribible son las
+		// herramientas de tareas + el interruptor de la mecánica de los quizzes (explain,
+		// responsable 2026-09-27). El saneador del lado de lectura sigue siendo permisivo por
+		// compatibilidad hacia delante.
 		const supported = WRITABLE_TOOL_KEYS as readonly string[];
 		for (const key of Object.keys(tools.map)) {
 			if (!supported.includes(key)) {
@@ -206,10 +208,10 @@ export function parseAgentSettingsBody(body: unknown): SettingsBodyResult<AgentS
 			settings.search = { engine: search.engine };
 		}
 	}
-	// Prober graph tools (wave 7, owner ruling 2026-09-23): an agent-section
-	// subsection, not a tool-toggles key — the mechanism is agent capability
-	// (tool registration), the subject is the graph. Strict write side:
-	// object shape only; `enabled` boolean when present. Absent = ON.
+	// Herramientas de grafo del sondeador (oleada 7, decisión del responsable 2026-09-23): una
+	// subsección de la sección agent, no una clave de los conmutadores de herramientas; el
+	// mecanismo es una capacidad del agente (registro de herramientas) y el tema es el grafo.
+	// Lado de escritura estricto: solo forma de objeto; `enabled` booleano si está. Ausente = ACTIVADO.
 	if (raw.graphTools !== undefined) {
 		const graphTools = asRecord(raw.graphTools);
 		if (!graphTools) return { ok: false, error: "graphTools must be an object" };
@@ -229,7 +231,7 @@ export function parseAgentSettingsBody(body: unknown): SettingsBodyResult<AgentS
 	return { ok: true, settings };
 }
 
-/** A hex-or-null color field (appearance colors): null = default. */
+/** Un campo de color hexadecimal o null (colores de apariencia): null = por defecto. */
 function parseHexOrNull(value: unknown, field: string): { color?: string | null; error?: string } {
 	if (value === null) return { color: null };
 	if (typeof value !== "string" || !isHexColor(value)) {
@@ -239,8 +241,8 @@ function parseHexOrNull(value: unknown, field: string): { color?: string | null;
 }
 
 /** appearance: { theme?, background?, colors?, fontFamily?,
- *  proseFontSize?, codeLigatures?, sessionNameSerif?, mdRendering? } —
- *  `theme` is shape-checked here (slug); whether it EXISTS is the route's check. */
+ *  proseFontSize?, codeLigatures?, sessionNameSerif?, mdRendering? };
+ *  aquí se comprueba la forma de `theme` (slug); si EXISTE lo comprueba la ruta. */
 export function parseAppearanceSettingsBody(body: unknown): SettingsBodyResult<AppearanceSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
@@ -327,20 +329,21 @@ export function parseAppearanceSettingsBody(body: unknown): SettingsBodyResult<A
 	return { ok: true, settings };
 }
 
-/** graph: the collapsed section { enabled? } (wave 7, owner ruling
- *  2026-09-23): the master switch ONLY — the embedding/clustering/labeling
- *  rungs and the BYOK embeddingModel died with the provider embedder
- *  (clustering is the free birth-session partition, labels are session
- *  names). Old-shape keys in a body are ignored, not rejected. */
+/** graph: la sección plegada { enabled? } (oleada 7, decisión del responsable
+ *  2026-09-23): SOLO el interruptor general; los peldaños de
+ *  embeddings/clustering/etiquetado y el embeddingModel BYOK murieron con el
+ *  embedder del proveedor (el clustering es la partición gratuita por sesión
+ *  de origen; las etiquetas son los nombres de las sesiones). Las claves con
+ *  la forma antigua en un cuerpo se ignoran, no se rechazan. */
 export function parseGraphSettingsBody(body: unknown): SettingsBodyResult<GraphSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
-	// Wave 7 collapse (owner ruling 2026-09-23) + the extraction-UX
-	// redesign (2026-09-24): the section is the master switch and the
-	// chunk budget. PUT is replace-whole — a body like {enabled: true} IS
-	// the whole section (extractionChunkTokens absent = factory default at
-	// resolution); the dead rungs' keys in old records are unread (the
-	// sanitizer drops them; see sanitizeGraph).
+	// Plegado de la oleada 7 (decisión del responsable 2026-09-23) + el rediseño de la UX
+	// de extracción (2026-09-24): la sección es el interruptor general y el presupuesto de
+	// fragmentos. El PUT reemplaza el conjunto: un cuerpo como {enabled: true} ES toda la
+	// sección (extractionChunkTokens ausente = valor de fábrica al resolver); las claves de
+	// los peldaños muertos en registros antiguos no se leen (el saneador las descarta; ver
+	// sanitizeGraph).
 	const settings: GraphSettings = {};
 	if (raw.enabled !== undefined) {
 		if (typeof raw.enabled !== "boolean") return { ok: false, error: "enabled must be a boolean" };
@@ -356,9 +359,9 @@ export function parseGraphSettingsBody(body: unknown): SettingsBodyResult<GraphS
 		}
 		const floored = Math.floor(raw.extractionChunkTokens);
 		if (floored < EXTRACTION_CHUNK_TOKENS_FLOOR) {
-			// the floor's rationale lives on GraphSettings.extractionChunkTokens:
-			// every run pays the graph-carrying prompt overhead — penny-batches
-			// cost more per extracted token than the content is worth.
+			// la justificación del mínimo está en GraphSettings.extractionChunkTokens: cada
+			// ejecución paga la sobrecarga del prompt que lleva el grafo; los lotes de calderilla
+			// cuestan más por token extraído de lo que vale el contenido.
 			return {
 				ok: false,
 				error: `extractionChunkTokens must be at least ${EXTRACTION_CHUNK_TOKENS_FLOOR} (smaller batches waste the per-run graph overhead)`,
@@ -369,11 +372,11 @@ export function parseGraphSettingsBody(body: unknown): SettingsBodyResult<GraphS
 	return { ok: true, settings };
 }
 
-/** models: { strong?, cheap?, vision? } — the slot tiers (model slots
- *  wave, 2026-09-20). Each slot is the same shape as a role override; a
- *  present-but-empty slot object is rejected (absent slot = unset; say
- *  what you mean). Catalog validity is checked by the route
- *  (validateChatSettings discipline). */
+/** models: { strong?, cheap?, vision? }: los niveles de ranura (oleada de
+ *  ranuras de modelo, 2026-09-20). Cada ranura tiene la misma forma que una
+ *  sustitución de rol; un objeto de ranura presente pero vacío se rechaza
+ *  (ranura ausente = sin definir; di lo que quieres decir). La validez frente
+ *  al catálogo la comprueba la ruta (disciplina de validateChatSettings). */
 export function parseModelsSettingsBody(body: unknown): SettingsBodyResult<ModelsSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
@@ -385,10 +388,10 @@ export function parseModelsSettingsBody(body: unknown): SettingsBodyResult<Model
 		}
 		const parsed = parseRoleOverride(raw[key], key);
 		if (!parsed.ok) return { ok: false, error: parsed.error };
-		// BYOK (owner, 2026-09-22): a slot IS a model choice — no factory
-		// floor exists, so a thinkingLevel alone can never run; every slot
-		// write must carry the model (the level is an optional rider). An
-		// absent slot key clears the tier (replace-whole section).
+		// BYOK (responsable, 2026-09-22): una ranura ES una elección de modelo; no existe suelo
+		// de fábrica, así que un thinkingLevel solo nunca puede ejecutarse; toda escritura de
+		// ranura debe llevar el modelo (el nivel es un añadido opcional). Una clave de ranura
+		// ausente borra el nivel (reemplazo completo de la sección).
 		if (!parsed.override.model) {
 			return { ok: false, error: `slot "${key}" must set a model (thinkingLevel alone cannot run — absent slot = unset)` };
 		}
@@ -405,14 +408,14 @@ export function parseModelsSettingsBody(body: unknown): SettingsBodyResult<Model
 	return { ok: true, settings };
 }
 
-/** compaction: opt-in reasoning accounting (boolean, default off) and the
- *  projected-token budget over which a session summarizes its own history
- *  into the compaction marker. Strict write side: a present
- *  thresholdTokens must be a number at or above the floor (the floor is
- *  anti-churn: each compaction keeps a ~20k-token recent tail, so a
- *  smaller threshold would re-summarize the tail it just wrote). Absent =
- *  factory default 150k at resolution. Replace-whole, like every
- *  section. */
+/** compaction: contabilidad de razonamiento opcional (booleano, desactivada
+ *  por defecto) y el presupuesto de tokens proyectados por encima del cual una
+ *  sesión resume su propio historial en el marcador de compactación. Lado de
+ *  escritura estricto: un thresholdTokens presente debe ser un número igual o
+ *  superior al mínimo (el mínimo evita el bucle inútil: cada compactación
+ *  conserva una cola reciente de unos 20k tokens, así que un umbral menor
+ *  volvería a resumir la cola que acaba de escribir). Ausente = valor de
+ *  fábrica de 150k al resolver. Reemplazo completo, como todas las secciones. */
 export function parseCompactionSettingsBody(body: unknown): SettingsBodyResult<CompactionSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
@@ -439,7 +442,7 @@ export function parseCompactionSettingsBody(body: unknown): SettingsBodyResult<C
 	return { ok: true, settings };
 }
 
-/** dictation: { language?: one of Nova-3's supported language codes } */
+/** dictation: { language?: uno de los códigos de idioma admitidos por Nova-3 } */
 export function parseDictationSettingsBody(body: unknown): SettingsBodyResult<DictationSettings> {
 	const raw = asRecord(body);
 	if (!raw) return { ok: false, error: "Invalid JSON body" };
@@ -448,11 +451,12 @@ export function parseDictationSettingsBody(body: unknown): SettingsBodyResult<Di
 	return { ok: true, settings: { language: raw.language } };
 }
 
-/** The custom endpoint's per-model pins (PATCH /api/custom-provider): the
- *  whole desired map, replace-whole like every section. Strict write side — a
- *  token count must be a whole number at or above the floor (the read side
- *  clamps, this rejects — the compaction discipline). `reasoning` is the
- *  tri-state capability pin, not a backend execution toggle. */
+/** Las fijaciones por modelo del endpoint personalizado (PATCH
+ *  /api/custom-provider): el mapa deseado completo, con reemplazo completo como
+ *  en todas las secciones. Lado de escritura estricto: un recuento de tokens
+ *  debe ser un número entero igual o superior al mínimo (el lado de lectura
+ *  acota; este rechaza: la disciplina de la compactación). `reasoning` es la
+ *  fijación de capacidad de tres estados, no un conmutador de ejecución del backend. */
 export function parseCustomModelOverridesBody(
 	body: unknown,
 ): SettingsBodyResult<Record<string, CustomModelOverride>> {
@@ -487,8 +491,8 @@ export function parseCustomModelOverridesBody(
 	return { ok: true, settings: out };
 }
 
-/** The section→parser map for PUT /api/settings/[section]. The custom endpoint
- *  is NOT a section — it connects via POST /api/custom-provider. */
+/** El mapa sección→analizador para PUT /api/settings/[section]. El endpoint
+ *  personalizado NO es una sección: se conecta mediante POST /api/custom-provider. */
 export const SETTINGS_SECTIONS = {
 	general: parseGeneralSettingsBody,
 	chat: parseSettingsBody,

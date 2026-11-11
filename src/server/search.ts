@@ -1,37 +1,38 @@
 /**
- * The search engines' server composition (search port + model slots wave,
- * 2026-09-20): search adapters behind the core port
- * (core/search.ts) + the live-engine resolution the settings UI and the
- * agent-layer tool both read.
+ * La composición en el servidor de los motores de búsqueda (oleada del puerto
+ * de búsqueda + ranuras de modelo, 2026-09-20): adaptadores de búsqueda tras
+ * el puerto del núcleo (core/search.ts) + la resolución del motor vivo que
+ * leen tanto la interfaz de ajustes como la herramienta de la capa del agente.
  *
- * Owner decisions (2026-09-20) baked in:
- *  - NO default engine: an engine is live iff its key is present (auth
- *    store or env — env wins, keyed via server/keys.ts keyValue).
- *  - Setting a key is ALL the user does — auto-detection: explicit
- *    agent.search.engine pins the preference (when several keys are
- *    present the order is Tavily → Brave → Exa → Firecrawl → Ollama);
- *    without a pin, the first keyed engine wins.
- *  - An explicit choice does NOT silently fall back to another engine:
- *    engine pinned but its key missing = honestly unavailable (reason
- *    says so) — no guessing what the user meant.
+ * Decisiones del responsable (2026-09-20) incorporadas:
+ *  - SIN motor por defecto: un motor está vivo si y solo si su clave está
+ *    presente (almacén de autenticación o entorno; gana el entorno, con clave
+ *    mediante keyValue de server/keys.ts).
+ *  - Definir una clave es TODO lo que hace el usuario; detección automática:
+ *    un agent.search.engine explícito fija la preferencia (si hay varias claves
+ *    presentes, el orden es Tavily → Brave → Exa → Firecrawl → Ollama); sin
+ *    fijación, gana el primer motor con clave.
+ *  - Una elección explícita NO recurre en silencio a otro motor: motor fijado
+ *    pero sin su clave = no disponible, dicho con honestidad (el motivo lo
+ *    indica); no se adivina lo que quería el usuario.
  *
- * The adapters are injected dependencies (fetch-shaped) so the agent-layer
- * tool depends on the PORT only and tests never touch the network.
+ * Los adaptadores son dependencias inyectadas (con forma de fetch) para que la
+ * herramienta de la capa del agente dependa solo del PUERTO y las pruebas
+ * nunca toquen la red.
  */
 
 import { SEARCH_ENGINES, type SearchEngineId, type SearchHit, type SearchProvider, type SearchStatus } from "../core/search.ts";
 import { keyValue } from "./keys.ts";
 import { effectiveSettings } from "./stores.ts";
 
-/** The wire-callable shape the adapters close over (tests inject a stub). */
+/** La forma invocable por la red que envuelven los adaptadores (las pruebas inyectan un sustituto). */
 type FetchLike = (input: string, init: RequestInit) => Promise<Response>;
 
-/** Tavily: POST https://api.tavily.com/search — Bearer auth in the
- *  Authorization header (the current documented scheme; the legacy
- *  api_key-in-body form is retired), query + max_results (0–20) in the
- *  JSON body. VERIFIED against docs.tavily.com's OpenAPI, 2026-09-20:
- *  response {results: [{title, url, content, score, …}]}, errors
- *  {detail: {error}}. */
+/** Tavily: POST https://api.tavily.com/search, con autenticación Bearer en la
+ *  cabecera Authorization (el esquema documentado actual; la forma heredada con
+ *  api_key en el cuerpo está retirada), query + max_results (0–20) en el cuerpo
+ *  JSON. VERIFICADO contra el OpenAPI de docs.tavily.com, 2026-09-20: respuesta
+ *  {results: [{title, url, content, score, …}]}, errores {detail: {error}}. */
 export function tavilyProvider(apiKey: string, fetchFn: FetchLike = fetch): SearchProvider {
 	return {
 		id: "tavily",
@@ -47,14 +48,14 @@ export function tavilyProvider(apiKey: string, fetchFn: FetchLike = fetch): Sear
 			});
 			if (!resp.ok) {
 				const body = await resp.text();
-				// Their error body is {detail: {error: "…"}} — surface the
-				// message when present, else the raw slice.
+				// Su cuerpo de error es {detail: {error: "…"}}: se muestra el mensaje si está
+				// presente o, si no, el fragmento en bruto.
 				let detail = body.slice(0, 200);
 				try {
 					const parsed = JSON.parse(body) as { detail?: { error?: string } };
 					if (parsed.detail?.error) detail = parsed.detail.error.slice(0, 200);
 				} catch {
-					/* keep the raw slice */
+					/* se mantiene el fragmento en bruto */
 				}
 				throw new Error(`Tavily search API ${resp.status}: ${detail}`);
 			}
@@ -72,9 +73,9 @@ export function tavilyProvider(apiKey: string, fetchFn: FetchLike = fetch): Sear
 	};
 }
 
-/** Brave: GET https://api.search.brave.com/res/v1/web/search with the
- *  key in the X-Subscription-Token header. VERIFIED against Brave's
- *  dashboard docs, 2026-09-20: count max 20; response
+/** Brave: GET https://api.search.brave.com/res/v1/web/search con la clave en
+ *  la cabecera X-Subscription-Token. VERIFICADO contra la documentación del
+ *  panel de Brave, 2026-09-20: count máximo 20; respuesta
  *  {web: {results: [{title, url, description, …}]}}. */
 export function braveProvider(apiKey: string, fetchFn: FetchLike = fetch): SearchProvider {
 	return {
@@ -108,7 +109,7 @@ export function braveProvider(apiKey: string, fetchFn: FetchLike = fetch): Searc
 	};
 }
 
-/** Invalid JSON must not echo provider response bodies into tool results. */
+/** Un JSON no válido no debe reproducir los cuerpos de respuesta del proveedor en los resultados de las herramientas. */
 async function searchJson(response: Response, label: string): Promise<unknown> {
 	try {
 		return await response.json();
@@ -117,9 +118,10 @@ async function searchJson(response: Response, label: string): Promise<unknown> {
 	}
 }
 
-/** Exa's Search API returns highlights when requested. Its result snippets
- * are normalized to the same bounded, provider-neutral shape as the other
- * adapters. Do not expose error bodies, which may contain credentials. */
+/** La API de búsqueda de Exa devuelve fragmentos destacados si se piden. Sus
+ * fragmentos de resultado se normalizan a la misma forma acotada y neutral
+ * respecto al proveedor que la de los demás adaptadores. No se exponen los
+ * cuerpos de error, que pueden contener credenciales. */
 export function exaProvider(apiKey: string, fetchFn: FetchLike = fetch): SearchProvider {
 	return {
 		id: "exa",
@@ -151,9 +153,10 @@ export function exaProvider(apiKey: string, fetchFn: FetchLike = fetch): SearchP
 	};
 }
 
-/** Firecrawl's v2 search API: no scrapeOptions, so web_fetch still owns
- *  page bodies. Wire shape checked against the official 2026-11-03 snapshot;
- *  live account access and pricing are not inferred from configuration. */
+/** La API de búsqueda v2 de Firecrawl: sin scrapeOptions, así que web_fetch
+ *  sigue encargándose del cuerpo de las páginas. La forma en la red se
+ *  comprobó contra la instantánea oficial del 2026-11-03; el acceso real de la
+ *  cuenta y los precios no se deducen de la configuración. */
 export function firecrawlProvider(apiKey: string, fetchFn: FetchLike = fetch): SearchProvider {
 	return {
 		id: "firecrawl",
@@ -185,8 +188,8 @@ export function firecrawlProvider(apiKey: string, fetchFn: FetchLike = fetch): S
 	};
 }
 
-/** Hosted search only, adapted from chiranjivsethi's PR #81 (a216fa8).
- *  No local model URL, model registration, or provider-backed page fetch. */
+/** Solo búsqueda alojada, adaptada del PR #81 de chiranjivsethi (a216fa8).
+ *  Sin URL de modelo local, registro de modelos ni descarga de páginas respaldada por un proveedor. */
 export function ollamaProvider(apiKey: string, fetchFn: FetchLike = fetch): SearchProvider {
 	return {
 		id: "ollama",
@@ -211,7 +214,7 @@ export function ollamaProvider(apiKey: string, fetchFn: FetchLike = fetch): Sear
 	};
 }
 
-/** Match Exa's bounded result contract for the other new adapters. */
+/** Se ajusta al contrato de resultados acotados de Exa para los demás adaptadores nuevos. */
 function searchHit(title: unknown, url: unknown, snippet: unknown): SearchHit[] {
 	if (typeof url !== "string" || !url.trim()) return [];
 	try {
@@ -225,15 +228,15 @@ function searchHit(title: unknown, url: unknown, snippet: unknown): SearchHit[] 
 	}];
 }
 
-/** The engine's key (env-or-file; env wins) — null when the engine is
- *  not keyed, which by owner decision means NOT LIVE. */
+/** La clave del motor (entorno o fichero; gana el entorno); null cuando el
+ *  motor no tiene clave, lo que por decisión del responsable significa NO VIVO. */
 function engineKey(id: SearchEngineId): string | null {
 	const envVar = SEARCH_ENGINES.find((e) => e.id === id)?.envVar;
 	const value = envVar ? keyValue(envVar) : undefined;
 	return value ? value : null;
 }
 
-/** Every engine's live key, read fresh (the resolver's input). */
+/** La clave viva de cada motor, leída de nuevo (la entrada del resolutor). */
 function engineKeys(): Partial<Record<SearchEngineId, string>> {
 	const keys: Partial<Record<SearchEngineId, string>> = {};
 	for (const { id } of SEARCH_ENGINES) {
@@ -243,12 +246,13 @@ function engineKeys(): Partial<Record<SearchEngineId, string>> {
 	return keys;
 }
 
-/** Resolve the search state PURELY from the given pins (testable): the
- *  explicit engine (if pinned) wins but must be keyed; absent pin → first
- *  keyed engine in preference order. Never throws. */
+/** Resuelve el estado de búsqueda DE FORMA PURA a partir de las fijaciones
+ *  dadas (comprobable): el motor explícito (si está fijado) gana, pero debe
+ *  tener clave; sin fijación → el primer motor con clave en orden de
+ *  preferencia. Nunca lanza. */
 export function resolveSearchEngineFor(
 	pinned: SearchEngineId | undefined,
-	/** Per-engine live keys (absent engine = absent property is fine). */
+	/** Claves vivas por motor (motor ausente = propiedad ausente, sin problema). */
 	keys: Partial<Record<SearchEngineId, string | undefined>>,
 ): SearchStatus & { key: string | null } {
 	const pinnedKey = pinned ? keys[pinned] ?? null : null;
@@ -275,9 +279,10 @@ export function resolveSearchEngineFor(
 	};
 }
 
-/** The live search state (the honest availability signal): reads the
- *  settings record's pin + the auth store fresh each call, so a key saved
- *  mid-session activates on the next check (no restart). */
+/** El estado de búsqueda vivo (la señal honesta de disponibilidad): lee la
+ *  fijación del registro de ajustes + el almacén de autenticación de nuevo en
+ *  cada llamada, así que una clave guardada a mitad de sesión se activa en la
+ *  siguiente comprobación (sin reiniciar). */
 export function searchStatus(): SearchStatus {
 	const { available, engine, reason } = resolveSearchEngineFor(
 		effectiveSettings().agent.search?.engine,
@@ -286,14 +291,14 @@ export function searchStatus(): SearchStatus {
 	return { available, engine, reason };
 }
 
-/** Search status only — research itself remains available without a key. */
+/** Solo el estado de la búsqueda; research sigue disponible sin clave. */
 export function searchAvailable(): boolean {
 	return searchStatus().available;
 }
 
-/** The LIVE adapter, or null when unavailable. Composed fresh each call —
- *  the tool layer (Teacher stream) calls this once per search, so key
- *  rotations take effect immediately. */
+/** El adaptador VIVO, o null si no está disponible. Se compone de nuevo en
+ *  cada llamada; la capa de herramientas (flujo del profesor) lo llama una vez
+ *  por búsqueda, así que las rotaciones de claves surten efecto al momento. */
 export function searchProvider(): SearchProvider | null {
 	const resolved = resolveSearchEngineFor(effectiveSettings().agent.search?.engine, engineKeys());
 	if (!resolved.available || !resolved.key) return null;
