@@ -1,52 +1,58 @@
 /**
- * Live app notifications for turn, job, record and availability changes.
- * Consumers fetch authoritative state after a notification and refetch on
- * reconnect; notifications are not a durable replay log. The plugin-message
- * channel additionally carries plugin-scoped JSON data, with the same
- * live-only delivery limitation.
+ * Notificaciones en vivo de la app para cambios de turnos, tareas, registros
+ * y disponibilidad. Los consumidores obtienen el estado autoritativo tras una
+ * notificación y lo vuelven a obtener al reconectar; las notificaciones no son
+ * un registro duradero que se pueda reproducir. El canal de mensajes de
+ * plugins lleva además datos JSON con ámbito de plugin, con la misma
+ * limitación de entrega solo en vivo.
  */
 
-/** The core event vocabulary plus the namespaced plugin extension channel. */
+/** El vocabulario de eventos del núcleo más el canal de extensión de plugins con espacio de nombres. */
 export interface ServerEvents {
-	/** A native conversation turn began server-side, including sends, wake
-	 * turns and turns initiated from another window. */
+	/** Empezó un turno nativo de conversación en el servidor, incluidos los
+	 * envíos, los turnos de despertar y los turnos iniciados desde otra ventana. */
 	"turn-started": { chatId: string };
-	/** A turn settled after turn persistence. Refetch the saved record; this
-	 * does not mean asynchronous extraction or background work has completed. */
+	/** Un turno se asentó tras persistirse. Vuelve a obtener el registro
+	 * guardado; esto no significa que la extracción asíncrona o el trabajo en
+	 * segundo plano hayan terminado. */
 	"turn-settled": { chatId: string };
-	/** A job record changed (dispatch, progress, settle, abort, recovery).
-	 *  chatId when known — consumers that own one chat filter on it. */
+	/** Cambió el registro de una tarea (envío, progreso, asentamiento, aborto,
+	 *  recuperación). chatId cuando se conoce — los consumidores que poseen un
+	 *  chat filtran por él. */
 	"jobs-changed": { chatId?: string };
-	/** An extraction run changed phase (activity dock). */
+	/** Una ejecución de extracción cambió de fase (dock de actividad). */
 	"activity-changed": Record<string, never>;
-	/** The session list changed (create, delete, title). */
+	/** Cambió la lista de sesiones (crear, borrar, título). */
 	"chats-changed": Record<string, never>;
-	/** Source inventory, display names, or organizational folders changed. */
+	/** Cambiaron el inventario de fuentes, los nombres mostrados o las carpetas organizativas. */
 	"sources-changed": Record<string, never>;
-	/** Web subscription state changed. No account or credential data on the bus. */
+	/** Cambió el estado de una suscripción web. Ni datos de cuenta ni credenciales en el bus. */
 	"subscriptions-changed": Record<string, never>;
-	/** A chat's record changed WITHOUT a turn (the silent dismissal write).
-	 *  Same notify-then-fetch contract as the turn events: open views of
-	 *  the chat refetch and adopt the durable record. */
+	/** El registro de un chat cambió SIN un turno (la escritura silenciosa del
+	 *  descarte). El mismo contrato de notificar y luego obtener que los eventos
+	 *  de turno: las vistas abiertas del chat vuelven a obtenerlo y adoptan el
+	 *  registro duradero. */
 	"record-changed": { chatId: string };
-	/** Context compaction started or finished for this chat. While running is
-	 * true, the server gates model interaction and the client disables related
-	 * composer/dock submission. This is live state, not a persisted marker. */
+	/** Empezó o terminó la compactación del contexto de este chat. Mientras
+	 * running es true, el servidor bloquea la interacción con el modelo y el
+	 * cliente desactiva el envío relacionado del compositor/dock. Es estado en
+	 * vivo, no un marcador persistido. */
 	"compaction-changed": { chatId: string; running: boolean };
-	/** A side conversation changed. Notify-then-fetch: open views refetch
-	 *  GET /api/chats/:id/side-chats. Closing never deletes it. */
+	/** Cambió una conversación lateral. Notificar y luego obtener: las vistas
+	 *  abiertas vuelven a pedir GET /api/chats/:id/side-chats. Cerrarla nunca la
+	 *  borra. */
 	"side-chats-changed": { chatId: string };
-	/** Plugin availability/lifecycle changed; refetch installed packages. */
+	/** Cambió la disponibilidad o el ciclo de vida de los plugins; vuelve a obtener los paquetes instalados. */
 	"plugins-changed": Record<string, never>;
-	/** Live-only, plugin-scoped notifications. Reconnect requires snapshot resync. */
+	/** Notificaciones solo en vivo con ámbito de plugin. Al reconectar hay que resincronizar con una instantánea. */
 	"plugin-message": { pluginId: string; topic: string; data?: unknown };
 }
 
 export type ServerEventType = keyof ServerEvents;
 
-/** The vocabulary's runtime names — the client wires one listener per
- *  name (types are erased; this list is the single source of truth for
- *  what the SSE channel can carry). */
+/** Los nombres en tiempo de ejecución del vocabulario — el cliente conecta un
+ *  listener por nombre (los tipos se borran; esta lista es la única fuente de
+ *  verdad de lo que puede llevar el canal SSE). */
 export const SERVER_EVENT_TYPES = [
 	"turn-started",
 	"turn-settled",
@@ -62,8 +68,9 @@ export const SERVER_EVENT_TYPES = [
 	"plugin-message",
 ] as const satisfies readonly ServerEventType[];
 
-/** One notification: distribute over the vocabulary so narrowing `type`
- * actually narrows its payload (including plugin-scoped messages). */
+/** Una notificación: se distribuye sobre el vocabulario para que estrechar
+ * `type` estreche de verdad su carga (incluidos los mensajes con ámbito de
+ * plugin). */
 export type ServerEvent<K extends ServerEventType = ServerEventType> = {
 	[T in K]: { type: T } & ServerEvents[T];
 }[K];
@@ -74,29 +81,32 @@ interface LhEventsGlobal {
 	__lhEventBus?: Set<ServerEventListener>;
 }
 
-/** The shared listener set — globalThis-backed so every Next module entry
- *  (and every layer) sees ONE bus. Ephemeral by design: a process restart
- *  drops the listeners with their connections; emitters never queue. */
+/** El conjunto compartido de listeners — respaldado en globalThis para que
+ *  cada entrada de módulo de Next (y cada capa) vea UN solo bus. Efímero por
+ *  diseño: un reinicio del proceso descarta los listeners junto con sus
+ *  conexiones; los emisores nunca encolan. */
 function listeners(): Set<ServerEventListener> {
 	const g = globalThis as typeof globalThis & LhEventsGlobal;
 	return (g.__lhEventBus ??= new Set());
 }
 
-/** Listen. Returns the unsubscribe function — the SSE route's cancel and
- *  any test cleanup call it; a dropped listener leaks nothing. */
+/** Escucha. Devuelve la función para darse de baja — la llaman la
+ *  cancelación de la ruta SSE y cualquier limpieza de pruebas; un listener
+ *  descartado no deja fugas. */
 export function subscribe(listener: ServerEventListener): () => void {
 	const set = listeners();
 	set.add(listener);
 	return () => set.delete(listener);
 }
 
-/** Notify every listener. Zero subscribers is a no-op (no window open —
- *  the emission was for the stores' own bookkeeping anyway). One
- *  listener throwing must never break the others or the emitter: each
- *  call is isolated, the failure logged, the loop continues. */
+/** Notifica a todos los listeners. Cero suscriptores no hace nada (no hay
+ *  ventana abierta — la emisión era de todos modos para la contabilidad de
+ *  los propios stores). Que un listener lance nunca debe romper a los demás
+ *  ni al emisor: cada llamada está aislada, el fallo se registra y el bucle
+ *  sigue. */
 export function emit<K extends ServerEventType>(type: K, payload: ServerEvents[K]): void {
-	// Snapshot: a listener that unsubscribes (or subscribes) mid-emit must
-	// not mutate the set under iteration.
+	// Instantánea: un listener que se da de baja (o de alta) a mitad de la emisión no
+	// debe mutar el conjunto mientras se itera.
 	for (const listener of [...listeners()]) {
 		try {
 			listener({ type, ...payload } as ServerEvent);

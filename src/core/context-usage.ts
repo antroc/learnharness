@@ -1,10 +1,11 @@
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import type { LhMessage } from "./native-messages.ts";
 
-/** Latest completed conversation measurement, never a request-size estimate.
- * Ordered compaction markers invalidate every earlier reading. Live callers
- * must exclude assistant slots that have not received message_end.
- * Reasoning is already inside output; totalTokens is deliberately not used.
+/** Última medición completada de la conversación, nunca una estimación del
+ * tamaño de la petición. Los marcadores de compactación ordenados invalidan
+ * todas las lecturas anteriores. Quien llame en vivo debe excluir las ranuras
+ * del asistente que aún no hayan recibido message_end. El razonamiento ya está
+ * dentro de output; totalTokens no se usa a propósito.
  */
 export function measuredContextTokens(
 	messages: readonly LhMessage[],

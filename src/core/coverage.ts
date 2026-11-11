@@ -1,22 +1,25 @@
 /**
- * Extraction coverage — the pure core. THE TEACHER'S PROSE IS THE UNIT
- * (owner ruling, 2026-09-28): the extractor sees ONLY the teacher agent's
- * prose — ordinary text blocks and explicit send_to_user messages. No
- * learner messages, thinking, other tool calls/results, or quiz blocks.
- * Everything else is INVISIBLE to coverage: it neither opens nor joins a run, so answering a quiz or editing a learner
- * message triggers nothing. "Covered" is by construction exactly "what
- * the extractor saw": the fingerprint (sha256 of a message's view lines)
- * and the extractor's prompt share ONE selection — the teacher prose.
+ * Cobertura de la extracción — el núcleo puro. LA PROSA DEL PROFESOR ES LA
+ * UNIDAD (decisión del responsable, 2026-09-28): el extractor SOLO ve la prosa
+ * del agente profesor — bloques de texto ordinarios y mensajes explícitos de
+ * send_to_user. Ni mensajes del alumno, ni thinking, ni otras llamadas o
+ * resultados de herramientas, ni bloques de cuestionario. Todo lo demás es
+ * INVISIBLE para la cobertura: ni abre ni se une a una ejecución, así que
+ * responder un cuestionario o editar un mensaje del alumno no dispara nada.
+ * «Cubierto» es, por construcción, exactamente «lo que vio el extractor»: la
+ * huella (sha256 de las líneas de vista de un mensaje) y el prompt del
+ * extractor comparten UNA selección — la prosa del profesor.
  *
- * A per-chat append-only ledger records which messages have been
- * extracted by CONTENT FINGERPRINT; "uncovered" is DERIVED at read time
- * (fingerprint the current transcript, diff against the ledger) — never
- * dual-tracked. Runs are token-budgeted batches of the oldest uncovered
- * teacher-prose messages: greedy consecutive fill, a message is never
- * split, a single over-budget message rides alone. (The old
- * inseparability bond — call + results in one chunk — died with the
- * ruling: tool results are invisible now, so nothing needs keeping
- * together.)
+ * Un registro por chat de solo añadido anota qué mensajes se han extraído por
+ * HUELLA DE CONTENIDO; lo «no cubierto» se DERIVA al leer (huella de la
+ * transcripción actual, diferencia contra el registro) — nunca se lleva por
+ * duplicado. Las ejecuciones son lotes con presupuesto de tokens de los
+ * mensajes de prosa del profesor no cubiertos más antiguos: llenado voraz
+ * consecutivo, un mensaje nunca se parte y un mensaje que solo supera el
+ * presupuesto va solo. (El antiguo vínculo de inseparabilidad — llamada +
+ * resultados en un fragmento — murió con la decisión: los resultados de
+ * herramientas ahora son invisibles, así que no hace falta mantener nada
+ * junto.)
  */
 
 import { createHash } from "node:crypto";
@@ -27,13 +30,14 @@ import { failedOutputCallIds, userFacingTextOf, type LhMessage } from "./native-
 export type { CoverageEntry };
 
 /**
- * The extraction-relevant lines of ONE native message — the shared seam
- * between the extractor's prompt and messageFingerprint (coverage).
- * TEACHER PROSE ONLY (owner, 2026-09-28): an assistant message yields one
- * line per learner-facing prose block; everything else (user messages,
- * tool results, markers) yields NOTHING and is invisible to coverage.
- * `mid` is the message id — part of the hash input, so the same prose in two messages
- * is two slots (per-message coverage).
+ * Las líneas relevantes para la extracción de UN mensaje nativo — la frontera
+ * compartida entre el prompt del extractor y messageFingerprint (cobertura).
+ * SOLO PROSA DEL PROFESOR (responsable, 2026-09-28): un mensaje del asistente
+ * produce una línea por bloque de prosa dirigido al alumno; todo lo demás
+ * (mensajes del usuario, resultados de herramientas, marcadores) no produce
+ * NADA y es invisible para la cobertura. `mid` es el id del mensaje — forma
+ * parte de la entrada del hash, así que la misma prosa en dos mensajes son
+ * dos ranuras (cobertura por mensaje).
  */
 export function messageViewLines(
 	message: LhMessage,
@@ -49,10 +53,10 @@ export function messageViewLines(
 }
 
 /**
- * The teacher's prose blocks of a transcript, in order — the extractor's
- * prompt material. SAME selection as messageViewLines (the parity
- * doctrine survives the ruling in this one function pair), rendered
- * without the provenance prefix: plain paragraphs.
+ * Los bloques de prosa del profesor de una transcripción, en orden — el
+ * material del prompt del extractor. La MISMA selección que messageViewLines
+ * (la doctrina de paridad sobrevive a la decisión en este par de funciones),
+ * mostrada sin el prefijo de procedencia: párrafos sin más.
  */
 export function teacherProseBlocks(messages: ReadonlyArray<LhMessage>): string[] {
 	const out: string[] = [];
@@ -64,15 +68,16 @@ export function teacherProseBlocks(messages: ReadonlyArray<LhMessage>): string[]
 	return out;
 }
 
-/** Tokens of a message's view — chars/4, ceil, the app-wide estimate. */
+/** Tokens de la vista de un mensaje — chars/4, redondeo hacia arriba, la estimación de toda la app. */
 export function viewTokens(lines: string[]): number {
 	return Math.ceil(lines.join("\n").length / 4);
 }
 
 /**
- * A message's coverage fingerprint: sha256 of role + its view lines (the
- * teacher prose, with the message id as the tag). Changes exactly when
- * the teacher prose of the message changes — nothing else can re-open it.
+ * La huella de cobertura de un mensaje: sha256 del rol + sus líneas de vista
+ * (la prosa del profesor, con el id del mensaje como etiqueta). Cambia
+ * exactamente cuando cambia la prosa del profesor del mensaje — nada más
+ * puede reabrirlo.
  */
 export function messageFingerprint(message: LhMessage, failedOutputCalls?: ReadonlySet<string>): string {
 	const h = createHash("sha256");
@@ -80,15 +85,16 @@ export function messageFingerprint(message: LhMessage, failedOutputCalls?: Reado
 	return h.digest("hex");
 }
 
-/** One message's coverage-relevant projection. */
+/** La proyección relevante para la cobertura de un mensaje. */
 export interface CoverageSlot {
 	message: LhMessage;
 	fp: string;
 	tokens: number;
 }
 
-/** Fingerprint a whole transcript, in order (used by the trigger, the run,
- *  and the coverage view — one derivation everywhere). */
+/** Calcula la huella de una transcripción entera, en orden (la usan el
+ *  disparador, la ejecución y la vista de cobertura — una sola derivación en
+ *  todas partes). */
 export function coverageSlots(messages: ReadonlyArray<LhMessage>): CoverageSlot[] {
 	const failedOutputCalls = failedOutputCallIds(messages);
 	return messages.map((message) => ({
@@ -98,20 +104,21 @@ export function coverageSlots(messages: ReadonlyArray<LhMessage>): CoverageSlot[
 	}));
 }
 
-/** The covered-fingerprint set for one chat, from the ledger. */
+/** El conjunto de huellas cubiertas de un chat, a partir del registro. */
 export function coveredSet(entries: ReadonlyArray<CoverageEntry>, chatId: string): Set<string> {
 	const out = new Set<string>();
 	for (const e of entries) if (e.chatId === chatId) out.add(e.fp);
 	return out;
 }
 
-/** The derived state: which slots are uncovered, plus the token totals.
- *  "Uncovered" needs no ledger of its own — this diff IS the coverage view.
- *  `uncovered` is INDEXES into `slots` (the batcher batches by position).
- *  Messages with NO view lines — every learner message, every tool result,
- *  markers, prose-less assistant turns — are invisible to coverage
- *  entirely: the extractor can never see them, so they are neither covered
- *  nor uncovered. */
+/** El estado derivado: qué ranuras no están cubiertas, más los totales de
+ *  tokens. Lo «no cubierto» no necesita registro propio — esta diferencia ES
+ *  la vista de cobertura. `uncovered` son ÍNDICES en `slots` (el agrupador hace
+ *  lotes por posición). Los mensajes SIN líneas de vista — todos los mensajes
+ *  del alumno, todos los resultados de herramientas, los marcadores, los
+ *  turnos del asistente sin prosa — son totalmente invisibles para la
+ *  cobertura: el extractor nunca puede verlos, así que no están ni cubiertos
+ *  ni sin cubrir. */
 export function coverageOf(
 	messages: ReadonlyArray<LhMessage>,
 	entries: ReadonlyArray<CoverageEntry>,
@@ -131,7 +138,7 @@ export function coverageOf(
 	let uncoveredTokens = 0;
 	for (let i = 0; i < slots.length; i++) {
 		const slot = slots[i]!;
-		if (slot.tokens === 0) continue; // invisible (including failed output calls)
+		if (slot.tokens === 0) continue; // invisible (incluidas las llamadas de salida fallidas)
 		if (covered.has(slot.fp)) coveredTokens += slot.tokens;
 		else {
 			uncovered.push(i);
@@ -150,11 +157,13 @@ export function coverageOf(
 }
 
 /**
- * Batch the uncovered teacher-prose messages into token-budgeted RUNS:
- * consecutive slots, oldest first, greedy fill — a message is never split.
- * A single message larger than the budget becomes its own (over-budget)
- * run rather than being dropped. Runs are ephemeral — the durable record
- * is per-message coverage, checkpointed after each run merges.
+ * Agrupa los mensajes de prosa del profesor no cubiertos en EJECUCIONES con
+ * presupuesto de tokens: ranuras consecutivas, las más antiguas primero,
+ * llenado voraz — un mensaje nunca se parte. Un único mensaje mayor que el
+ * presupuesto pasa a ser su propia ejecución (por encima del presupuesto) en
+ * lugar de descartarse. Las ejecuciones son efímeras — el registro duradero
+ * es la cobertura por mensaje, con un punto de control tras fusionar cada
+ * ejecución.
  */
 export function batchRuns(slots: ReadonlyArray<CoverageSlot>, uncovered: ReadonlyArray<number>, budget: number): CoverageSlot[][] {
 	if (budget <= 0 || uncovered.length === 0) return [];
@@ -177,13 +186,15 @@ export function batchRuns(slots: ReadonlyArray<CoverageSlot>, uncovered: Readonl
 }
 
 /**
- * A batch's deterministic tag: hash of its member fingerprints. This is the
- * observation-ref prefix for the run (obs:<tag>:<sourceId> in the merger):
- * re-running the SAME batch (crash recovery) produces the same refs and
- * dedupes; a re-opened (mutated) message changes the tag, so its fresh
- * understanding observations land as new events — the most-recent fold
- * sees the update. Run-local source ids ("p1"…) alone could never do this:
- * their positions shift between runs.
+ * La etiqueta determinista de un lote: hash de las huellas de sus miembros.
+ * Es el prefijo de las referencias de observación de la ejecución
+ * (obs:<tag>:<sourceId> en el fusionador): volver a ejecutar el MISMO lote
+ * (recuperación tras un fallo) produce las mismas referencias y se
+ * deduplica; un mensaje reabierto (mutado) cambia la etiqueta, así que sus
+ * observaciones de comprensión nuevas llegan como eventos nuevos — el plegado
+ * por el más reciente ve la actualización. Los ids de fuente locales de la
+ * ejecución ("p1"…) por sí solos nunca podrían lograrlo: sus posiciones
+ * cambian de una ejecución a otra.
  */
 export function batchTag(batch: ReadonlyArray<CoverageSlot>): string {
 	const h = createHash("sha256");

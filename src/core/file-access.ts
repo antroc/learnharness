@@ -1,12 +1,13 @@
-/** Non-secret, user-wide learner-source preferences. Absence means OFF;
- * an explicitly restricted empty list means no learner-source access. */
+/** Preferencias no secretas, de todo el usuario, sobre las fuentes del
+ * alumno. La ausencia significa DESACTIVADO; una lista vacía explícitamente
+ * restringida significa ningún acceso a las fuentes del alumno. */
 export interface FileAccessSettings {
 	restricted: boolean;
 	folders: string[];
 }
 
-/** Portable syntax for the editor/parser. The server additionally checks
- * whether a path is absolute on ITS filesystem before enforcing it. */
+/** Sintaxis portable para el editor/analizador. El servidor comprueba además
+ * si una ruta es absoluta en SU sistema de ficheros antes de aplicarla. */
 export function isFileAccessFolder(folder: string): boolean {
 	return !folder.includes("\0") && (folder === "~" || folder.startsWith("~/") || folder.startsWith("/") || /^[A-Za-z]:[\\/]/.test(folder) || folder.startsWith("\\\\"));
 }
@@ -15,8 +16,9 @@ export type FileAccessSettingsResult =
 	| { ok: true; settings: FileAccessSettings }
 	| { ok: false; error: string };
 
-/** Security-sensitive preferences use the SAME strict read/write parser:
- * malformed policy must not disappear into a default-unrestricted value. */
+/** Las preferencias sensibles para la seguridad usan el MISMO analizador
+ * estricto de lectura/escritura: una política mal formada no debe
+ * desaparecer convertida en un valor por defecto sin restricciones. */
 export function parseFileAccessSettings(raw: unknown): FileAccessSettingsResult {
 	if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, error: "fileAccess must be an object" };
 	const value = raw as Record<string, unknown>;

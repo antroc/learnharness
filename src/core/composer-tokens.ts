@@ -1,9 +1,9 @@
 import { collectCitations, type TutorCitation } from "./citations.ts";
 import { parseFilePaths } from "./file-paths.ts";
 
-/** A lossless projection of learner text into the composer's atomic tokens:
- *  quoted file paths and tutor citations. A citation wins over anything
- *  that looks like a path inside its link. */
+/** Una proyección sin pérdidas del texto del alumno en los tokens atómicos del
+ *  compositor: rutas de fichero entre comillas y citas del tutor. Una cita gana
+ *  a cualquier cosa que parezca una ruta dentro de su enlace. */
 export type ComposerToken =
 	| { kind: "text"; text: string; start: number; end: number }
 	| { kind: "path"; text: string; path: string; start: number; end: number }

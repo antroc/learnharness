@@ -1,6 +1,7 @@
-/** Nova-3 monolingual language codes, including documented locale aliases.
- * Source: https://developers.deepgram.com/docs/models-languages-overview
- * Multilingual is a separate mode; its supported language set differs.
+/** Códigos de idioma monolingües de Nova-3, incluidos los alias de configuración
+ * regional documentados.
+ * Fuente: https://developers.deepgram.com/docs/models-languages-overview
+ * El modo multilingüe es aparte; su conjunto de idiomas admitidos es distinto.
  */
 const NOVA_3_LANGUAGES = [
 	["Afrikaans", ["af", "af-ZA"]],
@@ -81,7 +82,7 @@ export function isDictationLanguage(value: unknown): value is DictationLanguage 
 	return DICTATION_LANGUAGES.some(({ code }) => code === value);
 }
 
-/** Only language varies. Keep the owner's tuned streaming parameters. */
+/** Solo varía el idioma. Se mantienen los parámetros de streaming ajustados por el responsable. */
 export function deepgramListenUrl(language: DictationLanguage): string {
 	return "wss://api.deepgram.com/v1/listen" +
 		"?model=nova-3&encoding=linear16&sample_rate=16000&channels=1" +

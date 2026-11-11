@@ -1,5 +1,6 @@
-/** Source-preserving boundaries for tool-authored Markdown. Recovery never
- * mutates input, reserializes Markdown, or enters protected literal content. */
+/** Límites que conservan el código fuente para el Markdown escrito por
+ * herramientas. La recuperación nunca muta la entrada, nunca vuelve a
+ * serializar el Markdown ni entra en contenido literal protegido. */
 import katex from "katex";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { mathFromMarkdown } from "mdast-util-math";
@@ -15,9 +16,10 @@ const escaped = (text: string, i: number) => {
 };
 const runLength = (text: string, i: number, char: string) => { let n = 0; while (text[i + n] === char) n++; return n; };
 type MarkdownNode = { type: string; position?: { start: { offset?: number }; end: { offset?: number } }; children?: MarkdownNode[] };
-/** Use the rendering stack's actual CommonMark+math grammar for literal
- * ranges, including nested quotes/lists and implicit container endings.
- * Keep source offsets: never serialize the AST back into Markdown. */
+/** Usa la gramática CommonMark+math real de la pila de renderizado para los
+ * rangos literales, incluidas citas/listas anidadas y finales implícitos de
+ * contenedor. Conserva los desplazamientos en el código fuente: nunca vuelve
+ * a serializar el AST a Markdown. */
 function literalRanges(text: string): Array<{ start: number; end: number }> {
 	const pending: MarkdownNode[] = [fromMarkdown(text, { extensions: [math({ singleDollarTextMath: true })], mdastExtensions: [mathFromMarkdown()] })];
 	const ranges: Array<{ start: number; end: number }> = [];
@@ -31,8 +33,9 @@ function literalRanges(text: string): Array<{ start: number; end: number }> {
 	return ranges.sort((a, b) => a.start - b.start);
 }
 
-/** Mirrors the app's native dollar-run and legacy-delimiter conventions,
- * with code and blank paragraphs as inline boundaries. */
+/** Replica las convenciones nativas de la app para series de dólares y
+ * delimitadores heredados, con el código y los párrafos en blanco como
+ * límites en línea. */
 export function readContentSpans(text: string): ContentSpan[] {
 	const spans: ContentSpan[] = [];
 	const literals = literalRanges(text);
@@ -92,8 +95,9 @@ export function mapMathContent(text: string, transform: (body: string, display: 
 }
 
 const knownCommands = new Map<string, boolean>();
-/** Probe only a command name, never arbitrary content. Missing-argument errors
- * still identify a known command. No trust, macros, IO, or persistent TeX state. */
+/** Sondea solo un nombre de comando, nunca contenido arbitrario. Los errores
+ * por argumento ausente siguen identificando un comando conocido. Sin
+ * confianza, macros, E/S ni estado persistente de TeX. */
 export function knownTexCommand(name: string): boolean {
 	if (!/^[A-Za-z]+$/.test(name)) return false;
 	const cached = knownCommands.get(name); if (cached !== undefined) return cached;
@@ -114,15 +118,16 @@ export function numericPercentEscape(inner: string, percent: number): boolean {
 	let start = percent; while (start > 0 && inner[start - 1] === "\\") start--;
 	if (percent - start < 2 || (percent - start) % 2 !== 0 || !/\d[ \t]*$/.test(inner.slice(0, start))) return false;
 	const tail = inner.slice(percent + 1);
-	// A final source-formatting LF before the closing fence is not a next
-	// equation row. A meaningful following line or comment text remains literal.
+	// Un LF final de formato del código antes de la valla de cierre no es una fila
+	// más de la ecuación. Una línea siguiente con sentido o un comentario siguen literales.
 	if (/^[\s.)\]}]*$/.test(tail)) return true;
 	return !/[\r\n]/.test(tail) && !/^[ \t]*[A-Za-z]/.test(tail);
 }
 
-/** TeX boundaries shared by document decoding and command recovery. Native
- * rows are literal; consistently extra-escaped environment pairs supply an
- * explicit escaping factor for both commands AND row separators. */
+/** Límites de TeX compartidos por la decodificación del documento y la
+ * recuperación de comandos. Las filas nativas son literales; los pares de
+ * entornos escapados de más de forma coherente aportan un factor de escape
+ * explícito tanto para los comandos COMO para los separadores de fila. */
 export function texRanges(inner: string): TexRange[] {
 	const ranges: TexRange[] = [];
 	const stack: Array<{ name: string; start: number; factor: number }> = [];
@@ -151,8 +156,8 @@ export function texRanges(inner: string): TexRange[] {
 			}
 			i = end + marker[0].length; continue;
 		}
-		// KaTeX's substack macro expands its braced argument into subarray:
-		// these are row separators even without literal begin/end markers.
+		// La macro substack de KaTeX expande su argumento entre llaves en subarray:
+		// son separadores de fila aunque no haya marcadores begin/end literales.
 		const substack = /^substack\s*\{/.exec(inner.slice(end));
 		if (substack) {
 			let depth = 1, j = end + substack[0].length;
@@ -175,8 +180,9 @@ export function outsideTexComments(body: string, transform: (part: string) => st
 	out.push(transform(body.slice(from))); return out.join("");
 }
 
-/** Document escapes are not arbitrary string decoding. Complete known TeX
- * words win over the prefix `\\n`; code is never inspected or rewritten. */
+/** Los escapes del documento no son una decodificación arbitraria de cadenas.
+ * Las palabras TeX conocidas completas ganan al prefijo `\\n`; el código nunca
+ * se inspecciona ni se reescribe. */
 export function recoverDocumentLayout(text: string): string {
 	const spans = readContentSpans(text);
 	const candidates = spans.filter(span => span.kind !== "code").map(span => span.raw).join("\u0000");
@@ -201,9 +207,9 @@ export function recoverDocumentLayout(text: string): string {
 	for (let i = 0; i < projected.length; i++) {
 		const { span, body } = projected[i]!;
 		if (span.kind !== "math") { out += body; continue; }
-		// Decoding document layout can expose a flow opener whose close was
-		// written on the formula line. Frame BOTH ends; otherwise Markdown
-		// consumes the closing dollars as TeX and introduces a rendering error.
+		// Decodificar la maquetación del documento puede dejar al descubierto una apertura de
+		// bloque cuyo cierre se escribió en la línea de la fórmula. Se enmarcan AMBOS extremos;
+		// si no, Markdown consume los dólares de cierre como TeX y provoca un error de renderizado.
 		if (/^\${2,}$/.test(span.open) && body !== span.body && body.includes("\n")) {
 			if (!/^[ \t]{0,3}$/.test(out.slice(out.lastIndexOf("\n") + 1))) out += "\n\n";
 			out += span.open + (body.startsWith("\n") ? "" : "\n") + body + (body.endsWith("\n") ? "" : "\n") + span.close;

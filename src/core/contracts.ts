@@ -1,13 +1,15 @@
 /**
- * Shared contracts — the single source of truth every component codes against.
+ * Contratos compartidos — la única fuente de verdad contra la que programa
+ * cada componente.
  *
- * Split by domain (src/core/contracts/): plan.ts (the session plan tree),
- * graph.ts (the global knowledge graph + its extraction pipeline), chat.ts
- * (session records + UI extension points), jobs.ts (the async sub-agent
- * protocol),  Each domain file is
- * owned outright by its stream; schema changes to a domain you don't own go
- * through master. This barrel keeps every existing import path
- * ("@/src/core" and "./contracts.ts") unchanged.
+ * Divididos por dominio (src/core/contracts/): plan.ts (el árbol del plan de
+ * la sesión), graph.ts (el grafo global de conocimiento + su proceso de
+ * extracción), chat.ts (registros de sesión + puntos de extensión de la
+ * interfaz), jobs.ts (el protocolo asíncrono de subagentes),  Cada fichero de
+ * dominio pertenece por completo a su flujo de trabajo; los cambios de
+ * esquema en un dominio que no es tuyo pasan por master. Este barrel mantiene
+ * sin cambios todas las rutas de importación existentes ("@/src/core" y
+ * "./contracts.ts").
  */
 
 export * from "./contracts/plan.ts";

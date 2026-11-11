@@ -1,4 +1,4 @@
-/** Private custom credential authorization; no credential-derived public value. */
+/** Autorización privada de credenciales personalizadas; ningún valor público derivado de la credencial. */
 import { normalizeBaseUrl, type CustomProviderSettings } from "./settings.ts";
 
 export const CUSTOM_AUTH_BINDING = "__learnharness_custom_provider_binding";
@@ -7,7 +7,7 @@ export interface CustomAuthBinding {
 	id: string;
 	baseUrl?: string;
 	authMode: "apiKey" | "keyless" | "disabled";
-	/** A shadowed file key keeps its own destination when an env key moves. */
+	/** Una clave de fichero tapada conserva su propio destino cuando se mueve una clave de entorno. */
 	fileKeyBaseUrl?: string;
 }
 export function parseCustomAuthBinding(value: unknown): CustomAuthBinding | undefined {

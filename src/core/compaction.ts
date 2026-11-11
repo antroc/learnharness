@@ -1,36 +1,41 @@
 /**
- * COMPACTION (owner round 14, 2026-10-05): the context-fitting mechanic,
- * with a bounded local port of Pi coding-agent 1.4.0 cutoff selection.
- * No coding-agent dependency. See docs/compaction-accounting.md for the
- * behavior boundary, native golden fixtures, and upstream MIT notice.
+ * COMPACTACIÓN (ronda 14 del responsable, 2026-10-05): la mecánica para
+ * ajustar el contexto, con un port local acotado de la selección del punto
+ * de corte de Pi coding-agent 1.4.0. Sin dependencia de coding-agent. Consulta
+ * docs/compaction-accounting.md para el límite de comportamiento, los
+ * fixtures dorados nativos y el aviso MIT del proyecto original.
  *
- * THE CONTRACT: full history stays persisted in the record — extraction
- * and the user's transcript keep reading everything. A compaction marker
- * (LhMarkerMessage, customType "compaction") carries a summary plus the
- * cut (firstKeptMessageId); toLlmMessages — the ONE model-facing seam —
- * projects [summary] + [messages from the cut onward] on every request.
- * The live agent never holds dropped messages because every run is built
- * fresh from the record: question/problem poses terminate their runs, so
- * the "user is thinking" pause is always a BETWEEN-RUNS window —
- * compaction kicks at turn settle (running during the pause) and every
- * turn start awaits the gate. No mid-run surgery exists.
+ * EL CONTRATO: el historial completo sigue persistido en el registro — la
+ * extracción y la transcripción del usuario siguen leyéndolo todo. Un
+ * marcador de compactación (LhMarkerMessage, customType "compaction") lleva
+ * un resumen más el corte (firstKeptMessageId); toLlmMessages — la ÚNICA
+ * frontera de cara al modelo — proyecta [resumen] + [mensajes desde el corte]
+ * en cada petición. El agente vivo nunca retiene mensajes descartados porque
+ * cada ejecución se construye desde cero a partir del registro: plantear una
+ * pregunta o un problema termina su ejecución, así que la pausa en la que «el
+ * usuario está pensando» es siempre una ventana ENTRE EJECUCIONES — la
+ * compactación se dispara al asentarse el turno (se ejecuta durante la pausa)
+ * y cada inicio de turno espera a la barrera. No existe cirugía a mitad de
+ * ejecución.
  *
- * Trigger threshold (owner ruling): effective = min(settings threshold,
- * model contextWindow − 16k reserve). Defaults: threshold 150k, kept
- * tail ~20k recent tokens (pi's defaults, owner-approved). Token
- * estimation follows pi's law (2026-10-05 incident fix): anchor on the
- * provider-reported usage of the last assistant message, chars/4 only
- * for messages appended after that anchor; the heuristic alone runs
- * only when no usage exists yet.
+ * Umbral de disparo (decisión del responsable): efectivo = min(umbral de
+ * ajustes, contextWindow del modelo − reserva de 16k). Valores por defecto:
+ * umbral 150k, cola conservada de ~20k tokens recientes (los valores por
+ * defecto de pi, aprobados por el responsable). La estimación de tokens sigue
+ * la ley de pi (corrección del incidente del 2026-10-05): se ancla en el uso
+ * informado por el proveedor del último mensaje del asistente, y chars/4 solo
+ * para los mensajes añadidos después de ese ancla; la heurística sola se
+ * ejecuta únicamente cuando aún no existe ningún uso.
  *
- * Summary content (owner's three requirements + continuity): the
- * learner's understanding and its EVOLUTION (quiz outcomes, confidence,
- * misconceptions — a detailed picture of what the user knows), the
- * teaching arc / session progression, and the plan dependency tree
- * VERBATIM (from record.tree — the plan_init tool result may fall before
- * the cut, so the marker re-injects it). Plus the current moment (any
- * pending question/problem and the immediate next step) so the post-cut
- * model can continue mid-thought.
+ * Contenido del resumen (los tres requisitos del responsable + continuidad):
+ * la comprensión del alumno y su EVOLUCIÓN (resultados de los cuestionarios,
+ * confianza, ideas erróneas — una imagen detallada de lo que sabe el
+ * usuario), el arco de enseñanza / la progresión de la sesión, y el árbol de
+ * dependencias del plan LITERAL (de record.tree — el resultado de la
+ * herramienta plan_init puede quedar antes del corte, así que el marcador lo
+ * vuelve a inyectar). Más el momento actual (cualquier pregunta o problema
+ * pendiente y el siguiente paso inmediato) para que el modelo posterior al
+ * corte pueda continuar a mitad de razonamiento.
  */
 
 import { citationsToReadableText } from "./citations.ts";
@@ -42,30 +47,33 @@ import { newMessageId } from "./native-messages.ts";
 import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { Api, AssistantMessage, Model, ToolResultMessage, SystemMessage } from "@earendil-works/pi-ai";
 
-// ─── constants (the tunables, owner-approved) ────────────────────────────────
+// ─── constantes (los parámetros ajustables, aprobados por el responsable) ────
 
-/** Kept-recent tail budget (pi's default, owner-approved 2026-10-05):
- * ~20k tokens of verbatim recent transcript always ride after the
- * summary — recency is cheap insurance against summary loss. */
+/** Presupuesto de la cola reciente conservada (valor por defecto de pi,
+ * aprobado por el responsable el 2026-10-05): ~20k tokens de transcripción
+ * reciente literal van siempre tras el resumen — lo reciente es un seguro
+ * barato contra lo que se pierda en el resumen. */
 export const KEEP_RECENT_TOKENS = 20_000;
 
-/** The reserve subtracted from the model's contextWindow when the window
- * (not the user's threshold) is the binding constraint (pi's default). */
+/** La reserva que se resta del contextWindow del modelo cuando la ventana
+ * (y no el umbral del usuario) es la restricción que manda (valor por
+ * defecto de pi). */
 export const COMPACTION_RESERVE_TOKENS = 16_384;
 
-/** Factory default for the settings threshold (owner ruling: 150k). */
+/** Valor de fábrica del umbral de ajustes (decisión del responsable: 150k). */
 export const DEFAULT_COMPACTION_THRESHOLD_TOKENS = 150_000;
 
-/** Tool-result truncation when serializing the span for the summarizer
- * (pi's mirror: long job/research results don't need verbatim inclusion
- * in the SUMMARY INPUT — the kept tail carries them whole). */
+/** Truncado de resultados de herramientas al serializar el tramo para el
+ * resumidor (réplica de pi: los resultados largos de tareas/investigación no
+ * necesitan incluirse literalmente en la ENTRADA DEL RESUMEN — la cola
+ * conservada los lleva enteros). */
 const SUMMARY_TOOL_RESULT_TRUNCATE = 2_000;
 
-// ─── token estimation (pi's law: usage-anchored, chars/4 only for the tail) ─
+// ─── estimación de tokens (ley de pi: anclada en el uso, chars/4 solo cola) ─
 
-/** Context tokens from a provider-reported usage block — the most honest
- * measure of "what the last request actually carried." Mirrors pi's
- * calculateContextTokens. */
+/** Tokens de contexto a partir de un bloque de uso informado por el
+ * proveedor — la medida más honesta de «lo que la última petición llevó de
+ * verdad». Replica calculateContextTokens de pi. */
 export function calculateContextTokens(usage: {
 	totalTokens?: number;
 	input?: number;
@@ -79,13 +87,14 @@ export function calculateContextTokens(usage: {
 	);
 }
 
-/** Pi 1.4.0's heuristic: text + thinking + toolCall name/args for
- * assistants, content text plus a fixed image allowance for other roles. NEVER JSON.stringify of the
- * whole message — record scaffolding (ids, usage, responseId, app-side
- * details, escaped quotes/backslashes) inflates ~3x (measured on the
- * 2026-10-05 relational-databases incident: 84k estimated vs ~30k real).
- * Supplying a model opts into the same-model Responses output-usage floor;
- * omitting it preserves the original heuristic. */
+/** La heurística de Pi 1.4.0: texto + thinking + nombre/argumentos de
+ * toolCall para los asistentes, y texto del contenido más una asignación fija
+ * por imagen para los demás roles. NUNCA JSON.stringify del mensaje entero —
+ * el andamiaje del registro (ids, usage, responseId, detalles del lado de la
+ * app, comillas y barras escapadas) infla ~3x (medido en el incidente de
+ * bases de datos relacionales del 2026-10-05: 84k estimados frente a ~30k
+ * reales). Pasar un modelo activa el suelo de uso de salida de Responses del
+ * mismo modelo; omitirlo conserva la heurística original. */
 export function estimateMessageTokens(message: LhMessage | AgentMessage, model?: Model<Api>): number {
 	const content: unknown = (message as { content?: unknown }).content;
 	let chars = 0;
@@ -107,9 +116,9 @@ export function estimateMessageTokens(message: LhMessage | AgentMessage, model?:
 		}
 		const assistant = message as AssistantMessage;
 		const output = assistant.usage?.output;
-		// Same-model Responses replay includes opaque reasoning. Charge the response's
-		// output once, not its ciphertext length or its context-wide input/total usage.
-		// ponytail: output usage is a replay-size proxy; exact sizing needs provider counts.
+		// La reproducción de Responses del mismo modelo incluye razonamiento opaco. Se cobra
+		// la salida de la respuesta una vez, no la longitud de su texto cifrado ni su uso total.
+		// ponytail: el uso de salida aproxima el tamaño reproducido; el exacto exige recuentos.
 		if (model?.api === "openai-responses" && assistant.api === model.api &&
 			assistant.provider === model.provider && assistant.model === model.id && hasSignedThinking &&
 			assistant.stopReason !== "error" && assistant.stopReason !== "aborted" &&
@@ -127,8 +136,8 @@ export function estimateMessageTokens(message: LhMessage | AgentMessage, model?:
 	return Math.ceil(chars / 4);
 }
 
-// Pi coding-agent 1.4.0 estimateTokens: fixed image allowance, NOT a
-// measurement of encrypted reasoning or actual provider vision tokens.
+// estimateTokens de Pi coding-agent 1.4.0: asignación fija por imagen, NO una
+// medida del razonamiento cifrado ni de los tokens de visión reales del proveedor.
 const ESTIMATED_IMAGE_CHARS = 4_800;
 function textCharsOfContent(content: unknown): number {
 	if (typeof content === "string") return content.length;
@@ -142,14 +151,15 @@ function textCharsOfContent(content: unknown): number {
 	return chars;
 }
 
-/** The newest assistant message carrying VALID provider-reported usage
- * (pi's rule: skip aborted/error messages and all-zero usage — they carry no
- * truth about the wire). The scan STOPS at the newest compaction
- * marker: usage captured before a compaction described the pre-cut
- * context — the next request carries the summary + kept tail instead,
- * so pre-marker usage is not a valid anchor (pi's "don't trust usage
- * captured before a later compaction" law). Index into messages, or
- * null. */
+/** El mensaje del asistente más reciente que lleva un uso VÁLIDO informado
+ * por el proveedor (regla de pi: se saltan los mensajes abortados o con error
+ * y los usos todo a cero — no dicen nada cierto sobre lo enviado). El recorrido
+ * SE DETIENE en el marcador de compactación más reciente: el uso capturado
+ * antes de una compactación describía el contexto previo al corte — la
+ * siguiente petición lleva en su lugar el resumen + la cola conservada, así
+ * que el uso anterior al marcador no es un ancla válida (la ley de pi de «no
+ * fiarse del uso capturado antes de una compactación posterior»). Índice en
+ * messages, o null. */
 export function lastAssistantUsageIndex(
 	messages: readonly (LhMessage | AgentMessage)[],
 ): number | null {
@@ -166,23 +176,24 @@ export function lastAssistantUsageIndex(
 }
 
 export interface ContextTokenEstimate {
-	/** The estimate the trigger should compare against the threshold. */
+	/** La estimación que el disparador debe comparar con el umbral. */
 	tokens: number;
-	/** Provider-reported tokens from the usage anchor (0 when unanchored). */
+	/** Tokens informados por el proveedor desde el ancla de uso (0 sin ancla). */
 	usageTokens: number;
-	/** chars/4-estimated tokens after the anchor (or everything, unanchored),
-	 *  with an optional reasoning floor when a model is supplied. */
+	/** Tokens estimados con chars/4 tras el ancla (o todo, sin ancla), con un
+	 *  suelo de razonamiento opcional cuando se pasa un modelo. */
 	trailingTokens: number;
-	/** Index of the usage anchor, or null (diagnostics). */
+	/** Índice del ancla de uso, o null (diagnóstico). */
 	lastUsageIndex: number | null;
 }
 
-/** THE trigger estimator (pi's estimateContextTokens): anchor on the last
- * assistant usage the provider reported — prompt, tools, tokenizer
- * density and all — and chars/4-estimate ONLY what was appended after
- * it (with an optional reasoning floor). Never re-estimate history the provider already
- * counted (the relational-databases bug: full-record JSON.stringify/4
- * tripled the true context and fired a 30k session at an 80k threshold). */
+/** EL estimador del disparador (estimateContextTokens de pi): se ancla en el
+ * último uso del asistente que informó el proveedor — prompt, herramientas,
+ * densidad del tokenizador y todo — y estima con chars/4 SOLO lo añadido
+ * después (con un suelo de razonamiento opcional). Nunca vuelve a estimar el
+ * historial que el proveedor ya contó (el fallo de bases de datos
+ * relacionales: JSON.stringify/4 del registro completo triplicaba el contexto
+ * real y disparaba una sesión de 30k con un umbral de 80k). */
 export function estimateContextTokens(
 	messages: readonly (LhMessage | AgentMessage)[],
 	model?: Model<Api>,
@@ -200,32 +211,34 @@ export function estimateContextTokens(
 	return { tokens: usageTokens + trailing, usageTokens, trailingTokens: trailing, lastUsageIndex: anchor };
 }
 
-/** Estimate a whole message list, including replayable reasoning when a model is supplied. */
+/** Estima una lista completa de mensajes, incluido el razonamiento reproducible cuando se pasa un modelo. */
 export function estimateTokens(messages: readonly (LhMessage | AgentMessage)[], model?: Model<Api>): number {
 	let total = 0;
 	for (const m of messages) total += estimateMessageTokens(m, model);
 	return total;
 }
 
-// ─── the cut walk ────────────────────────────────────────────────────────────
+// ─── el recorrido del corte ──────────────────────────────────────────────────
 
-/** Model-visible entry adapter for the local Pi 1.4.0 cutoff port.
- * Compaction entries are boundaries, not ordinary cut candidates; UI-only
- * markers have no context, just like native metadata entries. */
+/** Adaptador de entradas visibles para el modelo del port local del punto de
+ * corte de Pi 1.4.0. Las entradas de compactación son límites, no candidatas
+ * ordinarias al corte; los marcadores solo de interfaz no tienen contexto,
+ * igual que las entradas de metadatos nativas. */
 function cutMessage(message: LhMessage): LhMessage | null {
 	if (message.role !== "custom") return message;
 	if (["compaction", "plan-block", "problem-dismissed"].includes(message.customType)) return null;
-	if (message.customType === "side-question" && !message.content) return null; // an empty marker has no model-visible text
+	if (message.customType === "side-question" && !message.content) return null; // un marcador vacío no tiene texto visible para el modelo
 	return message;
 }
 
-/** Local port of pi-coding-agent 1.4.0 findCutPoint (MIT).
- * Walk backwards to >= budget, then choose the nearest valid cut AT OR
- * AFTER that entry. If oversized trailing results exhaust the budget,
- * retain their preceding assistant call, not the entire session.
- * No encrypted-signature sizing and no exact retained-token guarantee.
- * Returns the first kept record index; a zero/no-progress cut drops nothing.
- * Keep this and estimateMessageTokens aligned deliberately when upgrading Pi.
+/** Port local de findCutPoint de pi-coding-agent 1.4.0 (MIT).
+ * Recorre hacia atrás hasta >= presupuesto y luego elige el corte válido más
+ * cercano EN esa entrada O DESPUÉS. Si unos resultados finales demasiado
+ * grandes agotan el presupuesto, conserva la llamada del asistente que los
+ * precede, no la sesión entera. Sin dimensionado de firmas cifradas ni
+ * garantía exacta de tokens conservados. Devuelve el índice del primer
+ * registro conservado; un corte cero o sin avance no descarta nada.
+ * Mantén esto y estimateMessageTokens alineados a propósito al actualizar Pi.
  */
 export function compactionCutIndex(messages: readonly LhMessage[], keepRecentTokens = KEEP_RECENT_TOKENS, model?: Model<Api>): number {
 	const previous = activeCompactionOf(messages);
@@ -249,8 +262,8 @@ export function compactionCutIndex(messages: readonly LhMessage[], keepRecentTok
 			break;
 		}
 	}
-	// Native entries preserve adjacent non-context metadata, but never walk
-	// backwards across a previous compaction entry.
+	// Las entradas nativas conservan los metadatos adyacentes sin contexto, pero
+	// nunca se recorre hacia atrás cruzando una entrada de compactación anterior.
 	while (cut > start) {
 		const before = messages[cut - 1]!;
 		if ((before.role === "custom" && before.customType === "compaction") || cutMessage(before)) break;
@@ -259,28 +272,29 @@ export function compactionCutIndex(messages: readonly LhMessage[], keepRecentTok
 	return cut;
 }
 
-// ─── the marker ──────────────────────────────────────────────────────────────
+// ─── el marcador ─────────────────────────────────────────────────────────────
 
-/** The compaction marker's details (UI payload — never model-visible;
- * the model sees content, the header + summary). */
+/** Los detalles del marcador de compactación (carga para la interfaz — nunca
+ * visibles para el modelo; el modelo ve el contenido, la cabecera + el resumen). */
 export interface CompactionDetails {
-	/** Record id of the first KEPT message: the projection renders the
-	 * summary, then everything from this message onward. */
+	/** Id de registro del primer mensaje CONSERVADO: la proyección muestra el
+	 * resumen y luego todo desde este mensaje en adelante. */
 	firstKeptMessageId: string;
-	/** The estimated context tokens that triggered this compaction
-	 * (provenance for the divider's tooltip/dialog). */
+	/** Los tokens de contexto estimados que dispararon esta compactación
+	 * (procedencia para el tooltip/diálogo del separador). */
 	tokensBefore: number;
-	/** provider:id of the model that wrote the summary (the session's
-	 * own model — owner ruling; provenance, never a routing input). */
+	/** provider:id del modelo que escribió el resumen (el propio modelo de la
+	 * sesión — decisión del responsable; procedencia, nunca dato de enrutado). */
 	model?: string;
-	/** ISO timestamp of the compaction moment. */
+	/** Marca de tiempo ISO del momento de la compactación. */
 	at: string;
 }
 
-/** Build the compaction marker. Content is the FULL model-facing text
- * (header + summary — single-sourced header); the marker rides the
- * record at the compaction MOMENT (near the transcript end), while the
- * cut it names sits deep in history: the UI renders both places. */
+/** Construye el marcador de compactación. El contenido es el texto COMPLETO de
+ * cara al modelo (cabecera + resumen — cabecera de una sola fuente); el
+ * marcador va en el registro en el MOMENTO de la compactación (cerca del final
+ * de la transcripción), mientras que el corte que nombra está muy atrás en el
+ * historial: la interfaz muestra ambos sitios. */
 export function newCompactionMarker(summary: string, details: CompactionDetails): LhMarkerMessage {
 	return {
 		id: newMessageId(),
@@ -293,9 +307,9 @@ export function newCompactionMarker(summary: string, details: CompactionDetails)
 	};
 }
 
-/** The ACTIVE compaction marker: the newest one with a retained-message
- * id. Its summary supersedes older markers even when their stored
- * positions remain inside its retained tail. */
+/** El marcador de compactación ACTIVO: el más reciente con un id de mensaje
+ * conservado. Su resumen sustituye a los marcadores anteriores aunque sus
+ * posiciones guardadas sigan dentro de su cola conservada. */
 export function activeCompactionOf(messages: readonly LhMessage[]): (LhMarkerMessage & { details: CompactionDetails }) | null {
 	for (let i = messages.length - 1; i >= 0; i--) {
 		const m = messages[i]!;
@@ -311,9 +325,9 @@ export function activeCompactionOf(messages: readonly LhMessage[]): (LhMarkerMes
 	return null;
 }
 
-/** The index of the first KEPT message, or -1 when the record's active
- * marker names an id that no longer exists (corrupt/foreign) — callers
- * fall back to rendering everything (honest degradation, never throw). */
+/** El índice del primer mensaje CONSERVADO, o -1 cuando el marcador activo
+ * del registro nombra un id que ya no existe (corrupto/ajeno) — quien llama
+ * recurre a mostrarlo todo (degradación honesta, nunca lanza). */
 export function keptIndexFor(messages: readonly LhMessage[], marker: LhMarkerMessage & { details: CompactionDetails }): number {
 	const id = marker.details.firstKeptMessageId;
 	for (let i = 0; i < messages.length; i++) {
@@ -322,11 +336,12 @@ export function keptIndexFor(messages: readonly LhMessage[], marker: LhMarkerMes
 	return -1;
 }
 
-// ─── the summarizer input (pi's mirror: labeled text, truncated results) ─────
+// ─── la entrada del resumidor (réplica de pi: texto etiquetado, truncado) ────
 
-/** Serialize a message span as labeled text for the summarizer. Tool
- * results truncate at ~2k chars (the kept tail carries them verbatim for
- * the model; the SUMMARY only needs their gist). */
+/** Serializa un tramo de mensajes como texto etiquetado para el resumidor.
+ * Los resultados de herramientas se truncan en ~2k caracteres (la cola
+ * conservada los lleva literales para el modelo; el RESUMEN solo necesita
+ * su esencia). */
 export function serializeForSummary(messages: readonly LhMessage[]): string {
 	const lines: string[] = [];
 	for (const m of messages) {
@@ -339,8 +354,8 @@ export function serializeForSummary(messages: readonly LhMessage[]): string {
 			for (const b of assistant.content) {
 				if (b.type === "text") blocks.push(b.text);
 				else if (b.type === "toolCall") blocks.push(`(tool call ${b.name}: ${JSON.stringify(b.arguments)})`);
-				// thinking blocks: the model's private scratch — its
-				// conclusions land in text; skip the noise
+				// bloques thinking: el borrador privado del modelo — sus
+				// conclusiones acaban en el texto; se omite el ruido
 			}
 			if (blocks.length > 0) lines.push(`[TUTOR] ${blocks.join("\n")}`);
 		} else if (role === "toolResult") {
@@ -355,7 +370,7 @@ export function serializeForSummary(messages: readonly LhMessage[]): string {
 			);
 		} else if (role === "custom") {
 			const marker = m as LhMarkerMessage;
-			if (marker.customType === "plan-block") continue; // UI-only
+			if (marker.customType === "plan-block") continue; // solo interfaz
 			if (marker.customType === "side-question" && !marker.content) continue;
 			if (marker.customType === "side-question") lines.push(`[LEARNER–HELPER CONVERSATION] ${citationsToReadableText(marker.content)}`);
 			else lines.push(`[SYSTEM NOTE] ${marker.customType === "practice-thinking" ? citationsToReadableText(marker.content) : marker.content}`);
@@ -364,10 +379,11 @@ export function serializeForSummary(messages: readonly LhMessage[]): string {
 	return lines.join("\n\n");
 }
 
-/** Render the plan dependency tree verbatim (owner requirement: the tree
- * persists through compaction). Structure from record.tree, statuses
- * derived from the transcript (the record's own law: the tree carries
- * structure only). Empty tree → absent section (nothing persisted). */
+/** Muestra literalmente el árbol de dependencias del plan (requisito del
+ * responsable: el árbol persiste a través de la compactación). Estructura de
+ * record.tree, estados derivados de la transcripción (la ley propia del
+ * registro: el árbol solo lleva estructura). Árbol vacío → sección ausente
+ * (no se persistió nada). */
 export function planTreeToText(tree: PlanTree | undefined, messages: readonly LhMessage[]): string | null {
 	if (!tree || tree.nodes.length === 0) return null;
 	const statuses = derivePlanStatusesLh(tree, messages);
@@ -387,18 +403,19 @@ export function planTreeToText(tree: PlanTree | undefined, messages: readonly Lh
 }
 
 /**
- * The summarizer prompt. The summary's REQUIRED SHAPE (owner rulings):
- * the learner's understanding AND its evolution, the teaching arc, the
- * plan tree verbatim, and the current moment — in that order of stress.
- * The summarizer is the session's own model (owner ruling), writing for
- * its own future self: the summary replaces everything before the cut.
+ * El prompt del resumidor. La FORMA OBLIGATORIA del resumen (decisiones del
+ * responsable): la comprensión del alumno Y su evolución, el arco de
+ * enseñanza, el árbol del plan literal y el momento actual — por ese orden de
+ * énfasis. El resumidor es el propio modelo de la sesión (decisión del
+ * responsable), que escribe para su yo futuro: el resumen sustituye todo lo
+ * anterior al corte.
  */
 export function buildCompactionPrompt(input: {
-	/** The span to summarize, pre-serialized (serializeForSummary). */
+	/** El tramo que se va a resumir, ya serializado (serializeForSummary). */
 	spanText: string;
-	/** The plan tree rendered (planTreeToText) or null. */
+	/** El árbol del plan ya mostrado (planTreeToText) o null. */
 	planTreeText: string | null;
-	/** The session kind (wording: tutor vs practice agent). */
+	/** El tipo de sesión (redacción: tutor frente a agente de práctica). */
 	kind: "teach" | "practice" | "probe";
 }): string {
 	const planSection =

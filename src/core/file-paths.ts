@@ -1,10 +1,10 @@
-/** A lossless projection of plain learner text, not a Markdown parser. */
+/** Una proyección sin pérdidas del texto plano del alumno, no un analizador de Markdown. */
 export type FilePathPart =
 	| { kind: "text"; text: string; start: number; end: number }
 	| { kind: "path"; text: string; path: string; start: number; end: number };
 
-// No filesystem access or normalization: even punctuation and backslashes can
-// be legitimate POSIX filename characters. Only rooted syntax is required.
+// Sin acceso al sistema de ficheros ni normalización: hasta la puntuación y las barras
+// invertidas pueden ser caracteres legítimos de nombre POSIX. Solo se exige sintaxis con raíz.
 function isFilePath(path: string): boolean {
 	if (/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/u.test(path)) return false;
 	return path.startsWith("/")
@@ -14,8 +14,9 @@ function isFilePath(path: string): boolean {
 }
 
 /**
- * Wrap a rooted path for storage/transmission as ordinary, lossless text.
- * CommonMark's one-space padding prevents edge backticks joining delimiters.
+ * Envuelve una ruta con raíz para guardarla/transmitirla como texto ordinario
+ * y sin pérdidas. El relleno de un espacio de CommonMark evita que las
+ * comillas invertidas de los bordes se unan a los delimitadores.
  */
 export function quoteFilePath(path: string): string {
 	if (!isFilePath(path)) throw new TypeError("Expected a single-line rooted file path");
@@ -27,10 +28,11 @@ export function quoteFilePath(path: string): string {
 }
 
 /**
- * Recognize every complete backtick-wrapped rooted path, even beside words.
- * Delimiters are whole runs of exactly equal length; a run inside another
- * code span is never reconsidered as a partial path token. Offsets are JS
- * string (UTF-16) offsets and `text` always slices the exact original input.
+ * Reconoce toda ruta con raíz completa envuelta en comillas invertidas,
+ * aunque esté junto a palabras. Los delimitadores son series enteras de
+ * exactamente la misma longitud; una serie dentro de otro fragmento de código
+ * nunca se reconsidera como token de ruta parcial. Los desplazamientos son de
+ * cadena JS (UTF-16) y `text` siempre corta exactamente la entrada original.
  */
 export function parseFilePaths(text: string): FilePathPart[] {
 	const runs = Array.from(text.matchAll(/`+/g), (match) => ({
@@ -38,8 +40,8 @@ export function parseFilePaths(text: string): FilePathPart[] {
 		end: match.index + match[0].length,
 		width: match[0].length,
 	}));
-	// The next same-width run lets unmatched openers remain plain text without
-	// repeatedly scanning the rest of a long draft.
+	// La siguiente serie de la misma anchura permite que las aperturas sin pareja queden
+	// como texto plano sin volver a recorrer una y otra vez el resto de un borrador largo.
 	const next = new Map<number, number>();
 	const closing = new Map<number, number>();
 	for (let i = runs.length - 1; i >= 0; i--) {
@@ -57,7 +59,7 @@ export function parseFilePaths(text: string): FilePathPart[] {
 		const open = runs[i]!;
 		const close = runs[closeIndex]!;
 		let path = text.slice(open.end, close.start);
-		// CommonMark strips exactly one space at each edge, not all whitespace.
+		// CommonMark quita exactamente un espacio en cada borde, no todo el espacio en blanco.
 		if (path.startsWith(" ") && path.endsWith(" ") && /[^ ]/.test(path)) {
 			path = path.slice(1, -1);
 		}
@@ -80,20 +82,22 @@ function isWindowsPath(path: string): boolean {
 	return /^[a-z]:[\\/]/i.test(path) || path.startsWith("\\\\");
 }
 
-/** Directory syntax, not a filesystem probe. A backslash is a legitimate
- * POSIX filename character, so it marks a directory only on Windows paths. */
+/** Sintaxis de directorio, no un sondeo del sistema de ficheros. Una barra
+ * invertida es un carácter legítimo de nombre POSIX, así que solo marca un
+ * directorio en rutas de Windows. */
 export function isDirectoryReference(path: string): boolean {
 	return path.endsWith("/") || (isWindowsPath(path) && path.endsWith("\\"));
 }
 
-/** Only call for a positively known directory (native picker/drop metadata).
- * The durable marker survives ordinary text storage/copy/reload unchanged. */
+/** Llámala solo para un directorio conocido con certeza (metadatos del
+ * selector nativo o de arrastrar y soltar). El marcador duradero sobrevive sin
+ * cambios al guardado, copia y recarga ordinarios del texto. */
 export function directoryReferencePath(path: string): string {
 	quoteFilePath(path);
 	return isDirectoryReference(path) ? path : path + (isWindowsPath(path) ? "\\" : "/");
 }
 
-/** Basename for display only; the original full path remains untouched. */
+/** Nombre base solo para mostrar; la ruta completa original queda intacta. */
 export function filePathLabel(path: string): string {
 	const windows = isWindowsPath(path);
 	const separator = windows ? /[\\/]/ : /\//;
