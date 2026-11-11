@@ -3,9 +3,9 @@ import type { TSchema } from "typebox";
 import type { PluginInferenceOptions } from "./plugins.ts";
 import { copyImmutableData, ImmutableReadCache } from "./immutable-data.ts";
 
-// The installed SDK uses this same TypeBox compiler, but it silently accepts
-// malformed known keywords. This is basic native-schema hygiene, NOT a full
-// meta-validator or a guarantee of compatibility with every provider/dialect.
+// El SDK instalado usa este mismo compilador de TypeBox, pero acepta en silencio palabras
+// clave conocidas mal formadas. Esto es higiene básica de esquemas nativos, NO un
+// metavalidador completo ni una garantía de compatibilidad con todo proveedor/dialecto.
 const types = new Set([
 	"object", "array", "boolean", "integer", "number", "null", "string",
 	"bigint", "constructor", "function", "symbol", "undefined", "void",
@@ -24,14 +24,15 @@ const references = new Set(["$ref", "$recursiveRef", "$dynamicRef"]);
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every(item => typeof item === "string");
 
-/** Preserve native schema objects/extensions; reject obvious malformed known
- * shapes, then compile exactly as the SDK does. Literal/annotation DATA (const,
- * enum members, default, examples, unknown extensions) is never schema-walked. */
+/** Conserva los objetos/extensiones de esquema nativos; rechaza las formas
+ * conocidas obviamente mal formadas y luego compila exactamente como el SDK. Los
+ * DATOS literales/de anotación (const, miembros de enum, default, examples,
+ * extensiones desconocidas) nunca se recorren como esquema. */
 export function validatePluginSchema(schema: unknown) {
 	const seen = new WeakSet<object>();
 	function fail(location: string): never { throw new Error(`Malformed native schema at ${location}`); }
 	function visit(value: unknown, location: string): void {
-		if (typeof value === "boolean") return; // Native JSON Schema boolean schemas.
+		if (typeof value === "boolean") return; // Esquemas booleanos nativos de JSON Schema.
 		if (!object(value)) fail(location);
 		if (seen.has(value)) return;
 		seen.add(value);
@@ -60,7 +61,7 @@ export function validatePluginSchema(schema: unknown) {
 			else if (key === "uniqueItems") { if (typeof child !== "boolean") fail(at); }
 			else if (numeric.has(key)) { if (typeof child !== "number" && typeof child !== "bigint") fail(at); }
 			else if (key === "exclusiveMinimum" || key === "exclusiveMaximum") {
-				if (!["boolean", "number", "bigint"].includes(typeof child)) fail(at); // Older/newer drafts.
+				if (!["boolean", "number", "bigint"].includes(typeof child)) fail(at); // Borradores anteriores/posteriores.
 			}
 		}
 	}
@@ -68,9 +69,9 @@ export function validatePluginSchema(schema: unknown) {
 	return Compile(schema as TSchema);
 }
 
-// Keep compiled validators private: callers of validatePluginSchema still get
-// their own mutable TypeBox Validator. Only immutable internal contracts reuse
-// a check closure; every new value is checked, never memoized as a submission.
+// Los validadores compilados se mantienen privados: quien llama a validatePluginSchema sigue
+// obteniendo su propio Validator mutable de TypeBox. Solo los contratos internos inmutables
+// reutilizan un cierre de comprobación; cada valor nuevo se comprueba, nunca se memoiza como envío.
 const preparedChecks = new ImmutableReadCache<(value: unknown) => boolean>();
 const booleanSchemas = copyImmutableData({ true: { schema: true }, false: { schema: false } });
 function preparedCheck(schema: unknown): (value: unknown) => boolean {
@@ -83,8 +84,8 @@ function preparedCheck(schema: unknown): (value: unknown) => boolean {
 export function preparePluginSchema(schema: unknown): void { preparedCheck(schema); }
 export function checkPluginSchema(schema: unknown, value: unknown): boolean { return preparedCheck(schema)(value); }
 
-// Copied without semantic changes from the existing inference adapter. This
-// validates generation options only; transport/auth fields remain host-owned.
+// Copiado sin cambios semánticos del adaptador de inferencia existente. Esto solo
+// valida las opciones de generación; los campos de transporte/autenticación siguen siendo del host.
 const levels = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
 const optionKeys = new Set(["temperature", "maxTokens", "cacheRetention", "reasoning", "thinkingBudgets", "toolChoice", "timeoutMs", "maxRetries", "maxRetryDelayMs", "metadata"]);
 export function validatePluginInferenceOptions(value: PluginInferenceOptions | undefined): PluginInferenceOptions {
@@ -106,7 +107,7 @@ export function validatePluginInferenceOptions(value: PluginInferenceOptions | u
 	}
 	if (options.metadata !== undefined) {
 		if (!options.metadata || typeof options.metadata !== "object" || Array.isArray(options.metadata)) throw new Error("Invalid inference metadata");
-		// Metadata is request content, not a place to tunnel host callbacks.
+		// Los metadatos son contenido de la petición, no un sitio por el que colar callbacks del host.
 		JSON.stringify(options.metadata, (_key, item) => {
 			if (typeof item === "function" || typeof item === "symbol" || typeof item === "bigint" || (typeof item === "number" && !Number.isFinite(item))) throw new Error("Metadata must be JSON compatible");
 			return item;

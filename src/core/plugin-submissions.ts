@@ -1,4 +1,4 @@
-/** Browser-safe learner submission contracts and immutable preparation boundaries. */
+/** Contratos de envíos del alumno seguros para el navegador y límites de preparación inmutables. */
 import type { ImageContent } from "@earendil-works/pi-ai";
 import type { LhMessage } from "./native-messages.ts";
 import type { PluginQuestionOccurrence, PluginQuestionSnapshot } from "./plugin-questions.ts";
@@ -12,14 +12,14 @@ type ImmutableJson = null | boolean | number | string | ImmutableJsonArray | Imm
 interface ImmutableJsonArray extends ReadonlyArray<ImmutableJson> {}
 interface ImmutableJsonObject { readonly [key: string]: ImmutableJson }
 
-/** Exact native tool occurrence, never merely a potentially reused tool-call ID. */
+/** Aparición exacta de la herramienta nativa, nunca un mero ID de llamada a herramienta que podría reutilizarse. */
 export type PluginSubmissionOccurrence = Readonly<PluginQuestionOccurrence>;
 export type PluginSubmissionChannel = "content" | "answer" | "submission" | "thinking" | "readingThinking";
 export interface PluginSubmissionContent {
 	readonly text: string;
 	readonly images: readonly Readonly<ImageContent>[];
 }
-/** Optional native image channels alongside the existing text authorities. */
+/** Canales de imagen nativos opcionales junto a las autoridades textuales existentes. */
 export interface PluginSubmissionImages {
 	readonly answer?: readonly Readonly<ImageContent>[];
 	readonly thinking?: readonly Readonly<ImageContent>[];
@@ -57,10 +57,10 @@ export type PluginSubmissionTarget = SubmissionTargetBase & (
 	| { readonly type: "plugin-question-answer"; readonly channels: readonly PluginSubmissionChannel[]; readonly question: Immutable<Pick<PluginQuestionSnapshot, "questionId" | "occurrence" | "pluginId" | "typeId" | "contractVersion" | "label" | "variant" | "showThinking">> }
 );
 export type PluginSubmissionContext = PluginSubmissionTarget & {
-	/** Detached current browser history, including potentially streamed content. */
+	/** Historial actual del navegador desvinculado, incluido el contenido que pueda llegar en streaming. */
 	readonly messages: readonly Immutable<LhMessage>[];
 	readonly signal: AbortSignal;
-	/** Live, best-effort acknowledgment notification; not a durable event. */
+	/** Notificación de acuse en vivo y sin garantías; no es un evento duradero. */
 	onAccepted(callback: () => void | Promise<void>): void;
 };
 export interface PluginSubmissionInterceptor {
@@ -94,13 +94,13 @@ function content(value: unknown): PluginSubmissionContent {
 	if (typeof item.text !== "string") throw new Error("Submission text must be a string");
 	return { text: item.text, images: imageList(item.images) };
 }
-/** Structural browser validation only. Byte sniffing/normalization belongs to server admission. */
+/** Solo validación estructural en el navegador. El análisis/normalización de bytes corresponde a la admisión en el servidor. */
 export function preparePluginSubmissionImage(value: unknown): Readonly<ImageContent> {
 	const item = object(clonePluginQuestionJson(value));
 	keys(item, ["type", "data", "mimeType"]);
 	if (item.type !== "image" || typeof item.mimeType !== "string" || !imageMimeTypes.has(item.mimeType) || typeof item.data !== "string" || !item.data.length || !base64.test(item.data)) throw new Error("Submission images require PNG, JPEG, WebP or GIF native base64 image blocks");
-	// Padding bits must be zero; accepting a permissive decoder's truncated input
-	// would hide malformed plugin output rather than validate native base64.
+	// Los bits de relleno deben ser cero; aceptar la entrada truncada de un decodificador permisivo
+	// ocultaría una salida mal formada del plugin en lugar de validar base64 nativo.
 	if ((item.data.endsWith("==") && (alphabet.indexOf(item.data.at(-3)!) & 15) !== 0) || (item.data.endsWith("=") && !item.data.endsWith("==") && (alphabet.indexOf(item.data.at(-2)!) & 3) !== 0)) throw new Error("Submission image data must be canonical base64");
 	return Object.freeze({ type: "image", data: item.data, mimeType: item.mimeType });
 }
@@ -108,14 +108,14 @@ function imageList(value: unknown): readonly Readonly<ImageContent>[] {
 	if (!Array.isArray(value)) throw new Error("Submission images must be an array");
 	return value.map(preparePluginSubmissionImage);
 }
-/** Detached transport array; structural validation only, with server byte processing still required. */
+/** Array de transporte desvinculado; solo validación estructural, y sigue siendo necesario el procesamiento de bytes en el servidor. */
 export function validatePluginSubmissionImageArray(value: unknown): ImageContent[] {
 	return imageList(clonePluginQuestionJson(value)).map(image => ({ ...image }));
 }
 export function validatePluginSubmissionImages(value: unknown): PluginSubmissionImages {
 	return preparePluginSubmissionImages(value);
 }
-/** Validate optional transport channels and omit empty image arrays on write. */
+/** Valida los canales de transporte opcionales y omite los arrays de imágenes vacíos al escribir. */
 export function preparePluginSubmissionImages(value: unknown): PluginSubmissionImages {
 	const item = object(clonePluginQuestionJson(value));
 	keys(item, ["answer", "thinking", "readingThinking"], []);
@@ -147,7 +147,7 @@ function builtinAnswer(value: unknown): PluginBuiltinSubmissionAnswer {
 	return { ...item, images: imageList(item.images) } as unknown as PluginBuiltinSubmissionAnswer;
 }
 function nonempty(value: PluginSubmissionContent): boolean { return !!value.text.trim() || value.images.length > 0; }
-/** Strictly detach and freeze each hook's output; identity can never be returned as input. */
+/** Desvincula y congela estrictamente la salida de cada hook; la identidad nunca puede devolverse como entrada. */
 export function preparePluginSubmission(input: unknown, target: PluginSubmissionTarget): PluginSubmission {
 	const item = object(clonePluginQuestionJson(input));
 	if (item.type !== target.type) throw new Error("Submission type cannot change");
@@ -167,7 +167,7 @@ export function preparePluginSubmission(input: unknown, target: PluginSubmission
 	return freeze({ type: "plugin-question-answer", answer: item.answer as ImmutableJson, answerImages: imageList(item.answerImages), thinking, readingThinking });
 }
 
-/** Validate raw fields against the private rendered question; buildAnswer remains the only grader. */
+/** Valida los campos en bruto contra la pregunta privada mostrada; buildAnswer sigue siendo el único calificador. */
 export function validatePluginBuiltinSubmissionAnswer(question: QuestionData, answer: PluginBuiltinSubmissionAnswer): AnswerRequest {
 	const raw = builtinAnswer(object(clonePluginQuestionJson(answer)));
 	const values = raw.values ?? [], other = raw.other?.trim() ?? "", text = raw.text?.trim() ?? "";
@@ -182,8 +182,8 @@ export function validatePluginBuiltinSubmissionAnswer(question: QuestionData, an
 		if (question.mode === "single-select" && values.length + (other ? 1 : 0) > 1) throw new Error("A single-select answer requires one selection");
 		if (!raw.dontKnow && !values.length && !other) throw new Error("An answer selection is required");
 	}
-	// Preserve finite confidence even on dontKnow: existing buildAnswer deliberately
-	// drops it there, and owns rounding/clamping for real quiz selections.
+	// Se conserva la confianza finita incluso con dontKnow: buildAnswer la descarta ahí a
+	// propósito, y es dueño del redondeo/acotado en las selecciones reales de cuestionario.
 	return {
 		...(raw.dontKnow !== undefined ? { dontKnow: raw.dontKnow } : {}),
 		...(raw.values !== undefined ? { values: [...raw.values] } : {}),
@@ -193,7 +193,7 @@ export function validatePluginBuiltinSubmissionAnswer(question: QuestionData, an
 	};
 }
 
-/** Capture validated callbacks and priority without freezing a plugin-owned definition. */
+/** Captura los callbacks validados y la prioridad sin congelar una definición propiedad del plugin. */
 export function preparePluginSubmissionInterceptor(definition: PluginSubmissionInterceptor): Readonly<PluginSubmissionInterceptor> {
 	const item = object(definition);
 	if (typeof item.id !== "string" || !identifier.test(item.id)) throw new Error("Invalid submission interceptor id");
@@ -207,13 +207,13 @@ export function comparePluginSubmissionInterceptors(left: { pluginId: string; de
 	const compare = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 	return compare(left.pluginId, right.pluginId) || compare(left.definition.id, right.definition.id);
 }
-/** Preserve the opaque host reference, never clone/freeze the target token itself. */
+/** Conserva la referencia opaca del host; nunca clona ni congela el propio token de destino. */
 export function copyPluginSubmissionTarget(target: PluginSubmissionTarget): PluginSubmissionTarget {
 	const { surfaceTarget, ...data } = target;
 	const copy = freeze(structuredClone(data));
 	return Object.freeze({ ...copy, surfaceTarget }) as PluginSubmissionTarget;
 }
-/** Current native history is host-owned and may contain explicit undefined fields. */
+/** El historial nativo actual es propiedad del host y puede contener campos undefined explícitos. */
 export function copyPluginSubmissionHistory(messages: readonly LhMessage[]): PluginSubmissionContext["messages"] {
 	return freeze(structuredClone(messages)) as unknown as PluginSubmissionContext["messages"];
 }

@@ -1,4 +1,4 @@
-/** Result-oriented tasks owned by a plugin. Execution uses the native Pi runner. */
+/** Tareas orientadas a resultados propiedad de un plugin. La ejecución usa el runner nativo de Pi. */
 import type { AgentMessage, AgentTool } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import type { Static, TSchema } from "typebox";
@@ -8,33 +8,34 @@ import type { PluginInferenceOptions, PluginToolContext } from "./plugins.ts";
 
 export interface PluginWorkerContext {
 	readonly taskId: string;
-	/** Immutable accepted input, never an identity supplied by the model's result. */
+	/** Entrada aceptada inmutable, nunca una identidad aportada por el resultado del modelo. */
 	readonly input: unknown;
-	/** Task lifetime cancellation. Tools must cooperate and recheck after awaits
-	 * before side effects; cancellation cannot undo external effects. */
+	/** Cancelación ligada a la vida de la tarea. Las herramientas deben cooperar y volver a
+	 * comprobarla tras cada await antes de producir efectos secundarios; la cancelación no puede
+	 * deshacer efectos externos. */
 	readonly signal: AbortSignal;
 }
 export interface PluginWorkerDefinition {
 	id: string;
 	instructions: string;
-	/** The host exposes submit_result({ result: <this schema> }). */
+	/** El host expone submit_result({ result: <este esquema> }). */
 	resultSchema: TSchema;
-	/** Create native tools for this accepted task; result submission is host-owned. */
+	/** Crea las herramientas nativas para esta tarea aceptada; el envío del resultado es propiedad del host. */
 	tools?: (context: PluginWorkerContext) => AgentTool<any>[];
-	/** Throw useful correction feedback. This validator must not have side effects. */
+	/** Lanza una excepción con una corrección útil. Este validador no debe tener efectos secundarios. */
 	validateResult?: (result: unknown, context: PluginWorkerContext) => void | Promise<void>;
 }
 export interface PluginWorkerStartOptions {
-	/** Retries of the same acceptance use the same id; a new attempt uses a new id. */
+	/** Los reintentos de la misma aceptación usan el mismo id; un intento nuevo usa un id nuevo. */
 	requestId: string;
 	input: unknown;
 	prompt: string;
 	model: PluginModelSpec;
 	purpose: PluginCallPurpose;
-	/** Maximum model turns, including correction turns. No implicit default. */
+	/** Número máximo de turnos del modelo, incluidos los de corrección. Sin valor por defecto implícito. */
 	maxTurns: number;
 	options?: PluginInferenceOptions;
-	/** Wall-clock lifetime from acceptance, including admission waits. */
+	/** Duración en tiempo real desde la aceptación, incluidas las esperas de admisión. */
 	timeoutMs?: number;
 }
 export type PluginTaskStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled" | "interrupted";
@@ -54,40 +55,41 @@ export interface PluginTaskRecord extends PluginWorkerStartOptions {
 	turns: number;
 	activity?: string;
 	usage?: JobUsage;
-	/** Authoritative only when status is succeeded; falsy JSON values are valid. */
+	/** Solo es autoritativo cuando status es succeeded; los valores JSON falsy son válidos. */
 	result?: unknown;
 	error?: PluginTaskError;
 }
 export interface PluginTaskSnapshot extends PluginTaskRecord {
-	/** Ephemeral streaming progress, not committed history or a result. */
+	/** Progreso efímero en streaming, no historial confirmado ni un resultado. */
 	partial?: AssistantMessage;
 }
 export type PluginTaskOutcome =
 	| { id: string; status: "succeeded"; result: unknown }
 	| { id: string; status: "failed" | "cancelled" | "interrupted"; error: PluginTaskError };
-/** A thin native-tool adapter, not another agent or tool execution framework. */
+/** Un adaptador fino de herramientas nativas, no otro framework de ejecución de agentes o de herramientas. */
 export type PluginBackgroundTool<T extends TSchema = TSchema> = Omit<AgentTool<T>, "execute"> & {
 	workerId: string;
-	/** Derive worker input, prompt and explicit limits without side effects. The host
-	 * supplies request identity and forces background purpose. */
+	/** Deriva la entrada del worker, el prompt y los límites explícitos sin efectos
+	 * secundarios. El host aporta la identidad de la petición y fuerza el propósito background. */
 	prepare(input: Static<T>, context: PluginToolContext):
 		Omit<PluginWorkerStartOptions, "requestId" | "purpose"> | Promise<Omit<PluginWorkerStartOptions, "requestId" | "purpose">>;
-	/** Turn a terminal outcome into model text and optional rendered data; keep this
-	 * side-effect free. Failure records a presentation error, not a different task
-	 * outcome; restart delivery may use persisted fallback without rerunning it. */
+	/** Convierte un resultado terminal en texto para el modelo y datos opcionales para representar;
+	 * mantenlo sin efectos secundarios. Un fallo registra un error de presentación, no un
+	 * resultado distinto de la tarea; la entrega tras un reinicio puede usar una alternativa
+	 * persistida sin volver a ejecutarlo. */
 	format(outcome: PluginTaskOutcome, context: PluginToolContext): PluginBackgroundPresentation | Promise<PluginBackgroundPresentation>;
 };
 export interface PluginBackgroundPresentation {
 	text: string;
 	data?: unknown;
 }
-/** Persisted in the normal background-job result and conversation marker. */
+/** Se persiste en el resultado normal de la tarea en segundo plano y en el marcador de la conversación. */
 export interface PluginBackgroundResult extends PluginBackgroundPresentation {
 	pluginId: string;
 	toolName: string;
 	input: unknown;
 	outcome: PluginTaskOutcome;
-	/** Worker success is not retroactively changed by presentation failure. */
+	/** Un fallo de presentación no cambia retroactivamente el éxito del worker. */
 	formatError?: string;
 }
 export interface PluginBackgroundMeta {
@@ -95,41 +97,46 @@ export interface PluginBackgroundMeta {
 	taskId: string;
 	status: PluginTaskOutcome["status"];
 }
-/** Plugin-owned bounded tasks; model execution can incur cost. Task lifetime is
- * independent of views/subscriptions. Disable/restart interrupts unfinished tasks;
- * reactivation does not replay them. */
+/** Tareas acotadas propiedad del plugin; la ejecución del modelo puede tener coste. La vida de
+ * la tarea es independiente de las vistas y suscripciones. Desactivar o reiniciar interrumpe
+ * las tareas sin terminar; la reactivación no las vuelve a ejecutar. */
 export interface PluginWorkerService {
-	/** Register instructions, result schema and optional tools/refinement validator.
-	 * Invalid/duplicate definitions throw. Returns an unregister function that
-	 * interrupts unfinished tasks for this definition, retaining their records. */
+	/** Registra instrucciones, esquema del resultado y, opcionalmente, herramientas y un validador
+	 * de refinamiento. Las definiciones no válidas o duplicadas lanzan una excepción. Devuelve una
+	 * función para anular el registro que interrumpe las tareas sin terminar de esta definición,
+	 * conservando sus registros. */
 	register(definition: PluginWorkerDefinition): () => void;
-	/** Persist durable acceptance and return a queued snapshot, not completion.
-	 * Model/tool execution proceeds independently of views. Identical request ID
-	 * and options return the existing task; conflicting reuse throws. Invalid input,
-	 * missing definitions and acceptance persistence failures throw synchronously. */
+	/** Persiste una aceptación duradera y devuelve una instantánea en cola, no el final.
+	 * La ejecución del modelo y de las herramientas avanza con independencia de las vistas. Un ID
+	 * de petición y unas opciones idénticos devuelven la tarea existente; reutilizarlos de forma
+	 * conflictiva lanza una excepción. Las entradas no válidas, las definiciones inexistentes y
+	 * los fallos de persistencia de la aceptación lanzan una excepción de forma síncrona. */
 	start(definitionId: string, options: PluginWorkerStartOptions): PluginTaskSnapshot;
-	/** Return detached snapshots of owned tasks, including ephemeral progress;
-	 * listing does not start or resume work. */
+	/** Devuelve instantáneas independientes de las tareas propias, incluido el progreso efímero;
+	 * listar no inicia ni reanuda trabajo. */
 	list(): PluginTaskSnapshot[];
-	/** Return a detached task snapshot. Unknown IDs throw; only succeeded status
-	 * makes result authoritative, including falsy JSON results. */
+	/** Devuelve una instantánea independiente de la tarea. Los IDs desconocidos lanzan una
+	 * excepción; solo el estado succeeded hace autoritativo el resultado, incluidos los resultados
+	 * JSON falsy. */
 	get(id: string): PluginTaskSnapshot;
-	/** Deliver a snapshot synchronously, then live state/progress changes. Returns
-	 * an unsubscribe function, not a cancellation handle. Unknown IDs throw; an
-	 * initial listener throw removes the subscription. */
+	/** Entrega una instantánea de forma síncrona y, después, los cambios en vivo de estado y
+	 * progreso. Devuelve una función para cancelar la suscripción, no un mecanismo para cancelar
+	 * la tarea. Los IDs desconocidos lanzan una excepción; si el listener lanza una excepción en
+	 * la entrega inicial, se elimina la suscripción. */
 	subscribe(id: string, listener: (snapshot: PluginTaskSnapshot) => void): () => void;
-	/** Resolve the terminal outcome, including failed/cancelled/interrupted states;
-	 * task failure is not a rejected wait. An aborted signal rejects with AbortError
-	 * and stops only this waiter, not the task. Storage failures can reject, and an
-	 * unknown task ID throws before waiting. */
+	/** Resuelve el resultado terminal, incluidos los estados failed/cancelled/interrupted; que la
+	 * tarea falle no hace que la espera se rechace. Una señal abortada rechaza con AbortError y
+	 * detiene solo esta espera, no la tarea. Los fallos de almacenamiento pueden producir un
+	 * rechazo, y un ID de tarea desconocido lanza una excepción antes de esperar. */
 	wait(id: string, signal?: AbortSignal): Promise<PluginTaskOutcome>;
-	/** Persist cancelled status for unfinished work and signal cooperative cancellation.
-	 * Terminal tasks are unchanged; external effects cannot be undone. Unknown IDs
-	 * and persistence failures throw. */
+	/** Persiste el estado cancelled para el trabajo sin terminar y señala la cancelación
+	 * cooperativa. Las tareas terminadas no cambian; los efectos externos no pueden deshacerse.
+	 * Los IDs desconocidos y los fallos de persistencia lanzan una excepción. */
 	cancel(id: string): void;
-	/** Interrupt unfinished tasks, clear definitions/listeners and cancel task scopes,
-	 * retaining history/results; never replay on reactivation. Idempotent and does
-	 * not await uncooperative tools. Persistence failures reject. Host disable also
-	 * disposes this service. */
+	/** Interrumpe las tareas sin terminar, borra definiciones y listeners y cancela los ámbitos de
+	 * las tareas, conservando el historial y los resultados; nunca vuelve a ejecutarlas al
+	 * reactivar. Es idempotente y no espera a las herramientas que no cooperen. Los fallos de
+	 * persistencia producen un rechazo. Desactivar el plugin en el host también libera este
+	 * servicio. */
 	dispose(): Promise<void>;
 }

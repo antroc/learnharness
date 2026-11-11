@@ -1,16 +1,16 @@
-/** Controlled tree presentation only: identity and behavior remain plugin-owned. */
+/** Solo presentación de árbol controlada: la identidad y el comportamiento siguen siendo propiedad del plugin. */
 import type { PluginUiCallback, PluginUiContent } from "./plugin-ui.ts";
 
 export type PluginTreeContent = string | PluginUiContent;
 export interface PluginTreeColumn {
 	key: string;
 	header: PluginTreeContent;
-	/** Fixed trailing-column width: pixels for numbers, CSS width for strings. */
+	/** Anchura fija de la columna final: píxeles para números, anchura CSS para cadenas. */
 	width: number | string;
 	align?: "left" | "right";
 }
 export interface PluginTreeRow {
-	/** Globally unique occurrence identity, independent of represented entities. */
+	/** Identidad de aparición globalmente única, independiente de las entidades representadas. */
 	key: string;
 	content: PluginTreeContent;
 	cells?: Record<string, PluginTreeContent>;
@@ -29,7 +29,7 @@ export interface PluginTreeRow {
 	};
 }
 export interface PluginTreeProps {
-	/** Accessible name; visible headings belong to header or row content. */
+	/** Nombre accesible; los encabezados visibles pertenecen al contenido de la cabecera o de la fila. */
 	label: string;
 	rows: readonly PluginTreeRow[];
 	header?: PluginTreeContent;

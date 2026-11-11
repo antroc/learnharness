@@ -1,22 +1,26 @@
-/** Framework-neutral, controlled host UI. No widget reads or writes plugin storage. */
+/** Interfaz del host controlada y neutral respecto al framework. Ningún widget lee ni escribe el almacenamiento del plugin. */
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { PluginTreeProps } from "./plugin-tree.ts";
 
-/** Host-invoked interaction callback; async failures are reported, not accepted as
- * successful persistence. Callbacks do not change controlled values by themselves. */
+/** Callback de interacción invocado por el host; los fallos asíncronos se notifican,
+ * no se aceptan como persistencia correcta. Los callbacks no cambian por sí solos los
+ * valores controlados. */
 export type PluginUiCallback<T = void> = (value: T) => void | Promise<void>;
-/** Required caller lifetime, combined with plugin activation and any owning host
- * surface lifetime. Pass a per-mount signal for UI inside a view. */
+/** Vida obligatoria del llamador, combinada con la activación del plugin y con la vida
+ * de cualquier superficie del host propietaria. Pasa una señal por montaje para la
+ * interfaz dentro de una vista. */
 export interface PluginWidgetOptions { signal: AbortSignal }
-/** Control one registration/mount; handles do not persist plugin values. */
+/** Controla un registro/montaje; los manejadores no persisten valores del plugin. */
 export interface PluginWidgetHandle<Props> {
-	/** Shallow-merge props and callbacks; replace whole nested objects/arrays.
-	 * Publish accepted values explicitly. Disposed handles ignore updates; where
-	 * props are validated, invalid updates throw before replacing current props. */
+	/** Fusiona superficialmente props y callbacks; sustituye enteros los objetos/arrays
+	 * anidados. Publica de forma explícita los valores aceptados. Los manejadores
+	 * liberados ignoran las actualizaciones; donde las props se validan, las
+	 * actualizaciones no válidas lanzan antes de sustituir las props actuales. */
 	update(props: Partial<Props>): void;
-	/** Idempotently release this registration/mount and its scoped resources.
-	 * UI content signals abort and cleanup runs; explicit overlay disposal is not
-	 * a user close notification and does not call onClose. */
+	/** Libera de forma idempotente este registro/montaje y sus recursos con ámbito.
+	 * Las señales del contenido de la interfaz se abortan y se ejecuta la limpieza;
+	 * liberar explícitamente un overlay no es una notificación de cierre por el
+	 * usuario y no llama a onClose. */
 	dispose(): void;
 }
 export interface PluginModelValue { provider: string; id: string }
@@ -51,15 +55,17 @@ export interface PluginDictationProps {
 	onTranscript: PluginUiCallback<string>;
 }
 export interface PluginDictationHandle extends PluginWidgetHandle<PluginDictationProps> {
-	/** Start recording when idle, or stop and keep speech when active. One recording
-	 * owner is allowed per window; a competing start reports an error. */
+	/** Empieza a grabar si está en reposo, o detiene la grabación y conserva el habla si
+	 * está activa. Se permite un propietario de grabación por ventana; un inicio
+	 * competidor notifica un error. */
 	toggle(): void;
-	/** Stop this recording and await transcript delivery before sending. Does not
-	 * start capture when idle; delivery failures can reject. This does not send a
-	 * message or update a hidden native composer. */
+	/** Detiene esta grabación y espera a que se entregue la transcripción antes de
+	 * enviar. No inicia la captura si está en reposo; los fallos de entrega pueden
+	 * rechazar. Esto no envía un mensaje ni actualiza un compositor nativo oculto. */
 	finish(): Promise<void>;
-	/** Cancel capture and discard buffered speech rather than flushing it. Does not
-	 * undo text already delivered through onTranscript. Disposal/abort also cancels. */
+	/** Cancela la captura y descarta el habla almacenada en lugar de volcarla. No
+	 * deshace el texto ya entregado mediante onTranscript. La liberación o la
+	 * cancelación también cancelan. */
 	cancel(): void;
 }
 export interface PluginStandardComposerProps {
@@ -73,7 +79,7 @@ export interface PluginButtonColorState {
 	text?: string;
 	border?: string;
 }
-/** CSS colors only; state overrides cascade per property, not as complete palettes. */
+/** Solo colores CSS; las sustituciones de estado se aplican en cascada por propiedad, no como paletas completas. */
 export interface PluginButtonColors extends PluginButtonColorState {
 	hover?: PluginButtonColorState;
 	active?: PluginButtonColorState;
@@ -81,29 +87,29 @@ export interface PluginButtonColors extends PluginButtonColorState {
 	disabled?: PluginButtonColorState;
 }
 export interface PluginButtonProps {
-	/** Visible text, or the accessible name when iconOnly is true. */
+	/** Texto visible, o el nombre accesible cuando iconOnly es true. */
 	label: string;
-	/** Trusted plugin SVG markup, rendered decoratively before the label. */
+	/** Marcado SVG de confianza del plugin, mostrado de forma decorativa antes de la etiqueta. */
 	icon?: string;
-	/** Hide visible text; requires a nonblank label and icon. Size remains independent. */
+	/** Oculta el texto visible; exige una etiqueta no vacía y un icono. El tamaño sigue siendo independiente. */
 	iconOnly?: boolean;
 	onClick: () => void | Promise<void>;
 	disabled?: boolean;
 	variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link" | "custom";
-	/** Validated for every variant, applied only to custom. Updates replace this whole object. */
+	/** Se valida en todas las variantes y solo se aplica a custom. Las actualizaciones sustituyen este objeto entero. */
 	colors?: PluginButtonColors;
 	size?: "default" | "xs" | "sm" | "lg" | "icon" | "icon-xs" | "icon-sm" | "icon-lg";
 	title?: string;
 }
-/** Generic native-style badge. No grading semantics or automatic placement. */
+/** Distintivo genérico de estilo nativo. Sin semántica de calificación ni colocación automática. */
 export interface PluginBadgeProps {
 	text: string;
-	/** CSS color for text and a 15% background tint. Omit for the native neutral badge. */
+	/** Color CSS para el texto y un tinte de fondo del 15 %. Omítelo para el distintivo neutro nativo. */
 	color?: string;
 }
-/** Content stays plugin-owned; mount may return cleanup, including asynchronously. */
+/** El contenido sigue siendo propiedad del plugin; mount puede devolver una limpieza, también de forma asíncrona. */
 export type PluginUiContent = HTMLElement | ((container: HTMLElement, signal: AbortSignal) => void | (() => void) | Promise<void | (() => void)>);
-/** Built-in host Markdown rendering without auxiliary controls or plugin code-block widgets. */
+/** Render integrado de Markdown del host sin controles auxiliares ni widgets de bloques de código de plugins. */
 export interface PluginMarkdownProps { text: string }
 export interface PluginWorkerResultProps {
 	label: string;
@@ -113,23 +119,25 @@ export interface PluginWorkerResultProps {
 	presentation?: "collapsed" | "card" | "plain";
 }
 declare const pluginSurfaceTargetBrand: unique symbol;
-/** Opaque host-created identity for one mounted host page body. */
+/** Identidad opaca creada por el host para el cuerpo de una página del host montada. */
 export interface PluginSurfaceTarget { readonly [pluginSurfaceTargetBrand]: true }
-/** Page-body overlay content, not a modal dialog or top-bar/sidebar replacement.
- * User close notifies onClose; it is not an asynchronous veto. Abort/programmatic
- * disposal performs cleanup without a close notification. */
+/** Contenido de overlay del cuerpo de la página, no un diálogo modal ni un sustituto
+ * de la barra superior/lateral. El cierre por el usuario notifica a onClose; no es un
+ * veto asíncrono. La cancelación/liberación programática hace la limpieza sin
+ * notificación de cierre. */
 export interface PluginSurfaceProps {
-	/** Accessible name only; visible headings belong to plugin content. */
+	/** Solo nombre accesible; los encabezados visibles pertenecen al contenido del plugin. */
 	title: string;
-	/** Defaults to the translucent, blurred Chains-like background. */
+	/** Por defecto, el fondo translúcido y difuminado al estilo de Chains. */
 	background?: "dimmed" | "opaque";
 	content: PluginUiContent;
 	onClose?: () => void | Promise<void>;
 }
-/** Modal content with host close/focus handling and no visible host title row.
- * User close notifies onClose, not an async veto; disposal/abort only cleans up. */
+/** Contenido modal con gestión del cierre/foco por el host y sin fila de título
+ * visible del host. El cierre por el usuario notifica a onClose, no es un veto
+ * asíncrono; la liberación/cancelación solo limpia. */
 export interface PluginDialogProps {
-	/** Accessible name only; visible headings belong to plugin content. */
+	/** Solo nombre accesible; los encabezados visibles pertenecen al contenido del plugin. */
 	title: string;
 	content: PluginUiContent;
 	onClose?: () => void | Promise<void>;
@@ -161,72 +169,86 @@ export type PluginSettingsRow =
 	| (PluginSettingsRowBase<string> & { type: "dropdown"; options: { value: string; label: string }[] })
 	| (PluginSettingsRowBase<number> & { type: "number" | "slider"; min?: number; max?: number; step?: number });
 export interface PluginSettingsSchema { rows: PluginSettingsRow[] }
-/** Controlled host presentation: plugins own values, persistence and accepted-value
- * updates. Every method returns a shallow-update/idempotent-dispose handle and is
- * scoped to options.signal plus activation; aborted scopes produce inert handles.
- * Async interaction failures are reported by the host, not silently saved. */
+/** Presentación controlada del host: los plugins son propietarios de los valores, la
+ * persistencia y las actualizaciones de los valores aceptados. Cada método devuelve un
+ * manejador de actualización superficial y liberación idempotente, con ámbito en
+ * options.signal más la activación; los ámbitos cancelados producen manejadores inertes.
+ * El host informa de los fallos de interacción asíncronos; no se guardan en silencio. */
 export interface PluginUi {
-	/** Mount host-catalog model selection; returns a controlled picker handle.
-	 * Does not change core defaults, silently refresh accounts or choose a fallback. */
+	/** Monta la selección de modelo del catálogo del host; devuelve un manejador de selector
+	 * controlado. No cambia los valores por defecto del núcleo, no refresca cuentas en silencio
+	 * ni elige una alternativa. */
 	mountModelPicker(container: HTMLElement, props: PluginModelPickerProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginModelPickerProps>;
-	/** Mount thinking-level selection for the supplied model/value. Returns a
-	 * controlled handle; selection alone does not update plugin or core settings. */
+	/** Monta la selección del nivel de razonamiento para el modelo y el valor indicados. Devuelve
+	 * un manejador controlado; seleccionar por sí solo no actualiza los ajustes del plugin ni del
+	 * núcleo. */
 	mountThinkingPicker(container: HTMLElement, props: PluginThinkingPickerProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginThinkingPickerProps>;
-	/** Mount the native knowledge-selection bubble/Chains picker. Reflect onChange
-	 * immediately via the returned handle; Done/X/Escape do not discard selection.
-	 * Host manages origin, focus and selector lifetime; no graph-write API is added. */
+	/** Monta la burbuja nativa de selección de conocimiento o el selector de Chains. Refleja
+	 * onChange de inmediato mediante el manejador devuelto; Hecho/X/Escape no descartan la
+	 * selección. El host gestiona el origen, el foco y la vida del selector; no se añade ninguna
+	 * API de escritura en el grafo. */
 	mountKnowledgePicker(container: HTMLElement, props: PluginKnowledgePickerProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginKnowledgePickerProps>;
-	/** Mount a controlled text composer with send/stop callbacks and return its
-	 * handle. No default attachment/drop handling or model dispatch is added;
-	 * standalone users coordinate dictation completion themselves. */
+	/** Monta un compositor de texto controlado con callbacks de envío y detención y devuelve su
+	 * manejador. No se añade gestión por defecto de adjuntos o de soltar ficheros ni despacho al
+	 * modelo; quien lo use de forma independiente coordina por su cuenta la finalización del
+	 * dictado. */
 	mountComposer(container: HTMLElement, props: PluginComposerProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginComposerProps>;
-	/** Mount native dictation into onTranscript only; returns update/dispose plus
-	 * toggle/finish/cancel controls. Abort/dispose cancels capture. Speech never
-	 * targets a hidden native composer; recording ownership is per window. */
+	/** Monta el dictado nativo solo hacia onTranscript; devuelve update/dispose más los controles
+	 * toggle/finish/cancel. La cancelación o la liberación cancelan la captura. El dictado nunca
+	 * va a un compositor nativo oculto; la propiedad de la grabación es por ventana. */
 	mountDictation(container: HTMLElement, props: PluginDictationProps, options: PluginWidgetOptions): PluginDictationHandle;
-	/** Mount text entry with model/thinking/dictation controls. Finishes dictation
-	 * before onSend; no attachment, usage or practice controls are included. Returns
-	 * a controlled handle; replace whole nested control props on update. */
+	/** Monta una entrada de texto con controles de modelo, razonamiento y dictado. Termina el
+	 * dictado antes de onSend; no incluye controles de adjuntos, de uso ni de práctica. Devuelve
+	 * un manejador controlado; al actualizar, sustituye completas las props de los controles
+	 * anidados. */
 	mountStandardComposer(container: HTMLElement, props: PluginStandardComposerProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginStandardComposerProps>;
-	/** Mount a native-style button and return its handle. SVG is trusted plugin
-	 * markup. Invalid label/icon/color combinations throw on mount/update; updates
-	 * reject atomically. onClick does not implicitly persist or dispatch anything. */
+	/** Monta un botón de estilo nativo y devuelve su manejador. El SVG es marcado de confianza del
+	 * plugin. Las combinaciones no válidas de etiqueta, icono y color lanzan una excepción al
+	 * montar o actualizar; las actualizaciones se rechazan de forma atómica. onClick no persiste
+	 * ni despacha nada implícitamente. */
 	mountButton(container: HTMLElement, props: PluginButtonProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginButtonProps>;
-	/** Mount a plain-text status badge, not grading or automatic placement. Returns
-	 * an update/dispose handle; invalid text/color props reject atomically. */
+	/** Monta un distintivo de estado de texto plano, no de calificación ni de colocación
+	 * automática. Devuelve un manejador de actualización y liberación; las props de texto o color
+	 * no válidas se rechazan de forma atómica. */
 	mountBadge(container: HTMLElement, props: PluginBadgeProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginBadgeProps>;
-	/** Mount controlled settings fields and return their handle; no automatic reads
-	 * or saves. Validation/range failures stay inline without onChange persistence;
-	 * pending async saves disable their row and failures are shown. */
+	/** Monta campos de ajustes controlados y devuelve su manejador; no hay lecturas ni guardados
+	 * automáticos. Los fallos de validación o de rango se quedan en línea sin persistencia de
+	 * onChange; los guardados asíncronos pendientes desactivan su fila y los fallos se muestran. */
 	mountSettingsRows(container: HTMLElement, props: PluginSettingsSchema, options: PluginWidgetOptions): PluginWidgetHandle<PluginSettingsSchema>;
-	/** Mount complete Markdown through built-in host rendering, including math/code,
-	 * without auxiliary controls or registered plugin fence renderers. Returns a
-	 * text-update/dispose handle; no model, storage or worker work is started. */
+	/** Monta Markdown completo mediante el render integrado del host, incluidas matemáticas y
+	 * código, sin controles auxiliares ni renderizadores de bloques cercados registrados por
+	 * plugins. Devuelve un manejador de actualización de texto y liberación; no se inicia trabajo
+	 * de modelo, de almacenamiento ni de workers. */
 	mountMarkdown(container: HTMLElement, props: PluginMarkdownProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginMarkdownProps>;
-	/** Mount a controlled accessible hierarchy, not a file/deck controller. Returns
-	 * a handle; invalid trees throw on mount/update. Collapse/removal/replacement
-	 * cleans affected content mounts, so retain drafts in plugin state. */
+	/** Monta una jerarquía accesible y controlada, no un controlador de ficheros o mazos. Devuelve
+	 * un manejador; los árboles no válidos lanzan una excepción al montar o actualizar. Plegar,
+	 * eliminar o sustituir limpia los montajes de contenido afectados, así que conserva los
+	 * borradores en el estado del plugin. */
 	mountTree(container: HTMLElement, tree: PluginTreeProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginTreeProps>;
-	/** Mount a terminal worker-result presentation and return its handle. This only
-	 * renders supplied status/text/content; it does not start, wait for or cancel a
-	 * task. Optional content is signal-scoped and cleaned on replacement/disposal. */
+	/** Monta la presentación de un resultado terminal de worker y devuelve su manejador. Solo
+	 * representa el estado, el texto y el contenido aportados; no inicia, espera ni cancela
+	 * ninguna tarea. El contenido opcional tiene ámbito en la señal y se limpia al sustituirlo o
+	 * liberarlo. */
 	mountWorkerResult(container: HTMLElement, props: PluginWorkerResultProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginWorkerResultProps>;
-	/** Open an anchored menu and return its handle. Same UI owner + exact anchor
-	 * toggles an existing menu closed, calls its latest onClose once, and returns
-	 * an inert handle. Other owners/anchors are independent. Abort/dispose does not
-	 * call onClose; detached anchors/expired scopes return inert handles. */
+	/** Abre un menú anclado y devuelve su manejador. El mismo propietario de interfaz + el mismo
+	 * ancla exacto cierran un menú existente, llaman una vez a su onClose más reciente y devuelven
+	 * un manejador inerte. Los demás propietarios y anclas son independientes. La cancelación o
+	 * la liberación no llaman a onClose; las anclas desconectadas o los ámbitos caducados
+	 * devuelven manejadores inertes. */
 	openMenu(anchor: HTMLElement, props: PluginMenuProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginMenuProps>;
-	/** Open a modal with accessible title and plugin-owned content; returns its
-	 * handle. Content gets a mount signal and sync/async cleanup. Host owns close,
-	 * Escape and focus; title does not create a visible heading. */
+	/** Abre un modal con título accesible y contenido propiedad del plugin; devuelve su manejador.
+	 * El contenido recibe una señal de montaje y limpieza síncrona o asíncrona. El host es
+	 * propietario del cierre, de Escape y del foco; el título no crea un encabezado visible. */
 	openDialog(props: PluginDialogProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginDialogProps>;
-	/** Capture the active host page once, for this surface's whole lifetime; return
-	 * an overlay handle. Page leave/hide expires it, not a later page after awaits.
-	 * A missing live boundary throws; already-aborted signals return inert handles first. */
+	/** Captura una vez la página activa del host, para toda la vida de esta superficie; devuelve un
+	 * manejador de overlay. Salir de la página u ocultarla la hace caducar, no una página
+	 * posterior tras los await. Si falta un límite vivo se lanza una excepción; las señales ya
+	 * canceladas devuelven antes manejadores inertes. */
 	openSurface(props: PluginSurfaceProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginSurfaceProps>;
-	/** Bind explicitly to an existing page instance, including native submission
-	 * targets; returns an overlay handle. Targets are opaque, nonpersistent and do
-	 * not revive on re-entry. Missing/expired targets throw unless already aborted;
-	 * covered bodies stay mounted, with host-owned stacking/interaction/focus. */
+	/** Se vincula explícitamente a una instancia de página existente, incluidos los destinos
+	 * de envío nativos; devuelve un manejador de overlay. Los destinos son opacos, no
+	 * persistentes y no reviven al volver a entrar. Los destinos ausentes o caducados lanzan
+	 * una excepción salvo que ya estén cancelados; los cuerpos cubiertos siguen montados, con
+	 * el apilamiento, la interacción y el foco gestionados por el host. */
 	openSurface(target: PluginSurfaceTarget, props: PluginSurfaceProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginSurfaceProps>;
 }

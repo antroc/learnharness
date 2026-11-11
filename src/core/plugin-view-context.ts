@@ -1,4 +1,4 @@
-/** Whole-session view data for contextual actions. Browser-safe, with no UI/store ownership. */
+/** Datos de vista de toda la sesión para acciones contextuales. Seguros para el navegador, sin propiedad de interfaz ni de store. */
 import type { LhMessage } from "./native-messages.ts";
 import type { LhViewMessage } from "./view.ts";
 import type { Phase3 } from "./phases.ts";
@@ -36,9 +36,9 @@ export interface PluginSessionViewContext {
   readonly sessionId: string;
   readonly kind: "teaching" | "practice";
   readonly title: string;
-  /** Same browser-history visibility as submission context, including streamed content. */
+  /** La misma visibilidad del historial del navegador que el contexto de envío, incluido el contenido en streaming. */
   readonly messages: readonly Immutable<LhMessage>[];
-  /** The existing host projection, not another consumer-authored transcript parser. */
+  /** La proyección existente del host, no otro analizador de transcripciones escrito por el consumidor. */
   readonly transcript: readonly Immutable<LhViewMessage>[];
   readonly status: "ready" | "submitted" | "streaming" | "error";
   readonly reconciliation: "ready" | "syncing" | "failed";
@@ -58,7 +58,7 @@ function freeze<T>(value: T): T {
   if (value && typeof value === "object") { for (const child of Object.values(value)) freeze(child); Object.freeze(value); }
   return value;
 }
-/** Detach all data, but never clone/freeze the existing live opaque surface capability. */
+/** Desvincula todos los datos, pero nunca clona ni congela la capacidad de superficie opaca viva existente. */
 export function capturePluginSessionView(source: SessionViewSource): PluginSessionViewContext {
   const { input, ...rest } = source;
   if (input.type === "unavailable") return freeze(structuredClone(source)) as unknown as PluginSessionViewContext;
@@ -66,7 +66,7 @@ export function capturePluginSessionView(source: SessionViewSource): PluginSessi
   const copy = freeze(structuredClone({ ...rest, input: data }));
   return Object.freeze({ ...copy, input: Object.freeze({ ...copy.input, surfaceTarget }) }) as PluginSessionViewContext;
 }
-/** Lazy for render-time disabled predicates; the chrome forces a fresh capture on click. */
+/** Perezoso para los predicados de desactivación en tiempo de render; el marco fuerza una captura nueva al hacer clic. */
 export function createPluginSessionActionContext(base: Omit<Extract<PluginActionContext, { surface: "session"; placement: "top-bar" }>, "view">,
   read: () => SessionViewSource): Extract<PluginActionContext, { surface: "session"; placement: "top-bar" }> {
   let snapshot: PluginSessionViewContext | undefined;

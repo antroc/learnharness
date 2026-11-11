@@ -1,12 +1,12 @@
-/** Declarative action shortcuts and deterministic, browser-safe resolution. */
+/** Atajos de acciones declarativos y resolución determinista y segura para el navegador. */
 export interface PluginShortcutViewScope {
 	readonly sessions?: readonly ("teaching" | "practice")[];
-	/** View IDs always belong to the registering plugin. */
+	/** Los IDs de vista siempre pertenecen al plugin que los registra. */
 	readonly views?: readonly string[];
 }
 export interface PluginActionShortcut {
 	readonly scope: "app" | PluginShortcutViewScope;
-	/** Canonical host spelling, e.g. mod+shift+d. Omit for initially unbound. */
+	/** Grafía canónica del host, p. ej. mod+shift+d. Omítela para dejarla inicialmente sin asignar. */
 	readonly defaultBinding?: string;
 }
 export interface PluginShortcutCandidate {
