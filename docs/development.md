@@ -1,129 +1,129 @@
-# Development
+# Desarrollo
 
-For product setup, see [Getting started](getting-started.md). For runtime flows, see [Architecture](architecture.md). These guides follow [the repository source](README.md#about-these-docs).
+Para la configuración del producto, consulta [Primeros pasos](getting-started.md). Para los flujos del runtime, consulta [Arquitectura](architecture.md). Estas guías siguen [el código fuente del repositorio](README.md#sobre-esta-documentación).
 
-## Setup
+## Configuración
 
-CI and release builds use **Node 26**. Use the lockfile and a compatible native build environment:
+La CI y las compilaciones de versiones usan **Node 26**. Usa el lockfile y un entorno de compilación nativa compatible:
 
 ```sh
 npm ci
-npm run plugins:setup  # generate local SDKs and install locked source-plugin dependencies
-npm run dev            # normally http://localhost:3000
-npm run desktop:dev    # Next dev + Electron on localhost:3000
+npm run plugins:setup  # genera los SDK locales e instala las dependencias bloqueadas de los plugins fuente
+npm run dev            # normalmente http://localhost:3000
+npm run desktop:dev    # Next dev + Electron en localhost:3000
 ```
 
-`plugins:setup` prepares each source package under `plugins/`: it generates its ignored `.sdk/` when needed, then runs `npm ci`. Run it after a fresh checkout and again after public API or plugin lockfile changes. Root typecheck/build includes plugin sources, so CI uses the same preparation. It does not build plugin bundles, install/enable plugins in your learning-data directory, or populate `core-plugins/`.
+`plugins:setup` prepara cada paquete fuente de `plugins/`: genera su `.sdk/` ignorado cuando hace falta y después ejecuta `npm ci`. Ejecútalo tras clonar desde cero y de nuevo después de cambios en la API pública o en el lockfile de un plugin. El typecheck y la compilación de la raíz incluyen las fuentes de los plugins, así que la CI usa la misma preparación. No compila los bundles de los plugins, no instala ni activa plugins en tu directorio de datos de aprendizaje ni rellena `core-plugins/`.
 
-`npm run plugins:build-core` builds the four IDs in `core-plugins.json` and stages complete app-owned packages in generated `core-plugins/<id>/`. `dev` and `build` run it automatically; `desktop:dev`, `desktop:dist` and `dev:fresh` use those entry points. Core code loads directly from this directory; restart the server after source edits/rebuilding (there is no plugin hot reload). Do not use raw `next dev`/`next build` without first staging core packages. Fresh checkouts need `plugins:setup` before these commands.
+`npm run plugins:build-core` compila los cuatro ID de `core-plugins.json` y prepara paquetes completos propiedad de la aplicación en el directorio generado `core-plugins/<id>/`. `dev` y `build` lo ejecutan automáticamente; `desktop:dev`, `desktop:dist` y `dev:fresh` usan esos puntos de entrada. El código del núcleo se carga directamente desde ese directorio; reinicia el servidor tras editar o recompilar las fuentes (no hay recarga en caliente de plugins). No uses `next dev`/`next build` a pelo sin preparar antes los paquetes del núcleo. En una copia recién clonada hace falta `plugins:setup` antes de estos comandos.
 
-`desktop:dev` waits for the development server to answer HTTP before opening its Electron window, including core-package staging and first-route compilation. Startup has a 30-second total budget; an unavailable server produces a terminal/log error and unsuccessful exit, while Next's development error pages remain visible normally.
+`desktop:dev` espera a que el servidor de desarrollo responda por HTTP antes de abrir su ventana de Electron, incluida la preparación de los paquetes del núcleo y la compilación de la primera ruta. El arranque tiene un presupuesto total de 30 segundos; un servidor no disponible produce un error en el terminal/registro y una salida con fallo, mientras que las páginas de error de desarrollo de Next se siguen viendo con normalidad.
 
-For a community/developer plugin, build in its source directory and follow the [installation guide](plugin-authoring.md#package-and-installation). Generated `core-plugins/`, plugin `dist/`, `.sdk/` and `node_modules/` stay out of Git. UI Showcase remains a developer example, not a shipped core package. Never install a community package using a reserved core ID.
+Para un plugin de la comunidad o de desarrollo, compílalo en su directorio fuente y sigue la [guía de instalación](plugin-authoring.md#empaquetado-e-instalación). Los directorios generados `core-plugins/`, el `dist/` de los plugins, `.sdk/` y `node_modules/` quedan fuera de Git. UI Showcase sigue siendo un ejemplo para desarrolladores, no un paquete del núcleo que se distribuya. No instales nunca un paquete de la comunidad con un ID reservado del núcleo.
 
-Core data lives in `<learning data>/core-plugin-data/<id>/`; community code/data remains `<learning data>/plugins/<id>/{dist,data}/`. All newly discovered plugins start disabled. Core code is never copied into the learning-data directory, and switching to this layout does not migrate old development data.
+Los datos del núcleo se guardan en `<datos de aprendizaje>/core-plugin-data/<id>/`; el código y los datos de la comunidad siguen en `<datos de aprendizaje>/plugins/<id>/{dist,data}/`. Todos los plugins recién descubiertos empiezan desactivados. El código del núcleo nunca se copia al directorio de datos de aprendizaje, y pasar a esta estructura no migra los datos de desarrollo antiguos.
 
-No key is needed to open the UI. Configure connections and the Strong/Cheap/Vision slots before model-driven use; there are no factory model selections. OpenRouter is supported, not mandatory.
+No hace falta ninguna clave para abrir la interfaz. Configura las conexiones y las ranuras Potente/Barato/Visión antes de usar funciones que dependan de modelos; no hay modelos seleccionados de fábrica. OpenRouter es compatible, pero no obligatorio.
 
 ```sh
-npm run build          # stage core plugins, then Next production/standalone build
-npm start              # serve the production build with Next
+npm run build          # prepara los plugins del núcleo y después la compilación de producción/standalone de Next
+npm start              # sirve la compilación de producción con Next
 ```
 
-`npm run desktop:dist` is the local **signed macOS** packaging path, not a portable unsigned shortcut. Prerequisites and Windows/Linux instructions are in [Desktop builds and releases](desktop-release.md).
+`npm run desktop:dist` es la vía local de empaquetado **firmado para macOS**, no un atajo portable sin firmar. Los requisitos previos y las instrucciones para Windows/Linux están en [Compilaciones y versiones de escritorio](desktop-release.md).
 
-### Other devices on your network
+### Otros dispositivos de tu red
 
-`npm run dev`, `npm start`, and `desktop:dev` listen on `localhost` only. Browser-only mode has **no login**: anyone who can reach the port can read every chat and setting, change saved keys, and start agent turns. To open it from another device on a network you trust, pass a later host flag:
+`npm run dev`, `npm start` y `desktop:dev` solo escuchan en `localhost`. El modo solo navegador **no tiene inicio de sesión**: cualquiera que pueda llegar al puerto puede leer todos los chats y ajustes, cambiar las claves guardadas e iniciar turnos del agente. Para abrirlo desde otro dispositivo en una red de confianza, añade al final una opción de host:
 
 ```sh
-npm run dev -- -H 0.0.0.0     # then browse to http://<this machine's IP>:3000
+npm run dev -- -H 0.0.0.0     # después navega a http://<IP de esta máquina>:3000
 ```
 
-The API accepts `localhost` and IP addresses as the host name. To use any other name (`mymac.local`, a reverse-proxy domain), list it in `LH_ALLOWED_HOSTS`. Browser writes must come from the same origin as the page.
+La API acepta `localhost` y direcciones IP como nombre de host. Para usar cualquier otro nombre (`mymac.local`, un dominio de proxy inverso), inclúyelo en `LH_ALLOWED_HOSTS`. Las escrituras del navegador deben proceder del mismo origen que la página.
 
-## Configuration
+## Configuración de ajustes y entorno
 
-Nonsecret settings are deltas in `<data root>/settings.json`; absent values resolve through `src/core/settings.ts` and `settings-resolution.ts`. Models and role overrides are settings, not environment variables. [Prompt overrides](../src/agent/prompts/README.md) live under `<data root>/prompts/` and require explicit enable switches.
+Los ajustes no secretos son diferencias guardadas en `<raíz de datos>/settings.json`; los valores ausentes se resuelven mediante `src/core/settings.ts` y `settings-resolution.ts`. Los modelos y las personalizaciones por rol son ajustes, no variables de entorno. Las [personalizaciones de prompts](../src/agent/prompts/README.md) se guardan en `<raíz de datos>/prompts/` y requieren interruptores de activación explícitos.
 
-| Variable | Purpose |
+| Variable | Propósito |
 | --- | --- |
-| `LH_DATA_DIR` | Mutable chats/jobs/graph/settings/prompts; default repo `data/`. |
-| `LH_AUTH_FILE` | Keys/custom-endpoint binding; default repo-root `auth.json`, outside `data/`. |
-| Provider API-key variables | Optional, selected-provider dependent; UI names are in `src/core/auth-keys.ts`. |
-| `TAVILY_API_KEY`, `BRAVE_API_KEY`, `EXA_API_KEY`, `FIRECRAWL_API_KEY`, `OLLAMA_API_KEY` | Optional search adapters. Without a Settings pin, the first keyed engine wins: Tavily → Brave → Exa → Firecrawl → Ollama. A pinned engine requires its own key; no silent fallback. Ollama search is hosted at ollama.com, not a local model server. Page fetching is independent; research can fetch known URLs without a search key. |
-| `DEEPGRAM_API_KEY` | Optional dictation token minting. |
-| `CHROME_PATH` | Chrome/Chromium executable fallback for demo verification; Electron's browser helper is primary. No extra Chromium is downloaded. |
-| `LH_ALLOWED_HOSTS` | Browser-only mode: extra host names the API accepts besides `localhost` and IP addresses. Comma-separated, case-insensitive, port ignored, no wildcards. |
+| `LH_DATA_DIR` | Chats, tareas, grafo, ajustes y prompts modificables; por defecto, `data/` del repositorio. |
+| `LH_AUTH_FILE` | Claves y vinculación del endpoint personalizado; por defecto, `auth.json` en la raíz del repositorio, fuera de `data/`. |
+| Variables de clave de API de proveedores | Opcionales; dependen del proveedor seleccionado. Los nombres de la interfaz están en `src/core/auth-keys.ts`. |
+| `TAVILY_API_KEY`, `BRAVE_API_KEY`, `EXA_API_KEY`, `FIRECRAWL_API_KEY`, `OLLAMA_API_KEY` | Adaptadores de búsqueda opcionales. Si no hay uno fijado en Ajustes, gana el primer motor con clave: Tavily → Brave → Exa → Firecrawl → Ollama. Un motor fijado necesita su propia clave; no hay recurso alternativo silencioso. La búsqueda de Ollama está alojada en ollama.com, no es un servidor de modelos local. La descarga de páginas es independiente; la investigación puede descargar URL conocidas sin clave de búsqueda. |
+| `DEEPGRAM_API_KEY` | Emisión opcional de tokens para el dictado. |
+| `CHROME_PATH` | Ejecutable de Chrome/Chromium de reserva para verificar las demostraciones; el asistente de navegador de Electron es el principal. No se descarga ningún Chromium adicional. |
+| `LH_ALLOWED_HOSTS` | Modo solo navegador: nombres de host adicionales que acepta la API además de `localhost` y las direcciones IP. Separados por comas, sin distinguir mayúsculas, se ignora el puerto, sin comodines. |
 
-Ordinary Next development can read `.env.local`. Real environment keys take precedence over saved keys. Saved auth is restrictive-permission plaintext, not an encrypted vault. Packaged Electron sets separate data/auth locations under `userData`; it does not use the repo development profile.
+El desarrollo normal con Next puede leer `.env.local`. Las claves reales del entorno tienen prioridad sobre las guardadas. La autenticación guardada es texto plano con permisos restrictivos, no un almacén cifrado. Electron empaquetado establece ubicaciones separadas de datos y autenticación en `userData`; no usa el perfil de desarrollo del repositorio.
 
-Provider-specific setup and limitations: [Claude Code](claude-code.md), [custom endpoints](custom-providers.md), [context/cost accounting](compaction-accounting.md).
+Configuración y limitaciones específicas de cada proveedor: [Claude Code](claude-code.md), [endpoints personalizados](custom-providers.md), [contabilidad de contexto y costes](compaction-accounting.md).
 
-### Subscription connections in web/dev
+### Conexiones por suscripción en web/desarrollo
 
-`npm run dev` and `npm start` support ChatGPT, GitHub Copilot, and Grok sign-in. `desktop:dev` uses those same dev-server connections; packaged desktop has a separate main-process credential owner/private transport. Subscription routes do not fall back to API-key billing.
+`npm run dev` y `npm start` admiten el inicio de sesión en ChatGPT, GitHub Copilot y Grok. `desktop:dev` usa esas mismas conexiones del servidor de desarrollo; el escritorio empaquetado tiene un propietario de credenciales en el proceso principal y un transporte privado aparte. Las rutas de suscripción no recurren a la facturación por clave de API.
 
-Web/dev writes `chatgpt-credentials.json`, `github-copilot-credentials.json`, and `xai-credentials.json` **beside `LH_AUTH_FILE`**, in the repo by default—not under `data/` or a global Pi profile. Git/build exclusions cover these files and their write temporaries. Refresh serialization is process-local: use one server per credential directory.
+En web/desarrollo se escriben `chatgpt-credentials.json`, `github-copilot-credentials.json` y `xai-credentials.json` **junto a `LH_AUTH_FILE`**, en el repositorio por defecto, no en `data/` ni en un perfil global de Pi. Las exclusiones de Git y de la compilación cubren estos ficheros y sus temporales de escritura. La serialización de las renovaciones es local al proceso: usa un único servidor por directorio de credenciales.
 
-ChatGPT's callback listener is `127.0.0.1` on the **server's machine**; complete sign-in in a browser there. Copilot/Grok use device codes. Allow the initiating browser's sign-in tab if blocked; Electron dev opens provider pages in the system browser. Connected browsers share server credentials, background-use consent, keys, and learning data.
+El listener de retorno de ChatGPT es `127.0.0.1` en la **máquina del servidor**; completa el inicio de sesión en un navegador de esa máquina. Copilot y Grok usan códigos de dispositivo. Si se bloquea la pestaña de inicio de sesión del navegador que lo inicia, permítela; Electron en desarrollo abre las páginas del proveedor en el navegador del sistema. Los navegadores conectados comparten las credenciales del servidor, el consentimiento de uso en segundo plano, las claves y los datos de aprendizaje.
 
-This is **trusted local/shared development**, not multi-user hosting. The API's host-name and same-origin checks block DNS rebinding and cross-site writes from other websites, but they are not user authentication; nor are the short-lived, origin-bound, one-use browser-opening actions. Do not expose the server to untrusted users/public Internet without an independent access gate. Per-user isolation, remote ChatGPT callback routing, and credential import are not implemented.
+Esto es **desarrollo local o compartido de confianza**, no alojamiento multiusuario. Las comprobaciones de nombre de host y de mismo origen de la API bloquean el DNS rebinding y las escrituras entre sitios desde otras webs, pero no son autenticación de usuarios; tampoco lo son las acciones de apertura del navegador de corta duración, vinculadas al origen y de un solo uso. No expongas el servidor a usuarios no fiables ni a Internet sin una barrera de acceso independiente. No están implementados el aislamiento por usuario, el enrutamiento remoto del retorno de ChatGPT ni la importación de credenciales.
 
-## Safe local work
+## Trabajo local seguro
 
-Use a disposable data root and a separate empty `{}` auth file:
+Usa una raíz de datos desechable y un fichero de autenticación aparte que contenga `{}`:
 
 ```sh
-LH_DATA_DIR=/absolute/path/to/scratch/data \
-LH_AUTH_FILE=/absolute/path/to/scratch/auth.json \
+LH_DATA_DIR=/ruta/absoluta/a/scratch/data \
+LH_AUTH_FILE=/ruta/absoluta/a/scratch/auth.json \
 npm run dev -- --port 3001
 ```
 
-These variables isolate app records/saved keys, **not every external effect**. Ambient keys still win; subscription files follow the auth directory; Claude Code can use its native profile. File tools have broad read access under the server's user, subject to the [path guard](architecture.md#file-access-and-external-services). A scratch data root is not a filesystem or credential sandbox. Use synthetic fixtures/fake providers for automated reproduction and avoid personal files or ambient credentials.
+Estas variables aíslan los registros de la aplicación y las claves guardadas, **no todos los efectos externos**. Las claves del entorno siguen prevaleciendo; los ficheros de suscripción siguen al directorio de autenticación; Claude Code puede usar su perfil nativo. Las herramientas de ficheros tienen un acceso de lectura amplio con el usuario del servidor, sujeto a la [protección de rutas](architecture.md#acceso-a-ficheros-y-servicios-externos). Una raíz de datos de pruebas no es un sandbox del sistema de ficheros ni de credenciales. Usa fixtures sintéticos y proveedores simulados para las reproducciones automatizadas y evita ficheros personales o credenciales del entorno.
 
-Do not commit `.env.local`, credentials, or learning records. Do not copy a personal profile into a fixture. Avoid separate writers against live profiles; store initialization and maintenance scripts can mutate data or invoke model stages. Inspect scripts before using them. See [storage and compatibility](architecture.md#storage-and-notifications) before changing formats.
+No hagas commit de `.env.local`, de credenciales ni de registros de aprendizaje. No copies un perfil personal en un fixture. Evita escritores independientes sobre perfiles reales; los scripts de inicialización y mantenimiento del almacén pueden modificar datos o invocar etapas de modelos. Revisa los scripts antes de usarlos. Consulta [almacenamiento y compatibilidad](architecture.md#almacenamiento-y-notificaciones) antes de cambiar formatos.
 
-Read the relevant installed Next guide under `node_modules/next/dist/docs/` before framework-facing changes. The import restrictions live in `eslint.config.mjs`; they do not enforce every architectural convention. [Architecture's code map](architecture.md#code-boundaries) and [prompt composition](../src/agent/prompts/README.md) identify the main entry points. For plugins, start with the [authoring/capability map](plugin-authoring.md), [host source map and verification](plugin-architecture.md), [`examples/plugins/`](../examples/plugins/) templates and [`plugins/`](../plugins/) feature sources.
+Lee la guía de Next instalada correspondiente en `node_modules/next/dist/docs/` antes de hacer cambios que afecten al framework. Las restricciones de importación están en `eslint.config.mjs`; no imponen todas las convenciones de arquitectura. El [mapa del código de la arquitectura](architecture.md#límites-del-código) y la [composición de prompts](../src/agent/prompts/README.md) identifican los principales puntos de entrada. Para plugins, empieza por el [mapa de autoría y capacidades](plugin-authoring.md), el [mapa de fuentes del host y su verificación](plugin-architecture.md), las plantillas de [`examples/plugins/`](../examples/plugins/) y las fuentes de funcionalidades de [`plugins/`](../plugins/).
 
-## Debugging
+## Depuración
 
-- `LH_PROVIDER_EVENTS=1` saves raw provider events under the selected data root. They may contain private lesson/provider content.
-- `LH_BACKGROUND_CAPTURE=auditor` (or comma-separated roles, or `all`) captures background requests/results. Roles are `researcher`, `demoBuilder`, `extractor`, `auditor`, `visualMaker`, and `pdfReader`; foreground teaching/probing is excluded.
+- `LH_PROVIDER_EVENTS=1` guarda los eventos en bruto del proveedor en la raíz de datos seleccionada. Pueden contener contenido privado de las lecciones o del proveedor.
+- `LH_BACKGROUND_CAPTURE=auditor` (o roles separados por comas, o `all`) captura las peticiones y resultados en segundo plano. Los roles son `researcher`, `demoBuilder`, `extractor`, `auditor`, `visualMaker` y `pdfReader`; la enseñanza y el sondeo en primer plano quedan excluidos.
 
-For example:
+Por ejemplo:
 
 ```sh
 LH_BACKGROUND_CAPTURE=auditor npm run desktop:dev
 ```
 
-The flag must reach the **Next server**; restart an existing server to change it. Captures are off by default and written to `<data root>/debug/background-captures/<role>-<run ID>.json`. Each file retains the last request and response/error/tool results, with prior conversation in that request and compact per-turn timings—not every request body.
+La variable debe llegar al **servidor de Next**; reinicia un servidor existente para cambiarla. Las capturas están desactivadas por defecto y se escriben en `<raíz de datos>/debug/background-captures/<rol>-<ID de ejecución>.json`. Cada fichero conserva la última petición y la respuesta/error/resultados de herramientas, con la conversación previa incluida en esa petición y tiempos compactos por turno, no el cuerpo de todas las peticiones.
 
-`request.format: provider` means adapter-exposed outgoing payload after app transport restrictions; `context` means model-facing conversation, not HTTP wire (for example, CLI). Captures do not enable thinking or recover reasoning a provider did not return. Request options/auth headers are not recorded, recognized nested credential/header fields are redacted, and POSIX files are owner-only. They still contain private source/graph content, have **no automatic expiry**, and require review before sharing and manual deletion when no longer needed. Capture/serialization errors do not fail workers.
+`request.format: provider` significa la carga útil saliente que expone el adaptador tras las restricciones de transporte de la aplicación; `context` significa la conversación que ve el modelo, no lo que viaja por HTTP (por ejemplo, en la CLI). Las capturas no activan el razonamiento ni recuperan el razonamiento que un proveedor no haya devuelto. No se registran las opciones de la petición ni las cabeceras de autenticación, se ocultan los campos de credenciales/cabeceras anidados reconocidos y, en POSIX, los ficheros solo son accesibles para su propietario. Aun así, contienen contenido privado de fuentes y del grafo, **no caducan automáticamente**, hay que revisarlas antes de compartirlas y borrarlas a mano cuando ya no se necesiten. Los errores de captura o serialización no hacen fallar a los workers.
 
-For frontend failures, inspect the actual UI, requests, console, and state. A static render alone does not establish that an interaction works.
+Ante fallos del frontend, inspecciona la interfaz real, las peticiones, la consola y el estado. Un renderizado estático por sí solo no demuestra que una interacción funcione.
 
-## Checks
+## Comprobaciones
 
 ```sh
-npm test               # node:test via tsx; injected engines, fixtures, fake transports
+npm test               # node:test mediante tsx; motores inyectados, fixtures, transportes simulados
 npm run typecheck      # tsc --noEmit
-npm run lint           # ESLint, including import restrictions
-npm run build          # Next production build
+npm run lint           # ESLint, incluidas las restricciones de importación
+npm run build          # compilación de producción de Next
 ```
 
-The suite requires no paid models or real sign-in. Some tests use temporary files, native processes, or local fake endpoints: deterministic does not mean every test is pure or cannot bind a loopback port. Inspect focused-suite setup before running beside a live app.
+La suite no requiere modelos de pago ni inicios de sesión reales. Algunas pruebas usan ficheros temporales, procesos nativos o endpoints simulados locales: determinista no significa que todas las pruebas sean puras ni que no puedan ocupar un puerto de loopback. Revisa la preparación de una suite concreta antes de ejecutarla junto a una aplicación en marcha.
 
-[Golden fixtures](../tests/fixtures/golden-data/README.md) exercise saved records through production paths. Keep compatibility expectations with intentional format changes; do not hand-edit fixture content to make tests pass. [Standalone skill-reader tests](../tests/skills/README.md) run separately with Python and no app runtime.
+Los [fixtures dorados](../tests/fixtures/golden-data/README.md) ejercitan registros guardados a través de los caminos de producción. Mantén las expectativas de compatibilidad junto con los cambios de formato intencionados; no edites a mano el contenido de los fixtures para que pasen las pruebas. Las [pruebas de los lectores independientes de la skill](../tests/skills/README.md) se ejecutan por separado con Python y sin el runtime de la aplicación.
 
-Additional runtime gates have prerequisites:
+Hay controles de runtime adicionales con requisitos previos:
 
-| Check | Prerequisite / purpose |
+| Comprobación | Requisito previo / propósito |
 | --- | --- |
-| `node scripts/smoke-provider-runtime.mjs` | Fresh build; traced provider payload/runtime paths with fixtures. Also used during packaging. |
-| `node scripts/smoke-web-subscriptions.mjs` | Build, no dev server running; isolated synthetic connection checks, external traffic blocked. Briefly changes/restores a source mtime to exercise reload. |
-| `node scripts/build-plugin-types.mjs` | Builds the portable type-only plugin SDK under `dist/plugin-sdk`. |
-| `node scripts/build-server.mjs` then `node scripts/smoke-server.mjs --isolated --browser` | Fresh build; assemble/verify a source-free standalone copy, installed plugin backends and browser UI. Add `--electron` for Electron's bundled Node; browser checks require local Chrome/Chromium. |
-| Other `scripts/smoke-*.mjs` | Standalone/native renderers, image workers, demo helper, compression, file paths, opening. Read each script and the [release guide](desktop-release.md) before running. |
+| `node scripts/smoke-provider-runtime.mjs` | Compilación reciente; caminos de carga útil/runtime de proveedores trazados con fixtures. También se usa durante el empaquetado. |
+| `node scripts/smoke-web-subscriptions.mjs` | Compilación, sin servidor de desarrollo en marcha; comprobaciones aisladas de conexiones sintéticas, con el tráfico externo bloqueado. Cambia y restaura brevemente el mtime de una fuente para ejercitar la recarga. |
+| `node scripts/build-plugin-types.mjs` | Compila el SDK portable de plugins, solo de tipos, en `dist/plugin-sdk`. |
+| `node scripts/build-server.mjs` y después `node scripts/smoke-server.mjs --isolated --browser` | Compilación reciente; ensambla y verifica una copia standalone sin fuentes, los backends de plugins instalados y la interfaz en el navegador. Añade `--electron` para el Node incluido en Electron; las comprobaciones de navegador requieren Chrome/Chromium local. |
+| Otros `scripts/smoke-*.mjs` | Renderizadores standalone/nativos, workers de imágenes, asistente de demostraciones, compresión, rutas de ficheros, apertura. Lee cada script y la [guía de versiones](desktop-release.md) antes de ejecutarlo. |
 
-Run checks proportionate to the change. Offline gates prove exercised contracts, not live entitlements or model-authored lesson quality.
+Ejecuta comprobaciones proporcionadas al cambio. Los controles sin conexión demuestran los contratos ejercitados, no los derechos de uso reales ni la calidad de las lecciones generadas por el modelo.

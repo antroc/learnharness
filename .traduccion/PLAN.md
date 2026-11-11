@@ -55,7 +55,7 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 
 | Lote | Contenido | Ficheros | Palabras | Estado |
 |------|-----------|---------:|---------:|--------|
-| M1 | Raíz, docs generales y prompts del agente (`src/agent/**/*.md`) | 40 | 30.172 | [ ] |
+| M1 | Raíz, docs generales y prompts del agente (`src/agent/**/*.md`) | 40 | 30.172 | [~] parcial |
 | M2 | Docs de plugins (`docs/plugin-*.md`, flashcards) y READMEs de `plugins/` y `examples/` | 20 | 34.368 | [ ] |
 | M3 | `docs/plugin-api/` | 22 | 31.155 | [ ] |
 | M4 | `docs/archive/`, `skills/` y READMEs de `tests/` | 14 | 26.742 | [ ] |
@@ -73,7 +73,36 @@ Las listas exactas de ficheros están en `.traduccion/lotes/<lote>.txt`.
 `components/dock-height.ts` y `components/ui/button.tsx` ya están hechos (prueba de la herramienta)
 y no figuran en ningún lote.
 
+## Anclas traducidas (para mantener los enlaces entre ficheros)
+
+Al traducir un fichero enlazado desde otro, usa estos encabezados (o actualiza esta tabla y
+los enlaces entrantes si decides otro). Formato de ancla de GitHub: minúsculas, espacios → `-`,
+se quitan los signos de puntuación y se conservan las tildes.
+
+| Fichero | Original | Traducido |
+|---|---|---|
+| docs/README.md | `#about-these-docs` | `#sobre-esta-documentación` |
+| docs/architecture.md | `#code-boundaries` | `#límites-del-código` |
+| docs/architecture.md | `#teaching-and-practice` | `#enseñanza-y-práctica` (enlazado desde un README de `plugins/`, lote M2) |
+| docs/architecture.md | `#storage-and-notifications` | `#almacenamiento-y-notificaciones` |
+| docs/architecture.md | `#file-access-and-external-services` | `#acceso-a-ficheros-y-servicios-externos` |
+| docs/architecture.md | `#trusted-local-plugins-api-v1` | `#plugins-locales-de-confianza-api-v1` |
+| docs/development.md | `#checks` | `#comprobaciones` |
+| docs/plugin-architecture.md (M2) | `#inference-persistent-work-and-recovery` | `#inferencia-trabajo-persistente-y-recuperación` (ya enlazado así) |
+| docs/plugin-architecture.md (M2) | `#submission-preparation-images-and-view-snapshots` | `#preparación-de-envíos-imágenes-e-instantáneas-de-vista` (ya enlazado así) |
+| docs/plugin-architecture.md (M2) | `#testing` | `#pruebas` |
+| docs/plugin-authoring.md (M2) | `#package-and-installation` | `#empaquetado-e-instalación` (ya enlazado así) |
+| docs/plugin-authoring.md (M2) | `#controlled-host-ui` | `#interfaz-controlada-del-host` (ya enlazado así) |
+
+Antes de dar por cerrado un lote, busca enlaces rotos a anclas en inglés:
+`grep -rnoE '\]\([^)#]*\.md#[a-z0-9-]+\)' --include=*.md .` y compáralos con los encabezados reales.
+
 ## Registro
 
 - Sesión 1: rama creada, herramienta probada, plan y lotes generados. Comentarios de
   `components/dock-height.ts` y `components/ui/button.tsx` traducidos.
+  M1 hecho: AGENTS.md, CONTRIBUTING.md, README.md, SECURITY.md, docs/README.md,
+  docs/getting-started.md, docs/development.md, docs/architecture.md, docs/claude-code.md,
+  docs/custom-providers.md, docs/themes.md, docs/tool-content-recovery.md.
+  M1 pendiente: docs/desktop-release.md, docs/keyboard.md, docs/teaching-methodology.md,
+  docs/compaction-accounting.md, docs/dialog-overlay-contract.md y todo `src/agent/**/*.md`.
