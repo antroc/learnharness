@@ -17,13 +17,13 @@ export interface InteractionLayer {
 	ownerId?: LayerId | null;
 	rootRef: RefObject<HTMLElement | null>;
 	onClose?: (reason: CloseReason) => CloseOutcome | void;
-	/** Owned popup container outside the visual/clipping frame. Views opt in;
-	 * native views without a portalRef retain their existing body portals. */
+	/** Contenedor propio de ventanas emergentes fuera del marco visual/de recorte. Las vistas
+	 * lo activan; las vistas nativas sin portalRef conservan sus portales actuales en el body. */
 	portalRef?: RefObject<HTMLElement | null>;
-	/** Popup origin, for its own explicit thinking/model shortcut only. */
+	/** Origen de la ventana emergente, solo para su propio atajo explícito de razonamiento/modelo. */
 	anchorRef?: RefObject<HTMLElement | null>;
 	focusInitial?: () => void;
-	/** Optional exclusive opening authority, checked before registering DOM. */
+	/** Autoridad de apertura exclusiva opcional, que se comprueba antes de registrar el DOM. */
 	openingLease?: OpeningLease;
 	order: number;
 }
@@ -34,9 +34,9 @@ export interface OpeningIntent {
 }
 export interface OpeningLease {
 	owns(): boolean;
-	/** Ready only after the exact accepted predecessor has unregistered. */
+	/** Lista solo después de que el predecesor aceptado exacto se haya dado de baja. */
 	ready(): boolean;
-	/** Claim synchronously before setting controlled open state. */
+	/** Reclama de forma síncrona antes de fijar el estado abierto controlado. */
 	activate(): boolean;
 	release(): void;
 }
@@ -60,7 +60,7 @@ interface EscapeSnapshot { owner: InteractionLayer | null; claimed: boolean; dis
 type KeyEvent = KeyboardEvent | { nativeEvent: KeyboardEvent };
 const nativeEvent = (event: KeyEvent): KeyboardEvent => "nativeEvent" in event ? event.nativeEvent : event;
 
-/** DOM-only eligibility. No browser access during module initialization/SSR. */
+/** Elegibilidad solo del DOM. Sin acceso al navegador durante la inicialización del módulo/el SSR. */
 export function isInteractionElementVisible(element: HTMLElement | null): element is HTMLElement {
 	if (!element?.isConnected) return false;
 	for (let node: HTMLElement | null = element; node; node = node.parentElement) {
@@ -71,7 +71,7 @@ export function isInteractionElementVisible(element: HTMLElement | null): elemen
 	return !element.matches(":disabled, [disabled], [aria-disabled='true'], input[type='hidden']");
 }
 
-/** Ordered interaction state only: no domain cancellation, navigation or writes. */
+/** Solo estado de interacción ordenado: sin cancelaciones de dominio, navegación ni escrituras. */
 export function createInteractionLayers() {
 	let layers: readonly InteractionLayer[] = [];
 	let generation = 0;
@@ -94,9 +94,9 @@ export function createInteractionLayers() {
 		postCleanupQueued = true;
 		queueMicrotask(() => {
 			postCleanupQueued = false;
-			// Registration cleanup precedes the modal's aria/inert cleanup.
-			// Reconcile once after the whole synchronous React commit, without
-			// advancing or exempting any generation. Never poll/queue navigation.
+			// La limpieza del registro precede a la limpieza de aria/inert del modal.
+			// Reconcilia una vez tras todo el commit síncrono de React, sin
+			// avanzar ni eximir ninguna generación. Nunca sondees ni encoles navegación.
 			if ([...slots.values()].some(state => (state.phase === "pending" || state.phase === "claimed") && ownsLease(state))) publish();
 		});
 	};
@@ -104,32 +104,32 @@ export function createInteractionLayers() {
 	const revoke = (state: OpeningLeaseState, notify: boolean) => {
 		state.phase = "revoked";
 		state.effectOwner = undefined; state.reconnect = undefined;
-		// Keep only an exact retiring-registration tombstone. A rapid next
-		// reservation must still wait when controlled close has not committed.
+		// Conserva solo una lápida exacta del registro que se retira. Una reserva
+		// siguiente rápida aún debe esperar cuando el cierre controlado no se ha confirmado.
 		if (slots.get(state.slot) === state && !retainRetirement(state)) slots.delete(state.slot);
-		// A rejected synchronous proposal was never returned to its caller:
-		// it has no work to cancel, and calling it before reserve returns can
-		// access an uninitialized caller lease binding.
+		// Una propuesta síncrona rechazada nunca se devolvió a quien llamó:
+		// no tiene trabajo que cancelar, y llamarla antes de que reserve devuelva puede
+		// acceder a un vínculo de arrendamiento de quien llama sin inicializar.
 		if (notify && state.exposed && !state.notified) { state.notified = true; state.onRevoke(); }
 	};
 	const ownsLease = (state: OpeningLeaseState) => slots.get(state.slot) === state && state.phase !== "revoked" &&
 		(state.phase === "mounted" || state.generation === generation);
 	const changed = (kind: "register" | "unregister", changedLayer: InteractionLayer, effectOwner?: object) => {
-		// z-index accepts integers only. Re-rank declaratively after ordering
-		// changes instead of inventing fractional/per-surface foreground values.
+		// z-index solo acepta enteros. Reordena de forma declarativa tras los cambios de
+		// orden en vez de inventar valores de primer plano fraccionarios/por superficie.
 		layers.forEach((layer, index) => { layer.order = index + 1; });
 		generation++;
 		for (const state of new Set([...slots.values(), ...proposals])) {
 			if (kind === "unregister" && state.retiring.delete(changedLayer)) {
-				// Exempt this exact accepted predecessor only, never descendants
-				// or another layer which happens to reuse the same ID.
+				// Exime solo a este predecesor aceptado exacto, nunca a los descendientes
+				// ni a otra capa que resulte reutilizar el mismo id.
 				state.generation = generation;
 				notifyAfterRetirementCleanup();
 				if (state.phase === "revoked" && slots.get(state.slot) === state && !retainRetirement(state)) slots.delete(state.slot);
 			} else if (kind === "unregister" && state.layer === changedLayer) {
 				if (effectOwner && state.effectOwner === effectOwner && state.phase === "mounted" && slots.get(state.slot) === state) {
-					// A hook's visual effect may disconnect while its caller still owns
-					// the logical opening. Only that exact hook can attach it again.
+					// El efecto visual de un hook puede desconectarse mientras quien lo llama sigue siendo
+					// el propietario de la apertura lógica. Solo ese hook exacto puede volver a engancharlo.
 					state.phase = "detached"; state.generation = generation;
 					state.reconnect = { intent: intentSequence, reservation: reservationSequence, focus: focusRevision };
 				} else revoke(state, false);
@@ -171,8 +171,8 @@ export function createInteractionLayers() {
 		const modal = activeModal();
 		if (modal && !(owner && belongsTo(owner.id, modal.id))) return false;
 		const foreground = top();
-		// A popup owns explicit keyboard actions while open; covered fields
-		// in its otherwise-active modal must not receive global commands.
+		// Una ventana emergente es responsable de las acciones de teclado explícitas mientras está abierta; los
+		// campos tapados de su modal, por lo demás activo, no deben recibir comandos globales.
 		if (foreground?.kind === "popup" && !(owner && belongsTo(owner.id, foreground.id))) return false;
 		return true;
 	};
@@ -210,8 +210,8 @@ export function createInteractionLayers() {
 		ownerOf,
 		isLayerEligible: eligible,
 		isElementEligible: elementEligible,
-		/** Narrow opt-in for a popup's own originating control. Never use this
-		 * to authorize general field cycling or commands into covered fields. */
+		/** Activación limitada para el propio control que originó una ventana emergente. Nunca
+		 * lo uses para autorizar el recorrido general de campos ni comandos en campos tapados. */
 		isPopupOrigin(element: HTMLElement | null): boolean {
 			if (!isInteractionElementVisible(element)) return false;
 			const foreground = top();
@@ -234,15 +234,15 @@ export function createInteractionLayers() {
 				opening.reconnect.focus !== focusRevision)) {
 				revoke(opening, true); publish(); return () => {};
 			}
-			// A superseded React render must not register at all, even when its
-			// replacement uses the same ID in the same controlled-state batch.
+			// Un render de React sustituido no debe registrarse en absoluto, ni siquiera cuando
+			// su sustituto usa el mismo id en el mismo lote de estado controlado.
 			if (input.openingLease && (!opening || !ownsLease(opening) || (opening.phase !== "claimed" && !reconnecting) ||
 				opening.retiring.size > 0 || (!reconnecting && opening.opener && !elementEligible(opening.opener)))) return () => {};
 			if (get(input.id)) throw new Error(`Interaction layer already registered: ${input.id}`);
 			const layer = { ...input, order: layers.length + 1 };
 			layers = [...layers, layer];
-			// React mounts child layout effects first. An owner registered in the
-			// same commit belongs below its already-registered owned children.
+			// React monta primero los efectos de layout de los hijos. Un propietario registrado en el
+			// mismo commit va por debajo de sus hijos propios ya registrados.
 			const childIndex = layers.findIndex(candidate => candidate !== layer && belongsTo(candidate.id, layer.id));
 			if (childIndex >= 0) {
 				layers = [...layers.slice(0, childIndex), layer, ...layers.slice(childIndex, -1)];
@@ -261,7 +261,7 @@ export function createInteractionLayers() {
 		update(id: LayerId, input: Partial<Omit<InteractionLayer, "id" | "order">>) {
 			const layer = get(id);
 			if (!layer) return;
-			// Keep the lifetime identity used by unregister/event snapshots.
+			// Conserva la identidad de vida que usan las instantáneas de baja/eventos.
 			Object.assign(layer, input);
 			layers = [...layers];
 			emit();
@@ -270,7 +270,7 @@ export function createInteractionLayers() {
 		popTo(id: LayerId): CloseOutcome {
 			const targetIndex = layers.findIndex(layer => layer.id === id);
 			if (targetIndex < 0) return "blocked";
-			// A single bounded traversal, even when controlled React state commits later.
+			// Un único recorrido acotado, aunque el estado controlado de React se confirme más tarde.
 			const above = layers.slice(targetIndex + 1).reverse();
 			for (const layer of above) {
 				const outcome = requestClose(layer.id, "return-to");
@@ -312,8 +312,8 @@ export function createInteractionLayers() {
 			state = { lease, slot, sequence, opener, onRevoke: options.onRevoke, notified: false, exposed: false,
 				phase: "pending", generation, retiring };
 			leaseStates.set(lease, state);
-			// Observe synchronous close callbacks too: only the exact old
-			// registration's removal is expected during this proposal.
+			// Observa también los callbacks de cierre síncronos: durante esta propuesta solo se
+			// espera la eliminación del registro antiguo exacto.
 			proposals.add(state);
 			try {
 				if (previousLayer && previous?.phase !== "revoked") {
@@ -349,8 +349,8 @@ export function createInteractionLayers() {
 			return anchor?.ownerDocument.body ?? (typeof document === "undefined" ? null : document.body);
 		},
 		captureKeyDown(event: KeyboardEvent) {
-			// Observe original ownership for action shortcuts too: a leaf closing
-			// a foreground must not expose the background to the same key.
+			// Observa la propiedad original también para los atajos de acciones: una hoja que cierra
+			// un primer plano no debe exponer el fondo a la misma tecla.
 			snapshotEscape(event);
 			capturePluginQuestionKey(event);
 			if (event.key === "Tab") event.preventDefault();
@@ -373,19 +373,19 @@ export function createInteractionLayers() {
 			if (!snapshot.owner) return null;
 			snapshot.claimed = true;
 			event.preventDefault();
-			// Never fall through to an owner exposed by this same event.
+			// Nunca pases a un propietario expuesto por este mismo evento.
 			if (get(snapshot.owner.id) !== snapshot.owner) return "closed";
 			return requestClose(snapshot.owner.id, "escape");
 		},
-		/** Return only while this exact closing generation still owns focus. */
+		/** Devuelve solo mientras esta generación de cierre exacta siga teniendo el foco. */
 		restoreFocus(opener: HTMLElement | null, expectedGeneration: number, expectedFocusRevision = focusRevision, openingLease?: OpeningLease) {
 			if (generation !== expectedGeneration || focusRevision !== expectedFocusRevision) return false;
 			if (openingLease) {
 				const opening = leaseStates.get(openingLease);
 				if (!opening || slotFocusAuthority.get(opening.slot) !== opening.sequence) return false;
-				// An async/cached handoff mounts only after its predecessor is gone.
-				// Return to the click-time invoker, not body/a detached old field
-				// which happened to be active when the new portal finally mounted.
+				// Un traspaso asíncrono/en caché solo se monta cuando su predecesor ha desaparecido.
+				// Vuelve al invocador del momento del clic, no al body ni a un campo antiguo desenganchado
+				// que resultara estar activo cuando por fin se montó el portal nuevo.
 				opener = opening.opener;
 			}
 			if (elementEligible(opener)) { opener!.focus({ preventScroll: true }); return true; }
@@ -407,7 +407,7 @@ export function InteractionLayersProvider({ children }: { children: ReactNode })
 		const capture = (event: KeyboardEvent) => controller.captureKeyDown(event);
 		const bubble = (event: KeyboardEvent) => { if (event.key === "Escape") controller.dispatchEscape(event); };
 		const focus = () => controller.observeFocus();
-		// Capture observes original ownership. Native Tab prevention never stops propagation.
+		// La captura observa la propiedad original. La prevención del Tab nativo nunca detiene la propagación.
 		window.addEventListener("keydown", capture, true);
 		document.addEventListener("keydown", bubble);
 		document.addEventListener("focusin", focus, true);

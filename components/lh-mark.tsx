@@ -1,13 +1,14 @@
 /**
- * LhMark — the app mark (owner's icon-no-padding.svg, 2026-09-17), inlined
- * as JSX so it rides along with the components (no network fetch, recolorable,
- * crisp at any size). 806×806 viewBox, no padding: sizing/padding is the
- * consumer's job. The gray path is the harness spiral; the ring is the
- * mark's own stroke in the strong line ink (white in dark, the foreground
- * in light).
+ * LhMark — el logotipo de la app (icon-no-padding.svg del responsable,
+ * 2026-09-17), en línea como JSX para que viaje con los componentes (sin
+ * lectura de red, se puede recolorear, nítido a cualquier tamaño). viewBox de
+ * 806×806, sin relleno: el tamaño/relleno es cosa de quien lo usa. El trazado
+ * gris es la espiral del arnés; el anillo es el propio trazo del logotipo con la
+ * tinta de línea fuerte (blanco en oscuro, el primer plano en claro).
  *
- * Replaces the "LH" wordmark text in the sidebar band (also the traffic-light
- * gutter's resident in the merged desktop chrome).
+ * Sustituye al texto del logotipo "LH" en la franja de la barra lateral
+ * (también el residente del margen de los semáforos en el cromo de escritorio
+ * fusionado).
  */
 export function LhMark({ className = "" }: { className?: string }) {
 	return (

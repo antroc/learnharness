@@ -2,11 +2,11 @@
 
 import { createContext, useLayoutEffect, useState, type ReactNode } from "react";
 
-/** The host's content column, excluding the sidebar. Portals retain app contexts. */
+/** La columna de contenido del host, sin la barra lateral. Los portales conservan los contextos de la app. */
 export const HostContentRootContext = createContext<HTMLElement | null>(null);
 
-/** Private host route instance, shared with widgets portaled outside page trees.
- * Cleanup expires an opening even when Next retains its source in Activity. */
+/** Instancia privada de la ruta del host, compartida con los widgets que van en portales fuera de los árboles de página.
+ * La limpieza hace caducar una apertura aunque Next conserve su origen en Activity. */
 export interface HostRouteLifetime { pathname: string; signal: AbortSignal }
 export const HostRouteLifetimeContext = createContext<HostRouteLifetime | null>(null);
 

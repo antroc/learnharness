@@ -2,9 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 
-/** Recovery belongs to the transcript, never the answer dock. The caller
- * only offers it for the current saved malformed batch, not failed/aborted
- * generations or historical attempts. */
+/** La recuperación pertenece a la transcripción, nunca al dock de respuesta. Quien llama
+ * solo la ofrece para el lote mal formado guardado actual, no para generaciones
+ * fallidas/abortadas ni para intentos históricos. */
 export function MalformedQuestion({ onRetry, disabled, reason }: {
 	onRetry?: () => void;
 	disabled?: boolean;

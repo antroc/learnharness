@@ -1,30 +1,35 @@
 "use client";
 
 /**
- * MARKDOWN BLOCKS, MELTED INTO THE MESSAGE (owner wave, 2026-09-19): the
- * boxed streamdown chrome — the double-framed tables (border + sidebar bg +
- * a second inner border + copy/download/fullscreen button rows), the mermaid
- * container (border box + mono label header + action pill + inner border +
- * in-chart zoom buttons), the code header bars — is REPLACED by this
- * component set, wired into Streamdown via its `components` prop:
+ * BLOQUES DE MARKDOWN, FUNDIDOS EN EL MENSAJE (oleada del responsable,
+ * 2026-09-19): el cromo en cajas de streamdown — las tablas con doble marco
+ * (borde + fondo de barra lateral + un segundo borde interior + filas de botones
+ * de copiar/descargar/pantalla completa), el contenedor de mermaid (caja con
+ * borde + cabecera con etiqueta monoespaciada + píldora de acciones + borde
+ * interior + botones de zoom dentro del diagrama), las barras de cabecera del
+ * código — se SUSTITUYE por este conjunto de componentes, conectado a
+ * Streamdown mediante su prop `components`:
  *
- * - Tables: a plain PROSE table (no box, no sidebar bg, no buttons bar) —
- *   hairline row rules + a stronger header underline (globals.css), wide
- *   tables scroll inside the column.
- * - Mermaid: the bare chart, part of the message — no label, no container,
- *   no zoom pill (zoom/pan lives in the session-scoped focus overlay now).
- * - Code: streamdown's CodeBlock skeleton keeps the shiki plumbing, but the
- *   container melts (subtle bg tint, no border, no header — globals.css) and
- *   the buttons go.
- * - Display math: untouched visually, but gains the corner copy.
+ * - Tablas: una tabla de PROSA sencilla (sin caja, sin fondo de barra lateral,
+ *   sin barra de botones) — reglas finas entre filas + un subrayado más fuerte
+ *   en la cabecera (globals.css); las tablas anchas se desplazan dentro de la columna.
+ * - Mermaid: el diagrama desnudo, parte del mensaje — sin etiqueta, sin
+ *   contenedor, sin píldora de zoom (el zoom/desplazamiento vive ahora en el
+ *   overlay de foco con ámbito de sesión).
+ * - Código: el esqueleto CodeBlock de streamdown conserva la fontanería de
+ *   shiki, pero el contenedor se funde (tinte de fondo sutil, sin borde, sin
+ *   cabecera — globals.css) y los botones desaparecen.
+ * - Matemáticas en bloque: visualmente intactas, pero ganan la copia de la esquina.
  *
- * THE ONE AFFORDANCE (user-decided): a small muted COPY icon at each block's
- * top-right corner, revealed on hover — copying the SOURCE (table →
- * Markdown, code → text, mermaid → chart source, math → the raw TeX). It
- * never fakes a table column or shifts layout, and hover-reveal keeps the
- * reading surface clean — the whole point of the melt. Text selection stays
- * free: the icon lives in dead corner space. Mermaid additionally gets an
- * EXPAND icon (opens the session overlay) when a chat page is mounted.
+ * LA ÚNICA INDICACIÓN (decidida por el usuario): un pequeño icono de COPIAR
+ * atenuado en la esquina superior derecha de cada bloque, que aparece al pasar
+ * el ratón — copia el ORIGEN (tabla → Markdown, código → texto, mermaid →
+ * código del diagrama, matemáticas → el TeX en bruto). Nunca finge una columna
+ * de tabla ni desplaza el diseño, y la aparición con hover mantiene limpia la
+ * superficie de lectura — todo el sentido del fundido. La selección de texto
+ * sigue libre: el icono vive en espacio muerto de la esquina. Mermaid recibe
+ * además un icono de AMPLIAR (abre el overlay de la sesión) cuando hay una
+ * página de chat montada.
  */
 
 import { cloneElement, createContext, isValidElement, useContext, useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
@@ -45,25 +50,25 @@ import { chartSize, useSessionMermaid } from "@/components/session-overlay";
 import { Hint } from "@/components/ui/hint";
 import { BUILTIN_MERMAID_LANGUAGE, PluginCodeBlock } from "@/components/plugin-renderers";
 
-/** Local rendering profile for host-mounted, display-only Markdown. Ordinary
- * transcript rendering (including SSR/static Streamdown) stays interactive. */
+/** Perfil de renderizado local para Markdown montado por el host, solo de visualización. El
+ * renderizado normal de la transcripción (incluido Streamdown SSR/estático) sigue siendo interactivo. */
 export const MarkdownDisplayOnlyContext = createContext(false);
 
-// ─── The one affordance: the hover-reveal corner copy ────────────────────────
+// ─── La única indicación: la copia de la esquina que aparece con hover ──────
 
-/** Clipboard write with a fallback: navigator.clipboard needs the
- *  `clipboard-sanitized-write` permission, which Electron's deny-by-default
- *  handler (electron/main.cjs) must grant from the loopback origin — and
- *  browsers with a stale/absent API reject too. The hidden-textarea
- *  execCommand path is the belt under that: a failed write would otherwise
- *  be a silent no-op, which is exactly what the owner saw. Returns whether
- *  the copy landed (drives the Copied pill). */
+/** Escritura en el portapapeles con alternativa: navigator.clipboard necesita
+ *  el permiso `clipboard-sanitized-write`, que el manejador de Electron que
+ *  deniega por defecto (electron/main.cjs) debe conceder desde el origen
+ *  loopback — y los navegadores con una API obsoleta/ausente también rechazan.
+ *  La ruta execCommand con un textarea oculto es el cinturón por debajo: si no,
+ *  una escritura fallida sería una operación nula silenciosa, que es justo lo
+ *  que vio el responsable. Devuelve si la copia llegó (dirige la píldora Copied). */
 async function copyText(text: string): Promise<boolean> {
 	try {
 		await navigator.clipboard.writeText(text);
 		return true;
 	} catch {
-		/* fall through to the legacy path */
+		/* se pasa a la ruta antigua */
 	}
 	try {
 		const ta = document.createElement("textarea");
@@ -81,14 +86,15 @@ async function copyText(text: string): Promise<boolean> {
 	}
 }
 
-/** A small muted copy icon for a block's top-right corner. The CONSUMER'S
- *  wrapper carries `group/md relative` (a NAMED group — the message container
- *  is also a `group`, and an unnamed group-hover would light EVERY corner in
- *  the message at once, the all-at-once the owner saw) and positions this
- *  via className; the icon self-hides until hover (opacity-0 →
- *  group-hover/md:opacity-100). Copies getText() on click; the icon flips
- *  to a check for a beat — enough feedback on its own (a "Copied" pill was
- *  tried and removed by owner ask, 2026-09-19). */
+/** Un pequeño icono de copiar atenuado para la esquina superior derecha de un
+ *  bloque. El envoltorio de QUIEN LO USA lleva `group/md relative` (un grupo CON
+ *  NOMBRE — el contenedor del mensaje también es un `group`, y un group-hover
+ *  sin nombre encendería TODAS las esquinas del mensaje a la vez, el todo a la
+ *  vez que vio el responsable) y lo posiciona mediante className; el icono se
+ *  oculta solo hasta el hover (opacity-0 → group-hover/md:opacity-100). Copia
+ *  getText() al hacer clic; el icono cambia a una marca de verificación un
+ *  instante — respuesta suficiente por sí sola (se probó una píldora "Copied" y
+ *  se quitó a petición del responsable, 2026-09-19). */
 export function CopyCorner({
 	getText,
 	label,
@@ -124,10 +130,11 @@ export function CopyCorner({
 	);
 }
 
-// ─── Code + mermaid fences (the Streamdown `code` override) ──────────────────
+// ─── Bloques de código + mermaid (la sustitución de `code` de Streamdown) ───
 
-/** The fence source from a code element's children — a bare string in the
- *  common case; an element wrapping a string when rehype nests it. Pure. */
+/** El código del bloque a partir de los hijos de un elemento code — una cadena
+ *  pelada en el caso habitual; un elemento que envuelve una cadena cuando rehype
+ *  lo anida. Pura. */
 export function codeSource(children: ReactNode): string {
 	if (typeof children === "string") return children;
 	if (typeof children === "number") return String(children);
@@ -138,12 +145,13 @@ export function codeSource(children: ReactNode): string {
 	return "";
 }
 
-/** Mermaid, in the message flow: the bare chart (the rendered mode's theme, via
- *  the app's own plugin — components/mermaid-render.ts), the hover corner
- *  with copy + expand, the house error fallback. No container chrome, no
- *  zoom pill — the zoom/pan home is the session overlay. While the fence is
- *  still streaming (the trailing open fence), a quiet skeleton instead of a
- *  doomed parse. */
+/** Mermaid, en el flujo del mensaje: el diagrama desnudo (el tema del modo
+ *  renderizado, mediante el plugin propio de la app — components/mermaid-render.ts),
+ *  la esquina con hover con copiar + ampliar y la alternativa de error de la casa.
+ *  Sin cromo de contenedor ni píldora de zoom — el hogar del zoom/desplazamiento es
+ *  el overlay de la sesión. Mientras el bloque sigue llegando por stream (el
+ *  bloque abierto del final), un esqueleto discreto en lugar de un análisis
+ *  condenado al fracaso. */
 function MermaidInline({ chart }: { chart: string }) {
 	const displayOnly = useContext(MarkdownDisplayOnlyContext);
 	const [svg, setSvg] = useState<string | null>(null);
@@ -152,13 +160,13 @@ function MermaidInline({ chart }: { chart: string }) {
 	const overlay = useSessionMermaid();
 	const incomplete = useIsCodeFenceIncomplete();
 	const { resolvedMode } = useAppearance();
-	// The font-parity cap (owner rule, 2026-09-19): the house CSS
-	// (`max-width: 100% !important`) overrides mermaid's own natural-size cap,
-	// so a chart would otherwise stretch to the full column and render its
-	// text larger than the session's own text. Cap the holder at the width
-	// where the chart's 16px base font lands at the SESSION font (measured
-	// live from the wrapper — --lh-prose-size today): a chart may shrink to
-	// fit the column, but never blow its text up past the chat's.
+	// El tope de paridad de fuente (regla del responsable, 2026-09-19): el CSS de la casa
+	// (`max-width: 100% !important`) prevalece sobre el tope de tamaño natural de mermaid,
+	// así que, si no, un diagrama se estiraría a toda la columna y renderizaría su
+	// texto más grande que el propio texto de la sesión. Limita el contenedor al ancho
+	// en el que la fuente base de 16px del diagrama queda en la fuente de la SESIÓN (medida
+	// en vivo desde el envoltorio — hoy --lh-prose-size): un diagrama puede encoger para
+	// caber en la columna, pero nunca agrandar su texto por encima del del chat.
 	const holderRef = useRef<HTMLDivElement>(null);
 	const [capW, setCapW] = useState<number | null>(null);
 	useEffect(() => {
@@ -197,8 +205,8 @@ function MermaidInline({ chart }: { chart: string }) {
 		return <MermaidError chart={chart} error={error} retry={() => setAttempt((a) => a + 1)} displayOnly={displayOnly} />;
 	}
 	return (
-		// data-streamdown="mermaid" keeps the house CSS hook (the svg
-		// max-width rule in globals.css) alive for this app-owned block.
+		// data-streamdown="mermaid" mantiene vivo el gancho del CSS de la casa (la regla
+		// max-width del svg en globals.css) para este bloque propio de la app.
 		<div data-testid="md-mermaid" data-streamdown="mermaid" className="group/md relative my-4">
 			<div
 				ref={holderRef}
@@ -210,8 +218,8 @@ function MermaidInline({ chart }: { chart: string }) {
 				<CopyCorner getText={() => chart} label="Copy diagram source" />
 				{overlay && (
 					<Hint
-					// Full-screen overlay copy (tooltip wave) — "session view" was
-					// internal direction-speak for the same thing.
+					// Texto del overlay a pantalla completa (oleada de tooltips) — "session view" era
+					// jerga interna de dirección para lo mismo.
 					label="Open full-screen"
 					side="bottom"
 				>
@@ -234,19 +242,19 @@ function MermaidInline({ chart }: { chart: string }) {
 	);
 }
 
-/** The Streamdown `code` override: inline code passes through with the
- *  house inline classes; block fences split — mermaid renders as the bare
- *  chart above, everything else delegates to streamdown's exported
- *  CodeBlock (shiki highlighting + line numbers preserved) inside a
- *  hover-copy wrapper, with NO children so its sticky button row never
- *  mounts. The container/look is CSS-melted in globals.css
- *  (data-streamdown="code-block"…). */
+/** La sustitución de `code` de Streamdown: el código en línea pasa con las
+ *  clases en línea de la casa; los bloques se separan — mermaid se renderiza
+ *  como el diagrama desnudo de arriba y todo lo demás delega en el CodeBlock
+ *  exportado de streamdown (se conservan el resaltado de shiki + los números de
+ *  línea) dentro de un envoltorio con copia por hover, SIN hijos para que su fila
+ *  de botones sticky nunca se monte. El contenedor/aspecto se funde con CSS en
+ *  globals.css (data-streamdown="code-block"…). */
 export function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
 	const displayOnly = useContext(MarkdownDisplayOnlyContext);
 	const incomplete = useIsCodeFenceIncomplete();
 	const { children, className, node, ...rest } = props;
 
-	// Inline code: no data-block (the pre handler stamps block fences only).
+	// Código en línea: sin data-block (el manejador de pre solo marca los bloques).
 	if (!("data-block" in props)) {
 		return (
 			<code className={cn("rounded px-1.5 py-0.5 font-mono text-sm text-(--lh-ink-code)", className)} data-streamdown="inline-code" {...rest}>
@@ -280,39 +288,39 @@ export function MarkdownCode(props: ComponentProps<"code"> & ExtraProps) {
 	return displayOnly ? fallback : <PluginCodeBlock language={language} source={source} meta={meta} incomplete={incomplete} fallback={fallback} />;
 }
 
-// ─── Key-idea callouts (the Streamdown `blockquote` override) ────────────────
+// ─── Recuadros de idea clave (la sustitución de `blockquote` de Streamdown) ─
 
-/** GitHub-style alert markers — the syntax the models already know from a
- *  million READMEs. The PROMPT teaches only [!IMPORTANT] (one emphasis
- *  device, one meaning: load-bearing); the renderer accepts all five and
- *  boxes them identically — a stray [!NOTE] still meant "this deserves
- *  emphasis", and a literal marker line must never leak as text (owner
- *  design, callout round 2026-10-07). */
+/** Marcadores de alerta al estilo de GitHub — la sintaxis que los modelos ya
+ *  conocen de un millón de README. El PROMPT solo enseña [!IMPORTANT] (un único
+ *  recurso de énfasis, un único significado: imprescindible); el renderizador
+ *  acepta los cinco y los encuadra de forma idéntica — un [!NOTE] suelto también
+ *  quería decir «esto merece énfasis», y una línea de marcador literal nunca
+ *  debe colarse como texto (diseño del responsable, ronda de recuadros 2026-10-07). */
 const ALERT_MARKER_RE = /^\[!(note|tip|important|warning|caution)\][ \t]*(?:\n|$)/i;
 
 export interface ParsedAlert {
 	kind: string;
-	/** The blockquote children with the marker line stripped — prose intact. */
+	/** Los hijos del blockquote sin la línea del marcador — la prosa intacta. */
 	children: ReactNode;
 }
 
 const significant = (c: ReactNode) => c !== null && c !== undefined && c !== "" && !(typeof c === "string" && c.trim() === "");
 
-/** The element's markdown tag — Streamdown wraps every block in its own
- *  styled component (MarkdownParagraph, …), so the React type is rarely
- *  the raw "p": the hast node carried in props tells the truth. */
+/** La etiqueta markdown del elemento — Streamdown envuelve cada bloque en su
+ *  propio componente con estilo (MarkdownParagraph, …), así que el tipo de React
+ *  rara vez es el "p" en bruto: el nodo hast que viaja en las props dice la verdad. */
 function markdownTag(el: React.ReactElement): string | null {
 	if (typeof el.type === "string") return el.type;
 	const node = (el.props as { node?: { tagName?: string } }).node;
 	return node?.tagName ?? null;
 }
 
-/** Pure: does this blockquote open with a GitHub alert marker? Returns the
- *  kind and the children with the marker line removed (the marker's own
- *  paragraph dropped entirely when it stands alone — `> [!IMPORTANT]` then
- *  a blank quote line then content; a standalone marker also drops the
- *  <br> hard-break artifact that carried its line break). Non-alert
- *  blockquotes pass through untouched. Exported for hermetic tests. */
+/** Pura: ¿empieza este blockquote con un marcador de alerta de GitHub? Devuelve
+ *  el tipo y los hijos sin la línea del marcador (el propio párrafo del marcador
+ *  se quita entero cuando va solo — `> [!IMPORTANT]`, luego una línea de cita en
+ *  blanco y luego el contenido; un marcador solo también quita el resto del salto
+ *  forzado <br> que llevaba su salto de línea). Los blockquote sin alerta pasan
+ *  sin tocar. Exportada para pruebas herméticas. */
 export function parseAlertMarker(children: ReactNode): ParsedAlert | null {
 	const list = Array.isArray(children) ? children : [children];
 	const para = list.find(significant);
@@ -325,15 +333,15 @@ export function parseAlertMarker(children: ReactNode): ParsedAlert | null {
 	if (!match) return null;
 	const kind = match[1]!.toLowerCase();
 	const stripped = lead.slice(match[0].length);
-	// Rebuild the paragraph without the marker line; drop it entirely when
-	// the marker stood alone (nothing but the marker text in the paragraph).
+	// Reconstruye el párrafo sin la línea del marcador; quítalo entero cuando
+	// el marcador iba solo (nada más que el texto del marcador en el párrafo).
 	const leadIdxInner = innerList.indexOf(lead);
 	const hasFollowing = innerList.some((c, i) => i > leadIdxInner && significant(c));
 	let rebuiltPara: ReactNode = null;
 	if (stripped.trim() !== "" || hasFollowing) {
 		let rest = innerList.map((c) => (c === lead ? (stripped === "" ? null : stripped) : c));
 		if (stripped === "") {
-			// the hard-break <br> that ended the marker line is now leading junk
+			// el salto forzado <br> que terminaba la línea del marcador es ahora basura inicial
 			while (rest.length && (rest[0] === null || (isValidElement(rest[0]) && markdownTag(rest[0]) === "br"))) rest = rest.slice(1);
 		}
 		rebuiltPara = cloneElement(para, {}, ...rest);
@@ -343,18 +351,18 @@ export function parseAlertMarker(children: ReactNode): ParsedAlert | null {
 	return { kind, children: restChildren };
 }
 
-/** The key-idea callout (owner rulings, 2026-10-07): SHARP corners, a white
- *  stroke, NO background, NO label, NO icon — just the outline. The box
- *  hugs its text (width: fit-content, capped at the column) instead of
- *  stretching full-width into empty space. */
+/** El recuadro de idea clave (decisiones del responsable, 2026-10-07): esquinas
+ *  RECTAS, un trazo blanco, SIN fondo, SIN etiqueta, SIN icono — solo el
+ *  contorno. La caja se ciñe a su texto (width: fit-content, con tope en la
+ *  columna) en vez de estirarse a todo el ancho por el espacio vacío. */
 export function MarkdownBlockquote(props: ComponentProps<"blockquote"> & ExtraProps) {
 	const { children, node, ...rest } = props;
 	const alert = parseAlertMarker(children);
 	if (!alert) {
-		// Plain quote — Streamdown's own styling, restored by hand: overriding
-		// `blockquote` displaced its styled component (the classes below are
-		// its verbatim defaults), and bare <blockquote> rendered unstyled
-		// (owner report, 2026-10-07).
+		// Cita normal — el estilo propio de Streamdown, restaurado a mano: sustituir
+		// `blockquote` desplazó su componente con estilo (las clases de abajo son
+		// sus valores por defecto tal cual), y un <blockquote> pelado se renderizaba sin estilo
+		// (informe del responsable, 2026-10-07).
 		return (
 			<blockquote
 				{...rest}
@@ -376,13 +384,14 @@ export function MarkdownBlockquote(props: ComponentProps<"blockquote"> & ExtraPr
 	);
 }
 
-// ─── Tables (the Streamdown `table` override) ────────────────────────────────
+// ─── Tablas (la sustitución de `table` de Streamdown) ───────────────────────
 
-/** A plain PROSE table: no wrapper box, no button rows — just the table
- *  (streamdown's inner cells keep their padding/typography; the hairline
- *  rules live in globals.css on the data-streamdown attributes) inside a
- *  horizontal-scroller for wide ones, with the corner copy. The copy
- *  serializes the REAL DOM table (the library's own extractor → Markdown). */
+/** Una tabla de PROSA sencilla: sin caja envolvente ni filas de botones — solo
+ *  la tabla (las celdas interiores de streamdown conservan su relleno/tipografía;
+ *  las reglas finas viven en globals.css sobre los atributos data-streamdown)
+ *  dentro de un contenedor de scroll horizontal para las anchas, con la copia de
+ *  la esquina. La copia serializa la tabla REAL del DOM (el propio extractor de
+ *  la biblioteca → Markdown). */
 export function MarkdownTable(props: ComponentProps<"table"> & ExtraProps) {
 	const displayOnly = useContext(MarkdownDisplayOnlyContext);
 	const { children, node, ...rest } = props;
@@ -390,11 +399,11 @@ export function MarkdownTable(props: ComponentProps<"table"> & ExtraProps) {
 	return (
 		<div className="group/md relative my-4" data-testid="md-table">
 			{!displayOnly && <CopyCorner
-				// Contained in the table's top-right corner (owner note, 2026-09-19:
-				// the old -top-3 lifted only half the 24px button above the 12px
-				// offset, so it straddled the top outline). 4px inset, z above the
-				// cells it hovers over; the scroll container stays under it (the
-				// corner is fixed to the wrapper, not the scrolling table).
+				// Dentro de la esquina superior derecha de la tabla (nota del responsable, 2026-09-19:
+				// el antiguo -top-3 solo subía la mitad del botón de 24px por encima del desplazamiento de 12px,
+				// así que quedaba a caballo del contorno superior). Metido 4px, con z por encima de las
+				// celdas sobre las que flota; el contenedor de scroll queda debajo (la
+				// esquina está fijada al envoltorio, no a la tabla que se desplaza).
 				className="absolute top-1 right-1 z-10"
 				label="Copy table"
 				getText={() => (ref.current ? tableDataToMarkdown(extractTableDataFromElement(ref.current)) : "")}
@@ -402,10 +411,10 @@ export function MarkdownTable(props: ComponentProps<"table"> & ExtraProps) {
 			<div className="overflow-x-auto">
 				<table
 					ref={ref}
-					// No text-sm here — the table text runs at the session prose size
-				// (owner note, 2026-09-19: streamdown's cells pin their own text-sm
-				// 12.5px; globals.css overrides cells to inherit, so tables match the
-				// 16px chat text for a consistent look).
+					// Aquí no hay text-sm — el texto de la tabla va al tamaño de la prosa de la sesión
+				// (nota del responsable, 2026-09-19: las celdas de streamdown fijan su propio text-sm
+				// de 12,5px; globals.css hace que las celdas hereden, así que las tablas coinciden con el
+				// texto de 16px del chat para un aspecto coherente).
 					className="w-full border-collapse"
 					data-streamdown="table"
 					{...rest}
@@ -417,13 +426,13 @@ export function MarkdownTable(props: ComponentProps<"table"> & ExtraProps) {
 	);
 }
 
-// ─── Display math (the Streamdown `span` override) ────────────────────────────
+// ─── Matemáticas en bloque (la sustitución de `span` de Streamdown) ─────────
 
-/** KaTeX display equations are wrapped in a SPAN.katex-display (rehype-katex
- *  renders them as spans with display:block CSS — NOT divs; verified in the
- *  static render). They gain the corner copy (the raw TeX — KaTeX embeds it
- *  in the MathML <annotation>; read from the DOM on click, no re-parse).
- *  Every other span passes through untouched. */
+/** Las ecuaciones en bloque de KaTeX van envueltas en un SPAN.katex-display
+ *  (rehype-katex las renderiza como spans con CSS display:block — NO divs;
+ *  verificado en el render estático). Ganan la copia de la esquina (el TeX en
+ *  bruto — KaTeX lo incrusta en el <annotation> de MathML; se lee del DOM al
+ *  hacer clic, sin volver a analizar). Todos los demás spans pasan sin tocar. */
 export function MathDisplay(props: ComponentProps<"span"> & ExtraProps) {
 	const displayOnly = useContext(MarkdownDisplayOnlyContext);
 	const { children, className, node, ...rest } = props;
@@ -436,13 +445,13 @@ export function MathDisplay(props: ComponentProps<"span"> & ExtraProps) {
 		);
 	}
 	return (
-		// BLOCK, not inline: the katex-display child is itself display:block
-		// (KaTeX's CSS), and an inline wrapper around a block child gets
-		// FRAGMENTED by the anonymous-block rules — the absolutely positioned
-		// corner then has no clean containing block and pointer events never
-		// land on it (owner report: the math corner neither highlights on hover
-		// nor copies; everything else works). display:block gives the corner a
-		// real box; z-10 keeps it above the equation spans it overlays.
+		// BLOQUE, no en línea: el hijo katex-display es él mismo display:block
+		// (el CSS de KaTeX), y un envoltorio en línea alrededor de un hijo de bloque queda
+		// FRAGMENTADO por las reglas de bloques anónimos — la esquina con posición
+		// absoluta se queda entonces sin un bloque contenedor limpio y los eventos de puntero nunca
+		// le llegan (informe del responsable: la esquina de las matemáticas ni se resalta con el hover
+		// ni copia; todo lo demás funciona). display:block da a la esquina una
+		// caja real; z-10 la mantiene por encima de los spans de la ecuación que tapa.
 		<span className="group/md relative block z-0" data-testid="md-math">
 			{!displayOnly && <CopyCorner
 				className="absolute top-0 right-0 z-10"
@@ -456,16 +465,17 @@ export function MathDisplay(props: ComponentProps<"span"> & ExtraProps) {
 	);
 }
 
-// ─── The stable override set (module identity: Streamdown is memoized) ────────
+// ─── El conjunto estable de sustituciones (identidad de módulo: Streamdown está memorizado) ───
 
-/** Bold as the REAL element (appearance fix, 2026-09-23): streamdown's
- *  default `strong` renders `<span class="font-semibold" data-streamdown=
- *  "strong">` — and `.lh-prose :where(strong, b)` matches strong/b
- *  ELEMENTS, so neither the factory ink (#ee928c) nor a settings
- *  boldColor ever landed on bold text (italic worked: streamdown leaves
- *  `em` native). Rendering the semantic element restores screen-reader
- *  emphasis AND lets the designed token rule apply unmodified — color
- *  --lh-ink-strong, weight 700 (beating the old 600 utility). */
+/** La negrita como el elemento REAL (arreglo de aspecto, 2026-09-23): el
+ *  `strong` por defecto de streamdown renderiza `<span class="font-semibold"
+ *  data-streamdown="strong">` — y `.lh-prose :where(strong, b)` coincide con
+ *  ELEMENTOS strong/b, así que ni la tinta de fábrica (#ee928c) ni un boldColor
+ *  de los ajustes llegaban nunca al texto en negrita (la cursiva sí funcionaba:
+ *  streamdown deja `em` nativo). Renderizar el elemento semántico restaura el
+ *  énfasis para los lectores de pantalla Y deja que se aplique sin cambios la
+ *  regla de tokens diseñada — color --lh-ink-strong, peso 700 (que gana a la
+ *  antigua utilidad de 600). */
 export function MarkdownStrong(props: ComponentProps<"strong"> & ExtraProps) {
 	const { children, className, node, ...rest } = props;
 	return (

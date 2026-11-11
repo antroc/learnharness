@@ -14,7 +14,7 @@ import {
 	type CloseOutcome, type CloseReason, type LayerId, type OpeningLease,
 } from "./interaction-layers";
 
-/** Shared declarative paint ranks, never per-dialog foreground constants. */
+/** Rangos de pintado declarativos compartidos, nunca constantes de primer plano por diálogo. */
 export const INTERACTION_LAYER_Z_BASE = 100;
 type FrameProps = HTMLAttributes<HTMLElement> & { ref?: Ref<HTMLElement> };
 export interface HostDialogProps {
@@ -25,7 +25,7 @@ export interface HostDialogProps {
 	openingLease?: OpeningLease;
 	initialFocusRef?: RefObject<HTMLElement | null>;
 	headingRef?: RefObject<HTMLElement | null>;
-	/** Existing visual root: classes, styles, ref and test IDs are retained. */
+	/** Raíz visual existente: se conservan las clases, los estilos, la ref y los ids de prueba. */
 	frame?: ReactElement<FrameProps>;
 	backdropProps?: HTMLAttributes<HTMLDivElement> & { "data-testid"?: string };
 	"aria-label"?: string;
@@ -34,7 +34,7 @@ export interface HostDialogProps {
 	children: ReactNode;
 }
 
-/** Closed standalone/SSR renders are deliberately safe without a provider. */
+/** Los renders cerrados independientes/SSR son seguros a propósito sin proveedor. */
 export function HostDialog(props: HostDialogProps) {
 	return props.open && (!props.openingLease || props.openingLease.owns()) ? <OpenHostDialog {...props} /> : null;
 }
@@ -101,7 +101,7 @@ function OpenHostDialog({
 	useLayoutEffect(() => {
 		if (!layer.active || focusedRef.current) return;
 		focusedRef.current = true;
-		// Existing explicit autofocus remains an approved explicit focus choice.
+		// El autofocus explícito existente sigue siendo una elección de foco explícita aprobada.
 		if (!boundaryRef.current?.contains(document.activeElement)) focusInitial();
 	}, [layer.active, focusInitial]);
 
@@ -109,8 +109,8 @@ function OpenHostDialog({
 		focusAuthorityRef.current = { active: layer.active, order: layer.order };
 	});
 	useLayoutEffect(() => () => {
-		// The registration cleanup runs first. Deposed parents never acquire
-		// return authority; a newer modal also revokes an old closing ticket.
+		// La limpieza del registro se ejecuta primero. Los padres depuestos nunca adquieren
+		// autoridad de retorno; un modal más nuevo también revoca un ticket de cierre antiguo.
 		const authority = focusAuthorityRef.current;
 		if (!authority.active || (controller.getActiveModal()?.order ?? 0) > authority.order) return;
 		const generation = controller.getGeneration();
@@ -127,8 +127,8 @@ function OpenHostDialog({
 	if (!portalTarget || (openingLease && !openingLease.owns())) return null;
 	const visual = cloneElement(frame, {
 		ref: frameRef,
-		// The semantic boundary includes popup portals; the visual frame may
-		// transform/clip freely without changing fixed viewport menu geometry.
+		// El límite semántico incluye los portales de las ventanas emergentes; el marco visual puede
+		// transformar/recortar libremente sin cambiar la geometría fija de los menús en el viewport.
 		role: undefined,
 		"aria-modal": undefined,
 	}, children);
@@ -153,9 +153,9 @@ function OpenHostDialog({
 						aria-hidden={!layer.active || undefined} inert={!layer.active}
 						data-interaction-layer={layer.id}
 						style={{ position: "fixed", inset: 0, zIndex: INTERACTION_LAYER_Z_BASE + layer.order }}>
-						{/* Local stacking contexts keep caller backdrop/frame z-index
-						    classes from covering their owned popup host. Isolation does
-						    not transform, clip or establish a fixed-position container. */}
+						{/* Los contextos de apilado locales evitan que las clases z-index del fondo/marco
+						de quien llama tapen su anfitrión de ventanas emergentes propio. El aislamiento no
+						transforma, no recorta ni establece un contenedor de posición fija. */}
 						<div style={{ isolation: "isolate" }}><div {...composedBackdrop}>{visual}</div></div>
 						<div ref={popupRef} data-interaction-popup-host={layer.id} style={{ isolation: "isolate" }} />
 					</div>
