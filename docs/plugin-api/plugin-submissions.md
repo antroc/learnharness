@@ -195,11 +195,11 @@ export type PluginSubmission = {
 
 **Índice de miembros** (incluidos los miembros de objetos anidados; los miembros heredados se definen en los tipos base enlazados):
 
-- [type](#pluginsubmission-type) — 5 signatures/variants
-- [content](#pluginsubmission-content) — 2 signatures/variants
-- [answer](#pluginsubmission-answer) — 2 signatures/variants
-- [thinking](#pluginsubmission-thinking) — 3 signatures/variants
-- [readingThinking](#pluginsubmission-readingthinking) — 2 signatures/variants
+- [type](#pluginsubmission-type) — 5 firmas o variantes
+- [content](#pluginsubmission-content) — 2 firmas o variantes
+- [answer](#pluginsubmission-answer) — 2 firmas o variantes
+- [thinking](#pluginsubmission-thinking) — 3 firmas o variantes
+- [readingThinking](#pluginsubmission-readingthinking) — 2 firmas o variantes
 - [submission](#pluginsubmission-submission)
 - [submissionImages](#pluginsubmission-submissionimages)
 - [answerImages](#pluginsubmission-answerimages)
@@ -346,7 +346,8 @@ export type PluginSubmissionContext = PluginSubmissionTarget & {
 
 ### PluginSubmissionContext messages
 
-Detached current browser history, including potentially streamed content.
+Historial actual del navegador, independiente, incluido el contenido que pueda estar en
+*streaming*.
 
 ```ts
 readonly messages: readonly Immutable<LhMessage>[];
@@ -360,13 +361,13 @@ readonly signal: AbortSignal;
 
 ### PluginSubmissionContext onAccepted
 
-Live, best-effort acknowledgment notification; not a durable event.
+Notificación de acuse en vivo y sin garantías; no es un evento duradero.
 
 ```ts
 onAccepted(callback: () => void | Promise<void>): void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `callback` | `() => void \| Promise<void>` |
 
@@ -376,7 +377,7 @@ onAccepted(callback: () => void | Promise<void>): void;
 
 Tipo público del SDK, exportado como `PluginSubmissionImages`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Optional native image channels alongside the existing text authorities.
+Canales nativos opcionales de imágenes junto a las autoridades de texto existentes.
 
 ```ts
 export interface PluginSubmissionImages {
@@ -450,7 +451,7 @@ priority?: number;
 hasPendingInput?(target: PluginSubmissionTarget): boolean;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `target` | `PluginSubmissionTarget` |
 
@@ -462,7 +463,7 @@ hasPendingInput?(target: PluginSubmissionTarget): boolean;
 intercept(input: PluginSubmission, context: PluginSubmissionContext): PluginSubmission | null | void | Promise<PluginSubmission | null | void>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `input` | `PluginSubmission` |
 | `context` | `PluginSubmissionContext` |
@@ -473,7 +474,8 @@ intercept(input: PluginSubmission, context: PluginSubmissionContext): PluginSubm
 
 Tipo público del SDK, exportado como `PluginSubmissionOccurrence`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Exact native tool occurrence, never merely a potentially reused tool-call ID.
+Ocurrencia exacta de la herramienta nativa, nunca un simple ID de llamada a herramienta que
+podría reutilizarse.
 
 ```ts
 export type PluginSubmissionOccurrence = Readonly<PluginQuestionOccurrence>;
@@ -528,12 +530,12 @@ export type PluginSubmissionTarget = SubmissionTargetBase & ({
 
 **Índice de miembros** (incluidos los miembros de objetos anidados; los miembros heredados se definen en los tipos base enlazados):
 
-- [type](#pluginsubmissiontarget-type) — 5 signatures/variants
-- [channels](#pluginsubmissiontarget-channels) — 5 signatures/variants
-- [problem](#pluginsubmissiontarget-problem) — 2 signatures/variants
+- [type](#pluginsubmissiontarget-type) — 5 firmas o variantes
+- [channels](#pluginsubmissiontarget-channels) — 5 firmas o variantes
+- [problem](#pluginsubmissiontarget-problem) — 2 firmas o variantes
 - [problem.occurrence](#pluginsubmissiontarget-problemoccurrence)
 - [problem.statement](#pluginsubmissiontarget-problemstatement)
-- [question](#pluginsubmissiontarget-question) — 2 signatures/variants
+- [question](#pluginsubmissiontarget-question) — 2 firmas o variantes
 
 ### PluginSubmissionTarget type
 

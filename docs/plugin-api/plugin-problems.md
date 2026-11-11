@@ -47,7 +47,7 @@ export type NativePluginProblemDefinition = Omit<PluginProblemTypeDefinition, "v
 validateProblem?: (context: PluginProblemValidationContext<any>) => undefined | string[];
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginProblemValidationContext<any>` |
 
@@ -59,7 +59,7 @@ validateProblem?: (context: PluginProblemValidationContext<any>) => undefined | 
 validateSubmission?: (context: PluginProblemSubmissionValidationContext<any, any>) => undefined | string[];
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginProblemSubmissionValidationContext<any, any>` |
 
@@ -71,7 +71,7 @@ validateSubmission?: (context: PluginProblemSubmissionValidationContext<any, any
 processSubmission?: (context: PluginProblemProcessingContext<any, any>) => JsonValue | Promise<JsonValue>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginProblemProcessingContext<any, any>` |
 
@@ -113,7 +113,7 @@ update(props: {
 }): void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `props` | `{         submission: PluginProblemSubmissionState;         active: boolean;     }` |
 
@@ -133,7 +133,7 @@ focus(): void;
 handleKeyDown?(key: PluginQuestionEditorKey): "handled" | "pass";
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `key` | `PluginQuestionEditorKey` |
 
@@ -145,7 +145,7 @@ handleKeyDown?(key: PluginQuestionEditorKey): "handled" | "pass";
 appendTranscript?(text: string): void | Promise<void>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `text` | `string` |
 
@@ -197,7 +197,7 @@ readonly submission: PluginProblemSubmissionState;
 onChange(submission: PluginProblemSubmissionState): void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `submission` | `PluginProblemSubmissionState` |
 
@@ -403,7 +403,7 @@ supportedContractVersions: number[];
 mountSubmissionEditor(container: HTMLElement, context: PluginProblemEditorProps<Q>): PluginProblemEditorHandle | Promise<PluginProblemEditorHandle>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `context` | `PluginProblemEditorProps<Q>` |
@@ -421,7 +421,7 @@ mountSubmitted?(container: HTMLElement, context: PluginProblemMountContext<Q> & 
 }): void | PluginCleanup | Promise<void | PluginCleanup>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `context` | `PluginProblemMountContext<Q> & {         readonly submission: S;         readonly processing?: PluginProblemProcessingOutcome;         readonly headerContainer?: HTMLElement;         /** Generation-owned block after host submission images/thinking. */         readonly footerContainer?: HTMLElement;     }` |
@@ -643,7 +643,7 @@ export type PluginProblemSubmissionState = {
 
 **Índice de miembros** (incluidos los miembros de objetos anidados; los miembros heredados se definen en los tipos base enlazados):
 
-- [status](#pluginproblemsubmissionstate-status) — 2 signatures/variants
+- [status](#pluginproblemsubmissionstate-status) — 2 firmas o variantes
 - [value](#pluginproblemsubmissionstate-value)
 
 ### PluginProblemSubmissionState status
@@ -794,7 +794,7 @@ submissionSchema: S;
 validateProblem?: (context: PluginProblemValidationContext<Static<Q>>) => undefined | string[];
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginProblemValidationContext<Static<Q>>` |
 
@@ -806,7 +806,7 @@ validateProblem?: (context: PluginProblemValidationContext<Static<Q>>) => undefi
 validateSubmission?: (context: PluginProblemSubmissionValidationContext<Static<Q>, Static<S>>) => undefined | string[];
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginProblemSubmissionValidationContext<Static<Q>, Static<S>>` |
 
@@ -818,7 +818,7 @@ validateSubmission?: (context: PluginProblemSubmissionValidationContext<Static<Q
 processSubmission?: (context: PluginProblemProcessingContext<Static<Q>, Static<S>>) => JsonValue | Promise<JsonValue>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginProblemProcessingContext<Static<Q>, Static<S>>` |
 

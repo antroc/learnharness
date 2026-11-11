@@ -31,7 +31,7 @@ type EditorState = {
 
 **Índice de miembros** (incluidos los miembros de objetos anidados; los miembros heredados se definen en los tipos base enlazados):
 
-- [status](#editorstate-status) — 2 signatures/variants
+- [status](#editorstate-status) — 2 firmas o variantes
 - [value](#editorstate-value)
 
 ### EditorState status
@@ -224,7 +224,8 @@ readonly title: string;
 
 ### PluginSessionViewContext messages
 
-Same browser-history visibility as submission context, including streamed content.
+La misma visibilidad del historial del navegador que el contexto de envío, incluido el
+contenido en *streaming*.
 
 ```ts
 readonly messages: readonly Immutable<LhMessage>[];
@@ -232,7 +233,8 @@ readonly messages: readonly Immutable<LhMessage>[];
 
 ### PluginSessionViewContext transcript
 
-The existing host projection, not another consumer-authored transcript parser.
+La proyección existente del host, no otro analizador de transcripciones escrito por el
+consumidor.
 
 ```ts
 readonly transcript: readonly Immutable<LhViewMessage>[];
@@ -348,12 +350,12 @@ export type PluginSessionViewInput = Target<"text"> | (Target<"answer"> & {
 
 **Índice de miembros** (incluidos los miembros de objetos anidados; los miembros heredados se definen en los tipos base enlazados):
 
-- [expanded](#pluginsessionviewinput-expanded) — 5 signatures/variants
-- [revealed](#pluginsessionviewinput-revealed) — 3 signatures/variants
-- [available](#pluginsessionviewinput-available) — 3 signatures/variants
-- [draft](#pluginsessionviewinput-draft) — 4 signatures/variants
-- [draft.thinking](#pluginsessionviewinput-draftthinking) — 3 signatures/variants
-- [input](#pluginsessionviewinput-input) — 2 signatures/variants
+- [expanded](#pluginsessionviewinput-expanded) — 5 firmas o variantes
+- [revealed](#pluginsessionviewinput-revealed) — 3 firmas o variantes
+- [available](#pluginsessionviewinput-available) — 3 firmas o variantes
+- [draft](#pluginsessionviewinput-draft) — 4 firmas o variantes
+- [draft.thinking](#pluginsessionviewinput-draftthinking) — 3 firmas o variantes
+- [input](#pluginsessionviewinput-input) — 2 firmas o variantes
 - [draft.answer](#pluginsessionviewinput-draftanswer)
 - [draft.readingThinking](#pluginsessionviewinput-draftreadingthinking)
 - [draft.submission](#pluginsessionviewinput-draftsubmission)

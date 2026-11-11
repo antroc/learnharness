@@ -102,7 +102,7 @@ is captured once before invocation and remains detached across awaits.
 run(context: PluginActionContext): void | Promise<void>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginActionContext` |
 
@@ -132,8 +132,8 @@ export type PluginActionContext = ({
 
 **Índice de miembros** (incluidos los miembros de objetos anidados; los miembros heredados se definen en los tipos base enlazados):
 
-- [placement](#pluginactioncontext-placement) — 4 signatures/variants
-- [surface](#pluginactioncontext-surface) — 2 signatures/variants
+- [placement](#pluginactioncontext-placement) — 4 firmas o variantes
+- [surface](#pluginactioncontext-surface) — 2 firmas o variantes
 
 ### PluginActionContext placement
 
@@ -185,9 +185,9 @@ export type PluginActionPlacement = {
 
 **Índice de miembros** (incluidos los miembros de objetos anidados; los miembros heredados se definen en los tipos base enlazados):
 
-- [id](#pluginactionplacement-id) — 2 signatures/variants
-- [actionId](#pluginactionplacement-actionid) — 2 signatures/variants
-- [location](#pluginactionplacement-location) — 2 signatures/variants
+- [id](#pluginactionplacement-id) — 2 firmas o variantes
+- [actionId](#pluginactionplacement-actionid) — 2 firmas o variantes
+- [location](#pluginactionplacement-location) — 2 firmas o variantes
 - [sessions](#pluginactionplacement-sessions)
 - [views](#pluginactionplacement-views)
 
@@ -335,7 +335,7 @@ return value. A cleanup registered after expiry is still invoked.
 cleanup(dispose: PluginCleanup): void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `dispose` | `PluginCleanup` |
 
@@ -384,7 +384,7 @@ task outcome and later formatting/delivery are separate.
 createBackgroundTool<T extends TSchema>(context: PluginToolContext, definition: PluginBackgroundTool<T>): AgentTool<T>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginToolContext` |
 | `definition` | `PluginBackgroundTool<T>` |
@@ -400,7 +400,7 @@ prompts. Invalid contributions throw; unregister affects future turns only.
 registerInstructions(contribution: PluginInstructions): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `contribution` | `PluginInstructions` |
 
@@ -416,7 +416,7 @@ plugin's contribution. Returned unregister affects future turns.
 registerTools(contribution: PluginTools): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `contribution` | `PluginTools` |
 
@@ -432,7 +432,7 @@ unregister removes availability and aborts this definition's scope.
 registerQuestionType<Q extends TSchema, A extends TSchema>(definition: PluginQuestionTypeDefinition<Q, A>): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `definition` | `PluginQuestionTypeDefinition<Q, A>` |
 
@@ -448,7 +448,7 @@ availability and aborts this definition's scope, not saved history.
 registerProblemType<Q extends TSchema, S extends TSchema>(definition: PluginProblemTypeDefinition<Q, S>): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `definition` | `PluginProblemTypeDefinition<Q, S>` |
 
@@ -464,7 +464,7 @@ duplicate names throw. Returns unregister; this is not an arbitrary HTTP API.
 handle(name: string, handler: (input: unknown) => unknown | Promise<unknown>): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `name` | `string` |
 | `handler` | `(input: unknown) => unknown \| Promise<unknown>` |
@@ -492,7 +492,7 @@ follows turn persistence, not completion of asynchronous extraction.
 on(listener: (event: ServerEvent) => void): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `listener` | `(event: ServerEvent) => void` |
 
@@ -508,7 +508,7 @@ persistence, replay or acknowledgement of frontend handling is supplied.
 emit(topic: string, data?: unknown): void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `topic` | `string` |
 | `data?` | `unknown` |
@@ -541,7 +541,7 @@ put activation side effects here rather than at module top level.
 activate(context: PluginBackendContext): void | PluginCleanup | Promise<void | PluginCleanup>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginBackendContext` |
 
@@ -645,7 +645,7 @@ fall back to readable source; host-only mountMarkdown does not use this hook.
 mount(container: HTMLElement, block: PluginCodeBlockProps): void | PluginCleanup | Promise<void | PluginCleanup>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `block` | `PluginCodeBlockProps` |
@@ -714,7 +714,7 @@ export interface PluginFrontendContext {
 - [refreshActions](#pluginfrontendcontext-refreshactions)
 - [registerSubmissionInterceptor](#pluginfrontendcontext-registersubmissioninterceptor)
 - [refreshSubmissions](#pluginfrontendcontext-refreshsubmissions)
-- [registerSettings](#pluginfrontendcontext-registersettings) — 3 signatures/variants
+- [registerSettings](#pluginfrontendcontext-registersettings) — 3 firmas o variantes
 - [ui](#pluginfrontendcontext-ui)
 - [registerCodeBlock](#pluginfrontendcontext-registercodeblock)
 - [registerToolRenderer](#pluginfrontendcontext-registertoolrenderer)
@@ -757,7 +757,7 @@ are still invoked. An activation may also return a cleanup function.
 cleanup(dispose: PluginCleanup): void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `dispose` | `PluginCleanup` |
 
@@ -772,7 +772,7 @@ throw; returned unregister removes the view without deleting plugin data.
 registerView(view: PluginView): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `view` | `PluginView` |
 
@@ -788,7 +788,7 @@ default are captured here, not changed by refreshActions.
 registerAction(action: PluginAction): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `action` | `PluginAction` |
 
@@ -803,7 +803,7 @@ or duplicate placement IDs throw. Returns unregister for this placement only.
 placeAction(placement: PluginActionPlacement): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `placement` | `PluginActionPlacement` |
 
@@ -829,7 +829,7 @@ Acceptance, retry and draft-retention rules remain host-owned.
 registerSubmissionInterceptor(definition: PluginSubmissionInterceptor): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `definition` | `PluginSubmissionInterceptor` |
 
@@ -854,7 +854,7 @@ registration is allowed per activation. Mount signal scopes its child UI.
 registerSettings(mount: PluginView["mount"]): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `mount` | `PluginView["mount"]` |
 
@@ -868,7 +868,7 @@ persistence and must publish accepted values after saves.
 registerSettings(schema: import("./plugin-ui.ts").PluginSettingsSchema): import("./plugin-ui.ts").PluginWidgetHandle<import("./plugin-ui.ts").PluginSettingsSchema>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `schema` | `import("./plugin-ui.ts").PluginSettingsSchema` |
 
@@ -881,7 +881,7 @@ Register either a lazy custom mount (unregister function) or controlled schema
 registerSettings(settings: PluginSettingsRegistration): (() => void) | import("./plugin-ui.ts").PluginWidgetHandle<import("./plugin-ui.ts").PluginSettingsSchema>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `settings` | `PluginSettingsRegistration` |
 
@@ -904,7 +904,7 @@ unregister, which aborts existing renderer mounts as well as removing the hook.
 registerCodeBlock(renderer: PluginCodeBlockRenderer): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `renderer` | `PluginCodeBlockRenderer` |
 
@@ -919,7 +919,7 @@ Returns unregister, which aborts existing mounts. Does not register a tool.
 registerToolRenderer(renderer: PluginToolRenderer): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `renderer` | `PluginToolRenderer` |
 
@@ -935,7 +935,7 @@ Returns unregister; host question identity/acceptance remains authoritative.
 registerQuestionRenderer(renderer: PluginQuestionRenderer): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `renderer` | `PluginQuestionRenderer` |
 
@@ -951,7 +951,7 @@ pose, process or conclude a problem by rendering it.
 registerProblemRenderer(renderer: PluginProblemRenderer): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `renderer` | `PluginProblemRenderer` |
 
@@ -968,7 +968,7 @@ arbitrary HTTP access is exposed. Disabling scopes the frontend request.
 call<T = unknown>(operation: string, input?: unknown): Promise<T>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `operation` | `string` |
 | `input?` | `unknown` |
@@ -1010,7 +1010,7 @@ toMarkdown(file: File, options?: {
 }>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `file` | `File` |
 | `options?` | `{             signal?: AbortSignal;         }` |
@@ -1026,7 +1026,7 @@ with activation. Re-read state on resync; no implied durable replay.
 onNotification(listener: (event: PluginNotification) => void): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `listener` | `(event: PluginNotification) => void` |
 
@@ -1042,7 +1042,7 @@ not durable replay or completion of asynchronous extraction.
 onAppEvent(listener: (event: ServerEvent) => void): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `listener` | `(event: ServerEvent) => void` |
 
@@ -1057,7 +1057,7 @@ replayed. Returns unsubscribe and expires with this activation.
 onResync(listener: () => void): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `listener` | `() => void` |
 
@@ -1096,7 +1096,7 @@ Navigate to a native session by ID; does not create or run a session.
 openSession(id: string): void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `id` | `string` |
 
@@ -1120,7 +1120,7 @@ Navigate to this plugin's registered view ID, not another plugin's view.
 openView(id: string): void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `id` | `string` |
 
@@ -1162,7 +1162,7 @@ Module code remains cached; put side effects here, not at module top level.
 activate(context: PluginFrontendContext): void | PluginCleanup | Promise<void | PluginCleanup>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginFrontendContext` |
 
@@ -1294,7 +1294,7 @@ the terminal message rather than treating partial text as success.
 stream(request: PluginInferenceRequest): AsyncIterable<AssistantMessageEvent>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `request` | `PluginInferenceRequest` |
 
@@ -1310,7 +1310,7 @@ message is not necessarily successful. Caller/activation cancellation applies.
 complete(request: PluginInferenceRequest): Promise<AssistantMessage>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `request` | `PluginInferenceRequest` |
 
@@ -1542,7 +1542,7 @@ Transcripts preserve learner answers/thinking not represented by the graph.
 getSession(id: string): ChatRecord | null;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `id` | `string` |
 
@@ -1568,7 +1568,7 @@ Host validation/version guards apply; unknown file names throw.
 readGraphFile<K extends keyof PluginGraphFileData>(name: K): PluginGraphFileData[K];
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `name` | `K` |
 
@@ -1731,7 +1731,7 @@ export type PluginPageActionContext = {
 
 **Índice de miembros** (incluidos los miembros de objetos anidados; los miembros heredados se definen en los tipos base enlazados):
 
-- [surface](#pluginpageactioncontext-surface) — 3 signatures/variants
+- [surface](#pluginpageactioncontext-surface) — 3 firmas o variantes
 - [sessionId](#pluginpageactioncontext-sessionid)
 - [kind](#pluginpageactioncontext-kind)
 - [surfaceTarget](#pluginpageactioncontext-surfacetarget)
@@ -1882,7 +1882,7 @@ Presentation alone does not create pending learner input or run a tool.
 mount(container: HTMLElement, tool: PluginToolRenderProps): void | PluginCleanup | Promise<void | PluginCleanup>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `tool` | `PluginToolRenderProps` |
@@ -2015,7 +2015,7 @@ than replacing host tools. Honor each tool execution's cancellation signal.
 create(context: PluginToolContext): AgentTool<any>[];
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginToolContext` |
 
@@ -2063,7 +2063,7 @@ and scope child UI to this signal, not merely to the longer activation.
 mount(container: HTMLElement, signal: AbortSignal): void | PluginCleanup | Promise<void | PluginCleanup>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `signal` | `AbortSignal` |

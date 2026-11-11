@@ -714,7 +714,7 @@ export type PluginSettingsRow = (PluginSettingsRowBase<boolean> & {
 
 **Índice de miembros** (incluidos los miembros de objetos anidados; los miembros heredados se definen en los tipos base enlazados):
 
-- [type](#pluginsettingsrow-type) — 4 signatures/variants
+- [type](#pluginsettingsrow-type) — 4 firmas o variantes
 - [options](#pluginsettingsrow-options)
 - [min](#pluginsettingsrow-min)
 - [max](#pluginsettingsrow-max)
@@ -829,7 +829,7 @@ onChange: PluginUiCallback<T>;
 validate?: (value: T) => string | undefined;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `value` | `T` |
 
@@ -1091,7 +1091,7 @@ export interface PluginUi {
 - [mountWorkerResult](#pluginui-mountworkerresult)
 - [openMenu](#pluginui-openmenu)
 - [openDialog](#pluginui-opendialog)
-- [openSurface](#pluginui-opensurface) — 2 signatures/variants
+- [openSurface](#pluginui-opensurface) — 2 firmas o variantes
 
 ### PluginUi mountModelPicker
 
@@ -1102,7 +1102,7 @@ Does not change core defaults, silently refresh accounts or choose a fallback.
 mountModelPicker(container: HTMLElement, props: PluginModelPickerProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginModelPickerProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `props` | `PluginModelPickerProps` |
@@ -1119,7 +1119,7 @@ controlled handle; selection alone does not update plugin or core settings.
 mountThinkingPicker(container: HTMLElement, props: PluginThinkingPickerProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginThinkingPickerProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `props` | `PluginThinkingPickerProps` |
@@ -1137,7 +1137,7 @@ Host manages origin, focus and selector lifetime; no graph-write API is added.
 mountKnowledgePicker(container: HTMLElement, props: PluginKnowledgePickerProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginKnowledgePickerProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `props` | `PluginKnowledgePickerProps` |
@@ -1155,7 +1155,7 @@ standalone users coordinate dictation completion themselves.
 mountComposer(container: HTMLElement, props: PluginComposerProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginComposerProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `props` | `PluginComposerProps` |
@@ -1173,7 +1173,7 @@ targets a hidden native composer; recording ownership is per window.
 mountDictation(container: HTMLElement, props: PluginDictationProps, options: PluginWidgetOptions): PluginDictationHandle;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `props` | `PluginDictationProps` |
@@ -1191,7 +1191,7 @@ a controlled handle; replace whole nested control props on update.
 mountStandardComposer(container: HTMLElement, props: PluginStandardComposerProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginStandardComposerProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `props` | `PluginStandardComposerProps` |
@@ -1209,7 +1209,7 @@ reject atomically. onClick does not implicitly persist or dispatch anything.
 mountButton(container: HTMLElement, props: PluginButtonProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginButtonProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `props` | `PluginButtonProps` |
@@ -1226,7 +1226,7 @@ an update/dispose handle; invalid text/color props reject atomically.
 mountBadge(container: HTMLElement, props: PluginBadgeProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginBadgeProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `props` | `PluginBadgeProps` |
@@ -1244,7 +1244,7 @@ pending async saves disable their row and failures are shown.
 mountSettingsRows(container: HTMLElement, props: PluginSettingsSchema, options: PluginWidgetOptions): PluginWidgetHandle<PluginSettingsSchema>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `props` | `PluginSettingsSchema` |
@@ -1262,7 +1262,7 @@ text-update/dispose handle; no model, storage or worker work is started.
 mountMarkdown(container: HTMLElement, props: PluginMarkdownProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginMarkdownProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `props` | `PluginMarkdownProps` |
@@ -1280,7 +1280,7 @@ cleans affected content mounts, so retain drafts in plugin state.
 mountTree(container: HTMLElement, tree: PluginTreeProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginTreeProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `tree` | `PluginTreeProps` |
@@ -1298,7 +1298,7 @@ task. Optional content is signal-scoped and cleaned on replacement/disposal.
 mountWorkerResult(container: HTMLElement, props: PluginWorkerResultProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginWorkerResultProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `props` | `PluginWorkerResultProps` |
@@ -1317,7 +1317,7 @@ call onClose; detached anchors/expired scopes return inert handles.
 openMenu(anchor: HTMLElement, props: PluginMenuProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginMenuProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `anchor` | `HTMLElement` |
 | `props` | `PluginMenuProps` |
@@ -1335,7 +1335,7 @@ Escape and focus; title does not create a visible heading.
 openDialog(props: PluginDialogProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginDialogProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `props` | `PluginDialogProps` |
 | `options` | `PluginWidgetOptions` |
@@ -1352,7 +1352,7 @@ A missing live boundary throws; already-aborted signals return inert handles fir
 openSurface(props: PluginSurfaceProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginSurfaceProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `props` | `PluginSurfaceProps` |
 | `options` | `PluginWidgetOptions` |
@@ -1368,7 +1368,7 @@ covered bodies stay mounted, with host-owned stacking/interaction/focus.
 openSurface(target: PluginSurfaceTarget, props: PluginSurfaceProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginSurfaceProps>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `target` | `PluginSurfaceTarget` |
 | `props` | `PluginSurfaceProps` |
@@ -1425,7 +1425,7 @@ props are validated, invalid updates throw before replacing current props.
 update(props: Partial<Props>): void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `props` | `Partial<Props>` |
 

@@ -179,7 +179,7 @@ supplies request identity and forces background purpose.
 prepare(input: Static<T>, context: PluginToolContext): Omit<PluginWorkerStartOptions, "requestId" | "purpose"> | Promise<Omit<PluginWorkerStartOptions, "requestId" | "purpose">>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `input` | `Static<T>` |
 | `context` | `PluginToolContext` |
@@ -196,7 +196,7 @@ outcome; restart delivery may use persisted fallback without rerunning it.
 format(outcome: PluginTaskOutcome, context: PluginToolContext): PluginBackgroundPresentation | Promise<PluginBackgroundPresentation>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `outcome` | `PluginTaskOutcome` |
 | `context` | `PluginToolContext` |
@@ -251,8 +251,8 @@ export type PluginTaskOutcome = {
 
 **Índice de miembros** (incluidos los miembros de objetos anidados; los miembros heredados se definen en los tipos base enlazados):
 
-- [id](#plugintaskoutcome-id) — 2 signatures/variants
-- [status](#plugintaskoutcome-status) — 2 signatures/variants
+- [id](#plugintaskoutcome-id) — 2 firmas o variantes
+- [status](#plugintaskoutcome-status) — 2 firmas o variantes
 - [result](#plugintaskoutcome-result)
 - [error](#plugintaskoutcome-error)
 
@@ -533,7 +533,7 @@ Create native tools for this accepted task; result submission is host-owned.
 tools?: (context: PluginWorkerContext) => AgentTool<any>[];
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginWorkerContext` |
 
@@ -547,7 +547,7 @@ Throw useful correction feedback. This validator must not have side effects.
 validateResult?: (result: unknown, context: PluginWorkerContext) => void | Promise<void>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `result` | `unknown` |
 | `context` | `PluginWorkerContext` |
@@ -598,7 +598,7 @@ interrupts unfinished tasks for this definition, retaining their records.
 register(definition: PluginWorkerDefinition): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `definition` | `PluginWorkerDefinition` |
 
@@ -615,7 +615,7 @@ missing definitions and acceptance persistence failures throw synchronously.
 start(definitionId: string, options: PluginWorkerStartOptions): PluginTaskSnapshot;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `definitionId` | `string` |
 | `options` | `PluginWorkerStartOptions` |
@@ -642,7 +642,7 @@ makes result authoritative, including falsy JSON results.
 get(id: string): PluginTaskSnapshot;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `id` | `string` |
 
@@ -658,7 +658,7 @@ initial listener throw removes the subscription.
 subscribe(id: string, listener: (snapshot: PluginTaskSnapshot) => void): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `id` | `string` |
 | `listener` | `(snapshot: PluginTaskSnapshot) => void` |
@@ -676,7 +676,7 @@ unknown task ID throws before waiting.
 wait(id: string, signal?: AbortSignal): Promise<PluginTaskOutcome>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `id` | `string` |
 | `signal?` | `AbortSignal` |
@@ -693,7 +693,7 @@ and persistence failures throw.
 cancel(id: string): void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `id` | `string` |
 

@@ -10,8 +10,8 @@ Uso:
         cada bloque en sus ficheros. Un id ausente se deja sin tocar.
 
 Un bloque es un párrafo (líneas no vacías seguidas) fuera de los bloques de código, que no
-es un encabezado ni una línea ya traducida de las frases repetidas (ver PLAN.md) ni una
-línea de índice "- [x](#ancla)…".
+es un encabezado ni una línea ya traducida de las frases repetidas (ver PLAN.md), ni una
+línea de índice "- [x](#ancla)…", ni una tabla de parámetros ("| … |").
 """
 import json
 import re
@@ -21,7 +21,8 @@ YA = (
     "Declaración de apoyo", "Tipo público del SDK", "**Tipos relacionados:**",
     "**Devuelve:**", "**Índice de miembros**", "[Índice de la API]", "<!--",
 )
-INDICE = re.compile(r"^- \[[^\]]+\]\(#[^)]+\)( — declaración de apoyo)?$")
+INDICE = re.compile(
+    r"^- \[.*?\]\(#[^)]+\)( — (declaración de apoyo|[0-9]+ firmas o variantes))?$")
 
 
 def bloques(lineas):
@@ -41,7 +42,7 @@ def bloques(lineas):
                 and not lineas[j].startswith("#"):
             j += 1
         par = lineas[i:j]
-        if not all(x.startswith(YA) or INDICE.match(x) for x in par):
+        if not all(x.startswith(YA) or x.startswith("|") or INDICE.match(x) for x in par):
             res.append((i, j))
         i = j
     return res

@@ -82,7 +82,7 @@ export type PluginQuestionAnnotationRead = {
 
 **Índice de miembros** (incluidos los miembros de objetos anidados; los miembros heredados se definen en los tipos base enlazados):
 
-- [status](#pluginquestionannotationread-status) — 4 signatures/variants
+- [status](#pluginquestionannotationread-status) — 4 firmas o variantes
 - [attempt](#pluginquestionannotationread-attempt)
 - [snapshot](#pluginquestionannotationread-snapshot)
 - [identity](#pluginquestionannotationread-identity)
@@ -309,7 +309,7 @@ export type PluginQuestionAnswerState = {
 
 **Índice de miembros** (incluidos los miembros de objetos anidados; los miembros heredados se definen en los tipos base enlazados):
 
-- [status](#pluginquestionanswerstate-status) — 2 signatures/variants
+- [status](#pluginquestionanswerstate-status) — 2 firmas o variantes
 - [value](#pluginquestionanswerstate-value)
 
 ### PluginQuestionAnswerState status
@@ -508,7 +508,7 @@ update(props: {
 }): void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `props` | `{         answer: PluginQuestionAnswerState;         active: boolean;     }` |
 
@@ -533,7 +533,7 @@ Meta/Ctrl+Enter remains reserved host submission.
 handleKeyDown?(key: PluginQuestionEditorKey): "handled" | "pass";
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `key` | `PluginQuestionEditorKey` |
 
@@ -545,7 +545,7 @@ handleKeyDown?(key: PluginQuestionEditorKey): "handled" | "pass";
 appendTranscript?(text: string): void | Promise<void>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `text` | `string` |
 
@@ -607,7 +607,7 @@ Synchronous publication; stale mount publications are ignored by the host.
 onChange(answer: PluginQuestionAnswerState): void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `answer` | `PluginQuestionAnswerState` |
 
@@ -689,8 +689,8 @@ export type PluginQuestionInput<Q = JsonValue> = {
 
 - [question](#pluginquestioninput-question)
 - [payload](#pluginquestioninput-payload)
-- [type](#pluginquestioninput-type) — 2 signatures/variants
-- [nodeId](#pluginquestioninput-nodeid) — 2 signatures/variants
+- [type](#pluginquestioninput-type) — 2 firmas o variantes
+- [nodeId](#pluginquestioninput-nodeid) — 2 firmas o variantes
 
 ### PluginQuestionInput question
 
@@ -887,7 +887,7 @@ supportedContractVersions: number[];
 mountQuestion?(container: HTMLElement, context: PluginQuestionMountContext<Q>): void | PluginCleanup | Promise<void | PluginCleanup>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `context` | `PluginQuestionMountContext<Q>` |
@@ -900,7 +900,7 @@ mountQuestion?(container: HTMLElement, context: PluginQuestionMountContext<Q>): 
 mountAnswerEditor(container: HTMLElement, context: PluginQuestionEditorProps<Q>): PluginQuestionEditorHandle | Promise<PluginQuestionEditorHandle>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `context` | `PluginQuestionEditorProps<Q>` |
@@ -918,7 +918,7 @@ mountAnswered?(container: HTMLElement, context: PluginQuestionMountContext<Q> & 
 }): void | PluginCleanup | Promise<void | PluginCleanup>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
 | `context` | `PluginQuestionMountContext<Q> & {         readonly answer: A;         readonly grading?: PluginQuestionGradingOutcome;         readonly headerContainer?: HTMLElement;         readonly footerContainer?: HTMLElement;     }` |
@@ -1141,7 +1141,7 @@ description: string;
 validateQuestion?: (context: PluginQuestionValidationContext<Static<Q>>) => undefined | string[];
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginQuestionValidationContext<Static<Q>>` |
 
@@ -1153,7 +1153,7 @@ validateQuestion?: (context: PluginQuestionValidationContext<Static<Q>>) => unde
 validateAnswer?: (context: PluginQuestionAnswerValidationContext<Static<Q>, Static<A>>) => undefined | string[];
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginQuestionAnswerValidationContext<Static<Q>, Static<A>>` |
 
@@ -1165,7 +1165,7 @@ validateAnswer?: (context: PluginQuestionAnswerValidationContext<Static<Q>, Stat
 gradeAnswer?: (context: PluginQuestionGradingContext<Static<Q>, Static<A>>) => JsonValue | Promise<JsonValue>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `context` | `PluginQuestionGradingContext<Static<Q>, Static<A>>` |
 
@@ -1233,7 +1233,7 @@ export type PluginQuestionValidationResult<T> = {
 
 **Índice de miembros** (incluidos los miembros de objetos anidados; los miembros heredados se definen en los tipos base enlazados):
 
-- [ok](#pluginquestionvalidationresult-ok) — 2 signatures/variants
+- [ok](#pluginquestionvalidationresult-ok) — 2 firmas o variantes
 - [value](#pluginquestionvalidationresult-value)
 - [problems](#pluginquestionvalidationresult-problems)
 

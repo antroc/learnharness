@@ -88,8 +88,8 @@ export interface PluginAgentInputOptions {
 
 ### PluginAgentInputOptions requestId
 
-Retry an accepted action with the same identity to avoid accepting it twice;
-a new action needs a new ID. This does not guarantee exactly-once external effects.
+Reintenta una acción aceptada con la misma identidad para no aceptarla dos veces;
+una acción nueva necesita un ID nuevo. Esto no garantiza efectos externos exactamente una vez.
 
 ```ts
 requestId: string;
@@ -97,8 +97,8 @@ requestId: string;
 
 ### PluginAgentInputOptions purpose
 
-Initiation/consent classification, not view visibility. Defaults to user for
-send/answer and background for run; classify automatic work explicitly.
+Clasificación de iniciación y consentimiento, no de visibilidad en la vista. Por defecto es
+user para send/answer y background para run; clasifica explícitamente el trabajo automático.
 
 ```ts
 purpose?: PluginCallPurpose;
@@ -194,7 +194,7 @@ error?: string;
 
 ### PluginAgentRecord acceptedInputs
 
-Accepted input identities prevent a retried submission running twice.
+Las identidades de entrada aceptadas impiden que un envío reintentado se ejecute dos veces.
 
 ```ts
 acceptedInputs: string[];
@@ -204,9 +204,10 @@ acceptedInputs: string[];
 
 Tipo público del SDK, exportado como `PluginAgentService`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Plugin-owned persistent conversations, independent of frontend views. Model
-execution can incur cost. Re-register compatible definitions after activation;
-restart interrupts running work rather than replaying tools automatically.
+Conversaciones persistentes propiedad del plugin, independientes de las vistas del
+frontend. La ejecución del modelo puede tener coste. Vuelve a registrar definiciones
+compatibles tras la activación; un reinicio interrumpe el trabajo en curso en lugar de
+volver a ejecutar herramientas automáticamente.
 
 ```ts
 export interface PluginAgentService {
@@ -240,15 +241,16 @@ export interface PluginAgentService {
 
 ### PluginAgentService register
 
-Register instructions, model and tools for a definition ID. Invalid/duplicate
-definitions throw. Returns an unregister function that cooperatively cancels
-that definition's active runs without deleting saved conversations.
+Registra instrucciones, modelo y herramientas para un ID de definición. Las definiciones no
+válidas o duplicadas lanzan una excepción. Devuelve una función para anular el registro que
+cancela cooperativamente las ejecuciones activas de esa definición sin borrar las
+conversaciones guardadas.
 
 ```ts
 register(definition: PluginAgentDefinition): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `definition` | `PluginAgentDefinition` |
 
@@ -256,14 +258,15 @@ register(definition: PluginAgentDefinition): () => void;
 
 ### PluginAgentService create
 
-Persist an empty idle conversation and return its detached snapshot; no model
-request starts. Throws if the definition is unavailable or persistence fails.
+Persiste una conversación vacía e inactiva y devuelve su instantánea independiente; no se
+inicia ninguna petición al modelo. Lanza una excepción si la definición no está disponible o
+falla la persistencia.
 
 ```ts
 create(definitionId: string): PluginAgentSnapshot;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `definitionId` | `string` |
 
@@ -271,8 +274,8 @@ create(definitionId: string): PluginAgentSnapshot;
 
 ### PluginAgentService list
 
-Return detached snapshots of this plugin's conversations, including current
-ephemeral partials. Does not run, resume or subscribe to any conversation.
+Devuelve instantáneas independientes de las conversaciones de este plugin, incluidos los
+parciales efímeros actuales. No ejecuta, reanuda ni se suscribe a ninguna conversación.
 
 ```ts
 list(): PluginAgentSnapshot[];
@@ -282,14 +285,14 @@ list(): PluginAgentSnapshot[];
 
 ### PluginAgentService get
 
-Read one detached snapshot, including any current partial. Unknown IDs throw;
-a returned partial is progress, not committed history.
+Lee una instantánea independiente, incluido cualquier parcial actual. Los ID desconocidos
+lanzan una excepción; un parcial devuelto es progreso, no historial confirmado.
 
 ```ts
 get(id: string): PluginAgentSnapshot;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `id` | `string` |
 
@@ -297,16 +300,17 @@ get(id: string): PluginAgentSnapshot;
 
 ### PluginAgentService send
 
-Persist explicit nonblank user text and launch execution. Resolves after
-acceptance, not completion; observe later status/errors with get/subscribe.
-An already accepted requestId returns current state without another input.
-Rejects busy sessions, unresolved external inputs and acceptance/storage errors.
+Persiste texto explícito y no vacío del usuario y lanza la ejecución. Se resuelve tras la
+aceptación, no al terminar; observa después el estado y los errores con get/subscribe.
+Un requestId ya aceptado devuelve el estado actual sin otra entrada.
+Rechaza las sesiones ocupadas, las entradas externas sin resolver y los errores de
+aceptación o almacenamiento.
 
 ```ts
 send(id: string, text: string, options: PluginAgentInputOptions): Promise<PluginAgentSnapshot>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `id` | `string` |
 | `text` | `string` |
@@ -316,16 +320,17 @@ send(id: string, text: string, options: PluginAgentInputOptions): Promise<Plugin
 
 ### PluginAgentService answer
 
-Validate and persist one pending input-tool result. Invalid answers are not
-saved; the final required answer launches continuation. Resolves to accepted
-state, not model completion; accepted request IDs do not submit twice.
-Missing inputs/definitions, busy sessions and validation/storage failures reject.
+Valida y persiste el resultado de una herramienta de entrada pendiente. Las respuestas no
+válidas no se guardan; la última respuesta requerida lanza la continuación. Se resuelve con
+el estado aceptado, no al terminar el modelo; los ID de petición aceptados no se envían dos
+veces. Las entradas o definiciones inexistentes, las sesiones ocupadas y los fallos de
+validación o almacenamiento producen un rechazo.
 
 ```ts
 answer(id: string, toolCallId: string, value: unknown, options: PluginAgentInputOptions): Promise<PluginAgentSnapshot>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `id` | `string` |
 | `toolCallId` | `string` |
@@ -336,16 +341,17 @@ answer(id: string, toolCallId: string, value: unknown, options: PluginAgentInput
 
 ### PluginAgentService run
 
-Resume existing runnable persisted input without appending a synthetic prompt.
-Resolves after acceptance, not completion; accepted request IDs return current
-state. Rejects pending external inputs, unsafe unresolved tool batches, busy
-sessions or history with no runnable input; use send for a new explicit task.
+Reanuda una entrada persistida existente que pueda ejecutarse sin añadir un prompt
+sintético. Se resuelve tras la aceptación, no al terminar; los ID de petición aceptados
+devuelven el estado actual. Rechaza las entradas externas pendientes, los lotes de
+herramientas sin resolver que no sean seguros, las sesiones ocupadas o el historial sin
+entrada ejecutable; usa send para una tarea explícita nueva.
 
 ```ts
 run(id: string, options: PluginAgentInputOptions): Promise<PluginAgentSnapshot>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `id` | `string` |
 | `options` | `PluginAgentInputOptions` |
@@ -354,15 +360,16 @@ run(id: string, options: PluginAgentInputOptions): Promise<PluginAgentSnapshot>;
 
 ### PluginAgentService abort
 
-Request cooperative cancellation of an active run, retaining messages/pending
-inputs. Idle runs are unchanged. Does not await uncooperative tool code or undo
-external effects; unknown IDs and persistence failures throw.
+Solicita la cancelación cooperativa de una ejecución activa, conservando los mensajes y las
+entradas pendientes. Las ejecuciones inactivas no cambian. No espera al código de
+herramientas que no coopere ni deshace efectos externos; los ID desconocidos y los fallos
+de persistencia lanzan una excepción.
 
 ```ts
 abort(id: string): void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `id` | `string` |
 
@@ -370,15 +377,16 @@ abort(id: string): void;
 
 ### PluginAgentService subscribe
 
-Deliver a detached snapshot synchronously, then live state/progress changes.
-Returns an unsubscribe function; unsubscribing never cancels execution.
-Unknown IDs throw; an initial listener throw removes the subscription.
+Entrega una instantánea independiente de forma síncrona y, después, los cambios en vivo de
+estado y progreso. Devuelve una función para cancelar la suscripción; cancelarla nunca
+cancela la ejecución. Los ID desconocidos lanzan una excepción; si el listener lanza una
+excepción en la entrega inicial, se elimina la suscripción.
 
 ```ts
 subscribe(id: string, listener: (snapshot: PluginAgentSnapshot) => void): () => void;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `id` | `string` |
 | `listener` | `(snapshot: PluginAgentSnapshot) => void` |
@@ -387,9 +395,10 @@ subscribe(id: string, listener: (snapshot: PluginAgentSnapshot) => void): () => 
 
 ### PluginAgentService dispose
 
-Cooperatively cancel owned runs and release definitions/listeners, retaining
-persisted records. Idempotent; does not wait for uncooperative plugin code.
-Rejects on cancellation persistence failure. Host disable also disposes.
+Cancela cooperativamente las ejecuciones propias y libera definiciones y listeners,
+conservando los registros persistidos. Es idempotente; no espera al código del plugin que no
+coopere. Se rechaza si falla la persistencia de la cancelación. Desactivar el plugin en el
+host también lo libera.
 
 ```ts
 dispose(): Promise<void>;
@@ -415,7 +424,7 @@ export interface PluginAgentSnapshot extends PluginAgentRecord {
 
 ### PluginAgentSnapshot partial
 
-Ephemeral response-so-far; never confused with committed history.
+Respuesta efímera hasta el momento; nunca se confunde con el historial confirmado.
 
 ```ts
 partial?: AssistantMessage;
@@ -452,9 +461,9 @@ export type PluginAgentTool = {
 - [prepareArguments](#pluginagenttool-preparearguments)
 - [resultSchema](#pluginagenttool-resultschema)
 - [formatResult](#pluginagenttool-formatresult)
-- [kind](#pluginagenttool-kind) — 2 signatures/variants
-- [execute](#pluginagenttool-execute) — 2 signatures/variants
-- [endRun](#pluginagenttool-endrun) — 2 signatures/variants
+- [kind](#pluginagenttool-kind) — 2 firmas o variantes
+- [execute](#pluginagenttool-execute) — 2 firmas o variantes
+- [endRun](#pluginagenttool-endrun) — 2 firmas o variantes
 
 ### PluginAgentTool name
 
@@ -492,7 +501,7 @@ resultSchema?: TSchema;
 formatResult?: (value: unknown) => AgentToolResult<unknown>;
 ```
 
-| Parameter | Type |
+| Parámetro | Tipo |
 | --- | --- |
 | `value` | `unknown` |
 
@@ -500,7 +509,7 @@ formatResult?: (value: unknown) => AgentToolResult<unknown>;
 
 ### PluginAgentTool kind
 
-Declarative external input is persisted, never a suspended Promise.
+La entrada externa declarativa se persiste; nunca es una Promise suspendida.
 
 ```ts
 kind: "input";
@@ -526,7 +535,7 @@ execute: AgentTool<any>["execute"];
 endRun?: never;
 ```
 
-A successful ordinary tool may return its result and pause the run.
+Una herramienta ordinaria que termina bien puede devolver su resultado y pausar la ejecución.
 
 ```ts
 endRun?: boolean;
