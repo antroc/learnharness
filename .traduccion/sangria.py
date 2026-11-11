@@ -1,5 +1,7 @@
 """Copia la sangría (tabs/espacios iniciales) de las líneas de continuación de los
-bloques /* */ originales a las traducidas. Uso: python3 sangria.py BASE  (BASE.txt, BASE.es.txt)"""
+bloques /* */ originales a las traducidas. Si el original era de UNA sola línea y la
+traducción ocupa varias, toma los tabs de la línea del fichero fuente (sesión 9).
+Ejecutar desde la raíz del repo. Uso: python3 sangria.py BASE  (BASE.txt, BASE.es.txt)"""
 import re, sys
 
 def parse(path):
@@ -29,6 +31,11 @@ for k, header in order:
         for l in lines[1:]:
             new.append(ind + l.lstrip("\t"))
         lines = new
+    elif lines and lines[0].lstrip().startswith("/*") and len(o) == 1 and len(lines) > 1:
+        m = re.match(r"^@@ \S+ (.+):(\d+)", header)
+        src = open(m.group(1), encoding="utf-8").read().split("\n")[int(m.group(2)) - 1]
+        ind = re.match(r"^\t*", src).group(0)
+        lines = [lines[0]] + [ind + l.lstrip("\t") for l in lines[1:]]
     res.append(header)
     res.extend(lines)
 open(base + ".es.txt", "w", encoding="utf-8").write("\n".join(res) + "\n")

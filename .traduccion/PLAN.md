@@ -94,6 +94,21 @@ python3 .traduccion/sangria.py /tmp/C1     # copia los tabs del original a las c
 node .traduccion/comentarios.cjs aplicar /tmp/C1
 ```
 
+Desde la sesión 9, `sangria.py` también sangra las continuaciones de un `/** */` que en el
+original ocupaba UNA sola línea y en la traducción ocupa varias (toma los tabs de la línea
+del fichero fuente; hay que ejecutarlo desde la raíz del repo).
+
+Reutilizar la prosa ya traducida de `docs/plugin-api/` (JSDoc públicos):
+
+```bash
+git fetch --depth 1 origin main                        # deja la versión inglesa en FETCH_HEAD
+python3 .traduccion/mapa_api.py /tmp/mapa.json         # párrafo inglés → párrafo traducido
+python3 .traduccion/sugerir_api.py /tmp/mapa.json /tmp/C1   # → /tmp/C1.sug.txt con las coincidencias
+```
+
+`/tmp/C1.sug.txt` trae, por id, la prosa traducida (sin `/** */` ni saltos de línea): hay que
+envolverla en el formato del comentario al escribir `/tmp/C1.es.txt`.
+
 ## Lotes y estado
 
 Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
@@ -107,8 +122,8 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 | C1 | Comentarios: `src/core/contracts`, `src/store`, `src/server/pi`, `src/agent` (sin subagents) | 86 | 28.518 | [x] |
 | C2 | Comentarios: `src/agent/subagents`, `src/server` | 59 | 30.924 | [x] |
 | C3 | Comentarios: `src/core` (1ª mitad) | 38 | 21.353 | [x] |
-| C4 | Comentarios: `src/core` (2ª mitad) | 30 | 21.060 | [~] parcial |
-| C5 | Comentarios: `components/*` raíz (1ª mitad) | 37 | 32.633 | [ ] |
+| C4 | Comentarios: `src/core` (2ª mitad) | 30 | 21.060 | [x] |
+| C5 | Comentarios: `components/*` raíz (1ª mitad) | 37 | 32.633 | [~] parcial |
 | C6 | Comentarios: `components/*` raíz (2ª mitad) | 89 | 31.871 | [ ] |
 | C7 | Comentarios: `components/{settings,artifacts,ui,ai-elements}`, `app`, `electron`, `scripts`, `plugins`, configuración | 201 | 33.875 | [ ] |
 | C8 | Comentarios: `tests/` (1ª mitad) | 124 | 23.181 | [ ] |
@@ -276,3 +291,28 @@ falsos positivos).
   C4 pendiente: líneas 8–30 de `.traduccion/lotes/C4.txt` (desde src/core/plugins.ts).
   Ficheros grandes (palabras de comentario): settings.ts (≈3.300), question-core.ts (≈2.700),
   render-settings.ts (≈1.800), plugins.ts (≈1.800), view.ts (≈1.650), ports.ts (≈1.350).
+- Sesión 9: C4 terminado: líneas 8–30 de `.traduccion/lotes/C4.txt` en siete tandas con su
+  commit (plugins.ts solo; ports.ts solo; practice-problems…prompt-segments +
+  proposition-candidates + search…settings-resolution; view.ts solo; question-core.ts solo;
+  render-settings.ts solo; settings.ts solo; side-chat…value-debris). Los JSDoc que ya
+  estaban en `docs/plugin-api/` se copiaron de su prosa (82 de 84 en plugins.ts; 6 en view.ts,
+  4 en settings.ts, 1 en question-core.ts) con las herramientas nuevas `mapa_api.py` y
+  `sugerir_api.py`; `sangria.py` ampliado (ver arriba). No había directivas
+  `turbopackIgnore` en estos ficheros ni referencias a encabezados de docs traducidos.
+  Literales que se dejan en inglés: "Check your understanding", "Your thinking", "I don't
+  know", "Other", "Why", "Quiz", Probe/Recall, "skipped", "Question posed", "Abort failed",
+  "Sessions", Cite; los nombres de temas (Catppuccin, Rosé Pine…) y sus colores con nombre.
+  El concepto de UI *Thinking* de los plugins se escribe «Thinking».
+  Glosario añadido en la práctica: *override* → sustitución; *slot* → ranura; *sanitizer* →
+  saneador; *clamp* → acotar; *floor/ceiling* → suelo/techo; *factory default* → valor de
+  fábrica; *debris* → restos; *wobble* → titubeo; *ladder* → escalera (de valores);
+  *detent* → muesca; *splat* → salpicado; *blit* → volcado; *bake* → consolidación;
+  *commitment* (explain) → compromiso; *reveal* → revelación; *check* (rol de pregunta) →
+  comprobación; *blob* (dock de actividad) → burbuja; *nudge* → empujón; *barrel* → barril;
+  *quiz* se deja como quiz.
+  C5 empezado: líneas 1–7 y 10–17 de `.traduccion/lotes/C5.txt` (abort-turn-dialog…
+  chain-navigation; citation-actions…composer-actions).
+  C5 pendiente: líneas 8–9 y 18–37 de `.traduccion/lotes/C5.txt`. Ficheros grandes (palabras
+  de comentario): chat.tsx (≈9.700, conviene partirlo por ids en 2–3 tandas), graph-canvas.ts
+  (≈5.100), graph-view.tsx (≈4.400), dictation.tsx (≈2.600), chain-table.tsx (≈1.550),
+  home.tsx, extraction-coverage.tsx (≈1.000 cada uno).
