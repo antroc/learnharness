@@ -14,57 +14,60 @@ import { annotationPlacementProblem } from "./annotation-svg.ts";
 import { getHeadless, type HeadlessApi } from "./headless.ts";
 
 /**
- * The visual-maker sub-agent (vision §2.5): authors ONE precise SVG from a
- * brief, renders it to a PNG with the same rasterizer the transcript
- * will use, LOOKS at the
- * result, and iterates until correct — a direct port of the vault POC's
- * svg-maker doctrine ("the one rule that matters: verify by looking").
+ * El subagente visual-maker (visión §2.5): crea UN SVG preciso a partir de un
+ * encargo, lo renderiza a PNG con el mismo rasterizador que usará la
+ * transcripción, MIRA el resultado e itera hasta que es correcto; una
+ * adaptación directa de la doctrina svg-maker de la prueba de concepto del
+ * vault ("the one rule that matters: verify by looking").
  *
- * LOOP SHAPE (decided in the W6 brief): hand-rolled with generateText + a
- * messages array, because the loop must feed an IMAGE back to the model after
- * each render. write_svg / render_svg are declared WITHOUT execute — when the
- * model calls them generateText stops with the tool calls, and this loop
- * appends the tool results itself, followed by a user message containing the
- * rendered PNG as a file part ("Here is the current render"). ToolLoopAgent's
- * execute-tool plumbing can't express that image-in-the-loop shape cleanly.
+ * FORMA DEL BUCLE (decidida en el informe W6): hecho a mano con generateText +
+ * un array de mensajes, porque el bucle debe devolver una IMAGEN al modelo
+ * después de cada renderizado. write_svg / render_svg se declaran SIN execute:
+ * cuando el modelo las llama, generateText se detiene con las llamadas a
+ * herramientas y este bucle añade él mismo los resultados, seguidos de un
+ * mensaje de usuario que contiene el PNG renderizado como parte de fichero
+ * ("Here is the current render"). La fontanería de execute de ToolLoopAgent no
+ * puede expresar limpiamente esa forma de imagen dentro del bucle.
  *
- * Doctrine enforcement in code: if the model tries to finish while the
- * current SVG has never been rendered (or changed since its last render), the
- * loop renders it anyway, shows the image, and asks the model to look before
- * finishing. Nothing is delivered without having been looked at.
+ * Aplicación de la doctrina en el código: si el modelo intenta terminar
+ * mientras el SVG actual no se ha renderizado nunca (o ha cambiado desde su
+ * último renderizado), el bucle lo renderiza de todos modos, muestra la imagen
+ * y pide al modelo que la mire antes de terminar. No se entrega nada sin
+ * haberlo mirado.
  *
- * Failure semantics mirror the demo-builder: { svg: "", notes: "FAILED: …" }.
+ * La semántica de fallo refleja la del demo-builder: { svg: "", notes: "FAILED: …" }.
  *
- * IMAGE MODE (issue #363): with a learner image the maker annotates it
- * instead. The model sees the picture and places it with a placeholder
- * href (LEARNER_IMAGE_HREF); the loop embeds bytes only for rendering.
- * Delivered SVGs retain the placeholder and a session snapshot reference.
- * The maker receives native image content, never base64 in SVG text/edits.
+ * MODO IMAGEN (issue #363): con una imagen del alumno, el maker la anota. El
+ * modelo ve la imagen y la coloca con un href provisional
+ * (LEARNER_IMAGE_HREF); el bucle incrusta los bytes solo para renderizar. Los
+ * SVG entregados conservan el marcador provisional y una referencia a una
+ * instantánea de la sesión. El maker recibe contenido de imagen nativo, nunca
+ * base64 en el texto o las ediciones del SVG.
  */
 
 export interface VisualMakerInput {
 	brief: string;
-	/** The learner image to annotate, already bounded for storage. */
+	/** La imagen del alumno que hay que anotar, ya acotada para el almacenamiento. */
 	image?: LearnerImage;
 }
 
-/** The placeholder href the model gives the learner's picture. */
+/** El href provisional que el modelo da a la imagen del alumno. */
 export { LEARNER_IMAGE_HREF };
 
 export interface VisualMakerOptions {
-	/** Test seam: scripted engine; production uses the visualMaker role. */
+	/** Frontera de pruebas: motor con guion; en producción se usa el rol visualMaker. */
 	engine?: PiEngine;
 	headless?: HeadlessApi;
-	/** Max model rounds (write/render cycles + final answer). Default 8. */
+	/** Máximo de rondas del modelo (ciclos de escritura/renderizado + respuesta final). Por defecto, 8. */
 	maxIterations?: number;
-	/** Live activity-line callback (updates the job record). */
+	/** Callback de la línea de actividad en vivo (actualiza el registro de la tarea). */
 	onActivity?: (line: string) => void;
-	/** Kills the run mid-model-call (2026-09 real-kill abort semantics). */
+	/** Mata la ejecución en mitad de una llamada al modelo (semántica de cancelación con terminación real de 2026-09). */
 	abortSignal?: AbortSignal;
-	/** Money channel: one call per loop iteration (streamSimple), folded
-	 * into JobRecord.usage. */
+	/** Canal del dinero: una llamada por iteración del bucle (streamSimple),
+	 * sumada a JobRecord.usage. */
 	onUsage?: (usage: Usage) => void;
-	/** Debug: raw provider-event recording key (LH_PROVIDER_EVENTS=1). */
+	/** Depuración: clave de grabación de eventos en bruto del proveedor (LH_PROVIDER_EVENTS=1). */
 	chatId?: string;
 }
 
@@ -127,9 +130,10 @@ figure is that picture with marks on it, not a new drawing:
 - If a feature the brief names is not in the picture, never guess where it is: leave it unmarked and say
   so in your notes.`;
 
-/** The wire declarations (pi-ai Tool, TypeBox parameters): this loop owns
- *  execution itself — write/edit dispatch inline below, render feeds the
- *  image-in-the-loop message — so the declarations carry no execute. */
+/** Las declaraciones que van por la red (Tool de pi-ai, parámetros TypeBox):
+ *  este bucle se encarga él mismo de la ejecución (write/edit se despachan en
+ *  línea más abajo y render alimenta el mensaje con la imagen en el bucle),
+ *  así que las declaraciones no llevan execute. */
 export function createVisualTools(): Record<string, Tool> {
 	return {
 		write_svg: {
@@ -174,8 +178,8 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 	const tools = createVisualTools();
 	const toolDeclarations = Object.values(tools);
 	const engine = opts.engine ?? piEngineFor("visualMaker");
-	// BYOK (owner, 2026-09-22): the level rides the injected engine — no
-	// factory pin to consult (engine.level is the resolved/clamped value).
+	// BYOK (responsable, 2026-09-22): el nivel viaja con el motor inyectado; no hay
+	// fijación de fábrica que consultar (engine.level es el valor resuelto/acotado).
 	const reasoning = engine.level;
 	const sessionId = randomUUID();
 	const capture = createBackgroundCapture({ role: "visualMaker", runId: sessionId, sourceId: opts.chatId });
@@ -213,25 +217,25 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 			},
 		];
 	}
-	/** Render-only embedding; persisted SVGs keep the small placeholder. */
+	/** Incrustación solo para renderizar; los SVG persistidos conservan el pequeño marcador provisional. */
 	const embed = (svg: string): string => learnerImage ? embedLearnerImage(svg, learnerImage) : svg;
 	const render = (svg: string) => headless.renderSvg(embed(svg), learnerImage ? { nativeOnly: true } : undefined);
-	/** Image mode: the problem with an SVG that doesn't place the picture
-	 *  exactly once (null = fine, and always fine without an image). */
+	/** Modo imagen: el problema de un SVG que no coloca la imagen exactamente una
+	 *  vez (null = correcto, y siempre correcto si no hay imagen). */
 	const placementProblem = (svg: string): string | null => {
 		if (!learnerImage) return null;
 		return annotationPlacementProblem(svg, learnerImage.width, learnerImage.height);
 	};
 	let currentSvg: string | null = null;
-	/** The svg shown in the most recent render (null = never rendered). */
+	/** El SVG mostrado en el renderizado más reciente (null = nunca renderizado). */
 	let renderedSvg: string | null = null;
 	let finalText = "";
 	let captureError: unknown;
 
 	try {
 		for (let iteration = 0; iteration < maxIterations; iteration++) {
-			// One model call per iteration (streamSimple, no agent loop — this
-			// loop owns tool execution and the image-in-the-loop injection).
+			// Una llamada al modelo por iteración (streamSimple, sin bucle de agente: este
+			// bucle se encarga de ejecutar las herramientas y de inyectar la imagen en el bucle).
 			const result = await streamOnce(
 				streamEngine,
 				systemPrompt,
@@ -243,7 +247,7 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 				opts.chatId ? providerEventObserver(opts.chatId, "job:visualMaker") : undefined,
 				capture,
 			);
-			// Money channel: each iteration is one model call.
+			// Canal del dinero: cada iteración es una llamada al modelo.
 			opts.onUsage?.(result.usage);
 			messages = [...messages, result];
 
@@ -254,9 +258,9 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 					.map((c) => c.text)
 					.join("")
 					.trim();
-				// Doctrine gate: never deliver an unlooked SVG. If the current SVG
-				// changed since its last render (or was never rendered), show it now
-				// and make the model look before accepting the finish.
+				// Barrera de doctrina: nunca se entrega un SVG sin mirar. Si el SVG actual cambió
+				// desde su último renderizado (o nunca se renderizó), se muestra ahora y se
+				// obliga al modelo a mirarlo antes de aceptar que termine.
 				if (currentSvg && renderedSvg !== currentSvg) {
 					let png: Buffer;
 					try {
@@ -287,7 +291,7 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 			}
 
 			const toolResults: ToolResultMessage[] = [];
-			let renderImage: Extract<ProcessImageResult, { ok: true }> | null = null; // appended AFTER the tool results
+			let renderImage: Extract<ProcessImageResult, { ok: true }> | null = null; // se añade DESPUÉS de los resultados de las herramientas
 			for (const call of toolCalls) {
 				if (call.name === "write_svg") {
 					const svg = (call.arguments as { svg?: unknown }).svg;
@@ -362,7 +366,7 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 					toolResults.push(toolText(call.id, call.name, `ERROR: unknown tool "${call.name}". Use write_svg, edit_svg, or render_svg.`));
 				}
 			}
-			// Message order: assistant tool-calls → tool results → render image.
+			// Orden de los mensajes: llamadas a herramientas del asistente → resultados → imagen renderizada.
 			for (const result of toolResults) capture?.toolResult(result);
 			messages = [...messages, ...toolResults];
 			if (renderImage) {
@@ -387,7 +391,7 @@ export async function runVisualMaker(input: VisualMakerInput, opts: VisualMakerO
 		capture?.finish(captureError);
 	}
 
-	// Iteration limit: deliver the last written SVG only if it was looked at.
+	// Límite de iteraciones: se entrega el último SVG escrito solo si se miró.
 	if (currentSvg && renderedSvg === currentSvg) {
 		return finish(currentSvg, finalText || "Iteration limit reached — delivering the last verified SVG.", learnerImage);
 	}
@@ -405,9 +409,10 @@ function toolText(toolCallId: string, toolName: string, value: string): ToolResu
 	};
 }
 
-/** One raw model call (no agent loop): drain the event stream to the final
- *  AssistantMessage; provider errors and aborts throw so the loop's catch
- *  path keeps its old generateText semantics. */
+/** Una llamada al modelo en bruto (sin bucle de agente): consume el flujo de
+ *  eventos hasta el AssistantMessage final; los errores del proveedor y las
+ *  cancelaciones lanzan para que la ruta catch del bucle mantenga la antigua
+ *  semántica de generateText. */
 async function streamOnce(
 	engine: PiEngine,
 	systemPrompt: string,
@@ -419,9 +424,9 @@ async function streamOnce(
 	onProviderStreamEvent?: ProviderEventObserver,
 	capture?: BackgroundCapture,
 ): Promise<AssistantMessage> {
-	// 0.87.1: provider-facing contexts are TranscriptContexts — the prompt
-	// and tool declarations fold into a leading system message.
-	// normalizeContext is the library's only Context→TranscriptContext entry.
+	// 0.87.1: los contextos de cara al proveedor son TranscriptContexts; el prompt
+	// y las declaraciones de herramientas se pliegan en un mensaje de sistema inicial.
+	// normalizeContext es la única entrada de la biblioteca de Context→TranscriptContext.
 	const stream = engine.streamFn(engine.model, normalizeContext({ systemPrompt, messages, tools }), {
 		sessionId,
 		reasoning: reasoning && reasoning !== "off" ? reasoning : undefined,
@@ -443,9 +448,9 @@ async function streamOnce(
 	throw new Error("the model stream ended without a result");
 }
 
-/** A 3-line numbered context window around the closest fuzzy match for a
- *  failed edit — enough for the model to see what went wrong and retry
- *  (the pi svg_tools snippetAround semantics). */
+/** Una ventana de contexto numerada de 3 líneas alrededor de la coincidencia
+ *  aproximada más cercana de una edición fallida: suficiente para que el modelo
+ *  vea qué salió mal y reintente (la semántica de snippetAround de svg_tools de pi). */
 function snippetAround(svg: string, target: string): string {
 	const words = target.trim().split(/\s+/).filter(Boolean);
 	if (words.length === 0) return "(empty old_text)";

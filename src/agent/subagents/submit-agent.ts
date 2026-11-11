@@ -1,10 +1,11 @@
 /**
- * runSubmitAgent — the shared single-submit agent seam (moved verbatim from
- * extraction.ts): one TypeBox-validated submit
- * call is the whole deliverable (a pi agent purely so the model can retry a
- * schema-invalid call). The submitted value is captured from the execute
- * seam, which only fires on a schema-valid call — the ??-fill (the old zod
- * defaults) applies at the capture.
+ * runSubmitAgent: la frontera compartida del agente de un solo submit
+ * (movida tal cual desde extraction.ts): una llamada submit validada con
+ * TypeBox es todo el entregable (un agente pi solo para que el modelo pueda
+ * reintentar una llamada que no cumple el esquema). El valor enviado se
+ * captura en la frontera de execute, que solo se dispara con una llamada que
+ * cumple el esquema; el relleno ?? (los antiguos valores por defecto de zod)
+ * se aplica en la captura.
  */
 
 import type { Usage } from "@earendil-works/pi-ai";
@@ -17,18 +18,18 @@ import { runSubagent } from "./pi-run.ts";
 import { healToolRecord } from "../tools/heal.ts";
 import { healEncodedArguments } from "../../core/argument-heal.ts";
 
-// ── the weak-model string-heal (owner, 2026-09-28; moved here from
-// extraction.ts with the digest-aware redesign, 2026-09-30 — the heal
-// is wire-format medicine shared by every submit agent) ──
+// ── la reparación de cadenas de los modelos débiles (responsable, 2026-09-28;
+// movida aquí desde extraction.ts con el rediseño consciente del resumen, 2026-09-30;
+// la reparación es una medicina del formato de red que comparten todos los agentes de submit) ──
 //
-// OpenRouter log evidence: weak models under a big submit payload often
-// emit a whole array as ONE JSON-STRING instead of a native array
-// ("propositions.0: must be object"). pi-agent-core runs
-// `prepareArguments` BEFORE TypeBox validation — the sanctioned shim
-// point (same doctrine as restoreMathEscapes at the display seam: heal
-// weak-model wire behavior, don't punish it with a retry). Best-effort:
-// heal only a string that parses to an array; anything else passes
-// through untouched and fails validation exactly as before.
+// Prueba en los registros de OpenRouter: los modelos débiles, con una carga de submit
+// grande, a menudo emiten un array entero como UNA CADENA JSON en lugar de un array
+// nativo ("propositions.0: must be object"). pi-agent-core ejecuta `prepareArguments`
+// ANTES de la validación de TypeBox: el punto de adaptación autorizado (la misma
+// doctrina que restoreMathEscapes en la frontera de visualización: reparar el
+// comportamiento de red de los modelos débiles, no castigarlo con un reintento). De
+// mejor esfuerzo: solo se repara una cadena que se analiza como array; todo lo demás
+// pasa sin tocar y falla la validación exactamente igual que antes.
 export function healStringifiedArrays(raw: unknown): unknown {
 	if (typeof raw !== "object" || raw === null) return raw;
 	const out: Record<string, unknown> = { ...(raw as Record<string, unknown>) };
@@ -39,7 +40,7 @@ export function healStringifiedArrays(raw: unknown): unknown {
 			const parsed: unknown = JSON.parse(v);
 			if (Array.isArray(parsed)) out[key] = parsed;
 		} catch {
-			// not a clean stringify (e.g. truncated) — leave for validation
+			// no es un stringify limpio (p. ej., truncado): se deja para la validación
 		}
 	}
 	return out;
@@ -50,8 +51,8 @@ export async function runSubmitAgent<T>(opts: {
 	toolName: string;
 	toolDescription: string;
 	parameters: TSchema;
-	/** Weak-model tolerance: the old zod `.default()`s, applied to the
-	 *  schema-valid raw input at the submit seam. */
+	/** Tolerancia con los modelos débiles: los antiguos `.default()` de zod,
+	 *  aplicados a la entrada en bruto que cumple el esquema en la frontera de submit. */
 	fill: (input: any) => T;
 	systemPrompt: string;
 	prompt: string;
@@ -59,30 +60,31 @@ export async function runSubmitAgent<T>(opts: {
 	signal: AbortSignal | undefined;
 	onStep: (usage: Usage, model: string, step: number, finishReason: string, tools: string) => void;
 	neverSubmitted: string;
-	/** Extra tools beside the submit call (the auditor's graph-exploration
-	 *  set, 2026-09-27): a small agentic loop instead of a bare retry. */
+	/** Herramientas extra junto a la llamada submit (el conjunto de exploración
+	 *  del grafo del auditor, 2026-09-27): un pequeño bucle agéntico en lugar de un simple reintento. */
 	extraTools?: Record<string, AgentTool<any>>;
-	/** Turn budget for the loop (default 4 = retry-only; the auditor runs
-	 *  an exploration loop instead — 16). */
+	/** Presupuesto de turnos del bucle (4 por defecto = solo reintentos; el
+	 *  auditor ejecuta en cambio un bucle de exploración: 16). */
 	maxTurns?: number;
-	/** Debug: raw provider-event recording key (LH_PROVIDER_EVENTS=1). */
+	/** Depuración: clave de grabación de eventos en bruto del proveedor (LH_PROVIDER_EVENTS=1). */
 	chatId?: string;
-	/** Weak-model argument heal at pi's prepareArguments seam (runs BEFORE
-	 *  TypeBox validation — the sanctioned shim point). Identity by
-	 *  default; extraction wires healStringifiedArrays here. */
+	/** Reparación de argumentos de los modelos débiles en la frontera
+	 *  prepareArguments de pi (se ejecuta ANTES de la validación de TypeBox: el
+	 *  punto de adaptación autorizado). Identidad por defecto; extraction conecta
+	 *  aquí healStringifiedArrays. */
 	prepareArguments?: (args: unknown) => unknown;
-	/** Semantic validation at the submit seam: the value is schema-valid
-	 *  but may violate a PIPELINE law (coverage, echo-equality). Returning
-	 *  a problem string yields an isError result (invalidInputResult) →
-	 *  the model retries within maxTurns. null = accept. */
+	/** Validación semántica en la frontera de submit: el valor cumple el esquema
+	 *  pero puede incumplir una LEY DEL PROCESO (cobertura, igualdad de eco).
+	 *  Devolver una cadena de problema produce un resultado isError
+	 *  (invalidInputResult) → el modelo reintenta dentro de maxTurns. null = aceptar. */
 	validate?: (value: T) => string | null;
 }): Promise<T> {
 	let submitted: T | undefined;
 	const result = await runSubagent(
 		[
-			// healToolRecord (owner, 2026-10-09): the standard argument heal
-		// over the extra tools (the auditor's graph set) — same as every
-		// registry.
+			// healToolRecord (responsable, 2026-10-09): la reparación estándar de argumentos
+		// sobre las herramientas extra (el conjunto del grafo del auditor), igual que en
+		// cualquier registro.
 		...(opts.extraTools ? Object.values(healToolRecord(opts.extraTools)) : []),
 			{
 				name: opts.toolName,
@@ -90,9 +92,9 @@ export async function runSubmitAgent<T>(opts: {
 				description: opts.toolDescription,
 				parameters: opts.parameters,
 				prepareArguments: (args) =>
-					// The standard heal composes AFTER the caller's shim (the
-					// whitehead generalization, 2026-10-09) — extraction's
-					// healStringifiedArrays stays the inner pass.
+					// La reparación estándar se compone DESPUÉS de la adaptación del llamante (la
+					// generalización de whitehead, 2026-10-09); healStringifiedArrays de extraction
+					// sigue siendo la pasada interior.
 					healEncodedArguments(
 						opts.prepareArguments ? opts.prepareArguments(args) : args,
 						opts.parameters,
@@ -117,9 +119,9 @@ export async function runSubmitAgent<T>(opts: {
 			onAssistantMessage: (message, step) =>
 				opts.onStep(
 					message.usage,
-					// Provider-qualified stamp (model slots wave, 2026-09-20):
-					// pi reports the bare id; usage stamps carry provider:id to
-					// match the price table's uniform keys.
+					// Sello con proveedor (oleada de ranuras de modelo, 2026-09-20): pi indica el
+					// id a secas; los sellos de uso llevan proveedor:id para coincidir con las
+					// claves uniformes de la tabla de precios.
 					`${message.provider}:${message.model}`,
 					step,
 					message.stopReason,

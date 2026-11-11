@@ -7,13 +7,15 @@ import type { PiEngine } from "../models.ts";
 import { runSubagent } from "./pi-run.ts";
 
 /**
- * The researcher sub-agent (vision §2.5): a SEPARATE ToolLoopAgent instance
- * from the teacher — an isolated loop with only web_search + web_fetch, so
- * raw search/fetch churn never touches the teacher's context window.
+ * El subagente researcher (visión §2.5): una instancia de ToolLoopAgent
+ * SEPARADA del profesor, un bucle aislado solo con web_search + web_fetch,
+ * para que el ajetreo en bruto de búsquedas/descargas nunca toque la ventana
+ * de contexto del profesor.
  *
- * System prompt adapted from the pi researcher agent
+ * Prompt de sistema adaptado del agente researcher de pi
  * (~/.pi/agent/extensions/interactive-subagents/agents/researcher.md).
- * The engine is injectable so tests run the loop with a scripted faux engine.
+ * El motor es inyectable para que las pruebas ejecuten el bucle con un motor
+ * simulado con guion.
  */
 
 const INSTRUCTIONS = `You are a research specialist. You work for a teacher agent inside a learning
@@ -69,27 +71,29 @@ What couldn't be answered. Suggested next steps.`;
 
 export interface ResearcherRunOptions {
 	engine?: PiEngine;
-	/** The search seam (search port wave, 2026-09-20): resolves the LIVE
-	 *  provider per call, null = honestly unavailable (the web_search tool
-	 *  reports that in its output — no crash, no silent fallback). Absent
-	 *  seam reads as unavailable; web_fetch remains usable without it. */
+	/** La frontera de búsqueda (oleada del puerto de búsqueda, 2026-09-20):
+	 *  resuelve el proveedor ACTUAL en cada llamada; null = no disponible, dicho
+	 *  con honestidad (la herramienta web_search lo indica en su salida: sin fallo
+	 *  ni alternativa silenciosa). Sin frontera se interpreta como no disponible;
+	 *  web_fetch sigue pudiendo usarse sin ella. */
 	search?: () => SearchProvider | null;
-	/** The researcher's PDF dir (PDF wave, 2026-10-07): when present, the
-	 *  toolset gains web_fetch_pdf + pdf_info/pdf_extract/pdf_search scoped
-	 *  to this per-job temp dir — PDFs from the web, read page-level. The
-	 *  runner owns its lifecycle (mkdtemp before, rm after). */
+	/** El directorio de PDF del researcher (oleada de PDF, 2026-10-07): si está
+	 *  presente, el conjunto de herramientas gana web_fetch_pdf +
+	 *  pdf_info/pdf_extract/pdf_search limitadas a este directorio temporal por
+	 *  tarea: PDF de la web, leídos por páginas. El ejecutor controla su ciclo de
+	 *  vida (mkdtemp antes, rm después). */
 	pdfDir?: string;
 	abortSignal?: AbortSignal;
 	onUsage?: (usage: Usage) => void;
 	onToolStart?: (toolName: string, args: unknown) => void;
-	/** Debug: raw provider-event recording key (LH_PROVIDER_EVENTS=1). */
+	/** Depuración: clave de grabación de eventos en bruto del proveedor (LH_PROVIDER_EVENTS=1). */
 	chatId?: string;
 }
 
 /**
- * Run the researcher to completion: isolated context, web tools only, final
- * text = the brief. The engine and search seam are injectable so tests run
- * the loop scripted.
+ * Ejecuta el researcher hasta el final: contexto aislado, solo herramientas
+ * web, texto final = el informe. El motor y la frontera de búsqueda son
+ * inyectables para que las pruebas ejecuten el bucle con guion.
  */
 export async function runResearcherAgent(prompt: string, opts: ResearcherRunOptions = {}): Promise<string> {
 	const tools = Object.values(createWebTools(opts.search ?? (() => null)));
