@@ -1,8 +1,9 @@
 /**
- * The custom OpenAI-compatible endpoint: turns the user's non-secret config
- * (base URL + discovered models) into a pi-ai provider registered in
- * `piModels()`, so its models fill the same slots as any built-in. Keyless
- * local servers work via a placeholder key resolved at request time.
+ * El endpoint personalizado compatible con OpenAI: convierte la configuración
+ * no secreta del usuario (URL base + modelos descubiertos) en un proveedor de
+ * pi-ai registrado en `piModels()`, para que sus modelos ocupen las mismas
+ * ranuras que cualquiera de los integrados. Los servidores locales sin clave
+ * funcionan con una clave provisional que se resuelve al hacer la petición.
  */
 
 import { createProvider, type Api, type Model, type Provider } from "@earendil-works/pi-ai";
@@ -23,28 +24,28 @@ import {
 } from "../core/settings.ts";
 
 
-/** Placeholder bearer for keyless endpoints (the OpenAI client needs *a* key). */
+/** Bearer provisional para endpoints sin clave (el cliente de OpenAI necesita *alguna* clave). */
 const KEYLESS_PLACEHOLDER = "not-needed";
 
-/** Narrow an unknown to a plain object (not null, not an array). */
+/** Acota un unknown a un objeto simple (ni null ni array). */
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === "object" && value !== null && !Array.isArray(value);
 
-/** Install the sole custom source: donor settings + explicit authentication.
- * Publication captures a consistent snapshot; an already-started operation
- * cannot acquire a later endpoint's key. No file configuration source exists. */
+/** Instala la única fuente personalizada: ajustes donantes + autenticación explícita. La
+ * publicación captura una instantánea coherente; una operación ya iniciada no puede adquirir la
+ * clave de un endpoint posterior. No existe ninguna fuente de configuración en fichero. */
 export function installCustomProviderSource(readAuth = customAuthState): void {
 	let fingerprint: string | undefined;
 	configureProviderSource({
 		isCustom: (id) => id === CUSTOM_PROVIDER.id,
 		sync(models) {
 			const cp = readSettings()?.customProvider;
-			// Validate the durable nonce/URL/mode before resolving ANY credential.
-			// Keyless reads only the nonsecret marker, never a file/env key.
+			// Se validan el nonce/URL/modo duraderos antes de resolver NINGUNA credencial.
+			// Sin clave solo se lee el marcador no secreto, nunca una clave de fichero/entorno.
 			const auth = readAuth(cp?.authMode === "apiKey", cp);
 			const key = auth.key;
 			const ready = customProviderUsable(cp) && auth.readable && customBindingMatches(cp, auth.binding) && (cp.authMode === "keyless" || customKeyAuthorized(cp, auth));
-			const next = JSON.stringify([cp, auth]); // Private in-memory fingerprint, never a public revision.
+			const next = JSON.stringify([cp, auth]); // Huella privada en memoria, nunca una revisión pública.
 			if (next === fingerprint) return;
 			if (ready) models.setProvider(buildOpenAiCompatibleProvider({ ...cp, baseUrl: cp.baseUrl, models: cp.models ?? [], apiKey: key }));
 			else models.deleteProvider(CUSTOM_PROVIDER.id);
@@ -57,11 +58,12 @@ export function customProviderAvailable(): boolean {
 	return piModels().getProvider(CUSTOM_PROVIDER.id) !== undefined;
 }
 
-/** Map a discovered model to a pi-ai entry: image→input, reasoning→thinking
- *  levels, context/maxTokens→limits. Resolution ladder (owner, 2026-10-27):
- *  the user's pin wins, then the endpoint's own metadata, then the compiled
- *  default — a local server that says nothing (or says 8k) can be corrected.
- *  baseUrl is stamped per-model. */
+/** Convierte un modelo descubierto en una entrada de pi-ai: image→input,
+ *  reasoning→niveles de razonamiento, context/maxTokens→límites. Escala de
+ *  resolución (responsable, 2026-10-27): gana la fijación del usuario, luego
+ *  los metadatos del propio endpoint y luego el valor por defecto compilado;
+ *  se puede corregir un servidor local que no dice nada (o que dice 8k).
+ *  baseUrl se sella por modelo. */
 function toPiModel(
 	model: CustomModel,
 	baseUrl: string,
@@ -74,10 +76,10 @@ function toPiModel(
 		api: "openai-completions",
 		provider: CUSTOM_PROVIDER.id,
 		baseUrl,
-		// Pin wins; else detected from the endpoint's metadata (see
-		// detectReasoning). true makes pi-ai offer the standard levels and send
-		// reasoning_effort on the wire; no thinkingLevelMap → the default
-		// off/minimal/low/medium/high set.
+		// Gana la fijación; si no, se detecta a partir de los metadatos del endpoint (ver
+		// detectReasoning). true hace que pi-ai ofrezca los niveles estándar y envíe
+		// reasoning_effort por la red; sin thinkingLevelMap → el conjunto por defecto
+		// off/minimal/low/medium/high.
 		reasoning: pin?.reasoning ?? Boolean(model.reasoning),
 		input: model.image ? ["text", "image"] : ["text"],
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -87,13 +89,13 @@ function toPiModel(
 	};
 }
 
-/** Build an OpenAI-compatible provider from parts. baseUrl must be normalized. */
+/** Construye un proveedor compatible con OpenAI a partir de sus partes. baseUrl debe estar normalizada. */
 export function buildOpenAiCompatibleProvider(input: {
 	baseUrl: string;
 	models: readonly CustomModel[];
-	/** User pins by model id (see CustomModelOverride) — absent = none. */
+	/** Fijaciones del usuario por id de modelo (ver CustomModelOverride); ausente = ninguna. */
 	overrides?: Record<string, CustomModelOverride>;
-	/** Already resolved for this publication; absent means explicit keyless. */
+	/** Ya resuelta para esta publicación; ausente significa sin clave de forma explícita. */
 	apiKey?: string;
 }): Provider<Api> {
 	const overrides = input.overrides ?? {};
@@ -110,22 +112,23 @@ export function buildOpenAiCompatibleProvider(input: {
 	});
 }
 
-/** Re-sync the provider into piModels() (idempotent): usable → rebuild;
- *  not usable → remove. Never throws. */
+/** Vuelve a sincronizar el proveedor en piModels() (idempotente): utilizable →
+ *  reconstruir; no utilizable → quitar. Nunca lanza. */
 export function syncCustomProvider(): void {
 	piModels();
 }
 
-/** Outcome of a model-discovery probe. `status` is the endpoint's HTTP status
- *  when it answered at all, so callers can tell a rejected key from a missing
- *  model list. */
+/** Resultado de un sondeo de descubrimiento de modelos. `status` es el estado
+ *  HTTP del endpoint cuando llegó a responder, para que los llamantes puedan
+ *  distinguir una clave rechazada de una lista de modelos que falta. */
 export type DiscoverResult =
 	| { ok: true; models: CustomModel[] }
 	| { ok: false; error: string; status?: number; fatal?: boolean };
 
-/** Probe GET {baseUrl}/models for model ids. Scheme validated (http/https
- *  only); keyless endpoints answer without a bearer. Non-2xx or unparseable
- *  body → honest error, never a silent empty list. */
+/** Sondea GET {baseUrl}/models en busca de ids de modelo. Se valida el esquema
+ *  (solo http/https); los endpoints sin clave responden sin bearer. Un estado
+ *  no 2xx o un cuerpo que no se puede analizar → error honesto, nunca una lista
+ *  vacía silenciosa. */
 export async function discoverModels(baseUrl: string, apiKey?: string): Promise<DiscoverResult> {
 	const base = normalizeBaseUrl(baseUrl);
 	if (!base) return { ok: false, error: "Base URL must be a valid http(s) URL" };
@@ -154,17 +157,18 @@ export async function discoverModels(baseUrl: string, apiKey?: string): Promise<
 	}
 }
 
-/** The connect's model list: what the endpoint advertises, plus every typed id
- *  it does not advertise (at default limits, so the pins can correct them).
- *  Discovered metadata always wins over a typed id of the same name. */
+/** La lista de modelos de la conexión: lo que anuncia el endpoint, más cada id
+ *  escrito que no anuncia (con los límites por defecto, para que las fijaciones
+ *  puedan corregirlos). Los metadatos descubiertos siempre ganan a un id
+ *  escrito con el mismo nombre. */
 export function mergeManualModels(discovered: readonly CustomModel[], manualIds: readonly string[]): CustomModel[] {
 	const byId = new Map(discovered.map((m) => [m.id, m]));
 	for (const id of manualIds) if (!byId.has(id)) byId.set(id, { id });
 	return [...byId.values()].sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** Model rows from a list response ({data:[…]} | {models:[…]} | bare array),
- *  or null if unrecognized. */
+/** Filas de modelo de una respuesta de lista ({data:[…]} | {models:[…]} | array
+ *  a secas), o null si no se reconoce. */
 function modelRows(body: unknown): unknown[] | null {
 	if (Array.isArray(body)) return body;
 	if (isRecord(body)) {
@@ -174,8 +178,8 @@ function modelRows(body: unknown): unknown[] | null {
 	return null;
 }
 
-/** Does a /models row advertise image input? Scans the common modality/
- *  capability fields; absent or unrecognized → false (text-only). */
+/** ¿Anuncia una fila de /models entrada de imágenes? Recorre los campos
+ *  habituales de modalidad/capacidades; ausente o no reconocido → false (solo texto). */
 function detectImage(row: Record<string, unknown>): boolean {
 	const architecture = isRecord(row.architecture) ? row.architecture : undefined;
 	const candidates = [
@@ -191,12 +195,13 @@ function detectImage(row: Record<string, unknown>): boolean {
 	return false;
 }
 
-/** Does a /models row advertise reasoning? Metadata only — no name guessing,
- *  because a false positive sends reasoning_effort an endpoint will reject.
- *  Trusted signals: an explicit boolean (reasoning / supports_reasoning /
- *  thinking) or a reasoning token in the capability/parameter lists servers
- *  publish (vLLM + OpenRouter's supported_parameters, capabilities, tags).
- *  Absent or unrecognized → false (thinking stays "off"). */
+/** ¿Anuncia una fila de /models razonamiento? Solo metadatos, sin adivinar por
+ *  el nombre, porque un falso positivo envía un reasoning_effort que el
+ *  endpoint rechazará. Señales de confianza: un booleano explícito (reasoning /
+ *  supports_reasoning / thinking) o un token de razonamiento en las listas de
+ *  capacidades/parámetros que publican los servidores (supported_parameters,
+ *  capabilities y tags de vLLM y OpenRouter). Ausente o no reconocido → false
+ *  (el razonamiento se queda en "off"). */
 function detectReasoning(row: Record<string, unknown>): boolean {
 	for (const key of ["reasoning", "supports_reasoning", "thinking"] as const) {
 		if (row[key] === true) return true;
@@ -210,8 +215,8 @@ function detectReasoning(row: Record<string, unknown>): boolean {
 	);
 }
 
-/** First positive integer among `keys` on a row (endpoints name limits
- *  inconsistently). */
+/** El primer entero positivo entre las `keys` de una fila (los endpoints nombran
+ *  los límites de forma incoherente). */
 function firstPositive(row: Record<string, unknown>, keys: readonly string[]): number | undefined {
 	for (const key of keys) {
 		const value = row[key];
@@ -220,12 +225,13 @@ function firstPositive(row: Record<string, unknown>, keys: readonly string[]): n
 	return undefined;
 }
 
-// Field names seen in the wild for each limit (first present wins).
+// Nombres de campo vistos en la práctica para cada límite (gana el primero presente).
 const CONTEXT_KEYS = ["max_input_tokens", "context_length", "context_window", "max_context", "n_ctx", "max_seq_len", "max_position_embeddings"] as const;
 const MAX_TOKEN_KEYS = ["max_output_tokens"] as const;
 
-/** Pull models from a list response (objects with `id` or bare strings), each
- *  with detected image + token limits. Null if the shape is unrecognized. */
+/** Extrae los modelos de una respuesta de lista (objetos con `id` o cadenas a
+ *  secas), cada uno con su imagen y límites de tokens detectados. Null si la
+ *  forma no se reconoce. */
 function extractModels(body: unknown): CustomModel[] | null {
 	const rows = modelRows(body);
 	if (rows === null) return null;

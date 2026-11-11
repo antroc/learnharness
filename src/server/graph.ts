@@ -14,10 +14,11 @@ import { stores } from "./stores.ts";
 import { callCost } from "./pricing.ts";
 
 /**
- * Server-side graph entry for the home view (GET /api/graph). A PURE READ:
- * the extraction pipeline (the sole graph writer) is triggered by quiz
- * answers in sessions (turn-service), never from here — the home view
- * reflects whatever the pipeline has merged so far.
+ * Entrada del grafo en el servidor para la vista de inicio (GET /api/graph).
+ * Una LECTURA PURA: el proceso de extracción (el único que escribe en el
+ * grafo) lo disparan las respuestas a los quizzes en las sesiones
+ * (turn-service), nunca desde aquí; la vista de inicio refleja lo que el
+ * proceso haya fusionado hasta el momento.
  */
 export function graphView(): GraphSnapshot {
 	const organization = stores.sourceOrganizationStore.read();
@@ -25,12 +26,13 @@ export function graphView(): GraphSnapshot {
 	return graphSnapshot(stores, names);
 }
 
-/** The graph view's cost surface (GET /api/graph/costs — the 2026-09 cost
- *  pill): fold every usage channel into stage totals + recent runs. A pure
- *  read over the chat records (chat-front-door runs), the notes sources
- *  (notes-front-door runs), and the naming ledger (graph-global runs);
- *  dollars are inferred by the pure core fold (core/cost-summary.ts +
- *  prices.ts) — nothing here stores or caches money. */
+/** La superficie de costes de la vista del grafo (GET /api/graph/costs: la
+ *  píldora de costes de 2026-09): pliega todos los canales de uso en totales
+ *  por etapa + ejecuciones recientes. Una lectura pura sobre los registros de
+ *  chat (ejecuciones por la puerta del chat), las fuentes de notas (ejecuciones
+ *  por la puerta de notas) y el registro de nombres (ejecuciones globales del
+ *  grafo); los dólares los infiere el plegado puro del núcleo
+ *  (core/cost-summary.ts + prices.ts); aquí nada almacena ni cachea dinero. */
 export function graphCosts(): GraphCostSummary {
 	const chats = stores.chatStore
 		.listChats()
@@ -47,13 +49,14 @@ export function graphCosts(): GraphCostSummary {
 	return graphCostSummary({ chats, sources }, callCost);
 }
 
-/** The graph's version stamp (session-deletion wave 6): the max mtime
- * across every graph data file — ledgers, positions. Moves on ANY
- * graph write (merge append, settle, or a deletion's atomic rewrite),
- * never moves on reads, and needs no bookkeeping of its own: the fs
- * IS the counter. Consumers poll it (the activity feed
- *  carries it; the DELETE response returns it) to know clusters/layout
- *  must refetch — the "graph changed underneath me" signal. */
+/** El sello de versión del grafo (oleada 6 de borrado de sesiones): el mtime
+ * máximo entre todos los ficheros de datos del grafo (registros, posiciones).
+ * Cambia con CUALQUIER escritura del grafo (añadido de fusión, asentamiento o
+ * la reescritura atómica de un borrado), nunca con las lecturas, y no necesita
+ * contabilidad propia: el sistema de ficheros ES el contador. Los consumidores
+ * lo sondean (el feed de actividad lo lleva; la respuesta del DELETE lo
+ * devuelve) para saber que deben volver a pedir los clústeres/la disposición:
+ * la señal de «el grafo ha cambiado bajo mis pies». */
 export function graphRevision(): number {
 	let revision = 0;
 	for (const file of [
@@ -66,42 +69,44 @@ export function graphRevision(): number {
 		try {
 			revision = Math.max(revision, fs.statSync(file).mtimeMs);
 		} catch {
-			/* absent — nothing has ever written it */
+			/* ausente: nada lo ha escrito nunca */
 		}
 	}
 	return revision;
 }
 
-// ─── single-node deletion (node interlude, owner-locked full-death) ──────────
+// ─── borrado de un solo nodo (interludio de nodos, muerte completa fijada por el responsable)
 
-/** What deleteGraphNode did — the route maps it straight to HTTP. */
+/** Lo que hizo deleteGraphNode; la ruta lo traduce directamente a HTTP. */
 export type NodeDeleteOutcome =
 	| { ok: false; status: 404; code: "not_found"; error: string }
 	| { ok: false; status: 409; code: "extraction_running"; error: string }
 	| { ok: true; stats: NodeDeletionStats; graphRevision: number };
 
 /**
- * Delete one node by id — FULL DEATH (core/graph-deletion.ts for the
- * ledger semantics). The guard family is deliberately NOT the chat
- * one, and the reasoning is worth writing down:
+ * Borra un nodo por id: MUERTE COMPLETA (consulta core/graph-deletion.ts para
+ * la semántica de los registros). La familia de protecciones NO es a propósito
+ * la del chat, y vale la pena dejar escrito el razonamiento:
  *
- *   - No turn/jobs gates. Turns and background jobs never write the
- *     graph ledgers; a turn's follow-up extraction registers as a run,
- *     and every code path here is synchronous — nothing can register
- *     or merge between the gate and the ledger rewrite (the event loop
- *     never yields inside this function).
- *   - THE EXTRACTION GATE — 409 while ANY pipeline run is registered,
- *     anywhere. A mid-flight run holds findings extracted from
- *     transcripts that predate the deletion; its merges could re-add
- *     aliases, provenance, or events to the dying node (the
- *     re-reference risk the dispatch flags). Unlike chat deletion we
- *     do NOT abort the run: it belongs to some session, and killing
- *     that session's spend is outside this deletion's blast radius —
- *     the UI retries once the dock drains. A run that starts AFTER
- *     the deletion is legitimate re-learning: it reads post-deletion
- *     ledgers, mints a fresh node for a re-taught topic, and
- *     mergeFindings ignores linkTo ids that no longer exist (the
- *     existingIds guard) — no dangling edges, no resurrection.
+ *   - Sin barreras de turno/tareas. Los turnos y las tareas en segundo plano
+ *     nunca escriben en los registros del grafo; la extracción posterior de un
+ *     turno se registra como ejecución, y aquí todas las rutas de código son
+ *     síncronas: nada puede registrarse ni fusionarse entre la barrera y la
+ *     reescritura del registro (el bucle de eventos nunca cede dentro de esta
+ *     función).
+ *   - LA BARRERA DE EXTRACCIÓN: 409 mientras haya CUALQUIER ejecución del
+ *     proceso registrada, en cualquier sitio. Una ejecución en curso tiene
+ *     hallazgos extraídos de transcripciones anteriores al borrado; sus
+ *     fusiones podrían volver a añadir alias, procedencia o eventos al nodo
+ *     que muere (el riesgo de re-referencia que señala el encargo). A
+ *     diferencia del borrado de chats, NO se cancela la ejecución: pertenece a
+ *     alguna sesión, y cortar el gasto de esa sesión queda fuera del radio de
+ *     este borrado; la interfaz reintenta cuando el dock se vacía. Una
+ *     ejecución que empieza DESPUÉS del borrado es un reaprendizaje legítimo:
+ *     lee los registros posteriores al borrado, acuña un nodo nuevo para un
+ *     tema que se vuelve a enseñar, y mergeFindings ignora los ids linkTo que
+ *     ya no existen (la protección existingIds): sin aristas colgando, sin
+ *     resurrecciones.
  */
 export function deleteGraphNode(nodeId: string): NodeDeleteOutcome {
 	if (extractionStatuses().length > 0) {
@@ -112,8 +117,8 @@ export function deleteGraphNode(nodeId: string): NodeDeleteOutcome {
 			error: "An extraction is running — try again when it finishes",
 		};
 	}
-	// THE SYNC BLOCK — no awaits below (the doc above): the gate and the
-	// rewrite are one atomic stretch of the event loop.
+	// EL BLOQUE SÍNCRONO: sin awaits a partir de aquí (ver la documentación de arriba):
+	// la barrera y la reescritura son un tramo atómico del bucle de eventos.
 	const stats = deleteNodeTraces(stores.graphStore, nodeId);
 	if (stats === null) {
 		return { ok: false, status: 404, code: "not_found", error: "No such node" };

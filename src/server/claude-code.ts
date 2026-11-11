@@ -3,14 +3,14 @@ import { initAuthEnv } from "./keys.ts";
 import { subscriptionRequestOrigin } from "./web-subscription-http.ts";
 import { claudeCodeEnabled } from "./claude-code-config.ts";
 
-/** The Settings status seam: initialize provenance before any child env is copied. */
+/** La frontera de estado de Ajustes: inicializa la procedencia antes de copiar ningún entorno hijo. */
 export async function claudeCodeInstallationStatus() {
 	initAuthEnv();
 	return inspectClaudeInstallation();
 }
 
-/** Same-origin browser intent, not user authentication. No CORS grants.
- * A public/shared server still requires its own access-control boundary. */
+/** Intención del navegador del mismo origen, no autenticación del usuario. Sin permisos CORS.
+ * Un servidor público/compartido sigue necesitando su propia frontera de control de acceso. */
 export async function claudeCodeInstallationResponse(
 	request: Request,
 	inspect = claudeCodeInstallationStatus,

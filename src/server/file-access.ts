@@ -1,6 +1,6 @@
-/** Current optional learner-source preferences, wired by the server
- * composition root into the #157 policy seam. Mandatory #421 protection
- * stays in fs-shared; do NOT add a whole data/userData denial here. */
+/** Preferencias opcionales actuales sobre las fuentes del alumno, conectadas por la raíz
+ * de composición del servidor a la frontera de políticas de #157. La protección obligatoria
+ * de #421 se queda en fs-shared; NO añadas aquí una denegación de todo data/userData. */
 import os from "node:os";
 import path from "node:path";
 import type { FileAccessPolicy } from "../agent/tools/file-access.ts";
@@ -19,8 +19,9 @@ export function fileAccessPolicy(): FileAccessPolicy {
 	return { restricted: result.settings.restricted, folders: result.settings.folders.map((folder) => expandFolder(folder)) };
 }
 
-/** Safe UI diagnostic, no raw JSON/file contents. A corrupt record must
- * not make the restriction toggle appear safely OFF while reads are blocked. */
+/** Diagnóstico seguro para la interfaz, sin JSON en bruto ni contenido de ficheros. Un registro
+ * dañado no debe hacer que el conmutador de restricción aparezca como desactivado sin peligro
+ * mientras las lecturas están bloqueadas. */
 export function fileAccessConfigurationError(): string | null {
 	const result = readFileAccessSettings();
 	return result.ok ? null : result.error;

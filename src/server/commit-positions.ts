@@ -1,44 +1,47 @@
 /**
- * Server-side commit for the live physics drag (PUT /api/graph/positions).
- * The client's renderer anneals a drag to rest and PUTs the new rest
- * state; the server trusts it for the nodes it knows about and, if the
- * graph grew while the user was dragging (a merge landed), runs ONE
- * incremental settle (settleGraphLayout) so the fresh nodes are absorbed
- * into the frame the user just arranged — client positions act as
- * anchors, never as a clobber.
+ * Confirmación en el servidor del arrastre con física en vivo
+ * (PUT /api/graph/positions). El renderizador del cliente templa un arrastre
+ * hasta el reposo y hace PUT del nuevo estado de reposo; el servidor se fía de
+ * él para los nodos que conoce y, si el grafo creció mientras el usuario
+ * arrastraba (llegó una fusión), ejecuta UN asentamiento incremental
+ * (settleGraphLayout) para que los nodos nuevos se integren en el encuadre que
+ * el usuario acaba de colocar; las posiciones del cliente actúan como anclas,
+ * nunca como algo que machacar.
  *
- * Every body is sanitized: garbage coordinates clamp or drop, unknown
- * ids are discarded, nothing throws.
+ * Todos los cuerpos se sanean: las coordenadas basura se acotan o se descartan,
+ * los ids desconocidos se descartan y nada lanza.
  *
- * KNOWN IDS = THE CANVAS'S WORLD (owner fix, 2026-10-06 — the splatter
- * bug): the derived view's nodes — stored propositions AND the derived
- * arg_ implication nodes. The canvas persists all of them; stripping
- * the args here purged their ledger entries on every drag-commit, so
- * each mount re-seeded them on a giant ring (the "splattered from the
- * middle" report) until a drag annealed them back. arg_ ids are stable
- * (minted from the chain ledger), so persisting them is sound.
+ * IDS CONOCIDOS = EL MUNDO DEL LIENZO (corrección del responsable, 2026-10-06;
+ * el error de las salpicaduras): los nodos de la vista derivada, las
+ * proposiciones almacenadas Y los nodos de implicación arg_ derivados. El
+ * lienzo los persiste todos; quitar aquí los args purgaba sus entradas del
+ * registro en cada confirmación de arrastre, así que cada montaje los volvía a
+ * sembrar en un anillo gigante (el informe de «salpicados desde el centro»)
+ * hasta que un arrastre los templaba de nuevo. Los ids arg_ son estables
+ * (acuñados a partir del registro de cadenas), así que persistirlos es correcto.
  */
 import type { Position } from "../core/contracts.ts";
 import { deriveView, getGraph } from "../core/graph.ts";
 import { settleGraphLayout } from "../core/layout-settle.ts";
 import { stores } from "./stores.ts";
 
-/** Max |x| or |y| accepted — NaN/Infinity clamp here, absurd too. */
+/** Máximo |x| o |y| aceptado: NaN/Infinity se acotan aquí, y lo absurdo también. */
 const MAX_COORD = 1e6;
 
 /**
- * Accepts the raw PUT body (a Record of id → {x, y}) and returns the
- * sanitized positions actually persisted (empty object = nothing written,
- * e.g. a body with no known ids — the caller reports but never fails).
+ * Acepta el cuerpo en bruto del PUT (un Record de id → {x, y}) y devuelve las
+ * posiciones saneadas que se persistieron de verdad (objeto vacío = no se
+ * escribió nada, p. ej. un cuerpo sin ids conocidos; el llamante informa pero
+ * nunca falla).
  */
 export function commitPositions(input: unknown): Record<string, Position> {
 	if (typeof input !== "object" || input === null) return {};
 	const raw = input as Record<string, unknown>;
 
-	// Only ids the canvas's world actually has: stored propositions plus
-	// the DERIVED arg_ implication nodes (deriveView of the current graph
-	// — the same derivation the snapshot serves, so ids agree by
-	// construction).
+	// Solo los ids que existen de verdad en el mundo del lienzo: las proposiciones
+	// almacenadas más los nodos de implicación arg_ DERIVADOS (deriveView del grafo
+	// actual: la misma derivación que sirve la instantánea, así que los ids coinciden
+	// por construcción).
 	const known = new Set(deriveView(getGraph(stores.graphStore)).nodes.map((n) => n.id));
 
 	const positions: Record<string, Position> = {};
@@ -57,11 +60,11 @@ export function commitPositions(input: unknown): Record<string, Position> {
 
 	stores.graphStore.writePositions(positions);
 
-	// The graph grew past what the client knew (a merge landed mid-drag):
-	// absorb the new nodes with the client's rest state as anchors. The
-	// honest test: some node of the CURRENT view is absent from the
-	// client's payload — proposition or arg_ alike (the old count
-	// comparison broke once args counted as persistable).
+	// El grafo creció más allá de lo que conocía el cliente (llegó una fusión a mitad del
+	// arrastre): se integran los nodos nuevos con el estado de reposo del cliente como
+	// anclas. La prueba honesta: algún nodo de la vista ACTUAL falta en la carga del
+	// cliente, sea proposición o arg_ (la antigua comparación de recuentos se rompió en
+	// cuanto los args pasaron a ser persistibles).
 	for (const id of known) {
 		if (!(id in positions)) {
 			settleGraphLayout(stores.graphStore);

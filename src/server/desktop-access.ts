@@ -1,15 +1,15 @@
 import { timingSafeEqual } from "node:crypto";
 import { isIP } from "node:net";
 
-/** Browser-only mode: `next dev` / `next start` without the desktop shell's
- * per-launch secret. */
+/** Modo solo navegador: `next dev` / `next start` sin el secreto por arranque del
+ * shell de escritorio. */
 export function browserOnlyMode(env: Record<string, string | undefined> = process.env): boolean {
 	return env.LH_DESKTOP_SERVER !== "1" && !env.LH_DESKTOP_API_SECRET;
 }
 
-/** Per-launch desktop HTTP capability. This is not an OS-user malware
- * boundary and is not an OAuth credential. Browser-only mode is checked by
- * browserAPIRefusal instead. */
+/** Capacidad HTTP de escritorio por arranque. No es una frontera contra
+ * malware del usuario del SO ni una credencial OAuth. El modo solo navegador
+ * lo comprueba browserAPIRefusal. */
 export function desktopAPIAuthorized(
 	headers: Headers,
 	env: Record<string, string | undefined> = process.env,
@@ -24,9 +24,10 @@ export function desktopAPIAuthorized(
 	return actual.length === wanted.length && timingSafeEqual(actual, wanted);
 }
 
-/** Same-origin browser controls, not user authentication. Web/dev deliberately
- * retains the existing shared-server/API-key trust model. Never trust forwarded
- * origins or add CORS grants here. A public deployment needs its own access gate. */
+/** Controles de navegador del mismo origen, no autenticación del usuario. La web/el modo de
+ * desarrollo conservan a propósito el modelo de confianza existente de servidor compartido/clave API.
+ * Nunca se confía aquí en orígenes reenviados ni se añaden permisos CORS. Un despliegue público
+ * necesita su propia barrera de acceso. */
 export function subscriptionRequestOrigin(request: Request): string | undefined {
 	try {
 		const url = new URL(request.url);
@@ -37,9 +38,10 @@ export function subscriptionRequestOrigin(request: Request): string | undefined 
 	} catch { return; }
 }
 
-/** DNS rebinding needs an attacker-owned DNS name, so localhost names and IP
- * literals are always safe. Any other name must be listed in LH_ALLOWED_HOSTS
- * (comma-separated, case-insensitive, port ignored). */
+/** El DNS rebinding necesita un nombre DNS controlado por el atacante, así que los
+ * nombres localhost y las IP literales siempre son seguros. Cualquier otro nombre
+ * debe figurar en LH_ALLOWED_HOSTS (separados por comas, sin distinguir
+ * mayúsculas, sin tener en cuenta el puerto). */
 export function browserHostAllowed(host: string | null, env: Record<string, string | undefined> = process.env): boolean {
 	if (!host) return false;
 	let hostname: string;
@@ -54,8 +56,8 @@ export function browserHostAllowed(host: string | null, env: Record<string, stri
 	return allowed.includes(hostname);
 }
 
-/** Shared by Proxy and the streamed document route that deliberately bypasses
- * Proxy's truncated body clone. Check before any route-specific work. */
+/** Lo comparten Proxy y la ruta de documentos en streaming, que se salta a propósito
+ * el clon truncado del cuerpo de Proxy. Se comprueba antes de cualquier trabajo propio de la ruta. */
 export function apiRequestRefusal(request: Request, env: Record<string, string | undefined> = process.env): string | undefined {
 	if (browserOnlyMode(env)) return browserAPIRefusal(request, env);
 	if (!desktopAPIAuthorized(request.headers, env)) return "Desktop API access requires the trusted LearnHarness window.";
@@ -63,9 +65,10 @@ export function apiRequestRefusal(request: Request, env: Record<string, string |
 
 const READ_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
-/** Browser-only API gate: a Host check against DNS rebinding and a
- * cross-site check on writes. Writes without Origin or Sec-Fetch-Site come
- * from non-browser clients and are allowed. Returns the refusal, if any. */
+/** Barrera de la API solo navegador: una comprobación de Host contra el DNS
+ * rebinding y una comprobación entre sitios en las escrituras. Las escrituras
+ * sin Origin ni Sec-Fetch-Site vienen de clientes que no son navegadores y se
+ * permiten. Devuelve el rechazo, si lo hay. */
 export function browserAPIRefusal(request: Request, env: Record<string, string | undefined> = process.env): string | undefined {
 	if (!browserHostAllowed(request.headers.get("host") ?? new URL(request.url).host, env)) {
 		return "This host name is not allowed. Use localhost or an IP address, or add the name to LH_ALLOWED_HOSTS.";

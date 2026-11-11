@@ -1,13 +1,13 @@
 import { getClaudeBinary } from "../agent/claude-code/binary.ts";
 import { settingsStore } from "../store/settings.ts";
 
-/** Fresh admission state, not a process-wide cache. Existing runs retain
- * their engines; only new chat/job/extraction/compaction admissions consult it. */
+/** Estado de admisión actual, no una caché de todo el proceso. Las ejecuciones existentes
+ * conservan sus motores; solo lo consultan las nuevas admisiones de chat/tarea/extracción/compactación. */
 export function claudeCodeEnabled(): boolean {
 	return settingsStore.readSettings()?.claudeCode?.enabled === true;
 }
 
-/** Installation/opt-in availability only, never authenticated readiness. */
+/** Solo disponibilidad de instalación/opción activada, nunca que esté lista y autenticada. */
 export function claudeCodeAvailable(): boolean {
 	return claudeCodeEnabled() && getClaudeBinary() !== null;
 }

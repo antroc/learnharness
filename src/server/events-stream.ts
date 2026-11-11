@@ -1,32 +1,34 @@
 /**
- * THE NOTIFICATION CHANNEL (push-architecture slice 1): GET /api/events is
- * an SSE response over the core event bus — one connection per open
- * window, held open until the view goes away, fed by every emitter
- * (turn lifecycle, job/chat stores, extraction registry).
+ * EL CANAL DE NOTIFICACIONES (arquitectura push, fase 1): GET /api/events es
+ * una respuesta SSE sobre el bus de eventos del núcleo: una conexión por
+ * ventana abierta, mantenida hasta que la vista desaparece y alimentada por
+ * todos los emisores (ciclo de vida del turno, almacenes de tareas/chats,
+ * registro de extracción).
  *
- * NOTIFY → FETCH (the architecture's whole trick): frames carry only the
- * event type + a tiny payload; consumers respond by fetching truth
- * (/api/chats/:id, /api/jobs, /api/activity). No payload versioning, no
- * replay protocol — a reconnect resyncs with one ordinary fetch per
- * consumer. This is a DESKTOP app talking to localhost: holding N≈1-3
- * connections costs one socket pair each and zero traffic while idle
- * (owner ruling 2026-10-02 — polling's cloud economics don't exist at
- * loopback; the poll lattice it left behind is what this replaces).
+ * NOTIFICAR → LEER (todo el truco de la arquitectura): los frames solo llevan
+ * el tipo de evento + una carga mínima; los consumidores responden leyendo la
+ * verdad (/api/chats/:id, /api/jobs, /api/activity). Sin versionado de cargas
+ * ni protocolo de reproducción: una reconexión se resincroniza con una lectura
+ * normal por consumidor. Es una app de ESCRITORIO que habla con localhost:
+ * mantener N≈1-3 conexiones cuesta un par de sockets cada una y cero tráfico
+ * en reposo (decisión del responsable 2026-10-02: la economía del sondeo en la
+ * nube no existe en loopback; esto sustituye a la red de sondeos que dejó).
  *
- * Wire dialect mirrors the turn stream (pi/ui-stream.ts): text/event-stream,
- * no-cache/no-transform, X-Accel-Buffering off — plus a `: ping` comment
- * every 25s to keep any intermediary from idling the socket out (locally
- * unnecessary, harmless, and it makes dead-connection detection cheap).
+ * El dialecto de red refleja el del flujo del turno (pi/ui-stream.ts):
+ * text/event-stream, no-cache/no-transform, X-Accel-Buffering desactivado,
+ * más un comentario `: ping` cada 25 s para que ningún intermediario cierre el
+ * socket por inactividad (innecesario en local, inofensivo, y abarata detectar
+ * conexiones muertas).
  *
- * The DIFFERENCE from the turn stream is lifetime: a turn's stream ends at
- * settle ([DONE]); this channel ends when the CLIENT goes away — cancel()
- * is the only end, and it must leave the bus untouched for other windows.
- * The closure shape (teardown assigned in start, called in cancel) is the
- * ui-stream subscribe() pattern.
+ * La DIFERENCIA con el flujo del turno es la duración: el flujo de un turno
+ * termina al asentarse ([DONE]); este canal termina cuando el CLIENTE se va:
+ * cancel() es el único final y debe dejar el bus intacto para las demás
+ * ventanas. La forma del cierre (teardown asignado en start, llamado en
+ * cancel) es el patrón de subscribe() de ui-stream.
  */
 import { subscribe, type ServerEvent } from "../core/events.ts";
 
-/** One window's subscription as an SSE Response. */
+/** La suscripción de una ventana como Response SSE. */
 export function eventsResponse(): Response {
 	const encoder = new TextEncoder();
 	let teardown: (() => void) | undefined;
@@ -42,9 +44,9 @@ export function eventsResponse(): Response {
 				unsubscribe?.();
 				if (heartbeat) clearInterval(heartbeat);
 			};
-			// Enqueue is the ONLY place the socket can reject us (the reader
-			// died) — any failure routes through stop() so the listener and
-			// the heartbeat never outlive the connection.
+			// Enqueue es el ÚNICO sitio donde el socket puede rechazarnos (el lector murió);
+			// cualquier fallo pasa por stop() para que el listener y el latido nunca
+			// sobrevivan a la conexión.
 			const frame = (chunk: string) => {
 				if (closed) return;
 				try {
@@ -54,9 +56,9 @@ export function eventsResponse(): Response {
 				}
 			};
 
-			// Attach FIRST, synchronously: no event can fall between
-			// construction and subscription (single-threaded — the same
-			// attach-then-replay law as ui-stream's subscribe()).
+			// Se engancha PRIMERO, de forma síncrona: ningún evento puede caer entre la
+			// construcción y la suscripción (un solo hilo; la misma ley de enganchar y luego
+			// reproducir que en el subscribe() de ui-stream).
 			unsubscribe = subscribe((event: ServerEvent) => {
 				const { type, ...payload } = event;
 				frame(`event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`);
@@ -66,8 +68,8 @@ export function eventsResponse(): Response {
 			teardown = stop;
 		},
 		cancel() {
-			// The view went away: drop the listener + timer. The bus keeps
-			// serving every other window untouched.
+			// La vista se fue: se quitan el listener y el temporizador. El bus sigue
+			// sirviendo a todas las demás ventanas sin cambios.
 			teardown?.();
 		},
 	});

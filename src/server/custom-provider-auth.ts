@@ -1,5 +1,5 @@
-/** Custom-only credential composition. File credentials and their authorization
- * are read from the same atomic record, never a stale fill-gapped env copy. */
+/** Composición de credenciales solo para el endpoint personalizado. Las credenciales de fichero y su
+ * autorización se leen del mismo registro atómico, nunca de una copia de entorno desfasada con huecos rellenados. */
 import { CUSTOM_PROVIDER } from "../core/auth-keys.ts";
 import { authEnvRecord } from "../core/auth-env.ts";
 import { customBindingMatches, type CustomAuthBinding } from "../core/custom-provider-auth.ts";
@@ -13,8 +13,8 @@ export interface CustomAuthState {
 	fileKey?: string;
 	source: "env" | "file" | "none";
 }
-/** requiredConfig prevents even credential resolution until startup/runtime
- * authorization matches. Explicit UI inspection/probe authorization omits it. */
+/** requiredConfig impide incluso resolver las credenciales hasta que coincida la autorización de
+ * arranque/ejecución. La inspección/sondeo explícitos desde la interfaz la omiten. */
 export function customAuthState(inspectKey = false, requiredConfig?: CustomProviderSettings): CustomAuthState {
 	try {
 		const snapshot = readCustomAuth();
@@ -31,8 +31,8 @@ export function customAuthState(inspectKey = false, requiredConfig?: CustomProvi
 export function customKeyAuthorized(cp: CustomProviderSettings | undefined, state: CustomAuthState): boolean {
 	return cp?.authMode === "apiKey" && state.readable && customBindingMatches(cp, state.binding) && Boolean(state.key) && (state.source === "env" || state.binding?.fileKeyBaseUrl === cp?.baseUrl);
 }
-/** Reflect only after the atomic pair is committed. Runtime file resolution
- * does not rely on this compatibility mirror, including after a failed write. */
+/** Se refleja solo después de confirmar el par atómico. La resolución del fichero en ejecución
+ * no depende de este espejo de compatibilidad, tampoco tras una escritura fallida. */
 export function persistCustomAuth(binding: CustomAuthBinding | undefined, fileKey: string | undefined): void {
 	writeCustomAuth(binding, fileKey);
 	const record = authEnvRecord();

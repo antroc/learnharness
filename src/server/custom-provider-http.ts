@@ -1,5 +1,5 @@
-/** PR #62's connect/manual-model/offline-pin workflow, with host request,
- * credential-binding and optimistic-write boundaries. No secret reaches GET. */
+/** El flujo de conexión/modelo manual/fijación sin conexión del PR #62, con fronteras de petición
+ * del host, vinculación de credenciales y escritura optimista. Ningún secreto llega a GET. */
 import { createHmac, randomBytes } from "node:crypto";
 import { normalizeBaseUrl, parseModelIds, sanitizeCustomModelOverrides, type CustomProviderSettings } from "../core/settings.ts";
 import { readSettings, writeSettings } from "../store/settings.ts";
@@ -21,12 +21,12 @@ const stale = () => failure("Custom configuration or credentials changed. Reload
 function snapshot(inspectKey = false) {
 	const record = readSettings() ?? { version: 1 };
 	const cp = record.customProvider;
-	// Keyless never looks up a key for authentication or revision generation.
-	// An explicit API-key inspection is used only after the user selects that mode.
+	// Sin clave nunca se busca una clave para autenticar ni para generar revisiones.
+	// Una inspección explícita de la clave API solo se usa después de que el usuario elija ese modo.
 	const auth = customAuthState(inspectKey);
 	const key = auth.key;
-	// Public revisions contain configuration only, never credential material.
-	// Effective credentials are compared privately across the awaited probe.
+	// Las revisiones públicas solo contienen configuración, nunca material de credenciales.
+	// Las credenciales efectivas se comparan en privado a lo largo del sondeo esperado.
 	const etag = `"${createHmac("sha256", secret).update(JSON.stringify([cp ?? null, auth.binding ?? null, auth.readable])).digest("base64url")}"`;
 	return { record, cp, auth, key, etag };
 }
@@ -53,17 +53,18 @@ function authorized(request: Request): boolean {
 	const origin = request.headers.get("origin");
 	if (!origin || origin === "null") return false;
 	try {
-		// Next's standalone Request URL can use its internal hostname. Match
-		// the actual addressed Host through the app's existing origin seam;
-		// never trust forwarded-origin headers.
+		// La URL de Request de Next en modo standalone puede usar su nombre de host interno.
+		// Se compara con el Host realmente direccionado mediante la frontera de origen
+		// existente de la app; nunca se confía en las cabeceras de origen reenviadas.
 		return origin === subscriptionRequestOrigin(request)
 			&& (!request.headers.has("sec-fetch-site") || request.headers.get("sec-fetch-site") === "same-origin");
 	} catch { return false; }
 }
 
-/** Auth pair FIRST, matching config nonce SECOND. Any interrupted/failed
- * cross-file publication is durably unusable, including with a real env key.
- * Best-effort rollback restores the entire old pair, never just its secret. */
+/** Primero el par de autenticación y después el nonce de configuración coincidente. Cualquier
+ * publicación entre ficheros interrumpida/fallida queda inutilizable de forma duradera, incluso con
+ * una clave real en el entorno. La reversión de mejor esfuerzo restaura el par antiguo entero, nunca
+ * solo su secreto. */
 function commit(cp: CustomProviderSettings | undefined, binding?: CustomAuthBinding, fileKey?: string): void {
 	const latest = readSettings() ?? { version: 1 };
 	const oldAuth = binding ? readCustomAuth() : undefined;
@@ -74,7 +75,7 @@ function commit(cp: CustomProviderSettings | undefined, binding?: CustomAuthBind
 		writeSettings(cp ? { ...rest, customProvider: cp } : rest);
 	} catch {
 		if (published && oldAuth) {
-			try { persistCustomAuth(oldAuth.binding, oldAuth.fileKey()); } catch { /* durable nonce mismatch fails closed after restart */ }
+			try { persistCustomAuth(oldAuth.binding, oldAuth.fileKey()); } catch { /* un nonce duradero que no coincide falla cerrado tras reiniciar */ }
 		}
 		throw new Error("Unable to save custom configuration. Reload configuration and retry.");
 	}
@@ -85,8 +86,8 @@ export async function customProviderMutation(request: Request): Promise<Response
 	if (!authorized(request)) return failure("Custom configuration requires a trusted same-origin request.", 403);
 	if (request.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() !== "application/json") return failure("JSON content-type is required.", 415);
 	try {
-		// Next can represent an empty DELETE as a zero-byte stream rather
-		// than null. Bound it either way; only DELETE permits an empty body.
+		// Next puede representar un DELETE vacío como un flujo de cero bytes en lugar de
+		// null. Se acota en ambos casos; solo DELETE permite un cuerpo vacío.
 		const body = await readBoundedJson(request, 64 * 1024, request.method === "DELETE");
 		if (!body || typeof body !== "object" || Array.isArray(body)) return failure("Invalid JSON body");
 		const raw = body as Record<string, unknown>;
@@ -115,8 +116,8 @@ export async function customProviderMutation(request: Request): Promise<Response
 		if (authMode === "apiKey" && supplied === "") return failure("Choose Keyless to clear authentication.");
 		const envOwned = before.auth.source === "env";
 		if (envOwned && supplied) return failure("Environment owns the effective key. Change the environment or explicitly reuse that key.");
-		// A shadowed file key is not the key that will run. Require consent for
-		// the actual environment key when authorizing a different endpoint.
+		// Una clave de fichero tapada no es la clave que se va a usar. Se exige consentimiento
+		// para la clave de entorno real al autorizar un endpoint distinto.
 		const hasNewEffectiveKey = Boolean(supplied) && !envOwned;
 		const changedTarget = before.cp?.baseUrl !== base;
 		if (authMode === "apiKey" && (changedTarget || !customKeyAuthorized(before.cp, before.auth)) && !hasNewEffectiveKey && raw.reuseKey !== true) {
@@ -129,8 +130,8 @@ export async function customProviderMutation(request: Request): Promise<Response
 		const found = await discoverModels(base, effectiveKey);
 		if (!found.ok && (found.fatal || found.status === 401 || found.status === 403)) return failure(found.error, 502);
 		if (!found.ok && !manualModels.length) return failure(`${found.error}. If this endpoint has no /models list, add model IDs manually.`, 502);
-		// Discovery yields; both the custom record and the credential must still
-		// match. Unrelated settings edits are preserved by commit's fresh merge.
+		// El descubrimiento cede; tanto el registro personalizado como la credencial deben
+		// seguir coincidiendo. Las ediciones de ajustes no relacionadas se conservan con la fusión nueva de commit.
 		const now = snapshot(authMode === "apiKey");
 		if (before.etag !== now.etag || JSON.stringify(before.auth) !== JSON.stringify(now.auth)) return stale();
 		const discovered = found.ok ? found.models : !changedTarget ? before.cp?.models ?? [] : [];

@@ -1,4 +1,4 @@
-/** Byte-bounded JSON for the custom endpoint's request/discovery surfaces. */
+/** JSON con límite de bytes para las superficies de petición/descubrimiento del endpoint personalizado. */
 export class CustomBodyLimitError extends Error {}
 
 export async function readBoundedJson(message: Request | Response, limit: number, allowEmptyObject = false): Promise<unknown> {

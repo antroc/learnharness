@@ -11,29 +11,29 @@ import { discardChatDeliveries } from "./jobs.ts";
 import { sideChats } from "./side-chat.ts";
 
 /**
- * Server-side chat entries for the transport layer (app/api/chats*,
- * app/chat/[id]). Today these delegate straight to the ChatStore port; the
- * services stage carves the real orchestration behind this same surface.
+ * Entradas de chat del servidor para la capa de transporte (app/api/chats*,
+ * app/chat/[id]). Hoy delegan directamente en el puerto ChatStore; la fase de
+ * servicios irá tallando la orquestación real detrás de esta misma superficie.
  *
- * deleteChatSession (wave 6, session deletion — the FIRST destructive
- * operation on the graph ledgers) is the one real orchestration here:
- * gates → extraction wind-down → one synchronous deletion block. See
- * core/graph-deletion.ts for the ledger semantics and the atomicity
- * argument.
+ * deleteChatSession (oleada 6, borrado de sesiones: la PRIMERA operación
+ * destructiva sobre los registros del grafo) es la única orquestación real de
+ * aquí: barreras → cierre de la extracción → un único bloque síncrono de
+ * borrado. Consulta core/graph-deletion.ts para la semántica de los registros
+ * y el argumento de atomicidad.
  */
 
 export const { createChat, getChat, listChats } = stores.chatStore;
 export { titleFromPrompt };
 export type { ChatDeleteMode, ChatDeletionStats } from "../core/graph-deletion.ts";
 
-/** How long the wind-down wait may take before the caller gets a retryable
- *  503 (an aborted extraction ends at its next model-call boundary —
- *  provider cancellation is normally sub-second, but a wedged provider
- *  must never wedge deletion). */
+/** Cuánto puede durar la espera del cierre antes de que el llamante reciba un
+ *  503 reintentable (una extracción cancelada termina en su siguiente frontera
+ *  de llamada al modelo; la cancelación en el proveedor suele tardar menos de
+ *  un segundo, pero un proveedor atascado nunca debe atascar el borrado). */
 const WIND_DOWN_TIMEOUT_MS = 10_000;
 const WIND_DOWN_POLL_MS = 50;
 
-/** What deleteChatSession did — the route maps it straight to HTTP. */
+/** Lo que hizo deleteChatSession; la ruta lo traduce directamente a HTTP. */
 export type ChatDeleteOutcome =
 	| { ok: false; status: 404; code: "not_found"; error: string }
 	| { ok: false; status: 409; code: "turn_in_flight" | "jobs_running"; error: string; jobIds: string[] }
@@ -47,27 +47,28 @@ export type ChatDeleteOutcome =
 	  };
 
 /**
- * Delete a session (owner rulings 2026-09-22/23): gates first, then the
- * purge. The owner-locked choreography:
+ * Borra una sesión (decisiones del responsable 2026-09-22/23): primero las
+ * barreras y después la purga. La coreografía fijada por el responsable:
  *
- *   1. GATES — a turn in flight or a running background job refuses with
- *      409 (they write the chat record and steer into it; deleting
- *      mid-flight would corrupt the write-ahead flow). The UI retries once
- *      work drains.
- *   2. EXTRACTION WIND-DOWN — the chat's own pipeline run is TRUE-
- *      CANCELLED (abortExtraction: spend stops, nothing merges), then
- *      awaited off the registry. A timeout is a retryable 503, never a
- *      forced race.
- *   3. THE SYNC BLOCK — everything below runs without a single await:
- *      no extraction append can interleave (the event loop never yields
- *      mid-block), so the read-filter-write of the ledger rewrites is
- *      atomic against the pipeline. Ledgers first, jobs next, the chat
- *      record LAST (a crash mid-block leaves a deletable chat with a
- *      purged graph — re-running DELETE fixes it — never a deleted chat
- *      with live traces). The pipeline's per-batch liveness guard
- *      (extraction.ts) closes the last window: a run that slipped past
- *      the wind-down finds the chat gone at its merge and aborts with
- *      nothing merged.
+ *   1. BARRERAS: un turno en curso o una tarea en segundo plano en ejecución
+ *      se rechazan con 409 (escriben el registro del chat y lo reorientan;
+ *      borrar a mitad corrompería el flujo de escritura anticipada). La
+ *      interfaz reintenta cuando el trabajo termina.
+ *   2. CIERRE DE LA EXTRACCIÓN: la ejecución del proceso del propio chat se
+ *      CANCELA DE VERDAD (abortExtraction: el gasto se detiene, no se fusiona
+ *      nada) y después se espera a que salga del registro. Un tiempo agotado
+ *      es un 503 reintentable, nunca una carrera forzada.
+ *   3. EL BLOQUE SÍNCRONO: todo lo de abajo se ejecuta sin un solo await:
+ *      ningún añadido de extracción puede intercalarse (el bucle de eventos
+ *      nunca cede a mitad del bloque), así que la lectura-filtrado-escritura
+ *      de las reescrituras de los registros es atómica frente al proceso.
+ *      Primero los registros del grafo, después las tareas y el registro del
+ *      chat AL FINAL (una caída a mitad del bloque deja un chat borrable con
+ *      el grafo purgado, que se arregla repitiendo el DELETE, nunca un chat
+ *      borrado con rastros vivos). La protección de vida por lote del proceso
+ *      (extraction.ts) cierra la última ventana: una ejecución que se coló
+ *      tras el cierre encuentra el chat borrado al fusionar y se cancela sin
+ *      fusionar nada.
  */
 export function runningWorkBlocker(chatId: string): Extract<ChatDeleteOutcome, { status: 409 }> | null {
 	if (isTurnRunning(chatId)) {
@@ -79,9 +80,9 @@ export function runningWorkBlocker(chatId: string): Extract<ChatDeleteOutcome, {
 			jobIds: [],
 		};
 	}
-	// Legacy records kept completed workers running until delivery. A saved
-	// result without a live loop is pending session data, not computing work;
-	// deletion must not depend on a prior recovery poll to recognize it.
+	// Los registros heredados mantenían en marcha los workers terminados hasta la entrega.
+	// Un resultado guardado sin bucle vivo son datos de sesión pendientes, no trabajo en curso;
+	// el borrado no debe depender de un sondeo de recuperación previo para reconocerlo.
 	const runningJobs = stores.jobStore.listJobs(chatId).filter((job) =>
 		job.status === "running" && (!job.result || isJobLive(job.id)));
 	if (runningJobs.length > 0) {
@@ -103,7 +104,7 @@ export async function deleteChatSession(chatId: string, mode: ChatDeleteMode): P
 	const blocker = runningWorkBlocker(chatId);
 	if (blocker) return blocker;
 	if (extractionStatuses().some((run) => run.chatId === chatId)) {
-		abortExtraction(chatId); // true cancellation — spend stops, nothing merges
+		abortExtraction(chatId); // cancelación real: el gasto se detiene, no se fusiona nada
 		const deadline = Date.now() + WIND_DOWN_TIMEOUT_MS;
 		while (extractionStatuses().some((run) => run.chatId === chatId)) {
 			if (Date.now() > deadline) {
@@ -118,31 +119,31 @@ export async function deleteChatSession(chatId: string, mode: ChatDeleteMode): P
 		}
 	}
 
-	// A result wake or a worker may have started during extraction wind-down.
-	// Recheck immediately before the synchronous purge, with no await gap.
+	// Puede haber arrancado un despertar de resultado o un worker durante el cierre de la
+	// extracción. Se vuelve a comprobar justo antes de la purga síncrona, sin hueco de await.
 	const lateBlocker = runningWorkBlocker(chatId);
 	if (lateBlocker) return lateBlocker;
 
 	return finishChatDeletion(chatId, mode);
 }
 
-/** Source deletion has already purged the selected batch's graph traces.
- * Remove the remaining session data with the same gates/cleanup and no await. */
+/** El borrado de fuentes ya ha purgado los rastros del lote seleccionado en el grafo.
+ * Se eliminan los datos restantes de la sesión con las mismas barreras/limpieza y sin await. */
 export function deleteIdleChatRecord(chatId: string): Extract<ChatDeleteOutcome, { ok: false }> | { ok: true } {
 	if (!stores.chatStore.getChat(chatId)) return { ok: false, status: 404, code: "not_found", error: "No such session" };
 	const blocker = runningWorkBlocker(chatId);
 	if (blocker) return blocker;
 	if (extractionStatuses().some((run) => run.chatId === chatId)) return { ok: false, status: 503, code: "extraction_winding_down", error: "The session's extraction is still winding down — try again in a moment" };
 	finishChatRecordDeletion(chatId);
-	// ChatStore can swallow unlink failures. Do not tell source deletion to
-	// discard placement/folders while the conversation still exists.
+	// ChatStore puede tragarse fallos de unlink. No se le dice al borrado de fuentes que
+	// descarte la ubicación/carpetas mientras la conversación siga existiendo.
 	if (stores.chatStore.getChat(chatId)) throw new Error("Could not remove the selected session record.");
 	return { ok: true };
 }
 
 function finishChatDeletion(chatId: string, mode: ChatDeleteMode): Extract<ChatDeleteOutcome, { ok: true }> {
-	// THE SYNC BLOCK — no awaits below (see the doc comment). Order:
-	// ledgers → jobs → the chat record.
+	// EL BLOQUE SÍNCRONO: sin awaits a partir de aquí (ver el comentario de documentación).
+	// Orden: registros del grafo → tareas → registro del chat.
 	const stats = deleteChatTraces(stores.graphStore, chatId, mode);
 	const jobsRemoved = finishChatRecordDeletion(chatId);
 	return { ok: true, mode, stats, jobsRemoved, graphRevision: graphRevision() };
@@ -153,41 +154,44 @@ function finishChatRecordDeletion(chatId: string): number {
 	if (stores.chatStore.deleteChat(chatId)) {
 		discardChatDeliveries(chatId);
 		clearTurnFailure(chatId);
-		sideChats.stopAll(chatId); // a running side answer has nowhere left to land
+		sideChats.stopAll(chatId); // una respuesta lateral en curso ya no tiene dónde aterrizar
 	}
 	return jobsRemoved;
 }
 
-/** One session's coverage read (extraction-UX redesign, owner dispatch
- *  2026-09-24): the chat view's ring meter + popover data, scoped to one
- *  chat (the all-sessions GET died with this redesign — nothing consumed
- *  it once the sidebar and ring read here; the Extract POST stays).
- *  Uncovered stays DERIVED per request (fingerprint the transcript,
- *  diff the coverage ledger — never dual-tracked).
+/** Lectura de la cobertura de una sesión (rediseño de la UX de extracción,
+ *  encargo del responsable 2026-09-24): los datos del medidor en anillo y del
+ *  popover de la vista del chat, limitados a un chat (el GET de todas las
+ *  sesiones desapareció con este rediseño: nada lo consumía una vez que la
+ *  barra lateral y el anillo leen de aquí; el POST de Extract se queda). Lo
+ *  no cubierto sigue siendo DERIVADO en cada petición (huella de la
+ *  transcripción, diferencia con el registro de cobertura; nunca un doble
+ *  seguimiento).
  *
- *  lastFoldedAt: the newest coverage row's fold timestamp — a cheap single
- *  pass over the chat's ledger rows (the ring popover's "last extraction"
- *  line); null before the session's first fold. */
+ *  lastFoldedAt: la marca de tiempo de plegado de la fila de cobertura más
+ *  reciente; una sola pasada barata por las filas del registro del chat (la
+ *  línea «última extracción» del popover del anillo); null antes del primer
+ *  plegado de la sesión. */
 export interface SessionCoverage {
 	totalMessages: number;
 	coveredCount: number;
 	uncoveredCount: number;
 	coveredTokens: number;
 	uncoveredTokens: number;
-	/** True while a chat-kind extraction run is registered for this session. */
+	/** True mientras haya una ejecución de extracción de tipo chat registrada para esta sesión. */
 	running: boolean;
-	/** ISO of the newest fold in this session's coverage rows; null before any. */
+	/** ISO del plegado más reciente en las filas de cobertura de esta sesión; null antes de ninguno. */
 	lastFoldedAt: string | null;
 }
 
-/** The per-session coverage block (see SessionCoverage). Null when the
- *  chat doesn't exist — callers own the 404. */
+/** El bloque de cobertura por sesión (ver SessionCoverage). Null si el chat no
+ *  existe; el 404 es cosa de los llamantes. */
 export function sessionCoverage(chatId: string): SessionCoverage | null {
 	const record = stores.chatStore.getChat(chatId);
 	if (!record) return null;
 	const entries = stores.graphStore.readCoverage();
-	// Wave B: the record is native history — coverage reads through the
-	// projection (same view the extraction pipeline folds).
+	// Oleada B: el registro es historial nativo; la cobertura se lee a través de la
+	// proyección (la misma vista que pliega el proceso de extracción).
 	const cov = coverageOf(record.messages, entries, chatId);
 	let lastFoldedAt: string | null = null;
 	for (const entry of entries) {
