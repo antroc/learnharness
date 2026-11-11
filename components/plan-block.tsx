@@ -3,14 +3,14 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { MaximizeIcon, MinusIcon, PlusIcon, XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-// The placement engine — literally mermaid's: dagre-d3-es, the fork
-// mermaid 11 ships with (owner, plan-graph round 8: same engine as the
-// mermaid graphs, our SVG skin stays). The deep subpath is how mermaid
-// itself imports it.
+// El motor de colocación — literalmente el de mermaid: dagre-d3-es, el fork
+// con el que se distribuye mermaid 11 (responsable, ronda 8 del grafo del
+// plan: el mismo motor que los grafos de mermaid, nuestra piel SVG se queda).
+// La subruta profunda es como lo importa el propio mermaid.
 import { graphlib } from "dagre-d3-es";
 import { layout as dagreLayout } from "dagre-d3-es/src/dagre/index.js";
-// Mermaid's default flowchart edge curve: dagre's waypoints drawn through
-// d3's curveBasis (the exact recipe dagre-d3's own renderer uses).
+// La curva de arista por defecto de los diagramas de flujo de mermaid: los puntos
+// de paso de dagre trazados con curveBasis de d3 (la receta exacta del renderizador de dagre-d3).
 import { curveBasis, line } from "d3-shape";
 import { fitGraphView, fitZoomFor, zoomedGraphView, type Viewport } from "@/components/pan-zoom";
 import type { PlanBlockData, PlanNodeStatus, PlanTree } from "@/src/core";
@@ -19,62 +19,67 @@ import { Hint } from "@/components/ui/hint";
 import { InteractionLayerOwner, useInteractionLayer } from "./interaction-layers";
 
 /**
- * PLAN BLOCKS — the plan lives in the chat (wave 4): persisted
- * `data-plan-block` parts render as DAG blocks in the transcript flow, and
- * the right sidebar is retired.
+ * BLOQUES DE PLAN — el plan vive en el chat (oleada 4): las partes
+ * `data-plan-block` persistidas se renderizan como bloques DAG en el flujo de
+ * la transcripción, y la barra lateral derecha queda retirada.
  *
- * - kind "full": the whole DAG, BORDERLESS — no wrapping chrome, the SVG
- *   scales to the full column width (viewBox = layout extent + GRAPH_PAD,
- *   so strokes/glow never clip), natural height, capped at the chat prose
- *   font size (TEXT_CAP_SCALE — fills the column, never oversizes text).
- * - Clicking opens the full plan in a session-scoped focus overlay
- *   (absolute inside the session area, below the drag bar — chrome-melt
- *   wave, 2026-09-19; was a fixed inset-0 full-screen popup) —
- *   the LIVE plan: the latest tree from the transcript with statuses
- *   derived at click time (contracts/plan.ts derivePlanStatuses). Blocks
- *   are frozen snapshots rendered exactly as carried (never re-derived);
- *   the popup is the live view (user decision, 2026-09).
+ * - kind "full": el DAG entero, SIN BORDE — sin cromo envolvente, el SVG
+ *   se escala al ancho completo de la columna (viewBox = extensión del
+ *   layout + GRAPH_PAD, para que los trazos/el brillo nunca se recorten),
+ *   altura natural, con tope en el tamaño de fuente de la prosa del chat
+ *   (TEXT_CAP_SCALE — llena la columna, nunca agranda el texto de más).
+ * - Al hacer clic se abre el plan completo en un overlay de foco con ámbito
+ *   de sesión (absoluto dentro del área de la sesión, bajo la barra de
+ *   arrastre — oleada de fundido del cromo, 2026-09-19; antes era una
+ *   ventana emergente fija inset-0 a pantalla completa) — el plan EN VIVO:
+ *   el último árbol de la transcripción con los estados derivados en el
+ *   momento del clic (derivePlanStatuses de contracts/plan.ts). Los bloques
+ *   son instantáneas congeladas que se renderizan tal como llegan (nunca se
+ *   vuelven a derivar); la ventana emergente es la vista en vivo (decisión
+ *   del usuario, 2026-09).
  *
- * Hand-built SVG everywhere (user decision): placement runs on dagre
- * (mermaid's engine — deterministic, synchronous, DOM-free, so SSR and
- * render tests stay exact); the skin is ours — no coupling to the graph
- * stream's internals. Pan/zoom in the popup
- * is harvested from the retired tree panel's graph (fit-floor semantics:
- * fully zoomed out IS the fit; panning locks at the floor).
+ * SVG hecho a mano en todas partes (decisión del usuario): la colocación
+ * corre sobre dagre (el motor de mermaid — determinista, síncrono, sin DOM,
+ * así que SSR y las pruebas de render siguen siendo exactas); la piel es
+ * nuestra — sin acoplamiento a los internos del flujo del grafo. El
+ * desplazamiento/zoom de la ventana emergente se recogió del grafo del panel
+ * de árbol retirado (semántica de suelo de ajuste: el zoom mínimo ES el
+ * ajuste; el desplazamiento se bloquea en el suelo).
  */
 
-// ─── Layout constants + pure helpers (exported for tests) ────────────────────
+// ─── Constantes de layout + auxiliares puros (exportados para las pruebas) ───
 
-/** Text-first node sizing (owner, plan-hug round 2026-10-07): the box
- * hugs its wrapped text instead of a fixed 160px slab. Width comes from
- * the wrapped lines — a per-character-CLASS width estimate (the flat
- * px/char rate of the first cut overshot the real rendered width, and
- * the invisible slack read as "a lot of empty space" beside the text;
- * owner follow-up 2026-10-07) plus symmetric padding, floored at a
- * minimum so short titles don't collapse into pills. Estimate, NOT
- * canvas measurement: the layout path stays deterministic,
- * synchronous, and DOM-free (SSR + exact render pins keep working). */
+/** Tamaño de nodo guiado por el texto (responsable, ronda de ajuste del plan
+ * 2026-10-07): la caja se ciñe a su texto ajustado en lugar de a una losa
+ * fija de 160px. El ancho sale de las líneas ajustadas — una estimación de
+ * ancho por CLASE de carácter (la tasa plana px/carácter del primer intento
+ * se pasaba del ancho real renderizado, y la holgura invisible se leía como
+ * "mucho espacio vacío" junto al texto; seguimiento del responsable
+ * 2026-10-07) más un relleno simétrico, con un mínimo para que los títulos
+ * cortos no se reduzcan a píldoras. Estimación, NO medición en canvas: la
+ * ruta del layout sigue siendo determinista, síncrona y sin DOM (SSR y las
+ * fijaciones exactas de render siguen funcionando). */
 
-/** Symmetric horizontal padding — EQUALS the vertical padding the
- * single-line text gets in NODE_H (owner: "the horizontal padding
- * should be the same as the vertical one"): (44 − 11) / 2 ≈ 16 (the
- * prose font renders text-xs at 11px). */
+/** Relleno horizontal simétrico — IGUAL al relleno vertical que recibe el
+ * texto de una sola línea en NODE_H (responsable: "el relleno horizontal
+ * debe ser igual que el vertical"): (44 − 11) / 2 ≈ 16 (la fuente de prosa
+ * renderiza text-xs a 11px). */
 export const PAD_X = 16;
 export const NODE_W_MIN = 96;
 export const NODE_H = 44;
 
-// Width classes for the PROSE font (Source Sans 3 as shipped, text-xs
-// rendering at 11px): narrow stems and punctuation, wide m/w, caps +
-// digits, everything else. Rates least-squares-fitted against
-// getComputedTextLength() measurements of the live plan titles
-// (2026-10-07 smoke) — residuals land within ±4px per LINE, so
-// per-side padding reads as PAD_X ±2. A different reading font
-// (Appearance override) drifts the estimate slightly; accepted.
+// Clases de ancho para la fuente de PROSA (Source Sans 3 tal como se
+// distribuye, text-xs renderizado a 11px): trazos estrechos y puntuación,
+// m/w anchas, mayúsculas + dígitos, y todo lo demás. Tasas ajustadas por
+// mínimos cuadrados contra mediciones de getComputedTextLength() de los
+// títulos de planes reales (prueba de humo del 2026-10-07) — los residuos
+// quedan dentro de ±4px por LÍNEA, así que el relleno por lado se lee como
+// PAD_X ±2. Otra fuente de lectura (sustitución en Appearance) desvía un poco la estimación; aceptado.
 const NARROW_CHARS = new Set(" ijltfr.,:;'!|()[]-\\");
 const WIDE_CHARS = new Set("mwMW@");
 const CAP_DIGIT = /[A-Z0-9]/;
 
-/** Estimated rendered width (px) of one line at text-xs. Pure. */
+/** Ancho renderizado estimado (px) de una línea en text-xs. Pura. */
 export function estimateLineWidth(line: string): number {
 	let w = 0;
 	for (const ch of line) {
@@ -85,26 +90,27 @@ export function estimateLineWidth(line: string): number {
 	}
 	return w;
 }
-/** Baseline-to-baseline distance of node titles. */
+/** Distancia entre líneas base de los títulos de los nodos. */
 export const LINE_H = 13;
 export const GAP_X = 24;
 export const GAP_Y = 48;
 
-/** A node for layout purposes — the payload's shape and the tree's shape agree. */
+/** Un nodo a efectos de layout — la forma de la carga y la del árbol coinciden. */
 export interface LayoutNode {
 	id: string;
 	title: string;
 }
 
-/** Topological order + longest-path depth (Kahn, authoring tie-break) —
- *  order + depth semantics kept for tests; placement itself runs on dagre
- *  now (owner, round 8). */
+/** Orden topológico + profundidad del camino más largo (Kahn, desempate por
+ *  orden de autoría) — la semántica de orden y profundidad se mantiene para
+ *  las pruebas; la colocación en sí corre ahora sobre dagre (responsable,
+ *  ronda 8). */
 export function topoFor(nodes: readonly LayoutNode[], edges: ReadonlyArray<{ from: string; to: string }>) {
 	const index = new Map(nodes.map((n, i) => [n.id, i] as const));
 	const indegree = new Map<string, number>(nodes.map((n) => [n.id, 0] as const));
 	const dependents = new Map<string, string[]>();
 	for (const e of edges) {
-		if (!index.has(e.from) || !index.has(e.to)) continue; // defensive: dangling ids
+		if (!index.has(e.from) || !index.has(e.to)) continue; // defensivo: ids colgantes
 		indegree.set(e.to, (indegree.get(e.to) ?? 0) + 1);
 		const list = dependents.get(e.from);
 		if (list) list.push(e.to);
@@ -137,25 +143,26 @@ export function topoFor(nodes: readonly LayoutNode[], edges: ReadonlyArray<{ fro
 	return { order, depth };
 }
 
-/** Placement — dagre (mermaid's engine, owner round 8): Sugiyama-style
- *  layered layout, TB, with our geometry (text-first sized boxes,
- *  GAP_X/GAP_Y
- *  separations, zero margin — the caller adds GRAPH_PAD/POPUP_PAD).
- *  Node sizes are fed in (boxes grow with their wrapped content, round
- *  7); dagre returns node CENTERS, we hand back top-lefts like before,
- *  so every consumer (diagram, popup fit, plan window) is unchanged.
- *  Deterministic + synchronous + DOM-free: SSR and render tests stay
- *  exact. Dangling edges are ignored defensively — a ghost endpoint
- *  would spawn an unmeasured node and break the measurer. */
+/** Colocación — dagre (el motor de mermaid, ronda 8 del responsable): layout
+ *  por capas al estilo Sugiyama, TB, con nuestra geometría (cajas
+ *  dimensionadas por el texto, separaciones GAP_X/GAP_Y, margen cero — quien
+ *  llama añade GRAPH_PAD/POPUP_PAD). Se le pasan los tamaños de los nodos
+ *  (las cajas crecen con su contenido ajustado, ronda 7); dagre devuelve los
+ *  CENTROS de los nodos y nosotros devolvemos las esquinas superiores
+ *  izquierdas como antes, así que ningún consumidor (diagrama, ajuste de la
+ *  ventana emergente, ventana del plan) cambia. Determinista + síncrona + sin
+ *  DOM: SSR y las pruebas de render siguen siendo exactas. Las aristas
+ *  colgantes se ignoran por defensa — un extremo fantasma generaría un nodo
+ *  sin medir y rompería el medidor. */
 export function blockLayout(nodes: readonly LayoutNode[], edges: ReadonlyArray<{ from: string; to: string }>) {
 	const x = new Map<string, number>();
 	const y = new Map<string, number>();
 	const nodeH = new Map<string, number>();
 	const nodeW = new Map<string, number>();
-	/** Dagre's per-edge waypoint routes — each starts/ends at the node
-	 *  border intersection on whatever SIDE the edge leaves/enters
-	 *  (round 11: the mermaid line drawing, no more fixed bottom-center →
-	 *  top-center). Keyed `${from}->${to}`. */
+	/** Las rutas de puntos de paso por arista de dagre — cada una empieza/acaba
+	 *  en la intersección con el borde del nodo en el LADO por el que la arista
+	 *  sale/entra (ronda 11: el trazado de líneas de mermaid, ya no un centro
+	 *  inferior → centro superior fijo). Con clave `${from}->${to}`. */
 	const edgePts = new Map<string, Array<{ x: number; y: number }>>();
 	if (nodes.length === 0) return { x, y, nodeH, nodeW, edgePts, width: 0, height: 0 };
 	const ids = new Set(nodes.map((n) => n.id));
@@ -175,7 +182,7 @@ export function blockLayout(nodes: readonly LayoutNode[], edges: ReadonlyArray<{
 			routed.push(e);
 		}
 	}
-	// (the d.ts marks opts required; the runtime ignores it)
+	// (el d.ts marca opts como obligatorio; el runtime lo ignora)
 	dagreLayout(g, undefined);
 	for (const n of nodes) {
 		const pos = g.node(n.id);
@@ -190,18 +197,18 @@ export function blockLayout(nodes: readonly LayoutNode[], edges: ReadonlyArray<{
 		const pts: Array<{ x: number; y: number }> | undefined = g.edge(e.from, e.to)?.points;
 		if (pts) edgePts.set(`${e.from}->${e.to}`, pts.map((pt) => ({ x: pt.x, y: pt.y })));
 	}
-	// THE CANVAS MUST COVER THE ARROWS (owner, 2026-10-10): dagre's
-	// graph extent is the NODE bounding box — the edge curves drawn on
-	// top can bow past it (cross-column edges' bezier control points;
-	// measured 14–20px cut on the right in the owner's plans) and the
-	// viewBox clipped them. The ink extent unions the node boxes with
-	// every edge path's control-point hull: a bezier never leaves the
-	// hull of its control points, and parsing the d-string edgePathD
-	// builds (the SAME call the renderer makes, same inputs) bounds every
-	// segment — M, L and C pairs alternate strictly, so even/odd matches
-	// are x/y. Dagre's extent stays the FLOOR: plans whose arrows stay
-	// inside keep byte-identical viewBoxes (no reflow of every pinned
-	// render), and the origin only moves when ink bulges past zero.
+	// EL LIENZO DEBE CUBRIR LAS FLECHAS (responsable, 2026-10-10): la extensión
+	// del grafo de dagre es la caja envolvente de los NODOS — las curvas de las
+	// aristas dibujadas encima pueden curvarse más allá (los puntos de control
+	// bezier de las aristas entre columnas; se midieron recortes de 14–20px a la
+	// derecha en los planes del responsable) y el viewBox las recortaba. La
+	// extensión de la tinta une las cajas de los nodos con la envolvente de los
+	// puntos de control de cada trazado de arista: una bezier nunca sale de la
+	// envolvente de sus puntos de control, y analizar la cadena d que construye
+	// edgePathD (la MISMA llamada que hace el renderizador, con las mismas
+	// entradas) acota cada segmento — los pares M, L y C se alternan
+	// estrictamente, así que las coincidencias pares/impares son x/y. La extensión de dagre sigue siendo el SUELO: los planes
+	// cuyas flechas quedan dentro conservan viewBox idénticos byte a byte (sin rehacer cada render fijado), y el origen solo se mueve cuando la tinta sobresale de cero.
 	let inkMinX = Infinity;
 	let inkMinY = Infinity;
 	let inkMaxX = -Infinity;
@@ -239,8 +246,8 @@ export function blockLayout(nodes: readonly LayoutNode[], edges: ReadonlyArray<{
 			stretch(parseFloat(nums[i]!), parseFloat(nums[i + 1]!));
 		}
 	}
-	// Dagre coordinates start at 0; only ink past zero on the negative
-	// side moves the origin (viewBox x/y shift with it).
+	// Las coordenadas de dagre empiezan en 0; solo la tinta que pasa de cero por
+	// el lado negativo mueve el origen (el x/y del viewBox se desplaza con él).
 	const originX = Math.min(0, inkMinX === Infinity ? 0 : inkMinX);
 	const originY = Math.min(0, inkMinY === Infinity ? 0 : inkMinY);
 	return {
@@ -256,14 +263,14 @@ export function blockLayout(nodes: readonly LayoutNode[], edges: ReadonlyArray<{
 	};
 }
 
-/** Greedy word wrap to lines of ≤ maxChars — NOTHING is dropped: the
- *  node's box grows to fit every line (owner: show the full content of
- *  each node). A single oversized word is hard-chunked across lines at
- *  maxChars. Pure. */
+/** Ajuste de líneas voraz a líneas de ≤ maxChars — NO se descarta nada: la
+ *  caja del nodo crece para que quepa cada línea (responsable: mostrar el
+ *  contenido completo de cada nodo). Una única palabra demasiado larga se
+ *  trocea a la fuerza en varias líneas de maxChars. Pura. */
 export function wrapTitle(title: string, maxChars = 28): string[] {
 	const words = title.trim().split(/\s+/).filter(Boolean);
 	if (words.length === 0) return [""];
-	// Oversized words can never fit a line — chunk them so no content is lost.
+	// Las palabras demasiado largas nunca caben en una línea — se trocean para no perder contenido.
 	const atoms: string[] = [];
 	for (const w of words) {
 		for (let i = 0; i < w.length; i += maxChars) atoms.push(w.slice(i, i + maxChars));
@@ -280,77 +287,85 @@ export function wrapTitle(title: string, maxChars = 28): string[] {
 	return lines;
 }
 
-// ─── Geometry caps (owner, plan-graph refinement round 1) ─────────────────────
+// ─── Topes de geometría (responsable, ronda 1 de refinamiento del grafo del plan) ───
 
-/** A node's box width for its wrapped lines — the hug itself. Pure. */
+/** El ancho de la caja de un nodo para sus líneas ajustadas — el ceñido en sí. Pura. */
 export function nodeWidth(lines: readonly string[]): number {
 	const widest = Math.max(1, ...lines.map(estimateLineWidth));
 	return Math.max(NODE_W_MIN, Math.ceil(widest) + 2 * PAD_X);
 }
 
-/** SVG-unit padding around the layout extent: strokes are centered on the
- *  geometry (half bleeds outside the extent) and the glow halo reaches −4 —
- *  without this pad the outermost node borders clip at the svg edge. */
+/** Relleno en unidades SVG alrededor de la extensión del layout: los trazos
+ *  van centrados en la geometría (la mitad sobresale de la extensión) y el
+ *  halo del brillo llega a −4 — sin este relleno, los bordes de los nodos
+ *  más exteriores se recortan en el borde del svg. */
 export const GRAPH_PAD = 8;
-/** The current node's yellow glow: a fill blurred so it bleeds over the
- *  node's edges (owner). A Gaussian's visible spread is ≈3σ, so the glow
- *  reaches GLOW_MARGIN + 3·GLOW_BLUR past the node — any surface that
- *  shows the glow must pad its viewBox by GLOW_REACH or the blur clips
- *  at the frame edge (owner: extend the container padding to fit it). */
+/** El brillo amarillo del nodo actual: un relleno difuminado para que se
+ *  derrame sobre los bordes del nodo (responsable). La dispersión visible de
+ *  una gaussiana es ≈3σ, así que el brillo llega GLOW_MARGIN + 3·GLOW_BLUR
+ *  más allá del nodo — toda superficie que muestre el brillo debe ampliar su
+ *  viewBox en GLOW_REACH o el difuminado se recorta en el borde del marco
+ *  (responsable: ampliar el relleno del contenedor para que quepa). */
 export const GLOW_MARGIN = 8;
 export const GLOW_BLUR = 5;
 export const GLOW_REACH = GLOW_MARGIN + 3 * GLOW_BLUR;
-/** Node titles render at text-xs (12.5px) in svg units. The in-chat block
- *  scales up to fill the column but NEVER past the chat prose size
- *  (--lh-prose-size, 16px — the ladder's reading rung) — the width cap
- *  that makes that hold. */
+/** Los títulos de los nodos se renderizan a text-xs (12.5px) en unidades
+ *  svg. El bloque del chat se escala para llenar la columna pero NUNCA más
+ *  allá del tamaño de la prosa del chat (--lh-prose-size, 16px — el peldaño
+ *  de lectura de la escalera) — el tope de ancho que lo garantiza. */
 export const TEXT_CAP_SCALE = 16 / 12.5;
 
-// ─── The owner's arrowhead (plan-graph round 5) ──────────────────────────────
+// ─── La punta de flecha del responsable (ronda 5 del grafo del plan) ─────────
 
-/** Baked from arrowhead_1.svg (the CM/MJX long-arrow head), transform chain
- *  collapsed: viewBox 0 0 50.2 104, tip at (50.2, 52), notch mouth at
- *  x 27.2 with a 9.6-tall opening — at full height 104 the tail opening
- *  is ≈10, per the owner's spec. Solid strong-ink fill, no padding. */
+/** Consolidada a partir de arrowhead_1.svg (la punta de flecha larga de
+ *  CM/MJX), con la cadena de transformaciones colapsada: viewBox 0 0 50.2
+ *  104, punta en (50.2, 52), boca de la muesca en x 27.2 con una abertura de
+ *  9.6 de alto — a la altura completa de 104 la abertura de la cola es ≈10,
+ *  según la especificación del responsable. Relleno sólido de tinta fuerte,
+ *  sin relleno de margen. */
 export const ARROW_HEAD = "M48,55.2C49.4,54.6 50.2,53.4 50.2,52C50.2,50.6 49.4,49.4 48,48.8C38.2,45.6 29.2,38.8 21,28.4C15.2,21.4 11.4,13.2 9.6,3.8C9,1.2 7.4,0 4.8,0C1.6,0 0,1.6 0,5L0.2,5.6C3.6,23 12.6,36.8 27.2,47.2L27.2,56.8C12.6,67.2 3.6,81 0.2,98.4L0,99C0,102.4 1.6,104 4.8,104C7.4,104 9,102.8 9.6,100.2C11.4,90.8 15.2,82.6 21,75.6C29.2,65.2 38.2,58.4 48,55.2Z";
-/** Lines + outlines run at the app's standard border weight (owner,
- *  2026-09-26 — same 1px the UI borders use; was 1.5). */
+/** Las líneas y los contornos usan el grosor de borde estándar de la app
+ *  (responsable, 2026-09-26 — el mismo 1px de los bordes de la interfaz; antes 1.5). */
 export const STROKE_W = 1;
-/** The heads scale by the SAME factor the lines thinned by (owner,
- *  2026-09-26): 16 was the height tuned for 1.5-wide lines, so both sides
- *  of the head:shaft proportion shrink together — the LaTeX ratio (tail
- *  opening tucking the line flush) is preserved exactly, just smaller. */
+/** Las puntas se escalan por el MISMO factor en que se adelgazaron las
+ *  líneas (responsable, 2026-09-26): 16 era la altura ajustada para líneas de
+ *  1.5 de ancho, así que ambos lados de la proporción punta:asta encogen a la
+ *  vez — la relación de LaTeX (la abertura de la cola encajando la línea a
+ *  ras) se conserva exactamente, solo que más pequeña. */
 const HEAD_H = 16 * (STROKE_W / 1.5);
 const HEAD_SCALE = HEAD_H / 104;
 const HEAD_W = 50.2 * HEAD_SCALE;
-/** The drawn line terminates at the notch mouth (refX 27.2) — it never
- *  reaches the narrow tip, where it would show through (owner). The tip
- *  overhangs the line's end by this much, so edges shorten by it to land
- *  the tip exactly on the target node's border. */
+/** La línea dibujada termina en la boca de la muesca (refX 27.2) — nunca
+ *  llega a la punta estrecha, donde se transparentaría (responsable). La
+ *  punta sobresale del final de la línea en esta medida, así que las aristas
+ *  se acortan en ella para que la punta caiga justo en el borde del nodo de
+ *  destino. */
 const HEAD_TIP_OVERHANG = (50.2 - 27.2) * HEAD_SCALE;
-/** The head floats this far off the target face — the tip kisses nothing
- *  (owner, round 12). ~half a head length: clearly docked-off, still
- *  visually attached. Scaled with the head (2026-09-26) so "half a head"
- *  stays true at the thinner lines. */
+/** La punta flota a esta distancia de la cara de destino — la punta no toca
+ *  nada (responsable, ronda 12). ~media longitud de punta: claramente
+ *  despegada, pero visualmente unida. Escalada con la punta (2026-09-26) para
+ *  que "media punta" siga siendo cierto con las líneas más finas. */
 const DOCK_GAP = 4 * (STROKE_W / 1.5);
-/** The shaft stub — the straight run before the head (owner, round 12):
- *  control points from Q on sit exactly on the approach line, so the
- *  basis spline renders that stretch perfectly straight and the head
- *  lands on a straight shaft; the corner where the route squares up onto
- *  the line is rounded by the curve. ~1.5 head lengths of shaft. */
+/** El tramo de asta — el recorrido recto antes de la punta (responsable,
+ *  ronda 12): los puntos de control a partir de Q están exactamente sobre la
+ *  línea de aproximación, así que el spline de base dibuja ese tramo
+ *  perfectamente recto y la punta cae sobre un asta recta; la esquina donde
+ *  la ruta se endereza hacia la línea la redondea la curva. ~1,5 longitudes
+ *  de punta de asta. */
 const STRAIGHT_RUN = 12;
-/** The tilt limit at the termination point, measured off the entry
- *  face's perpendicular: past ±40° one of the head's barbs crosses the
- *  tip's level and the silhouette breaks (owner measured it in
- *  Photoshop, round 14). The final run swings to the cone edge instead. */
+/** El límite de inclinación en el punto de terminación, medido respecto a
+ *  la perpendicular de la cara de entrada: más allá de ±40°, una de las
+ *  lengüetas de la punta cruza el nivel de la punta y la silueta se rompe (el
+ *  responsable lo midió en Photoshop, ronda 14). El último tramo gira entonces
+ *  hasta el borde del cono. */
 const ENTRY_ANGLE_LIMIT = (40 * Math.PI) / 180;
 const edgeLine = line<{ x: number; y: number }>()
 	.x((p) => p.x)
 	.y((p) => p.y)
 	.curve(curveBasis);
 
-/** The entry face's outward unit normal — whichever face of the target
- *  box dagre's border point sits on. Pure. */
+/** El vector normal unitario hacia fuera de la cara de entrada — la cara de
+ *  la caja de destino sobre la que esté el punto de borde de dagre. Pura. */
 function faceNormal(
 	border: { x: number; y: number },
 	box: { x: number; y: number; w: number; h: number },
@@ -369,17 +384,19 @@ function faceNormal(
 	}
 }
 
-/** The edge path — mermaid's own line drawing: dagre's border-intersected
- *  waypoints through d3's curveBasis (mermaid's default flowchart curve —
- *  the same recipe dagre-d3's renderer uses). The head docks off the
- *  target: its TIP floats DOCK_GAP past the border along the FACE NORMAL
- *  (constant gap at any tilt), its mouth sits at the path's end on a
- *  straight run (the shaft stub), and — when the target box is given —
- *  the entry direction is clamped to ±ENTRY_ANGLE_LIMIT of the face's
- *  perpendicular (owner, round 14): a steeper natural approach swings to
- *  the 40° cone edge instead of breaking the head's silhouette. Without
- *  a target box the unclamped geometry applies. Straight collinear
- *  routes render identically. Pure, exported for tests. */
+/** El trazado de la arista — el propio trazado de líneas de mermaid: los
+ *  puntos de paso de dagre intersecados con el borde, pasados por curveBasis
+ *  de d3 (la curva por defecto de los diagramas de flujo de mermaid — la misma
+ *  receta que usa el renderizador de dagre-d3). La punta se despega del
+ *  destino: su PUNTA flota DOCK_GAP más allá del borde a lo largo de la
+ *  NORMAL DE LA CARA (separación constante con cualquier inclinación), su
+ *  boca queda al final del trazado sobre un tramo recto (el tramo de asta) y
+ *  — cuando se da la caja de destino — la dirección de entrada se acota a
+ *  ±ENTRY_ANGLE_LIMIT de la perpendicular de la cara (responsable, ronda 14):
+ *  una aproximación natural más empinada gira hasta el borde del cono de 40°
+ *  en lugar de romper la silueta de la punta. Sin caja de destino se aplica
+ *  la geometría sin acotar. Las rutas rectas colineales se renderizan igual.
+ *  Pura, exportada para las pruebas. */
 export function edgePathD(
 	points: Array<{ x: number; y: number }>,
 	target?: { x: number; y: number; w: number; h: number },
@@ -393,17 +410,17 @@ export function edgePathD(
 		const len = Math.hypot(dx, dy) || 1;
 		let ux = dx / len;
 		let uy = dy / len;
-		// The tip: DOCK_GAP outside the face along its normal (or along the
-		// approach when no box is known).
+		// La punta: DOCK_GAP fuera de la cara a lo largo de su normal (o a lo
+		// largo de la aproximación cuando no se conoce la caja).
 		let tipx: number;
 		let tipy: number;
 		if (target) {
 			const n = faceNormal(last, target);
 			tipx = last.x + n.x * DOCK_GAP;
 			tipy = last.y + n.y * DOCK_GAP;
-			// Clamp the approach to the ±LIMIT cone around the normal: if
-			// the outgoing direction -u tilts past ENTRY_ANGLE_LIMIT, swing
-			// it to the cone edge (same rotation side as the route).
+			// Acota la aproximación al cono de ±LIMIT alrededor de la normal: si
+			// la dirección de salida -u se inclina más allá de ENTRY_ANGLE_LIMIT, se
+			// gira hasta el borde del cono (en el mismo sentido de giro que la ruta).
 			const v = { x: -ux, y: -uy };
 			const vn = v.x * n.x + v.y * n.y;
 			if (vn < Math.cos(ENTRY_ANGLE_LIMIT)) {
@@ -421,37 +438,37 @@ export function edgePathD(
 			tipx = last.x - ux * DOCK_GAP;
 			tipy = last.y - uy * DOCK_GAP;
 		}
-		// The mouth: overhang back from the tip along the (clamped) approach.
+		// La boca: retrocede el saliente desde la punta a lo largo de la aproximación (acotada).
 		const M = { x: tipx - ux * HEAD_TIP_OVERHANG, y: tipy - uy * HEAD_TIP_OVERHANG };
-		// From Q the control points lie on the approach line — the basis
-		// spline renders Q→M perfectly straight (a B-spline span with
-		// collinear control points IS the line), and curveBasis's internal
-		// endpoint repetition makes the end tangent exactly the approach
-		// direction. NOTE: do NOT repeat M manually — a duplicated final
-		// control point renders a zero-length last segment, and
-		// orient="auto" on a zero-length segment falls back to 0° (every
-		// head pointing right — the round-12 regression, fixed round 13).
+		// A partir de Q los puntos de control están sobre la línea de
+		// aproximación — el spline de base dibuja Q→M perfectamente recto (un
+		// tramo de B-spline con puntos de control colineales ES la línea), y la
+		// repetición interna de extremos de curveBasis hace que la tangente final
+		// sea exactamente la dirección de aproximación. OJO: NO repitas M a mano
+		// — un punto de control final duplicado genera un último segmento de
+		// longitud cero, y orient="auto" en un segmento de longitud cero recurre a
+		// 0° (todas las puntas apuntando a la derecha — la regresión de la ronda 12, arreglada en la ronda 13).
 		const Q = { x: M.x - ux * STRAIGHT_RUN, y: M.y - uy * STRAIGHT_RUN };
 		pts.splice(pts.length - 1, 1, Q, M);
 	}
 	return edgeLine(pts) ?? "";
 }
 
-// ─── Status styling (the retired panel's color language, unchanged) ──────────
+// ─── Estilo por estado (el lenguaje de color del panel retirado, sin cambios) ───
 
-// The simple look (owner, plan-graph round 4): rectangular boxes,
-// outlines/arrows/text in the strong line ink (white in dark, the
-// foreground in light); no fill on visited, today's gray look on upcoming,
-// and the current node carries a faint yellow glow (a blurred yellow fill
-// bleeding over the edges). The IN-CHAT block is monochrome instead — no
-// status language; the popup/window show the progression.
+// El aspecto sencillo (responsable, ronda 4 del grafo del plan): cajas
+// rectangulares, contornos/flechas/texto en la tinta de línea fuerte (blanca
+// en oscuro, el primer plano en claro); sin relleno en los visitados, el
+// aspecto gris actual en los próximos, y el nodo actual lleva un leve brillo
+// amarillo (un relleno amarillo difuminado que se derrama sobre los bordes).
+// El bloque DEL CHAT es en cambio monocromo — sin lenguaje de estados; la ventana emergente/ventana muestran la progresión.
 const BOX: Record<PlanNodeStatus, string> = {
-	// 50%-opacity app background instead of true transparency: a routed
-	// edge passing behind the box composites UNDER the fill — dimmed to
-	// half, not shown straight through (owner, round 9).
+	// Fondo de la app al 50% de opacidad en vez de transparencia real: una
+	// arista que pasa por detrás de la caja se compone BAJO el relleno —
+	// atenuada a la mitad, no vista directamente (responsable, ronda 9).
 	visited: "fill-background/50 stroke-line-strong",
 	current: "fill-background/50 stroke-line-strong",
-	// The grayed-out not-yet-visited look stays as-is (owner).
+	// El aspecto gris de aún-no-visitado se queda como está (responsable).
 	upcoming: "fill-card stroke-border",
 };
 const TEXT: Record<PlanNodeStatus, string> = {
@@ -459,19 +476,21 @@ const TEXT: Record<PlanNodeStatus, string> = {
 	current: "fill-line-strong text-xs font-medium",
 	upcoming: "fill-muted-foreground/80 text-xs",
 };
-// The in-chat block speaks the dock language now (owner, plan-hug
-// round 2026-10-07): boxes in the lighter background variant like
-// the composer/dock shells — but the outlines STAY the strong line ink,
-// white in dark (owner follow-up: the gray fill is good, white box edges).
+// El bloque del chat habla ahora el lenguaje del dock (responsable, ronda de
+// ajuste del plan 2026-10-07): cajas en la variante de fondo más clara, como
+// los armazones del composer/dock — pero los contornos SIGUEN en la tinta de
+// línea fuerte, blancos en oscuro (seguimiento del responsable: el relleno gris está bien, bordes de caja blancos).
 const MONO_BOX = "fill-card stroke-line-strong";
 const MONO_TEXT = "fill-foreground text-xs";
 
-/** The diagram itself: positioned nodes + bezier edges. Pure-ish render —
- *  every input is data, so SSR render tests pin the whole thing. The root
- *  sets font-family var(--font-prose): node titles render in the READING
- *  font, not the mono UI font (owner, 2026-09-26) — and the runtime var
- *  rides the Appearance reading-font override (the utility can't: @theme
- *  inline bakes literals — the --font-title trap). */
+/** El diagrama en sí: nodos posicionados + aristas bezier. Render casi puro
+ *  — toda entrada son datos, así que las pruebas de render de SSR fijan el
+ *  conjunto entero. La raíz fija font-family var(--font-prose): los títulos
+ *  de los nodos se renderizan en la fuente de LECTURA, no en la fuente
+ *  monoespaciada de la interfaz (responsable, 2026-09-26) — y la variable de
+ *  runtime sigue la sustitución de fuente de lectura de Appearance (la
+ *  utilidad no puede: @theme inline consolida literales — la trampa de
+ *  --font-title). */
 export function PlanDiagram({
 	nodes,
 	edges,
@@ -490,38 +509,43 @@ export function PlanDiagram({
 	statusOf: (id: string) => PlanNodeStatus;
 	glowId?: string | null;
 	markerId: string;
-	/** A windowed viewBox (the plan window) instead of the full extent. */
+	/** Un viewBox en ventana (la ventana del plan) en lugar de la extensión completa. */
 	viewBoxOverride?: string;
-	/** Pads the viewBox by this many svg units so centered strokes and the
-	 *  glow halo never clip at the extent edges (full-extent renders only). */
+	/** Amplía el viewBox en estas unidades svg para que los trazos centrados y
+	 *  el halo del brillo nunca se recorten en los bordes de la extensión (solo
+	 *  en renders de extensión completa). */
 	pad?: number;
-	/** Caps the rendered width at extent × scale — the chat-font-size zoom
-	 *  ceiling for the in-chat block (fills the column, never past prose). */
+	/** Limita el ancho renderizado a extensión × escala — el techo de zoom al
+	 *  tamaño de fuente del chat para el bloque del chat (llena la columna,
+	 *  nunca más allá de la prosa). */
 	textCapScale?: number;
-	/** Renders at the viewBox width in px (1 svg unit = 1 px at zoom 1) —
-	 *  the popup's transform math depends on it; w-full inside the popup's
-	 *  shrink-to-fit wrapper resolved to the popup width and broke fit. */
+	/** Renderiza al ancho del viewBox en px (1 unidad svg = 1 px con zoom 1) —
+	 *  la matemática de transformación de la ventana emergente depende de ello;
+	 *  w-full dentro del envoltorio que encoge para ajustar de la ventana
+	 *  emergente se resolvía al ancho de esta y rompía el ajuste. */
 	naturalSize?: boolean;
-	/** The in-chat block's mode: every node in the strong line ink (stroke
-	 *  and text, no glow) — statuses never show in the transcript (owner). */
+	/** El modo del bloque del chat: todos los nodos en la tinta de línea fuerte
+	 *  (trazo y texto, sin brillo) — los estados nunca se muestran en la
+	 *  transcripción (responsable). */
 	monochrome?: boolean;
-	/** Meet-fits the diagram inside a fixed box (h-full w-full — the svg's
-	 *  default preserveAspectRatio centers + contains the viewBox): the
-	 *  dock band's marginalia mode, where the diagram must fit BOTH the
-	 *  flank's width and the band's height rather than run width-first. */
+	/** Ajusta el diagrama dentro de una caja fija (h-full w-full — el
+	 *  preserveAspectRatio por defecto del svg centra y contiene el viewBox): el
+	 *  modo de nota al margen de la franja del dock, donde el diagrama debe caber
+	 *  TANTO en el ancho del flanco como en la altura de la franja en lugar de ir
+	 *  primero por el ancho. */
 	fill?: boolean;
 }) {
 	const layout = useMemo(() => blockLayout(nodes, edges), [nodes, edges]);
-	// Pad only the full-extent render — the plan window's override viewBox is
-	// a deliberate viewport crop, and the popup keeps its own fit margins.
+	// Solo se amplía el render de extensión completa — el viewBox sustituto de la ventana
+	// del plan es un recorte deliberado del viewport, y la ventana emergente mantiene sus propios márgenes de ajuste.
 	const pad = viewBoxOverride ? 0 : (padUnits ?? 0);
 	const w = Math.max(layout.width, 1);
 	const h = Math.max(layout.height, 1);
 	const vbW = w + 2 * pad;
 	const vbH = h + 2 * pad;
-	// The origin rides the ink extent (owner, 2026-10-10): an arrow
-	// bulging past zero shifts the viewBox with it instead of clipping.
-	// Zero-origin plans (the ordinary case) render exactly as before.
+	// El origen sigue la extensión de la tinta (responsable, 2026-10-10): una
+	// flecha que sobresale de cero desplaza el viewBox con ella en vez de recortarse.
+	// Los planes con origen cero (el caso normal) se renderizan exactamente igual que antes.
 	const ox = viewBoxOverride ? 0 : (layout.originX ?? 0);
 	const oy = viewBoxOverride ? 0 : (layout.originY ?? 0);
 	return (
@@ -529,8 +553,8 @@ export function PlanDiagram({
 			viewBox={viewBoxOverride ?? `${ox - pad} ${oy - pad} ${vbW} ${vbH}`}
 			className={`block ${fill ? "h-full w-full" : `h-auto${naturalSize ? "" : " w-full"}`}${textCapScale ? " mx-auto" : ""}`}
 			style={{
-				// The READING font (owner, 2026-09-26) — the same runtime token
-				// consumed by font-prose, so Appearance changes reach SVG text.
+				// La fuente de LECTURA (responsable, 2026-09-26) — el mismo token de runtime
+				// que consume font-prose, para que los cambios de Appearance lleguen al texto SVG.
 				fontFamily: "var(--font-prose)",
 				...(textCapScale
 					? { maxWidth: `${Math.round(vbW * textCapScale * 100) / 100}px` }
@@ -552,12 +576,12 @@ export function PlanDiagram({
 					markerUnits="userSpaceOnUse"
 					orient="auto"
 				>
-					{/* The owner's arrowhead. The mouth (x 27.2) sits at refX so the
-					    line ends AT the notch — the tip beyond it is solid fill. */}
+					{/* La punta de flecha del responsable. La boca (x 27.2) está en refX para
+					que la línea acabe EN la muesca — la punta que queda más allá es relleno sólido. */}
 					<path d={ARROW_HEAD} className="fill-line-strong" />
 				</marker>
-				{/* Same head, grayed — arrows into not-yet-visited nodes are
-				    grayed out like the nodes themselves (owner, round 6). */}
+				{/* La misma punta, en gris — las flechas hacia nodos aún no visitados
+				van en gris como los propios nodos (responsable, ronda 6). */}
 				<marker
 					id={`${markerId}-dim`}
 					viewBox="0 0 50.2 104"
@@ -570,32 +594,32 @@ export function PlanDiagram({
 				>
 					<path d={ARROW_HEAD} className="fill-border" />
 				</marker>
-				{/* The current node's highlight: a faint yellow fill BLURRED so it
-				    bleeds out over the node's edges (owner). Generous filter region
-				    so the blur never clips at its own bounds. */}
+				{/* El resaltado del nodo actual: un leve relleno amarillo DIFUMINADO para
+				que se derrame sobre los bordes del nodo (responsable). Región de filtro
+				generosa para que el difuminado nunca se recorte en sus propios límites. */}
 				<filter id={`${markerId}-glow`} x="-60%" y="-60%" width="220%" height="220%">
 					<feGaussianBlur stdDeviation={GLOW_BLUR} />
 				</filter>
 			</defs>
 			{edges.map((e) => {
-				// Dagre's route for this edge: border-intersected waypoints —
-				// the line leaves/enters nodes on whatever side dagre chose
-				// (mermaid's drawing, owner round 11). Unroutable edges
-				// (dangling endpoints) draw nothing.
+				// La ruta de dagre para esta arista: puntos de paso intersecados con el
+				// borde — la línea sale/entra de los nodos por el lado que elija dagre
+				// (el trazado de mermaid, ronda 11 del responsable). Las aristas sin ruta
+				// (extremos colgantes) no dibujan nada.
 				const pts = layout.edgePts.get(`${e.from}->${e.to}`);
 				if (!pts) return null;
-				// The target's box — drives the docking gap + entry-angle clamp.
+				// La caja del destino — gobierna la separación del despegue + la acotación del ángulo de entrada.
 				const tx = layout.x.get(e.to);
 				const ty = layout.y.get(e.to);
 				const target =
 					tx !== undefined && ty !== undefined
 						? { x: tx, y: ty, w: layout.nodeW.get(e.to) ?? NODE_W_MIN, h: layout.nodeH.get(e.to) ?? NODE_H }
 						: undefined;
-				// An arrow is white only when BOTH its ends are white (owner,
-				// 2026-09-26): origin AND terminal covered — a gray box's outgoing
-				// arrows stay gray even when they point into covered territory
-				// (supersedes round 6's target-only rule); the in-chat block
-				// stays all-white.
+				// Una flecha es blanca solo cuando SUS DOS extremos son blancos
+				// (responsable, 2026-09-26): origen Y final cubiertos — las flechas de salida
+				// de una caja gris siguen en gris aunque apunten a territorio cubierto
+				// (sustituye la regla de la ronda 6, que solo miraba el destino); el bloque
+				// del chat sigue todo en blanco.
 				const dim =
 					!monochrome &&
 					(statusOf(e.from) === "upcoming" || statusOf(e.to) === "upcoming");
@@ -613,8 +637,8 @@ export function PlanDiagram({
 				const status = statusOf(n.id);
 				const glow = n.id === glowId && !monochrome;
 				const lines = wrapTitle(n.title);
-				// The box hugs its wrapped content; text centers in it —
-				// horizontally too now (text-first sizing round, 2026-10-07).
+				// La caja se ciñe a su contenido ajustado; el texto se centra en ella —
+				// ahora también en horizontal (ronda de tamaño guiado por el texto, 2026-10-07).
 				const h = layout.nodeH.get(n.id) ?? NODE_H;
 				const w = layout.nodeW.get(n.id) ?? NODE_W_MIN;
 				const y0 = (h - lines.length * LINE_H) / 2 + 10;
@@ -625,7 +649,7 @@ export function PlanDiagram({
 						data-testid={`plan-node-${n.id}`}
 						data-status={status}
 					>
-						{/* Rectangular — no corner rounding (owner). */}
+						{/* Rectangular — sin redondeo de esquinas (responsable). */}
 						<rect
 							width={w}
 							height={h}
@@ -633,11 +657,11 @@ export function PlanDiagram({
 							strokeWidth={STROKE_W}
 						/>
 						{glow && (
-							// The current node's highlight: faint yellow, blurred so it
-							// bleeds over the edges — static, no pulse (owner, round 6).
-							// Paints ABOVE the box fill (owner, round 10): the round-9
-							// background fill no longer dims the glow inside the box,
-							// while edges behind the box still dim under that fill.
+							// El resaltado del nodo actual: amarillo leve, difuminado para que
+							// se derrame sobre los bordes — estático, sin pulso (responsable, ronda 6).
+							// Se pinta ENCIMA del relleno de la caja (responsable, ronda 10): el relleno
+							// de fondo de la ronda 9 ya no atenúa el brillo dentro de la caja,
+							// mientras que las aristas detrás de la caja siguen atenuadas bajo ese relleno.
 							<rect
 								x={-GLOW_MARGIN}
 								y={-GLOW_MARGIN}
@@ -665,14 +689,15 @@ export function PlanDiagram({
 	);
 }
 
-// ─── The transcript block ─────────────────────────────────────────────────────
+// ─── El bloque de la transcripción ────────────────────────────────────────────
 
 /**
- * A persisted plan-block part, rendered as carried (snapshot statuses,
- * never re-derived): borderless and column-filling, it opens the live plan
- * popup. Full-only by design since the 2026-09-11 pivot (the neighborhood
- * fragments are retired — position derives live in the popup and the
- * future DAG window).
+ * Una parte plan-block persistida, renderizada tal como llega (estados de la
+ * instantánea, nunca vueltos a derivar): sin borde y llenando la columna,
+ * abre la ventana emergente del plan en vivo. Solo completo por diseño desde
+ * el giro del 2026-09-11 (los fragmentos de vecindario están retirados — la
+ * posición se deriva en vivo en la ventana emergente y en la futura ventana
+ * del DAG).
  */
 export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () => void }) {
 	const markerId = useId().replace(/[^a-zA-Z0-9-]/g, "");
@@ -687,9 +712,10 @@ export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () =>
 			onClick={onOpen}
 			className="block w-full text-left"
 		>
-			{/* pad keeps centered strokes + the glow halo inside the frame; the
-		    cap keeps node text at or below chat prose size while still filling
-		    the column when it can (owner, plan-graph refinement round 1). */}
+			{/* el relleno mantiene los trazos centrados + el halo del brillo dentro del
+		marco; el tope mantiene el texto de los nodos en el tamaño de la prosa del
+		chat o por debajo, llenando aun así la columna cuando puede (responsable,
+		ronda 1 de refinamiento del grafo del plan). */}
 		<PlanDiagram
 			nodes={data.nodes}
 			edges={data.edges}
@@ -704,14 +730,14 @@ export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () =>
 	);
 }
 
-// ─── The live plan popup ──────────────────────────────────────────────────────
+// ─── La ventana emergente del plan en vivo ────────────────────────────────────
 
-/** Minimal structural message slice (same trick as phases.ts). */
+/** Corte estructural mínimo de un mensaje (el mismo truco que phases.ts). */
 export interface PopupMessage {
 	parts: ReadonlyArray<{ type: string; state?: string; input?: unknown; output?: unknown }>;
 }
 
-/** The latest plan tree in the transcript (latest tool-plan_ output). */
+/** El último árbol del plan en la transcripción (la última salida tool-plan_). */
 export function latestTree(messages: readonly PopupMessage[]): PlanTree | null {
 	for (let m = messages.length - 1; m >= 0; m--) {
 		const parts = messages[m]?.parts;
@@ -726,26 +752,29 @@ export function latestTree(messages: readonly PopupMessage[]): PlanTree | null {
 	return null;
 }
 
-/** The popup shows the glow, so its frame pads by the glow's reach —
- *  the in-chat block (monochrome, no glow) stays tight at GRAPH_PAD. */
+/** La ventana emergente muestra el brillo, así que su marco se amplía en el
+ *  alcance del brillo — el bloque del chat (monocromo, sin brillo) se queda
+ *  ajustado a GRAPH_PAD. */
 const POPUP_PAD = GLOW_REACH;
 
-// The pan/zoom math now lives in components/pan-zoom.ts (shared with the
-// mermaid focus overlay since the session-overlay wave, 2026-09-19) — same
-// fit-floor semantics: fully zoomed out IS the fit, panning locks at the
-// floor, zoom ceiling 4× for reading node titles closely.
+// La matemática de desplazamiento/zoom vive ahora en components/pan-zoom.ts
+// (compartida con el overlay de foco de mermaid desde la oleada del overlay de
+// sesión, 2026-09-19) — la misma semántica de suelo de ajuste: el zoom mínimo
+// ES el ajuste, el desplazamiento se bloquea en el suelo, techo de zoom 4× para leer de cerca los títulos.
 
 /**
- * The full plan, live: latest tree + statuses derived at click time. Esc,
- * backdrop click, or the X close it; drag pans, wheel zooms to the cursor,
- * the zoom floor is the fit (panning locks at it — nothing to move).
+ * El plan completo, en vivo: último árbol + estados derivados en el momento
+ * del clic. Esc, un clic en el fondo o la X lo cierran; arrastrar desplaza,
+ * la rueda hace zoom hacia el cursor, el suelo del zoom es el ajuste (el
+ * desplazamiento se bloquea en él — no hay nada que mover).
  *
- * SESSION-SCOPED since the chrome-melt wave (2026-09-19): it mounts
- * ABSOLUTE inside the chat page's session-area div (chat.tsx) — below the
- * 60px drag bar, right of the sidebar — instead of a fixed inset-0 overlay.
- * The top bar stays sharp and draggable, and the X can never land in drag
- * territory. Surface 80% + blur (owner decision): the transcript ghosts
- * through while the focus owns the session area.
+ * CON ÁMBITO DE SESIÓN desde la oleada de fundido del cromo (2026-09-19): se
+ * monta en ABSOLUTO dentro del div del área de la sesión de la página del
+ * chat (chat.tsx) — bajo la barra de arrastre de 60px, a la derecha de la
+ * barra lateral — en lugar de como un overlay fijo inset-0. La barra superior
+ * sigue nítida y arrastrable, y la X nunca puede caer en territorio de
+ * arrastre. Superficie al 80% + difuminado (decisión del responsable): la
+ * transcripción se transparenta mientras el foco ocupa el área de la sesión.
  */
 export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessage[]; onClose: () => void }) {
 	const tree = useMemo(() => latestTree(messages), [messages]);
@@ -761,7 +790,7 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 		onClose: () => { onClose(); return "closed"; },
 	});
 
-	// ── pan/zoom viewport (harvested semantics: fit floor = the default) ──
+	// ── viewport de desplazamiento/zoom (semántica recogida: suelo de ajuste = el valor por defecto) ──
 	const viewportRef = useRef<HTMLDivElement>(null);
 	const [size, setSize] = useState({ w: 0, h: 0 });
 	useEffect(() => {
@@ -773,9 +802,9 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 	}, []);
 
 	const layout = useMemo(() => (tree ? blockLayout(tree.nodes, tree.edges) : null), [tree]);
-	// The fit box is the PADDED ink box — the diagram renders with POPUP_PAD
-	// (= the glow's reach) so the blurred glow never clips at the frame, and
-	// the fit must account for that padding.
+	// La caja de ajuste es la caja de tinta AMPLIADA — el diagrama se renderiza con
+	// POPUP_PAD (= el alcance del brillo) para que el brillo difuminado nunca se
+	// recorte en el marco, y el ajuste debe tener en cuenta ese relleno.
 	const box = useMemo(
 		() => (layout ? { w: layout.width + 2 * POPUP_PAD, h: layout.height + 2 * POPUP_PAD } : { w: 0, h: 0 }),
 		[layout],
@@ -785,9 +814,9 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 	const [view, setView] = useState<Viewport>({ x: 0, y: 0, zoom: 1 });
 	const userAdjustedRef = useRef(false);
 	const atFloor = view.zoom <= fitZoom + 1e-9;
-	// The transition stays off until the FIRST fit has been applied — the
-	// popup paints at the fit directly instead of flying in from the initial
-	// top-left zoom:1 state (owner, plan-graph round 4).
+	// La transición se mantiene desactivada hasta que se ha aplicado el PRIMER
+	// ajuste — la ventana emergente se pinta directamente en el ajuste en vez de
+	// entrar volando desde el estado inicial arriba a la izquierda con zoom:1 (responsable, ronda 4 del grafo del plan).
 	const [settled, setSettled] = useState(false);
 
 	useEffect(() => {
@@ -796,10 +825,10 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 	useEffect(() => {
 		if (userAdjustedRef.current || !size.w || !size.h) return;
 		setView(fitGraphView(box, size, fitZoom));
-		// Enable the transition only AFTER the fit has painted: flipping
-		// settled in the SAME commit lets the browser animate from the
-		// initial top-left zoom:1 state — the fly-in the owner keeps
-		// seeing (round 4's gate wasn't enough; round 7 fix).
+		// Activa la transición solo DESPUÉS de que se haya pintado el ajuste:
+		// cambiar settled en el MISMO commit deja que el navegador anime desde
+		// el estado inicial arriba a la izquierda con zoom:1 — la entrada volando
+		// que el responsable seguía viendo (la barrera de la ronda 4 no bastó; arreglo de la ronda 7).
 		const raf = requestAnimationFrame(() => setSettled(true));
 		return () => cancelAnimationFrame(raf);
 	}, [fitZoom, size, box]);
@@ -821,9 +850,9 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 		return () => el.removeEventListener("wheel", onWheel);
 	}, [fitZoom, box, size]);
 
-	// Smooth zoom: the transform eases between states (CSS retargets from the
-	// current computed value, so chained wheel ticks stay fluid). Panning is
-	// per-frame — the transition is off while dragging or it rubber-bands.
+	// Zoom suave: la transformación se suaviza entre estados (CSS recalcula el
+	// destino desde el valor computado actual, así que los pasos encadenados de
+	// la rueda siguen fluidos). El desplazamiento es por fotograma — la transición se desactiva al arrastrar o daría efecto goma.
 	const [panning, setPanning] = useState(false);
 	const dragRef = useRef<{ px: number; py: number; x: number; y: number; moved: boolean } | null>(null);
 	const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -869,11 +898,11 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 		<div
 			ref={rootRef}
 			data-testid="plan-popup"
-			// SESSION-SCOPED (absolute, not fixed): the chat page mounts this
-			// INSIDE the session-area div — below the drag bar, right of the
-			// sidebar. 80% + blur: the transcript ghosts through.
+			// CON ÁMBITO DE SESIÓN (absoluto, no fijo): la página del chat monta esto
+			// DENTRO del div del área de la sesión — bajo la barra de arrastre, a la
+			// derecha de la barra lateral. 80% + difuminado: la transcripción se transparenta.
 			className="pointer-events-auto absolute inset-0 z-40 flex flex-col bg-background/80 p-4 backdrop-blur-sm"
-			// Ranked inside the session's bounded view stack, below app modals.
+			// Ordenado dentro de la pila de vistas acotada de la sesión, por debajo de los modales de la app.
 			style={{ zIndex: 100 + layer.order }}
 			role="region"
 			aria-label="The full plan"
@@ -913,11 +942,11 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 							className="absolute top-0 left-0 origin-top-left"
 							style={{
 								transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
-								// Hidden until the first fit has APPLIED — the fit runs in an
-								// effect (after paint), so an opacity-gated chart can never flash
-								// at the initial top-left zoom:1 state (same fix as the mermaid
-								// overlay; transition-gating alone didn't hide the fly-in the
-								// owner kept seeing in rounds 4–7).
+								// Oculto hasta que se ha APLICADO el primer ajuste — el ajuste corre en un
+								// efecto (tras el pintado), así que un diagrama con opacidad condicionada
+								// nunca puede parpadear en el estado inicial arriba a la izquierda con zoom:1
+								// (el mismo arreglo que el overlay de mermaid; condicionar solo la transición
+								// no ocultaba la entrada volando que el responsable seguía viendo en las rondas 4–7).
 								opacity: settled ? 1 : 0,
 								transition:
 									panning || !settled
