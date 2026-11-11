@@ -1,96 +1,100 @@
 # Rich code blocks
 
-An optional Core LearnHarness plugin using only the public plugin API.
-It turns higher-level notation into **static SVG**:
+Un plugin opcional del núcleo de LearnHarness que solo usa la API pública de plugins.
+Convierte notación de más alto nivel en **SVG estático**:
 
-| Initially-off setting | Fence | Content |
+| Ajuste, desactivado al principio | Bloque cercado | Contenido |
 | --- | --- | --- |
-| Chemical structures | `smiles` | One SMILES molecule |
-| Musical notation | `abc` | One complete ABC tune; no audio |
-| Technical diagrams | `tikz` | TikZ, CircuitikZ, tikz-cd and PGFPlots |
+| Chemical structures | `smiles` | Una molécula SMILES |
+| Musical notation | `abc` | Una melodía ABC completa; sin audio |
+| Technical diagrams | `tikz` | TikZ, CircuitikZ, tikz-cd y PGFPlots |
 
-Enable the plugin in **Settings → Core plugins**, then enable only the families
-wanted in its dedicated Settings page. Enabled families alone register renderers
-and add short system instructions to prober, teacher, and practice agents, including
-the probing phase at the start
-of a teaching session. Disabling a family restores ordinary readable
-code fences. Prompt changes apply to future turns, not an already-running model
-request. There are no subarea toggles, per-family prompt editors, simulations,
-interactive circuits, playback, raw-SVG input or custom drawing toolbars.
+Activa el plugin en **Ajustes → Plugins del núcleo** y después activa solo las familias que
+quieras en su página de Ajustes propia. Solo las familias activadas registran
+renderizadores y añaden instrucciones de sistema breves a los agentes de sondeo, profesor y
+práctica, incluida la fase de sondeo al principio de una sesión de enseñanza. Desactivar una
+familia devuelve los bloques de código cercados normales y legibles. Los cambios en los
+prompts se aplican a los turnos futuros, no a una petición al modelo que ya esté en curso. No
+hay conmutadores por subárea, editores de prompts por familia, simulaciones, circuitos
+interactivos, reproducción, entrada de SVG en bruto ni barras de herramientas de dibujo
+personalizadas.
 
-## Transparent appearance
+## Apariencia transparente
 
-Rendered SVGs have no plugin background: the transcript shows through. Neutral
-text and linework follow the app's **Text** color (`--foreground`), including Text
-color overrides, in all three families. This includes the chemistry renderer's
-neutral carbon/hydrogen ink. There is no separate Ink color setting.
-Colored atoms and explicitly colored diagram elements remain colored. Intentional
-white fills, authored gradients/patterns and functional masks are preserved, not
-blanket-erased or inverted. A background deliberately drawn inside a TikZ diagram
-is still part of that diagram; the plugin does not guess which shapes to delete.
-No blend modes or inversion filters are used.
+Los SVG renderizados no tienen fondo del plugin: se ve la transcripción a través de ellos.
+El texto y las líneas neutros siguen el color de **Texto** de la app (`--foreground`),
+incluidas las sustituciones del color de Texto, en las tres familias. Esto incluye la tinta
+neutra de carbono e hidrógeno del renderizador de química. No hay un ajuste de color de tinta
+aparte. Los átomos de color y los elementos de diagrama coloreados explícitamente siguen
+teniendo color. Los rellenos blancos intencionados, los degradados y patrones escritos por
+el autor y las máscaras funcionales se conservan, no se borran ni se invierten en bloque. Un
+fondo dibujado a propósito dentro de un diagrama TikZ sigue formando parte de ese diagrama;
+el plugin no adivina qué formas eliminar. No se usan modos de fusión ni filtros de inversión.
 
-Theme and Text-color changes reach mounted SVGs immediately through inherited
-CSS variables, without replacing them, compiling TeX again, clearing the compiled
-SVG cache, or sending plugin settings requests. New cached mounts inherit the
-current Text color too. Existing v1 settings remain readable with or without the
-obsolete `inkColor` key; its value is ignored. Startup never rewrites the file.
-The next changed family toggle saves settings without that obsolete key while
-preserving the other family choices.
+Los cambios de tema y de color de Texto llegan de inmediato a los SVG montados mediante
+variables CSS heredadas, sin sustituirlos, volver a compilar TeX, vaciar la caché de SVG
+compilados ni enviar peticiones de ajustes del plugin. Los montajes nuevos desde la caché
+también heredan el color de Texto actual. Los ajustes v1 existentes se siguen pudiendo leer
+con o sin la clave obsoleta `inkColor`; su valor se ignora. El arranque nunca reescribe el
+fichero. El siguiente cambio de conmutador de familia guarda los ajustes sin esa clave
+obsoleta, conservando las demás elecciones de familias.
 
-## TikZ sizing
+## Tamaño de TikZ
 
-TikZ diagrams scale as a whole so the engine's normal 10-point labels match the
-surrounding chat LaTeX size (`1.21em`, matching KaTeX). At the default 16 px reading
-size, normal labels are approximately **19.4 px**. Text-relative SVG width follows
-surrounding font-size changes without replacing the SVG or recompiling TeX. Authored relative font sizes (including
-subscripts), diagram proportions and the original tight viewBox are preserved.
-Wide TikZ diagrams scroll horizontally within their own wrapper instead of
-shrinking their labels. The wrapper uses **12 px padding** and centering without
-extra margins or blank drawing space. Chemistry and music use natural sizing
-and fit-to-width behavior.
+Los diagramas TikZ se escalan en conjunto para que las etiquetas normales de 10 puntos del
+motor coincidan con el tamaño del LaTeX del chat que las rodea (`1.21em`, igual que KaTeX).
+Con el tamaño de lectura por defecto de 16 px, las etiquetas normales miden unos **19,4 px**.
+El ancho del SVG relativo al texto sigue los cambios del tamaño de fuente circundante sin
+sustituir el SVG ni recompilar TeX. Se conservan los tamaños de fuente relativos escritos por
+el autor (incluidos los subíndices), las proporciones del diagrama y el viewBox ajustado
+original. Los diagramas TikZ anchos hacen scroll horizontal dentro de su propio envoltorio en
+lugar de encoger sus etiquetas. El envoltorio usa **12 px de relleno** y centrado, sin
+márgenes extra ni espacio de dibujo en blanco. La química y la música usan su tamaño natural
+y se ajustan al ancho.
 
-## Core plugin and source reference
+## Plugin del núcleo y referencia de código
 
-The app supplies and updates this plugin's code; writable preferences live under
-`<learning data>/core-plugin-data/rich-code-blocks/`. This source project is reference
-material, not an installable Community copy. `rich-code-blocks` is a reserved Core ID
-even when disabled or missing. A Community fork needs its own manifest/folder ID and
-must reconsider conflicting contribution, tool and fence names, including `smiles`,
-`abc` and `tikz`. A new plugin ID does not make duplicate fence registrations coexist.
-Do not install this build into a Community `plugins/rich-code-blocks/` folder.
+La app aporta y actualiza el código de este plugin; las preferencias escribibles viven en
+`<learning data>/core-plugin-data/rich-code-blocks/`. Este proyecto de código es material de
+referencia, no una copia instalable de la comunidad. `rich-code-blocks` es un ID reservado
+del núcleo aunque esté desactivado o falte. Un fork de la comunidad necesita su propio ID de
+manifiesto y carpeta y debe reconsiderar los nombres de contribuciones, herramientas y
+bloques cercados en conflicto, incluidos `smiles`, `abc` y `tikz`. Un ID de plugin nuevo no
+hace que coexistan registros duplicados de bloques cercados. No instales esta build en una
+carpeta `plugins/rich-code-blocks/` de la comunidad.
 
-## Development
+## Desarrollo
 
-In the extracted authoring kit, copy the shared **kit-root `types/` contents** into
-`.sdk/` **before dependency setup**. From `plugins/rich-code-blocks/`:
+En el kit de autoría extraído, copia el **contenido de `types/` de la raíz del kit**
+compartido en `.sdk/` **antes de preparar las dependencias**. Desde
+`plugins/rich-code-blocks/`:
 
 ```sh
 mkdir -p .sdk
 cp -R ../../types/. .sdk/
 ```
 
-In a matching LearnHarness source checkout instead, `npm run sdk` generates `.sdk/`
-using `../../scripts/build-plugin-types.mjs`. That command is **checkout-only** and
-does not work in the extracted kit. Imports from the SDK are type-only; runtime
-code does not import host implementation modules.
+En cambio, en un checkout correspondiente del código de LearnHarness, `npm run sdk` genera
+`.sdk/` usando `../../scripts/build-plugin-types.mjs`. Ese comando **solo funciona en un
+checkout** y no funciona en el kit extraído. Las importaciones del SDK son solo de tipos; el
+código de runtime no importa módulos de implementación del host.
 
-Set up development dependencies separately, including the SDK's declared
-peer dependencies/types. With dependencies already available, the build-only command is:
+Prepara aparte las dependencias de desarrollo, incluidas las dependencias peer y los tipos
+declarados por el SDK. Con las dependencias ya disponibles, el comando que solo compila es:
 
 ```sh
 npm run build
 ```
 
-Build output goes directly into this project's **`dist/`**, not `dist/<id>/`.
-It bundles JavaScript and local TeX/WASM/fonts and copies license notices. Cleanup
-refuses symlinked `dist/` and misplaced `dist/data/` and preserves sibling `data/`.
-Building does not install, enable or update the Core plugin, build/restart the host,
-or enable any notation family.
+La salida de la build va directamente al **`dist/`** de este proyecto, no a `dist/<id>/`.
+Empaqueta el JavaScript y TeX/WASM/fuentes locales y copia los avisos de licencia. La
+limpieza rechaza un `dist/` enlazado simbólicamente y un `dist/data/` mal colocado y conserva
+el `data/` hermano. Compilar no instala, activa ni actualiza el plugin del núcleo, no compila
+ni reinicia el host y no activa ninguna familia de notación.
 
-## Examples
+## Ejemplos
 
-Chemical structure:
+Estructura química:
 
 ````markdown
 ```smiles
@@ -98,7 +102,7 @@ CC(=O)Oc1ccccc1C(=O)O
 ```
 ````
 
-Musical score:
+Partitura musical:
 
 ````markdown
 ```abc
@@ -111,7 +115,7 @@ C D E F | G A B c |]
 ```
 ````
 
-Physics/free-body diagrams and geometry use general TikZ:
+Los diagramas de física y de cuerpo libre y la geometría usan TikZ general:
 
 ````markdown
 ```tikz
@@ -126,7 +130,7 @@ Physics/free-body diagrams and geometry use general TikZ:
 ```
 ````
 
-Circuit schematics (static drawing, **not circuit simulation**):
+Esquemas de circuitos (dibujo estático, **no simulación de circuitos**):
 
 ````markdown
 ```tikz
@@ -139,7 +143,7 @@ Circuit schematics (static drawing, **not circuit simulation**):
 ```
 ````
 
-Commutative diagrams:
+Diagramas conmutativos:
 
 ````markdown
 ```tikz
@@ -152,7 +156,7 @@ Commutative diagrams:
 ```
 ````
 
-Analytic function plots:
+Gráficas de funciones analíticas:
 
 ````markdown
 ```tikz
@@ -168,68 +172,76 @@ Analytic function plots:
 ```
 ````
 
-The bundled engine supplies a standalone document class; do not add
-`\documentclass` or `\documentstyle`. Each block must be self-contained: explicitly
-load its needed packages and TikZ libraries before `\begin{document}`, then close
-with `\end{document}`. Bundled packages are available, not automatically loaded;
-declarations in another block do not carry over. In particular, load
-`\usepackage{amsmath}` for math labels using `\text{...}` or aligned equations.
-Place the diagram environment directly inside `document`, without an outer
-`\[...\]`, `$$...$$`, or `equation` wrapper. TikZ node labels can use `$...$`;
-`tikzcd` cells already use math mode. The bundled PGFPlots version is **1.16**:
-use `\pgfplotsset{compat=1.16}`, not `compat=1.18` or a newer version.
-These requirements are also included in the prober/teacher/practice system
-instructions when technical diagrams are enabled. Upstream also includes supporting
-math/array/3D/chemfig packages, but those are not additional advertised families.
-No raw SVG/HTML/JS, shell, remote resource, uploaded data-file or audio input path
-is provided by this plugin.
+El motor incluido aporta una clase de documento standalone; no añadas `\documentclass` ni
+`\documentstyle`. Cada bloque debe ser autocontenido: carga explícitamente los paquetes y
+bibliotecas de TikZ que necesite antes de `\begin{document}` y cierra con `\end{document}`.
+Los paquetes incluidos están disponibles, pero no se cargan automáticamente; las
+declaraciones de otro bloque no se trasladan. En particular, carga `\usepackage{amsmath}`
+para etiquetas matemáticas que usen `\text{...}` o ecuaciones alineadas. Coloca el entorno
+del diagrama directamente dentro de `document`, sin un envoltorio exterior `\[...\]`,
+`$$...$$` ni `equation`. Las etiquetas de nodos de TikZ pueden usar `$...$`; las celdas de
+`tikzcd` ya usan modo matemático. La versión de PGFPlots incluida es la **1.16**: usa
+`\pgfplotsset{compat=1.16}`, no `compat=1.18` ni una versión más nueva. Estos requisitos
+también se incluyen en las instrucciones de sistema del sondeo, el profesor y la práctica
+cuando los diagramas técnicos están activados. El proyecto original incluye además paquetes
+de apoyo de matemáticas, arrays, 3D y chemfig, pero no son familias adicionales anunciadas.
+Este plugin no ofrece ninguna vía de entrada de SVG, HTML o JS en bruto, shell, recursos
+remotos, ficheros de datos subidos ni audio.
 
-## Lifetimes, limits and safety
+## Ciclos de vida, límites y seguridad
 
-- Incomplete and pending fences show source without compiling incomplete input.
-  Errors and limit violations use the host's error-plus-readable-source fallback.
-- TeX runs in one lazy serial browser Worker per window. A job has a **10 second**
-  deadline (including cold loading), after which the Worker is terminated. Active
-  mount cancellation also terminates it; waiting cancelled jobs are removed.
-  Subsequent jobs recreate it. Disabling technical diagrams/plugin disposes it.
-- Source limits are **2 KiB SMILES / 16 KiB ABC / 32 KiB TikZ**, measured as UTF-8.
-  Generated SVG is capped at **2 MiB**; TeX admits at most **16 waiting jobs**.
-  One volatile LRU holds at most **32 successful outputs / 8 MiB**, including keys.
-  There is no persistent render cache or model inference request.
-- TeX's fixed WASM linear memory is about **69 MiB**. That is not a total Worker
-  memory cap: JS conversion, decompressed assets and fonts use additional memory.
-  TeX CPU work cannot freeze the page event loop, but the browser still consumes
-  CPU/memory. SMILES and ABC use DOM-based renderers on the main thread with source
-  caps; **no hard execution deadline is claimed for them**.
-- All JS, TeX/WASM, package resources and fonts are local bundled assets, loaded
-  lazily. No CDN, service or arbitrary document-selected URL is used.
-- Generated SVG is parsed inertly, then **rebuilt** from vetted static elements
-  and attributes. Scripts, event attributes, HTML, links, animation, external URLs,
-  stylesheet rules and unsafe CSS are discarded. IDs/local references are
-  namespaced for each mount. Cyclic local `use` references are refused; memoized
-  graph accounting applies the same **2 MiB limit to use-expanded output** before
-  mounting, preventing small acyclic reference-amplification payloads. Text/font/
-  style admission is restricted; only bundled TeX fonts or ordinary system families
-  are selected. Never insert raw model HTML.
-- Rendered drawings are transparent with theme-inherited neutral ink,
-  preserving aspect ratio. Chemistry/music fit available width; wide TikZ scrolls
-  to retain math-size labels. Plugin-owned paint variables
-  are applied only after sanitization and before the final expanded-output budget
-  check. Mask luminance and intentional colors/fills are retained. No raw generated
-  tree or interaction listener is mounted. Abort/disposal fences late results.
-- Settings are versioned, validated and atomically written in plugin-owned
-  `data/settings.json`. Only a changed family toggle is sent to the backend; unrelated
-  concurrent-window changes are retained. Accepted revisions synchronize live and
-  reconnect reads cannot overwrite a newer accepted revision. Malformed/newer
-  settings fail explicitly without rewriting the file. Disabling never deletes it.
+- Los bloques cercados incompletos y pendientes muestran el código sin compilar la entrada
+  incompleta. Los errores y las violaciones de límites usan el recurso del host de error más
+  código legible.
+- TeX se ejecuta en un único Worker de navegador perezoso y en serie por ventana. Una tarea
+  tiene un plazo de **10 segundos** (incluida la carga en frío), tras el cual se termina el
+  Worker. La cancelación de un montaje activo también lo termina; las tareas en espera
+  canceladas se eliminan. Las tareas siguientes lo vuelven a crear. Desactivar los diagramas
+  técnicos o el plugin lo libera.
+- Los límites del código son **2 KiB SMILES / 16 KiB ABC / 32 KiB TikZ**, medidos en UTF-8.
+  El SVG generado está limitado a **2 MiB**; TeX admite como máximo **16 tareas en espera**.
+  Una única LRU volátil guarda como máximo **32 salidas correctas / 8 MiB**, claves
+  incluidas. No hay caché de render persistente ni peticiones de inferencia al modelo.
+- La memoria lineal WASM fija de TeX es de unos **69 MiB**. No es un límite total de memoria
+  del Worker: la conversión en JS, los recursos descomprimidos y las fuentes usan memoria
+  adicional. El trabajo de CPU de TeX no puede congelar el bucle de eventos de la página,
+  pero el navegador sigue consumiendo CPU y memoria. SMILES y ABC usan renderizadores
+  basados en el DOM en el hilo principal con límites de código; **para ellos no se promete un
+  plazo de ejecución estricto**.
+- Todo el JS, TeX/WASM, recursos de paquetes y fuentes son recursos locales incluidos, que se
+  cargan de forma perezosa. No se usa ninguna CDN, servicio ni URL arbitraria elegida por el
+  documento.
+- El SVG generado se analiza de forma inerte y después se **reconstruye** a partir de
+  elementos y atributos estáticos revisados. Se descartan scripts, atributos de eventos,
+  HTML, enlaces, animaciones, URL externas, reglas de hojas de estilo y CSS inseguro. Los ID
+  y las referencias locales reciben un espacio de nombres por montaje. Se rechazan las
+  referencias `use` locales cíclicas; el recuento memoizado del grafo aplica el mismo
+  **límite de 2 MiB a la salida con los `use` expandidos** antes de montar, lo que impide
+  cargas útiles pequeñas que amplifiquen referencias acíclicas. La admisión de texto,
+  fuentes y estilos está restringida; solo se eligen las fuentes de TeX incluidas o familias
+  normales del sistema. No insertes nunca HTML del modelo en bruto.
+- Los dibujos renderizados son transparentes, con tinta neutra heredada del tema,
+  conservando la proporción. La química y la música se ajustan al ancho disponible; el TikZ
+  ancho hace scroll para conservar etiquetas del tamaño de las matemáticas. Las variables de
+  pintado propias del plugin solo se aplican tras la sanitización y antes de la comprobación
+  final del presupuesto de la salida expandida. Se conservan la luminancia de las máscaras y
+  los colores y rellenos intencionados. No se monta ningún árbol generado en bruto ni
+  listeners de interacción. La cancelación o liberación bloquea los resultados tardíos.
+- Los ajustes tienen versión, se validan y se escriben de forma atómica en el
+  `data/settings.json` propio del plugin. Solo se envía al backend el conmutador de familia
+  que ha cambiado; se conservan los cambios no relacionados de otras ventanas concurrentes.
+  Las revisiones aceptadas se sincronizan en vivo y las lecturas al reconectar no pueden
+  sobrescribir una revisión aceptada más nueva. Los ajustes mal formados o más nuevos fallan
+  de forma explícita sin reescribir el fichero. Desactivar nunca lo borra.
 
-This remains trusted-local plugin code, not a sandbox for arbitrary third-party
-plugins. Static output sanitization and an isolated TeX Worker do not authorize
-arbitrary JS execution or weaken Electron/host isolation.
+Sigue siendo código de plugin local de confianza, no un sandbox para plugins arbitrarios de
+terceros. La sanitización de la salida estática y un Worker de TeX aislado no autorizan la
+ejecución de JS arbitrario ni debilitan el aislamiento de Electron o del host.
 
-## Tests and boundaries
+## Pruebas y límites
 
-After SDK/dependency setup, these checks use the plugin project, not a host checkout:
+Tras preparar el SDK y las dependencias, estas comprobaciones usan el proyecto del plugin, no
+un checkout del host:
 
 ```sh
 npm run typecheck
@@ -238,40 +250,46 @@ npm run build
 npm run test:browser
 ```
 
-Unit tests exercise contracts, settings, lifecycle, cache and Worker bounds, including
-output-cleanup guards. The browser script requires local Chrome/Chromium (`CHROME_PATH`
-or a supported default path), built `dist/` files and the project's test dependencies.
-It starts a disposable loopback fixture and temporary Chrome profile to exercise
-actual libraries, SVG admission, timeout/cancellation, font sizing, live/cached theme
-changes, authored colors and rasterized mask alpha. A development-only KaTeX dependency
-supplies reference math; its code/fonts are not shipped in the plugin build.
+Las pruebas unitarias cubren los contratos, los ajustes, el ciclo de vida, la caché y los
+límites del Worker, incluidas las guardas de limpieza de la salida. El script de navegador
+requiere Chrome/Chromium local (`CHROME_PATH` o una ruta por defecto admitida), los ficheros
+`dist/` compilados y las dependencias de prueba del proyecto. Arranca una fixture de loopback
+desechable y un perfil temporal de Chrome para probar las bibliotecas reales, la admisión de
+SVG, el límite de tiempo y la cancelación, el tamaño de las fuentes, los cambios de tema en
+vivo y desde la caché, los colores escritos por el autor y el alfa de las máscaras
+rasterizadas. Una dependencia de KaTeX solo de desarrollo aporta las matemáticas de
+referencia; su código y sus fuentes no se incluyen en la build del plugin.
 
-The fixture mocks the host; it does not start/restart LearnHarness, install into a real
-data directory, call a model or establish packaged-app/user functional acceptance.
-This project has no `test:native` script. Real app integration and platform-specific
-behavior require separate host checks.
+La fixture simula el host; no arranca ni reinicia LearnHarness, no instala en un directorio
+de datos real, no llama a ningún modelo ni establece la aceptación funcional de la app
+empaquetada o por usuarios. Este proyecto no tiene script `test:native`. La integración real
+con la app y el comportamiento específico de cada plataforma requieren comprobaciones aparte
+del host.
 
-## Source reading route
+## Ruta de lectura del código
 
-- [`src/main.ts`](src/main.ts) and [`src/backend.ts`](src/backend.ts): settings
-  synchronization, conditional fence registrations and additive agent instructions.
-- [`src/contract.ts`](src/contract.ts): family policy, source/output/cache limits
-  and validated settings.
+- [`src/main.ts`](src/main.ts) y [`src/backend.ts`](src/backend.ts): sincronización de
+  ajustes, registros condicionales de bloques cercados e instrucciones aditivas para los
+  agentes.
+- [`src/contract.ts`](src/contract.ts): política de familias, límites de código, salida y
+  caché y ajustes validados.
 - [`src/render.ts`](src/render.ts) → [`src/tex-runner.ts`](src/tex-runner.ts) →
-  [`src/tex-worker.ts`](src/tex-worker.ts): lazy rendering, serial work, cancellation
-  and Worker lifetime.
-- [`src/svg.ts`](src/svg.ts) and [`src/appearance.ts`](src/appearance.ts): static
-  SVG admission, local reference handling and theme-aware paint/sizing.
-- [`scripts/build.mjs`](scripts/build.mjs), [`licenses/`](licenses/) and
-  [`tests/`](tests/): local assets, upstream adaptations, notices and fixtures.
+  [`src/tex-worker.ts`](src/tex-worker.ts): renderizado perezoso, trabajo en serie,
+  cancelación y ciclo de vida del Worker.
+- [`src/svg.ts`](src/svg.ts) y [`src/appearance.ts`](src/appearance.ts): admisión de SVG
+  estático, tratamiento de referencias locales y pintado y tamaño conscientes del tema.
+- [`scripts/build.mjs`](scripts/build.mjs), [`licenses/`](licenses/) y
+  [`tests/`](tests/): recursos locales, adaptaciones del proyecto original, avisos y
+  fixtures.
 
-See the [example map](../../docs/plugin-examples.md),
-[authoring guide](../../docs/plugin-authoring.md) and
-[API reference](../../docs/plugin-api/README.md).
+Consulta el [mapa de ejemplos](../../docs/plugin-examples.md), la
+[guía de autoría](../../docs/plugin-authoring.md) y la
+[referencia de la API](../../docs/plugin-api/README.md).
 
-## License
+## Licencia
 
-AGPL-3.0-only. See [`LICENSE`](LICENSE), [`THIRD-PARTY.md`](THIRD-PARTY.md) and
-[`licenses/`](licenses/) for pinned libraries, static-browser adaptations and upstream
-licenses/notices. The build preserves complete GPLv3 and Apache-2.0 texts and the
-relevant PyDvi/ColorBrewer notices alongside the other upstream licenses.
+AGPL-3.0-only. Consulta [`LICENSE`](LICENSE), [`THIRD-PARTY.md`](THIRD-PARTY.md) y
+[`licenses/`](licenses/) para las bibliotecas fijadas, las adaptaciones para navegador
+estático y las licencias y avisos del proyecto original. La build conserva los textos
+completos de GPLv3 y Apache-2.0 y los avisos pertinentes de PyDvi y ColorBrewer junto a las
+demás licencias del proyecto original.
