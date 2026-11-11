@@ -1,247 +1,279 @@
 # Drawing Pad
 
-A trusted-local Core LearnHarness plugin for drawing over read-only question references.
-Requires the public [session-view context](../../docs/plugin-view-context.md),
-[scoped action shortcuts](../../docs/plugin-authoring.md#atajos-de-acciones), surfaces
-and learner-submission interception APIs. A version number alone does not establish
-capabilities; use host documentation/types matching the target app.
+Un plugin del núcleo de LearnHarness, local y de confianza, para dibujar sobre referencias de
+solo lectura de las preguntas. Requiere las API públicas de [contexto de vista de la
+sesión](../../docs/plugin-view-context.md), [atajos de acciones con
+ámbito](../../docs/plugin-authoring.md#atajos-de-acciones), superficies e intercepción de los
+envíos del alumno. Un número de versión por sí solo no establece las capacidades; usa
+documentación y tipos del host que correspondan a la app de destino.
 
-## Core plugin and source reference
+## Plugin del núcleo y referencia de código
 
-Enable Drawing Pad in **Settings → Core plugins**. The app supplies and updates its
-code; writable preferences live under `<learning data>/core-plugin-data/drawing-pad/`.
-This source project is reference material, not an installable Community copy.
-`drawing-pad` is a reserved Core ID even when disabled or missing. A Community fork
-needs its own manifest/folder ID and a review of conflicting contribution, tool and
-fence names. Do not install this build into a Community `plugins/drawing-pad/` folder.
+Activa Drawing Pad en **Ajustes → Plugins del núcleo**. La app aporta y actualiza su código;
+las preferencias escribibles viven en `<learning data>/core-plugin-data/drawing-pad/`. Este
+proyecto de código es material de referencia, no una copia instalable de la comunidad.
+`drawing-pad` es un ID reservado del núcleo aunque esté desactivado o falte. Un fork de la
+comunidad necesita su propio ID de manifiesto y carpeta y revisar los nombres de
+contribuciones, herramientas y bloques cercados en conflicto. No instales esta build en una
+carpeta `plugins/drawing-pad/` de la comunidad.
 
-## Behavior
+## Comportamiento
 
-- **Draw** in teaching/practice top bars toggles the pad. **Draw (unsent)** means
-  visible ink is eligible for the next learner content submission in that session.
-  X/Escape closes without sending or discarding. The normal top-bar overflow applies.
-- A revealed, available built-in question shows question/context/options in the host's
-  actual order. A native practice problem shows its statement. Public `mountMarkdown`
-  preserves the host's Markdown/math rendering. Unrevealed questions, custom question
-  or problem tools, unavailable input, and ordinary input start blank. No answer keys,
-  learner drafts/selections/confidence, custom payloads, or transcript are captured.
-- The window is a viewport onto unrestricted drawing coordinates, not a fitted sheet.
-  The reference uses the native composer's normal question-content width:
-  `calc(42rem - 2px)` (670 CSS pixels at a 16px root), derived from the current 46rem
-  dock column minus outer padding, shell borders, and question padding. It does not
-  use the window width, even when first opened in a narrow window. Height includes
-  the complete content. The reference center defines the world origin; the camera
-  places it bottom-center with a 24px gap. Resizing retains that bottom-center anchor
-  and the saved Hand-pan offset without scaling or rewrapping the reference or ink.
-  Pen and Eraser work over the whole surface, including beyond the reference.
-  Blank sheets retain their centered origin.
-- **Hand** drags the view at fixed scale, moving reference and ink together. Camera
-  position is retained with each held session sheet across closing/navigation/remounts.
-  Off-screen ink remains eligible for export; camera movement is not a content edit
-  or an Undo entry. Holding the **right mouse button** and dragging temporarily
-  pans with any selected tool; release or cancellation ends that gesture without
-  switching tools, drawing/erasing, or adding an Undo entry. Pointer capture keeps
-  panning/release working outside the canvas. Stylus-eraser behavior is unchanged.
-  No zoom or Redo.
-- Pen, whole-stroke Eraser, Undo, and Clear reuse the
-  handwriting contribution's pressure-sensitive pen/mouse mechanics. Touch is ignored.
-  Pen, Eraser, Hand, and Undo are icon-only controls with accessible names and tooltips;
-  Clear remains text. Controls form a compact top-left floating cluster, not a reserved
-  toolbar row: the canvas fills the surface, and transparent gaps/padding pass pointer
-  input through. Actual controls remain clickable above the ink. A held stylus eraser
-  button temporarily selects Eraser while using Pen/Eraser; Hand gestures pan rather
-  than drawing.
-- Clear removes ink/undo history but keeps the displayed background. Closing/reopening
-  an untouched or explicitly cleared sheet captures a fresh reference. An erased sheet
-  with undo history retains its original background until cleared/reset.
-- Existing work retains its original reference content and geometry when reopened/resized.
-  Live app theme/palette changes re-rasterize that same saved learner-visible reference,
-  never substitute later question/input content, and recolor ink for the active app mode.
-  Original strokes, dimensions, and Hand-pan position are preserved. The selected app
-  theme (`html.light`/`html.dark`), not the OS color preference, controls the palette.
-  Already submitted images remain unchanged.
-  Export tightly crops the union of the complete reference and all visible (not erased)
-  ink, including off-screen work, with 24 CSS pixels of padding. A blank reference
-  contributes no artificial canvas rectangle. No toolbar or camera/viewport extent is
-  included. Apply Image scale, then reduce further if needed to stay within the fixed
-  **2000 × 2000 pixel cap**, preserving aspect ratio to integer-pixel rounding. Display
-  canvases cover only the viewport; export canvases never exceed the cap. Original
-  strokes are retained at full precision. An untouched/fully erased sheet sends no image.
-- Drawings attach to the next learner content submission: ordinary message, practice
-  thinking, built-in answer, custom-question answer, or custom-problem submission.
-  Existing text, JSON, selections, confidence, and images remain unchanged. Native
-  readiness/validation and model image capability rules still apply.
-- Teaching: acknowledged acceptance clears only the captured unchanged revision.
-  Newer edits survive. Failed/refused/cancelled attempts and lost acknowledgment retain
-  work. Later model failure does not restore an already consumed drawing.
-- Practice: retain the board/undo history across submissions, conclusion, dismissal,
-  and generation abort. Send an image only when the current visible drawing differs
-  from the last acknowledged image. Undo back to that image does not resend it. Color
-  changes count. Only an **accepted new problem pose** resets the board; if open, the
-  old pad closes. Reopen Draw for the fresh host-selected reference. Failed/dangling
-  poses, conclusions, dismissals, and model prose do not reset it.
-- Automatic continuations, retries, silent dismissals and control-only Next do not run
-  learner-content interception. Image-only pending ordinary input is content, not a
-  control-only Next. Accepted image bytes are handled/stored by the host.
-- Each session's sheet lives only in this app window's memory across navigation.
-  Reload/restart/disable loses unsent work. No editable draft persistence.
+- **Draw** en las barras superiores de enseñanza y práctica abre y cierra la pizarra.
+  **Draw (unsent)** indica que la tinta visible es elegible para el siguiente envío de
+  contenido del alumno en esa sesión. X/Escape cierra sin enviar ni descartar. Se aplica el
+  desbordamiento normal de la barra superior.
+- Una pregunta integrada revelada y disponible muestra la pregunta, el contexto y las
+  opciones en el orden real del host. Un problema de práctica nativo muestra su enunciado.
+  `mountMarkdown`, público, conserva el renderizado de Markdown y matemáticas del host. Las
+  preguntas no reveladas, las herramientas de preguntas o problemas personalizados, la
+  entrada no disponible y la entrada ordinaria empiezan en blanco. No se capturan claves de
+  respuesta, borradores, selecciones ni confianza del alumno, cargas útiles personalizadas ni
+  la transcripción.
+- La ventana es un viewport sobre coordenadas de dibujo sin límites, no una hoja ajustada.
+  La referencia usa el ancho normal del contenido de las preguntas del compositor nativo:
+  `calc(42rem - 2px)` (670 píxeles CSS con una raíz de 16px), derivado de la columna actual
+  del dock de 46rem menos el relleno exterior, los bordes del marco y el relleno de la
+  pregunta. No usa el ancho de la ventana, ni siquiera si se abre por primera vez en una
+  ventana estrecha. La altura incluye el contenido completo. El centro de la referencia
+  define el origen del mundo; la cámara lo coloca abajo en el centro con un margen de 24px.
+  Al redimensionar se mantiene ese anclaje inferior central y el desplazamiento guardado con
+  Hand, sin escalar ni recolocar el texto de la referencia ni la tinta. Pen y Eraser
+  funcionan en toda la superficie, también más allá de la referencia. Las hojas en blanco
+  conservan su origen centrado.
+- **Hand** arrastra la vista a escala fija, moviendo juntas la referencia y la tinta. La
+  posición de la cámara se conserva con cada hoja de sesión guardada al cerrar, navegar o
+  remontar. La tinta fuera de la pantalla sigue siendo elegible para exportar; mover la
+  cámara no es una edición del contenido ni una entrada de Undo. Mantener pulsado el **botón
+  derecho del ratón** y arrastrar desplaza temporalmente con cualquier herramienta
+  seleccionada; soltar o cancelar termina ese gesto sin cambiar de herramienta, dibujar,
+  borrar ni añadir una entrada de Undo. La captura del puntero mantiene el desplazamiento y
+  la liberación aunque se salga del lienzo. El comportamiento del borrador del lápiz óptico
+  no cambia. No hay zoom ni Redo.
+- Pen, Eraser de trazo completo, Undo y Clear reutilizan la mecánica de lápiz y ratón
+  sensible a la presión de la contribución de escritura a mano. El tacto se ignora. Pen,
+  Eraser, Hand y Undo son controles solo con icono, con nombres accesibles y tooltips; Clear
+  sigue siendo texto. Los controles forman un grupo flotante compacto arriba a la izquierda,
+  no una fila de barra de herramientas reservada: el lienzo ocupa la superficie, y los huecos
+  y rellenos transparentes dejan pasar la entrada del puntero. Los controles en sí siguen
+  siendo clicables por encima de la tinta. Mantener pulsado el botón de borrador del lápiz
+  óptico selecciona temporalmente Eraser al usar Pen/Eraser; los gestos con Hand desplazan en
+  lugar de dibujar.
+- Clear elimina la tinta y el historial de Undo, pero mantiene el fondo mostrado. Cerrar y
+  reabrir una hoja sin tocar o borrada explícitamente captura una referencia nueva. Una hoja
+  borrada con historial de Undo conserva su fondo original hasta que se limpie o restablezca.
+- El trabajo existente conserva el contenido y la geometría de su referencia original al
+  reabrirse o redimensionarse. Los cambios en vivo del tema o la paleta de la app vuelven a
+  rasterizar esa misma referencia guardada visible para el alumno, nunca la sustituyen por
+  contenido posterior de la pregunta o la entrada, y recolorean la tinta según el modo activo
+  de la app. Se conservan los trazos originales, las dimensiones y la posición de
+  desplazamiento con Hand. La paleta la controla el tema seleccionado en la app
+  (`html.light`/`html.dark`), no la preferencia de color del sistema operativo. Las imágenes
+  ya enviadas no cambian. La exportación recorta de forma ajustada la unión de la referencia
+  completa y toda la tinta visible (no borrada), incluido el trabajo fuera de la pantalla,
+  con 24 píxeles CSS de relleno. Una referencia en blanco no aporta ningún rectángulo de
+  lienzo artificial. No se incluye la barra de herramientas ni la extensión de la cámara o el
+  viewport. Se aplica Image scale y después se reduce más si hace falta para no superar el
+  **límite fijo de 2000 × 2000 píxeles**, conservando la proporción hasta el redondeo a
+  píxeles enteros. Los lienzos de visualización solo cubren el viewport; los de exportación
+  nunca superan el límite. Los trazos originales se conservan con precisión completa. Una
+  hoja sin tocar o borrada por completo no envía ninguna imagen.
+- Los dibujos se adjuntan al siguiente envío de contenido del alumno: mensaje ordinario,
+  razonamiento de práctica, respuesta integrada, respuesta a pregunta personalizada o envío
+  de problema personalizado. El texto, el JSON, las selecciones, la confianza y las imágenes
+  existentes no cambian. Siguen aplicándose las reglas nativas de disponibilidad y validación
+  y de capacidad de imagen del modelo.
+- Enseñanza: una aceptación con acuse solo borra la revisión capturada sin cambios. Las
+  ediciones más nuevas sobreviven. Los intentos fallidos, rechazados o cancelados y los acuses
+  perdidos conservan el trabajo. Un fallo posterior del modelo no restaura un dibujo ya
+  consumido.
+- Práctica: se conservan la pizarra y el historial de Undo entre envíos, conclusión, descarte
+  y cancelación de la generación. Solo se envía una imagen cuando el dibujo visible actual
+  difiere de la última imagen con acuse. Deshacer hasta volver a esa imagen no la reenvía.
+  Los cambios de color cuentan. Solo un **planteamiento de problema nuevo aceptado**
+  restablece la pizarra; si está abierta, la pizarra antigua se cierra. Vuelve a abrir Draw
+  para la referencia nueva que selecciona el host. Los planteamientos fallidos o colgantes,
+  las conclusiones, los descartes y la prosa del modelo no la restablecen.
+- Las continuaciones automáticas, los reintentos, los descartes silenciosos y el Siguiente
+  solo de control no ejecutan la intercepción del contenido del alumno. Una entrada ordinaria
+  pendiente formada solo por una imagen es contenido, no un Siguiente solo de control. El host
+  gestiona y guarda los bytes de imagen aceptados.
+- La hoja de cada sesión solo vive en la memoria de esta ventana de la app a través de la
+  navegación. Recargar, reiniciar o desactivar pierde el trabajo no enviado. No hay
+  persistencia de borradores editables.
 
-## Keyboard shortcuts
+## Atajos de teclado
 
-Settings → Keyboard → Drawing Pad lists all four actions, including when the pad
-is closed. They use the host's shared action/shortcut registry, so Rebind, Clear,
-and Reset work without reloading.
+Ajustes → Teclado → Drawing Pad lista las cuatro acciones, también cuando la pizarra está
+cerrada. Usan el registro compartido de acciones y atajos del host, así que Reasignar, Borrar
+y Restablecer funcionan sin recargar.
 
-| Action | Default |
+| Acción | Por defecto |
 | --- | --- |
-| Draw (toggle open/closed) | Cmd/Ctrl+Shift+D |
+| Draw (abrir/cerrar) | Cmd/Ctrl+Mayús+D |
 | Undo drawing | Cmd/Ctrl+Z |
-| Toggle pen/eraser | Cmd/Ctrl+Shift+E |
-| Hand (select, not toggle) | Cmd/Ctrl+Shift+H |
+| Toggle pen/eraser | Cmd/Ctrl+Mayús+E |
+| Hand (selecciona, no conmuta) | Cmd/Ctrl+Mayús+H |
 
-These shortcuts are scoped to teaching/practice pages. Undo and tool switching
-additionally require a ready, open pad with drawing focus and no active gesture.
-They do not steal Undo from inputs, textareas, contenteditable areas, or other
-focused editors. Switching from Hand selects Pen; switching tools never edits ink.
-The Hand shortcut selects Hand just like its toolbar button; pressing it again
-keeps Hand selected. Cmd/Ctrl+Shift+E returns from Hand to Pen. Native Cmd+H (Hide)
-and Cmd+E are not overridden.
-The host blocks shortcuts behind dialogs, menus, or foreign-plugin surfaces and
-ignores held-key repeats/IME input. There is no separate hard-coded Undo listener.
+Estos atajos tienen ámbito en las páginas de enseñanza y práctica. Undo y el cambio de
+herramienta requieren además una pizarra abierta y lista, con el foco en el dibujo y sin
+ningún gesto activo. No le quitan Undo a inputs, textareas, áreas contenteditable ni otros
+editores enfocados. Cambiar desde Hand selecciona Pen; cambiar de herramienta nunca edita la
+tinta. El atajo de Hand selecciona Hand igual que su botón de la barra de herramientas;
+pulsarlo otra vez mantiene Hand seleccionado. Cmd/Ctrl+Mayús+E vuelve de Hand a Pen. No se
+sustituyen los nativos Cmd+H (Ocultar) ni Cmd+E. El host bloquea los atajos detrás de
+diálogos, menús o superficies de otros plugins e ignora las repeticiones de teclas mantenidas
+y la entrada IME. No hay un listener de Undo aparte escrito a mano.
 
-## Settings
+## Ajustes
 
-Settings → Drawing Pad:
+Ajustes → Drawing Pad:
 
-- **Dark mode ink color**: default **white** (`#ffffff`).
-- **Light mode ink color**: default **black** (`#000000`).
-  Both fields require exactly six hex digits prefixed with `#`; case-insensitive input
-  is saved lowercase. Each preference is independent. Successful saves recolor held ink
-  when that app theme mode is active, including retained practice sheets; switching
-  app modes selects the corresponding saved ink color. Submitted images never change.
-- **Image scale**: default **50%**; a numeric percentage greater than 0 and at most 100.
-  Scales the uncapped export raster (including its captured device-pixel density)
-  **before** applying the fixed 2000 × 2000 cap. At 50%, a 1000 × 600 raster becomes
-  500 × 300; a 6000 × 4000 raster becomes about 2000 × 1333 after the cap. This never
-  scales the drawing surface, changes original strokes, or triggers unchanged practice
-  resends. Each submission attempt freezes its scale. Very small scales that produce
-  no visible ink refuse export and retain the drawing rather than sending a blank PNG.
+- **Dark mode ink color**: por defecto **blanco** (`#ffffff`).
+- **Light mode ink color**: por defecto **negro** (`#000000`).
+  Ambos campos exigen exactamente seis dígitos hexadecimales precedidos de `#`; la entrada no
+  distingue mayúsculas y se guarda en minúsculas. Cada preferencia es independiente. Los
+  guardados correctos recolorean la tinta guardada cuando ese modo de tema de la app está
+  activo, incluidas las hojas de práctica conservadas; cambiar de modo en la app selecciona
+  el color de tinta guardado correspondiente. Las imágenes enviadas nunca cambian.
+- **Image scale**: por defecto **50%**; un porcentaje numérico mayor que 0 y como máximo 100.
+  Escala el ráster de exportación sin límite (incluida la densidad de píxeles del
+  dispositivo capturada) **antes** de aplicar el límite fijo de 2000 × 2000. Al 50 %, un
+  ráster de 1000 × 600 pasa a 500 × 300; uno de 6000 × 4000 queda en unos 2000 × 1333 tras
+  el límite. Nunca escala la superficie de dibujo, cambia los trazos originales ni provoca
+  reenvíos de práctica sin cambios. Cada intento de envío congela su escala. Las escalas muy
+  pequeñas que no producen tinta visible rechazan la exportación y conservan el dibujo en
+  lugar de enviar un PNG en blanco.
 
-The backend stores only `{revision, darkInkColor, lightInkColor, imageScale}` in its
-own `data/settings.json`. `set-ink-color` accepts exactly one `{darkInkColor}` or
-`{lightInkColor}` field per call; there is no legacy `inkColor` alias. Invalid/write-failed
-values are not published as saved settings.
+El backend solo guarda `{revision, darkInkColor, lightInkColor, imageScale}` en su propio
+`data/settings.json`. `set-ink-color` acepta exactamente un campo `{darkInkColor}` o
+`{lightInkColor}` por llamada; no hay alias antiguo `inkColor`. Los valores no válidos o cuya
+escritura falla no se publican como ajustes guardados.
 
-## Public-API boundary
+## Límite de la API pública
 
-Reference content comes solely from click-time `context.view.input`. Full history,
-solutions, custom payloads and unsent learner drafts are not used to build references.
-The backend's read-only `get-session-poses` operation returns **only accepted pose
-occurrence identifiers** from public native acknowledgment records. Existing
-`turn-settled`/`record-changed` notifications and resync reads detect new poses, including
-while the pad is closed. It does not reconstruct active-question state, interpret
-conclusion/dismissal, or duplicate host option projection/shuffling. Submission context
-also reconciles pose identity before image capture; missing lifecycle reads fail closed.
+El contenido de la referencia procede únicamente de `context.view.input` en el momento del
+clic. El historial completo, las soluciones, las cargas útiles personalizadas y los
+borradores no enviados del alumno no se usan para construir referencias. La operación de solo
+lectura `get-session-poses` del backend devuelve **solo identificadores de aparición de
+planteamientos aceptados** a partir de los registros públicos de acuses nativos. Las
+notificaciones existentes `turn-settled`/`record-changed` y las lecturas de resincronización
+detectan planteamientos nuevos, también con la pizarra cerrada. No reconstruye el estado de
+la pregunta activa, no interpreta conclusiones ni descartes y no duplica la proyección ni el
+barajado de opciones del host. El contexto del envío también concilia la identidad del
+planteamiento antes de capturar la imagen; si faltan lecturas del ciclo de vida, falla en
+cerrado.
 
-Capture observes only plugin-owned DOM, generic ARIA busy state, fonts, and images.
-Font embedding reads browser-parsed stylesheet rules (including nested imports and
-active grouping rules), resolves font resources against their owning stylesheet,
-and supplies detached font CSS to the capture library. It does not fetch imported
-stylesheets as text or insert rules into live page stylesheets. HTML/failed font
-responses fail background preparation rather than silently dropping fonts; font
-fetches honor surface cancellation. This prevents relative-import 404 pages from
-injecting their error-page styles into the session.
-Background failures are shown on the surface; export/host preparation failures preserve
-work. Async work honors cancellation and cannot reopen a disposed surface. Host-managed
-image processing/limits and text-only-model refusals remain authoritative.
+La captura solo observa DOM propio del plugin, el estado ARIA genérico de ocupado, las
+fuentes y las imágenes. La incrustación de fuentes lee las reglas de hojas de estilo ya
+analizadas por el navegador (incluidas importaciones anidadas y reglas de agrupación
+activas), resuelve los recursos de fuentes respecto a su hoja de estilo propietaria y
+entrega CSS de fuentes separado a la biblioteca de captura. No descarga como texto las hojas
+de estilo importadas ni inserta reglas en las hojas de estilo vivas de la página. Las
+respuestas de fuentes HTML o fallidas hacen fallar la preparación del fondo en lugar de
+descartar fuentes en silencio; las descargas de fuentes respetan la cancelación de la
+superficie. Esto impide que páginas 404 de importaciones relativas inyecten sus estilos de
+página de error en la sesión. Los fallos del fondo se muestran en la superficie; los fallos
+de exportación o de preparación del host conservan el trabajo. El trabajo asíncrono respeta
+la cancelación y no puede reabrir una superficie liberada. El procesamiento y los límites de
+imagen gestionados por el host y los rechazos de modelos solo de texto siguen teniendo la
+autoridad.
 
-No runtime host imports, native DOM scraping, global key hook, polling, inference,
-core-record writes, app replacement, or installer are included. Keyboard bindings
-are declared on public plugin actions; the host owns dispatch and Escape.
+No se incluyen importaciones del host en tiempo de ejecución, extracción del DOM nativo, hook
+global de teclado, consultas periódicas, inferencia, escrituras en registros del núcleo,
+sustitución de la app ni instalador. Las asignaciones de teclado se declaran en acciones
+públicas del plugin; el host es responsable del despacho y de Escape.
 
-## Development
+## Desarrollo
 
-In the extracted authoring kit, copy the shared **kit-root `types/` contents** into
-`.sdk/` **before dependency setup**. From `plugins/drawing-pad/`:
+En el kit de autoría extraído, copia el **contenido de `types/` de la raíz del kit**
+compartido en `.sdk/` **antes de preparar las dependencias**. Desde `plugins/drawing-pad/`:
 
 ```sh
 mkdir -p .sdk
 cp -R ../../types/. .sdk/
 ```
 
-In a LearnHarness source checkout instead, `npm run sdk` generates `.sdk/` via
-`../../scripts/build-plugin-types.mjs`. It is **checkout-only**, not a command available
-in the extracted kit. Runtime code does not import the SDK.
+En cambio, en un checkout del código de LearnHarness, `npm run sdk` genera `.sdk/` mediante
+`../../scripts/build-plugin-types.mjs`. **Solo funciona en un checkout**; no es un comando
+disponible en el kit extraído. El código de runtime no importa el SDK.
 
-Set up development dependencies separately, including the SDK's declared
-peer dependencies/types. With dependencies already available, build without a host checkout:
+Prepara aparte las dependencias de desarrollo, incluidas las dependencias peer y los tipos
+declarados por el SDK. Con las dependencias ya disponibles, compila sin un checkout del host:
 
 ```sh
 npm run build
 ```
 
-The build writes `dist/` directly, bundles runtime dependencies and includes license
-notices. It refuses symlinked output or misplaced `dist/data/` and preserves sibling
-`data/`. It does not build the host or install, enable or update the Core plugin.
+La build escribe directamente en `dist/`, empaqueta las dependencias de runtime e incluye los
+avisos de licencia. Rechaza una salida enlazada simbólicamente o un `dist/data/` mal colocado
+y conserva el `data/` hermano. No compila el host ni instala, activa o actualiza el plugin
+del núcleo.
 
-## Tests and boundaries
+## Pruebas y límites
 
-After SDK/dependency setup, plugin-only checks are:
+Tras preparar el SDK y las dependencias, las comprobaciones solo del plugin son:
 
 ```sh
-npm run typecheck            # strict SDK consumer, skipLibCheck=false
+npm run typecheck            # consumidor estricto del SDK, skipLibCheck=false
 npm test
 ```
 
-Unit tests cover settings, public reference projection, stroke/state/geometry logic,
-accepted-pose tracking, submission transformation, font parsing, frontend lifetimes
-and build-output guards. Host capabilities are mocked; these are not native host or
-hardware tests.
+Las pruebas unitarias cubren los ajustes, la proyección pública de la referencia, la lógica
+de trazos, estado y geometría, el seguimiento de planteamientos aceptados, la transformación
+de envíos, el análisis de fuentes, los ciclos de vida del frontend y las guardas de la salida
+de la build. Las capacidades del host están simuladas; no son pruebas del host nativo ni del
+hardware.
 
-The browser fixture is **checkout-only**: it imports private host modules and assets
-not supplied in the authoring kit, and requires the checkout's dependencies plus
-local Chrome (`CHROME_PATH` or the harness default). In that environment:
+La fixture de navegador **solo funciona en un checkout**: importa módulos y recursos privados
+del host que no vienen en el kit de autoría y requiere las dependencias del checkout y Chrome
+local (`CHROME_PATH` o el valor por defecto del arnés). En ese entorno:
 
 ```sh
 npm run test:browser
 npm run build
 npm run test:browser -- --built
-# Optional fixture for manual inspection; Ctrl+C stops it:
+# Fixture opcional para inspección manual; Ctrl+C la detiene:
 npm run test:browser -- --built --serve
 ```
 
-The fixture uses actual host Markdown/math/Mermaid and action/shortcut/Keyboard
-components. Surface shells, preference fields, submission acceptance and event
-transport remain adapters, not an installed app. It inspects canvas pixels and
-composite PNGs, export limits, camera-independent geometry, practice image suppression,
-remount/cancellation cleanup, fonts, shortcuts and right-drag/pen gestures. `--built`
-loads `dist/main.js`; source-mode tests do not regenerate the bundle.
+La fixture usa los componentes reales del host de Markdown, matemáticas y Mermaid y de
+acciones, atajos y teclado. Los marcos de superficie, los campos de preferencias, la
+aceptación de envíos y el transporte de eventos siguen siendo adaptadores, no una app
+instalada. Inspecciona los píxeles del lienzo y los PNG compuestos, los límites de
+exportación, la geometría independiente de la cámara, la supresión de imágenes de práctica,
+la limpieza al remontar o cancelar, las fuentes, los atajos y los gestos de arrastre con el
+botón derecho y con lápiz. `--built` carga `dist/main.js`; las pruebas en modo código fuente
+no regeneran el bundle.
 
-Use disposable data and loopback fixtures, not real learning profiles or paid providers.
-These checks do not establish real-tablet, installed-app, microphone, real-model or
-cross-platform behavior. This project has no `test:native` script.
+Usa datos desechables y fixtures de loopback, no perfiles de aprendizaje reales ni
+proveedores de pago. Estas comprobaciones no establecen el comportamiento con tabletas
+reales, la app instalada, micrófono, modelos reales ni multiplataforma. Este proyecto no
+tiene script `test:native`.
 
-## Source reading route
+## Ruta de lectura del código
 
-- [`src/main.ts`](src/main.ts): contextual actions/shortcuts, surface ownership,
-  settings and submission interception.
-- [`src/reference.ts`](src/reference.ts) and [`src/poses.ts`](src/poses.ts):
-  host-selected input projection and accepted-pose occurrence tracking.
-- [`src/state.ts`](src/state.ts) and [`src/submission.ts`](src/submission.ts):
-  session sheets, captured revisions, acknowledgment and image attachment.
-- [`src/sheet.ts`](src/sheet.ts), [`src/strokes.ts`](src/strokes.ts) and
-  [`src/geometry.ts`](src/geometry.ts): plugin-owned gestures and world/export geometry.
-- [`src/capture.ts`](src/capture.ts) and [`src/fonts.ts`](src/fonts.ts):
-  cancellation-aware reference capture and font resources.
+- [`src/main.ts`](src/main.ts): acciones y atajos contextuales, propiedad de las
+  superficies, ajustes e intercepción de envíos.
+- [`src/reference.ts`](src/reference.ts) y [`src/poses.ts`](src/poses.ts): proyección de la
+  entrada seleccionada por el host y seguimiento de las apariciones de planteamientos
+  aceptados.
+- [`src/state.ts`](src/state.ts) y [`src/submission.ts`](src/submission.ts): hojas de sesión,
+  revisiones capturadas, acuses y adjunto de imágenes.
+- [`src/sheet.ts`](src/sheet.ts), [`src/strokes.ts`](src/strokes.ts) y
+  [`src/geometry.ts`](src/geometry.ts): gestos propios del plugin y geometría del mundo y de
+  exportación.
+- [`src/capture.ts`](src/capture.ts) y [`src/fonts.ts`](src/fonts.ts): captura de la
+  referencia consciente de la cancelación y recursos de fuentes.
 - [`src/backend.ts`](src/backend.ts), [`src/settings.ts`](src/settings.ts),
-  [`scripts/build.mjs`](scripts/build.mjs) and [`tests/`](tests/): preferences,
-  validation, packaging and fixtures.
+  [`scripts/build.mjs`](scripts/build.mjs) y [`tests/`](tests/): preferencias, validación,
+  empaquetado y fixtures.
 
-See the [example map](../../docs/plugin-examples.md),
-[authoring guide](../../docs/plugin-authoring.md) and
-[API reference](../../docs/plugin-api/README.md).
+Consulta el [mapa de ejemplos](../../docs/plugin-examples.md), la
+[guía de autoría](../../docs/plugin-authoring.md) y la
+[referencia de la API](../../docs/plugin-api/README.md).
 
-## License
+## Licencia
 
-AGPL-3.0-only. See [`LICENSE`](LICENSE) and [`THIRD-PARTY.md`](THIRD-PARTY.md)
-for the bundled capture library's attribution.
+AGPL-3.0-only. Consulta [`LICENSE`](LICENSE) y [`THIRD-PARTY.md`](THIRD-PARTY.md) para la
+atribución de la biblioteca de captura incluida.
