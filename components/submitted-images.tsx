@@ -3,10 +3,10 @@
 import type { ImageContent } from "@earendil-works/pi-ai";
 import { useSessionMermaid } from "./session-overlay";
 
-// Use session prose metrics, not the compact labels surrounding thinking/images.
+// Usa las métricas de la prosa de la sesión, no las etiquetas compactas que rodean el thinking/las imágenes.
 const previewSize = "calc(var(--lh-prose-size) * var(--lh-prose-leading) * 5)";
 
-/** Explicit native image data only. Paths are never interpreted here. */
+/** Solo datos de imagen nativos explícitos. Aquí nunca se interpretan rutas. */
 export function SubmittedImages({ images }: { images?: readonly Readonly<ImageContent>[] }) {
 	const viewer = useSessionMermaid();
 	if (!images?.length) return null;
@@ -14,7 +14,7 @@ export function SubmittedImages({ images }: { images?: readonly Readonly<ImageCo
 		{images.map((image, index) => {
 			const src = `data:${image.mimeType};base64,${image.data}`;
 			const preview = (
-				// Native accepted bytes have no remote optimization or re-encoding.
+				// Los bytes nativos aceptados no llevan optimización remota ni recodificación.
 				// eslint-disable-next-line @next/next/no-img-element
 				<img src={src} alt="Submitted image" draggable={false} className="block h-auto max-w-full opacity-100"
 					style={{ maxHeight: previewSize, maxWidth: `min(100%, ${previewSize})` }} />

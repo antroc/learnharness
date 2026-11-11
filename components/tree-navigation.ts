@@ -1,5 +1,5 @@
-/** Pure visible-row navigation shared by native Chains and embedded trees.
- * Adapters own event routing, focus, disclosure changes and optional selection. */
+/** Navegación pura por filas visibles compartida por Chains nativo y los árboles incrustados.
+ * Los adaptadores son dueños del enrutado de eventos, el foco, los cambios de despliegue y la selección opcional. */
 export interface TreeNavigationRow { key: string; depth: number; expanded?: boolean }
 
 function parentIndices(rows: TreeNavigationRow[]): number[] {
@@ -12,8 +12,8 @@ function parentIndices(rows: TreeNavigationRow[]): number[] {
 		return parent;
 	});
 }
-/** Visible DOM order is the navigation order, including the current sort/filter.
- * Up/Down visit siblings, not every row of an expanded subtree. */
+/** El orden visible del DOM es el orden de navegación, incluidos el orden/filtro actuales.
+ * Arriba/Abajo visitan hermanos, no todas las filas de un subárbol desplegado. */
 export function navigateTreeRows(rows: TreeNavigationRow[], active: string | null, key: string): {
 	key?: string; toggle?: string; enter?: boolean;
 } {

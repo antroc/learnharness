@@ -3,7 +3,7 @@
 import type { ButtonHTMLAttributes, CSSProperties, HTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 import { ChevronRightIcon } from "lucide-react";
 
-/** Private presentation only. Callers retain hierarchy, identity and behavior. */
+/** Solo presentación privada. Quien llama conserva la jerarquía, la identidad y el comportamiento. */
 type RowVariant = "branch" | "compact" | "detail";
 type Layout = { className: string; style?: CSSProperties };
 const classes = (...values: (string | undefined | false)[]) => values.filter(Boolean).join(" ");
@@ -18,14 +18,14 @@ export function treeRowLayout({ depth = 0, variant = "branch", className, style 
 	};
 }
 
-/** Existing native drag rows use the layout helper directly, without wrappers. */
+/** Las filas de arrastre nativas existentes usan directamente el auxiliar de layout, sin envoltorios. */
 export function TreeRow({ depth = 0, variant, selectionColumn, selection, disclosure, children, trailing, className, style, ...props }: HTMLAttributes<HTMLDivElement> & {
 	depth?: number; variant?: RowVariant; selectionColumn: boolean;
 	selection?: ReactNode; disclosure?: ReactNode; trailing?: ReactNode;
 }) {
-	// Indent inside the flex content box, not its padding: percentage cells must
-	// resolve against the same width as the header at every depth. The spacer's
-	// following gap completes the indentation, even when no controls are present.
+	// Sangra dentro de la caja de contenido flex, no en su relleno: las celdas en porcentaje deben
+	// resolverse contra el mismo ancho que la cabecera a cualquier profundidad. El hueco que sigue
+	// al espaciador completa la sangría, incluso cuando no hay controles.
 	const gap = variant === "detail" ? 8 : 4;
 	return <div {...props} {...treeRowLayout({ depth: 0, variant, className, style })}>
 		{depth > 0 && <span aria-hidden="true" className="shrink-0" style={{ width: depth * 36 - gap }} />}
@@ -57,7 +57,7 @@ export function TreeDisclosure({ open, plain = false, className, ...props }: Omi
 	</button>;
 }
 
-/** Also spreads onto native sortable buttons: no replacement header element. */
+/** También se reparte sobre los botones nativos ordenables: no hay elemento de cabecera sustituto. */
 export function treeColumnLayout({ widthClassName, grow = false, align, className, style }: {
 	widthClassName?: string; grow?: boolean; align?: "left" | "center" | "right"; className?: string; style?: CSSProperties;
 } = {}): Layout {

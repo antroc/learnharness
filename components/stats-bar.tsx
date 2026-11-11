@@ -12,8 +12,8 @@ export function formatContextMeasurement(tokens: number | null, limit: number | 
 	return limit === null ? numerator : `${numerator} / ${formatTokens(limit)}`;
 }
 
-/** CLI aliases have no global catalog limit: only this session's matching
- * response can supply a denominator. Other providers keep their catalog join. */
+/** Los alias de CLI no tienen un límite de catálogo global: solo la respuesta coincidente de
+ * esta sesión puede aportar un denominador. Los demás proveedores conservan su join con el catálogo. */
 export function contextLimitForModel(model: string | undefined, limits: ReadonlyMap<string, number> | undefined,
 	cliWindow: ReturnType<typeof cliContextWindowOf> = null): number | null {
 	if (!model) return null;
@@ -22,22 +22,26 @@ export function contextLimitForModel(model: string | undefined, limits: Readonly
 }
 
 /**
- * The below-composer stats bar (wave 4 observability): the session's
- * money/context footprint as one quiet row beneath the composer —
- * LEFT-aligned: context window + session cost; RIGHT-aligned: model +
- * thinking level. Clicking the left side opens the per-turn detail popover.
+ * La barra de estadísticas bajo el composer (observabilidad de la oleada 4):
+ * la huella de dinero/contexto de la sesión como una fila discreta bajo el
+ * composer — alineado a la IZQUIERDA: ventana de contexto + coste de la
+ * sesión; alineado a la DERECHA: modelo + nivel de thinking. Hacer clic en el
+ * lado izquierdo abre el popover de detalle por turno.
  *
- *  Pre-chat views (home, /chat/new) render NO left side at all (owner,
- *  wave 7 sweep: the knowledge-context budget slider that used to live
- *  there died with the injection; a "— · —" summary over an empty
- *  popover is pure noise) — the dictation strip's middle simply widens.
+ *  Las vistas previas al chat (inicio, /chat/new) NO renderizan lado izquierdo
+ *  en absoluto (responsable, barrido de la oleada 7: el deslizador de
+ *  presupuesto de contexto de conocimiento que vivía ahí murió con la
+ *  inyección; un resumen "— · —" sobre un popover vacío es puro ruido) — el
+ *  centro con la tira de dictado simplemente se ensancha.
  *
- * Spending arrives already priced by the server through Pi's catalog and
- * calculator. Missing cost stays "—", never fake zero. Context is a separate
- * completed-conversation measurement, never a money-log/summarizer fold or
- * transcript estimate. Its denominator follows the selected model, from the
- * catalog or the session's CLI report; model changes preserve the numerator.
- * Successful compaction clears the numerator and any old CLI report.
+ * El gasto llega ya tarificado por el servidor a través del catálogo y la
+ * calculadora de Pi. Un coste que falta se queda en "—", nunca un falso cero.
+ * El contexto es una medición aparte de la conversación completada, nunca un
+ * plegado del registro de dinero/resumidor ni una estimación de la
+ * transcripción. Su denominador sigue al modelo seleccionado, del catálogo o
+ * del informe de la CLI de la sesión; los cambios de modelo conservan el
+ * numerador. Una compactación con éxito borra el numerador y cualquier
+ * informe antiguo de la CLI.
  */
 export function StatsBar({
 	turns,
@@ -53,21 +57,22 @@ export function StatsBar({
 	contextTokens?: number | null;
 	cliContextWindow?: ReturnType<typeof cliContextWindowOf>;
 	pricing?: SessionPricing;
-	/** The bound session (per-session models, owner 2026-09-28): present
-	 *  on the in-session bar — the model control binds THE SESSION'S own
-	 *  record; absent on the draft surfaces, where it binds the strong
-	 *  slot (the new-session default). */
+	/** La sesión vinculada (modelos por sesión, responsable 2026-09-28):
+	 *  presente en la barra dentro de la sesión — el control de modelo se
+	 *  vincula al registro PROPIO DE LA SESIÓN; ausente en las superficies de
+	 *  borrador, donde se vincula a la ranura fuerte (el valor por defecto de las
+	 *  sesiones nuevas). */
 	chatId?: string;
-	/** The same effective identity the visible model control owns. */
+	/** La misma identidad efectiva de la que es dueño el control de modelo visible. */
 	onModelChange?: (model: string | undefined) => void;
-	/** The dictation strip (STT wave, 2026-09-17): the row's middle is dead
-	 *  space between the session data and the model control — the mic
-	 *  button lives there, and while recording the meter unfurls to fill
-	 *  whatever width the row has (owner placement). */
+	/** La tira de dictado (oleada STT, 2026-09-17): el centro de la fila es
+	 *  espacio muerto entre los datos de la sesión y el control de modelo — ahí
+	 *  vive el botón del micrófono, y mientras se graba el medidor se despliega
+	 *  para llenar el ancho que tenga la fila (colocación del responsable). */
 	dictationSlot?: ReactNode;
-	/** The row's LEFT edge (practice sessions, 2026-10-04): the home
-	 *  composer's teach | practice switch rides here — before the session
-	 *  data (which renders nothing pre-chat on that surface). */
+	/** El borde IZQUIERDO de la fila (sesiones de práctica, 2026-10-04): el
+	 *  conmutador enseñar | practicar del composer del inicio va aquí — antes de
+	 *  los datos de la sesión (que no renderizan nada antes del chat en esa superficie). */
 	leadingSlot?: ReactNode;
 }) {
 	const [open, setOpen] = useState(false);
@@ -76,21 +81,21 @@ export function StatsBar({
 		setSelectedModel(model);
 		onModelChange?.(model);
 	}, [onModelChange]);
-	// Same dropdown discipline as the model control (owner, df4433f treatment,
-	// stats round 1): close on any pointerdown outside the bar or on Escape.
+	// La misma disciplina de desplegable que el control de modelo (responsable, tratamiento df4433f,
+	// ronda 1 de estadísticas): cierra con cualquier pointerdown fuera de la barra o con Escape.
 	const barRef = useRef<HTMLDivElement>(null);
 	const panelRef = useRef<HTMLDivElement>(null);
 	const popupLayer = usePopoverDismiss(barRef, open && !!(chatId || turns.length), () => setOpen(false), { layerRootRef: panelRef });
-	// The picker reports its effective selection. CLI windows are session-
-	// scoped; unknown metadata always means usage-only, never a guessed maximum.
+	// El selector informa de su selección efectiva. Las ventanas de la CLI tienen ámbito
+	// de sesión; unos metadatos desconocidos siempre significan solo uso, nunca un máximo supuesto.
 	const { catalog } = useModelCatalog();
 	const limits = useMemo(() => (catalog ? catalogLimits(catalog) : undefined), [catalog]);
 	const limit = contextLimitForModel(selectedModel, limits, cliContextWindow);
 	const contextLabel = formatContextMeasurement(contextTokens, limit);
 	const cacheHitRate = useMemo(() => sessionCacheHitRate({ turns }), [turns]);
 	const { cost = 0, unpriced = turns.length, subscription = 0 } = pricing ?? {};
-	// Honest cost: show dollars only when at least one turn priced;
-	// otherwise "—" (never a fake $0.0000).
+	// Coste honesto: muestra dólares solo cuando al menos un turno se ha tarificado;
+	// si no, "—" (nunca un falso $0.0000).
 	const pricedCount = turns.length - unpriced - subscription;
 	const providers = pricing?.subscriptionProviders ?? subscriptionLabels(turns.map((turn) => turn.model));
 	const cliBilled = turns.some((turn) => turn.model.startsWith(`${CLAUDE_CODE_PROVIDER}:`));
@@ -99,27 +104,28 @@ export function StatsBar({
 	return (
 		<div
 			data-testid="stats-bar"
-			// pointer-events-auto: the sticky composer wrapper is pointer-events-none
-			// (so its transparent gradient area never blocks scrolling) — this row
-			// must re-enable events or every control on it is dead (the model-
-			// control wave caught this live: buttons rendered, clicks never landed).
+			// pointer-events-auto: el envoltorio sticky del composer es pointer-events-none
+			// (para que su área de degradado transparente nunca bloquee el scroll) — esta fila
+			// debe reactivar los eventos o todos sus controles estarán muertos (la oleada del
+			// control de modelo lo detectó en vivo: los botones se renderizaban, los clics nunca llegaban).
 			className="pointer-events-auto relative flex items-center justify-between gap-3 px-3 pt-2 text-xs text-muted-foreground"
 		>
-			{/* The summary button + its popover: the popover anchors to this
-			    wrapper, CENTERED over the button itself (owner, stats round 2)
-			    — not over the whole bar row, which made it line up oddly. The
-			    outside-close ref anchors HERE too (owner, round 3): on the whole
-			    bar it wrapped the model control, so clicking model/thinking never
-			    counted as outside — the asymmetry the owner observed. */}
-			{/* The leading slot (2026-10-04): the leftmost control surface —
-			    the home composer's mode switch. */}
+			{/* El botón de resumen + su popover: el popover se ancla a este
+			envoltorio, CENTRADO sobre el propio botón (responsable, ronda 2 de
+			estadísticas) — no sobre toda la fila de la barra, que lo dejaba
+			extrañamente alineado. La ref de cierre exterior también se ancla AQUÍ
+			(responsable, ronda 3): sobre toda la barra envolvía el control de modelo,
+			así que hacer clic en modelo/thinking nunca contaba como exterior — la
+			asimetría que observó el responsable. */}
+			{/* La ranura inicial (2026-10-04): la superficie de control más a la
+			izquierda — el conmutador de modo del composer del inicio. */}
 			{leadingSlot}
-			{/* The left side: the session-data summary — only once a session
-			    exists (turns). Pre-chat renders nothing (see the header). */}
+			{/* El lado izquierdo: el resumen de datos de la sesión — solo una vez que
+			existe una sesión (turnos). Antes del chat no renderiza nada (ver la cabecera). */}
 			{(chatId || turns.length > 0) && (
 			<div ref={barRef} className="relative">
-				{/* No tooltip — the numbers describe themselves and the popover
-			    speaks on click (owner, subtlety round 2026-09-25). */}
+				{/* Sin tooltip — las cifras se explican solas y el popover habla al hacer
+			clic (responsable, ronda de sutileza 2026-09-25). */}
 			<button
 				type="button"
 				onClick={() => setOpen((o) => !o)}
@@ -198,15 +204,15 @@ export function StatsBar({
 				)}
 			</div>
 			)}
-			{/* The middle slot: dictation (owner, 2026-09-17). flex-1 lets the
-			    meter expand into the row's free width; justify-center keeps the
-			    lone idle mic button visually centered. */}
+			{/* La ranura central: dictado (responsable, 2026-09-17). flex-1 deja que el
+			medidor se expanda al ancho libre de la fila; justify-center mantiene
+			visualmente centrado el botón de micrófono solitario en reposo. */}
 			{dictationSlot && (
 				<div className="flex min-w-0 flex-1 items-center justify-center">{dictationSlot}</div>
 			)}
-			{/* The model + thinking control — one controller for the conversation
-			    agents (prober/teacher); the record's `turns` above still folds
-			    the ACTUAL models billed, regardless of what the picker says. */}
+			{/* El control de modelo + thinking — un controlador para los agentes de
+			conversación (sondeador/profesor); los `turns` del registro de arriba siguen
+			sumando los modelos REALMENTE facturados, diga lo que diga el selector. */}
 			<ModelControl chatId={chatId} onModelChange={modelChanged} />
 		</div>
 	);

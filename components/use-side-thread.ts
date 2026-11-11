@@ -1,8 +1,8 @@
 "use client";
 
-/** #451's single floating/docked companion, backed by #487's durable service.
- * Closing detaches a view; messages are already saved, and returning can
- * subscribe to a still-running answer. No close-time commits or tutor notes. */
+/** El único compañero flotante/acoplado de #451, respaldado por el servicio duradero de #487.
+ * Cerrar desengancha una vista; los mensajes ya están guardados, y al volver se puede
+ * suscribir a una respuesta aún en curso. Sin confirmaciones ni notas del tutor al cerrar. */
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { serializeCitation, sideSegmentId, type LhMessage, type TextSelector, type SideChatMessage, type SideChatThread } from "@/src/core";
 import { useServerEvent, useServerResync } from "./server-events";
@@ -100,7 +100,7 @@ export function useSideThread(chatId: string, messages: readonly LhMessage[], ge
 			const thread = current && payload.threads.find((entry) => entry.id === current.threadId);
 			if (thread) dispatch({ type: "snapshot", thread,
 				answering: Object.hasOwn(payload.answering, thread.id), text: payload.answering[thread.id] ?? "" });
-		} catch { /* a later change/resync retries a detached view's read */ }
+		} catch { /* un cambio/resincronización posterior reintenta la lectura de una vista desenganchada */ }
 	}, [chatId]);
 	useEffect(() => { void refresh(); return () => { refreshSerial.current++; connection.current?.controller.abort(); }; }, [refresh]);
 	useServerEvent("side-chats-changed", (event) => { if (event.chatId === chatId) void refresh(); });
@@ -125,7 +125,7 @@ export function useSideThread(chatId: string, messages: readonly LhMessage[], ge
 				dispatch({ type: event.type === "done" ? "done" : "snapshot", thread: event.thread });
 				uncertain.current = null;
 			} else if (event.type === "text") {
-				revision.current++; // an older GET must not rewind a newer stream tail
+				revision.current++; // un GET más antiguo no debe rebobinar una cola de stream más reciente
 				dispatch({ type: "text", threadId, text: event.text ?? "" });
 			}
 			else if (event.type === "error") throw new Error(event.error ?? "The side answer failed.");
@@ -190,7 +190,7 @@ export function useSideThread(chatId: string, messages: readonly LhMessage[], ge
 				} }), text, quotes: passage ? [passage.text] : [], ...(quote ? { quoteCitations: [quote] } : {}), requestId, ...(retry ? { retry: true, threadId: current.threadId } : {}), ...(working ? { working } : {}) }),
 			});
 			if (!response.ok) { await consume(response, current.threadId, token); return false; }
-			// Accepted and durable before streaming: the UI can clear its draft.
+			// Aceptado y duradero antes del streaming: la interfaz puede borrar su borrador.
 			dispatch({ type: "accepted", threadId: current.threadId });
 			void consume(response, current.threadId, token).catch((error) => {
 				if (!controller.signal.aborted && token === connection.current?.token) {

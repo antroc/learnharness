@@ -6,9 +6,9 @@ interface SessionCreation {
 	graphContext?: { propositions: readonly { id: string; name: string; statement: string }[] };
 }
 
-/** Per source-composer instance. Retain a successful creation if storage
- * fails, so an unchanged retry does not create another empty session.
- * Changed text/context/settings is a different start, not a stale title.
+/** Por instancia de composer de origen. Conserva una creación con éxito si falla el
+ * almacenamiento, para que un reintento sin cambios no cree otra sesión vacía.
+ * Un texto/contexto/ajustes cambiados son otro inicio, no un título obsoleto.
  */
 export class SessionStarter {
 	private created?: { identity: string; id: string };

@@ -1,14 +1,17 @@
 "use client";
 
 /**
- * The auto-update banner (Wave C, owner 2026-10-10: silent download +
- * restart-banner UX). The shell pushes "lh:update-status" once a staged
- * update exists (electron/main.cjs update-downloaded). Snapshot retrieval
- * also covers a late load. The card offers Restart alongside Settings.
- * Browser builds have no window.lh and never see a push: renders null.
+ * El banner de actualización automática (oleada C, responsable 2026-10-10:
+ * descarga silenciosa + experiencia de banner para reiniciar). El armazón
+ * envía "lh:update-status" en cuanto existe una actualización preparada
+ * (update-downloaded de electron/main.cjs). La obtención de la instantánea
+ * también cubre una carga tardía. La tarjeta ofrece Restart junto a
+ * Settings. Las compilaciones para navegador no tienen window.lh y nunca
+ * reciben el aviso: renderiza null.
  *
- * Dismissing hides this version for the mounted window only; the update
- * still installs on quit (autoInstallOnAppQuit) or via Settings.
+ * Descartarlo oculta esta versión solo en la ventana montada; la
+ * actualización se sigue instalando al salir (autoInstallOnAppQuit) o desde
+ * Settings.
  */
 
 import { useState } from "react";

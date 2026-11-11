@@ -1,43 +1,48 @@
 "use client";
 
 /**
- * THE TOP BAR (owner standardization ruling, 2026-09-29): one element,
- * every surface — the same mechanics ALWAYS. Born from the chains-overlay
- * incident: its hand-rolled bar broke every rule at once (wrong height,
- * wrong title size, whole-bar no-drag so window drags fell through to
- * text selection, no sidebar reopen, traffic lights over content). The
- * law: whenever a surface has a top bar, it renders THIS component —
- * never a bespoke header.
+ * LA BARRA SUPERIOR (decisión de estandarización del responsable,
+ * 2026-09-29): un elemento, todas las superficies — siempre la misma
+ * mecánica. Nació del incidente del overlay de cadenas: su barra hecha a
+ * mano rompía todas las reglas a la vez (altura incorrecta, tamaño de
+ * título incorrecto, no-drag en toda la barra, así que los arrastres de la
+ * ventana caían en la selección de texto, sin reabrir la barra lateral,
+ * semáforos encima del contenido). La ley: siempre que una superficie tenga
+ * barra superior, renderiza ESTE componente — nunca una cabecera a medida.
  *
- * Mechanics baked in (the chat-session bar's proven pattern):
- * - h-15 (60px) — matches the sidebar's wordmark band, one border line.
- * - lh-drag — the window-drag band. NATIVE interactive children
- *   (button/input/a/…) carve out AUTOMATICALLY via the globals.css auto
- *   carve-out rule (owner standardization ruling, 2026-09-29 night) —
- *   "draggable anywhere that is not a clickable element" is structural,
- *   not per-child discipline; manual lh-no-drag is only for clickable
- *   non-natives (spans/divs with onClick).
- * - select-none — dragging never highlights the title.
- * - SidebarToggle FIRST — the sidebar reopen when closed, with its
- *   Electron traffic-light gutter (lh-closed-toggle). Host knowledge
- *   pickers omit the action and reserve only the overlapping native gutter.
- * - border-b border-border px-3, gap-3 rhythm.
+ * Mecánica incorporada (el patrón probado de la barra de la sesión del chat):
+ * - h-15 (60px) — igual que la franja de la marca de la barra lateral, una
+ *   línea de borde.
+ * - lh-drag — la franja de arrastre de la ventana. Los hijos interactivos
+ *   NATIVOS (button/input/a/…) se recortan AUTOMÁTICAMENTE con la regla de
+ *   recorte automático de globals.css (decisión de estandarización del
+ *   responsable, noche del 2026-09-29) — "arrastrable en cualquier sitio que
+ *   no sea un elemento pulsable" es estructural, no disciplina hijo a hijo;
+ *   el lh-no-drag manual es solo para elementos pulsables no nativos
+ *   (spans/divs con onClick).
+ * - select-none — arrastrar nunca resalta el título.
+ * - SidebarToggle PRIMERO — reabre la barra lateral cuando está cerrada, con
+ *   su margen para los semáforos de Electron (lh-closed-toggle). Los
+ *   selectores de conocimiento del host omiten la acción y reservan solo el
+ *   margen nativo que se solapa.
+ * - border-b border-border px-3, ritmo gap-3.
  *
- * The consumer brings the title (font-title text-3xl tracking-tight) and
- * any right-side controls. THE TITLE LAW (owner round 11, 2026-10-05):
- * the serif title names a session or a registered plugin view (plugin UI
- * ruling, 2026-11-01); chrome-less creation surfaces (home, both /chat/new
- * drafts) and the chain table render NO title.
- * `drag={false}` is the one escape hatch —
- * chat's rename mode (app-region:drag would eat the mousedown that
- * exits the input; owner ask).
+ * Quien lo usa aporta el título (font-title text-3xl tracking-tight) y los
+ * controles del lado derecho. LA LEY DEL TÍTULO (ronda 11 del responsable,
+ * 2026-10-05): el título con serifa nombra una sesión o una vista de plugin
+ * registrada (decisión sobre la interfaz de plugins, 2026-11-01); las
+ * superficies de creación sin cromo (inicio, ambos borradores de /chat/new)
+ * y la tabla de cadenas NO renderizan título. `drag={false}` es la única vía
+ * de escape — el modo de renombrado del chat (app-region:drag se comería el
+ * mousedown que sale del input; petición del responsable).
  *
- * THE OVERLAY TWIN OF THE MASK LAW (owner, 2026-09-29 night): app-region
- * subtraction resolves by DOM order, not z-index — a surface containing
- * a TopBar that COVERS other content (a full-bleed overlay) must be the
- * LAST child of its container, or later no-drag elements punch dead
- * zones through the bar (the chains-overlay bug: the graph chrome's
- * no-drag column killed drag over the counts/search/close area).
+ * EL GEMELO PARA OVERLAYS DE LA LEY DE LA MÁSCARA (responsable, noche del
+ * 2026-09-29): la resta de app-region se resuelve por orden del DOM, no por
+ * z-index — una superficie que contiene una TopBar y TAPA otro contenido (un
+ * overlay a sangre) debe ser el ÚLTIMO hijo de su contenedor, o los
+ * elementos no-drag posteriores abren zonas muertas en la barra (el fallo
+ * del overlay de cadenas: la columna no-drag del cromo del grafo anulaba el
+ * arrastre sobre la zona de recuentos/búsqueda/cerrar).
  */
 
 import { useLayoutEffect, useRef, type ReactNode } from "react";
@@ -52,7 +57,7 @@ export function TopBar({
 	drag?: boolean;
 	onMouseDown?: React.MouseEventHandler<HTMLElement>;
 	children?: ReactNode;
-	/** Host picker chrome: native clearance without changing sidebar state. */
+	/** Cromo del selector del host: margen nativo sin cambiar el estado de la barra lateral. */
 	sidebarToggle?: boolean;
 }) {
 	const header = useRef<HTMLElement>(null);

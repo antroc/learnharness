@@ -11,8 +11,8 @@ export type OrganizationChange = (action: OrganizationAction) => Promise<string 
 const DRAG_TYPE = "application/x-learnharness-source";
 const RowEditing = createContext<((editing: boolean) => void) | null>(null);
 
-/** Keep the existing row as the drag surface, not the editor. A transient,
- * fixed-position preview carries only the icon/name, never the row's columns. */
+/** Mantén la fila existente como superficie de arrastre, no el editor. Una vista previa
+ * transitoria en posición fija lleva solo el icono/nombre, nunca las columnas de la fila. */
 export function SourceDragRow({ kind, id, name, enabled, children, ...props }: HTMLAttributes<HTMLDivElement> & {
 	kind: "source" | "folder"; id: string; name: string; enabled: boolean; children: ReactNode;
 }) {
@@ -40,7 +40,7 @@ export function SourceDragRow({ kind, id, name, enabled, children, ...props }: H
 	</RowEditing.Provider>;
 }
 
-/** Source/folder names are also searchable, including sources without nodes. */
+/** Los nombres de fuentes/carpetas también se pueden buscar, incluidas las fuentes sin nodos. */
 export function sourceNameMatches(directory: SourceDirectory | undefined, id: string, label: string | null, query: string): boolean {
 	if (!query.trim()) return true;
 	if (fuzzyScore(query, label ?? "") !== null) return true;
@@ -57,8 +57,8 @@ export function sourceNameMatches(directory: SourceDirectory | undefined, id: st
 	return false;
 }
 
-/** Same Enter/blur commit and Escape cancel interaction as session titles.
- * The in-flight guard prevents Enter followed by blur from double-writing. */
+/** La misma interacción de confirmar con Enter/perder el foco y cancelar con Escape que los
+ * títulos de sesión. La guarda de en vuelo impide que Enter seguido de perder el foco escriba dos veces. */
 export function EditableSourceName({ name, onSave, onCancel, initiallyEditing = false, muted = false }: {
 	name: string; onSave: (name: string) => Promise<unknown>; onCancel?: () => void; initiallyEditing?: boolean; muted?: boolean;
 }) {
@@ -206,7 +206,7 @@ export function SourceFolderTree<T extends TreeSource>({ groups, directory, quer
 		try {
 			const item = JSON.parse(event.dataTransfer.getData(DRAG_TYPE));
 			if (item && (item.kind === "source" || item.kind === "folder") && typeof item.id === "string") setDraggedItem(item);
-		} catch { /* An unrelated native text/file drag is not an organization move. */ }
+		} catch { /* Un arrastre nativo de texto/fichero ajeno no es un movimiento de organización. */ }
 	}} onDragEnd={() => { setDropTarget(undefined); setDraggedItem(undefined); }}>
 		<div>{renderLevel(null, 0)}</div>
 		{onAction && <div data-testid="source-root-drop" aria-label="Move outside folders" data-drop-active={dropTarget === null}

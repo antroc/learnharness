@@ -1,25 +1,26 @@
 "use client";
 
 /**
- * The default-order resolution, CLIENT-SIDE (chunk 2, Platform interlude
- * bd68486): the UI mirrors defaultThinkingLevel from src/agent/models.ts
- * EXACTLY — first DEFAULT_THINKING_ORDER entry the model supports, else
- * the first supported level, else "off". One source of truth for the
- * ordering (the core barrel); this helper is its only client
- * interpretation, so a fresh model pick can auto-populate the SAME
- * level the engine would run for an unset record (owner ruling: the
- * ordering's ONLY purpose is first assignment — an explicit pick always
- * wins, and after a swap the WRITE clamps server-side, the signal
- * re-reads, and the clamped truth displays).
+ * La resolución del orden por defecto, EN EL CLIENTE (fragmento 2,
+ * interludio de Platform bd68486): la interfaz refleja EXACTAMENTE
+ * defaultThinkingLevel de src/agent/models.ts — la primera entrada de
+ * DEFAULT_THINKING_ORDER que admite el modelo; si no, el primer nivel
+ * admitido; si no, "off". Una sola fuente de verdad para el orden (el barril
+ * del núcleo); este auxiliar es su única interpretación en el cliente, para
+ * que una elección nueva de modelo pueda autorrellenar el MISMO nivel que
+ * ejecutaría el motor para un registro sin valor (decisión del responsable:
+ * el ÚNICO propósito del orden es la primera asignación — una elección
+ * explícita siempre gana, y tras un cambio la ESCRITURA acota en el
+ * servidor, la señal vuelve a leer y se muestra la verdad acotada).
  */
 import { DEFAULT_THINKING_ORDER } from "@/src/core";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 
-/** Display labels for the levels (shared by every trigger that shows
- *  one). Lowercase, always (owner refinement round, 2026-09-24): the
- *  level strings ARE the display form — the settings menus render them
- *  raw, so the composer pill and setup dialog must match, never Title
- *  Case. */
+/** Etiquetas visibles de los niveles (compartidas por todo disparador que
+ *  muestra uno). En minúsculas, siempre (ronda de refinamiento del
+ *  responsable, 2026-09-24): las cadenas de nivel SON la forma visible — los
+ *  menús de ajustes las renderizan en bruto, así que la píldora del composer
+ *  y el diálogo de configuración deben coincidir, nunca en Title Case. */
 export const THINKING_LABEL: Record<string, string> = {
 	off: "off",
 	minimal: "minimal",
@@ -30,9 +31,9 @@ export const THINKING_LABEL: Record<string, string> = {
 	max: "max",
 };
 
-/** The level a fresh pick of `supported` populates with. Empty support
- *  (shouldn't happen — the catalog always reports at least ["off"])
- *  resolves "off", matching the server's fallback. */
+/** El nivel con el que se rellena una elección nueva de `supported`. Un
+ *  soporte vacío (no debería ocurrir — el catálogo siempre informa al menos
+ *  ["off"]) se resuelve a "off", igual que la alternativa del servidor. */
 export function defaultOrderLevel(supported: readonly ThinkingLevel[]): ThinkingLevel {
 	for (const level of DEFAULT_THINKING_ORDER) {
 		if (supported.includes(level)) return level;
@@ -40,13 +41,14 @@ export function defaultOrderLevel(supported: readonly ThinkingLevel[]): Thinking
 	return supported[0] ?? "off";
 }
 
-/** An EXPLICIT level always rides — even when the fresh pick's model
- *  doesn't support it: the WRITE clamps it to the nearest supported level
- *  server-side (Platform's interlude bd68486 — the owner's swap-400 case
- *  now just works), and the cross-surface signal re-reads so the clamped
- *  truth displays. The ordering only assigns FIRST: when no explicit
- *  level exists, a fresh model pick populates the ordering's level for
- *  that model (chunk 2: the unset state can never re-enter). */
+/** Un nivel EXPLÍCITO siempre viaja — aunque el modelo de la elección nueva
+ *  no lo admita: la ESCRITURA lo acota en el servidor al nivel admitido más
+ *  cercano (interludio de Platform bd68486 — el caso del 400 al cambiar del
+ *  responsable ahora simplemente funciona), y la señal entre superficies
+ *  vuelve a leer para que se muestre la verdad acotada. El orden solo asigna
+ *  la PRIMERA vez: cuando no hay nivel explícito, una elección nueva de
+ *  modelo rellena el nivel del orden para ese modelo (fragmento 2: el estado
+ *  sin valor nunca puede volver a entrar). */
 export function populateLevel(
 	explicit: ThinkingLevel | undefined,
 	supported: readonly ThinkingLevel[],
