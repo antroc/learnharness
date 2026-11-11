@@ -124,8 +124,8 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 | C3 | Comentarios: `src/core` (1ª mitad) | 38 | 21.353 | [x] |
 | C4 | Comentarios: `src/core` (2ª mitad) | 30 | 21.060 | [x] |
 | C5 | Comentarios: `components/*` raíz (1ª mitad) | 37 | 32.633 | [x] |
-| C6 | Comentarios: `components/*` raíz (2ª mitad) | 89 | 31.871 | [~] parcial |
-| C7 | Comentarios: `components/{settings,artifacts,ui,ai-elements}`, `app`, `electron`, `scripts`, `plugins`, configuración | 201 | 33.875 | [ ] |
+| C6 | Comentarios: `components/*` raíz (2ª mitad) | 89 | 31.871 | [x] |
+| C7 | Comentarios: `components/{settings,artifacts,ui,ai-elements}`, `app`, `electron`, `scripts`, `plugins`, configuración | 201 | 33.875 | [~] parcial |
 | C8 | Comentarios: `tests/` (1ª mitad) | 124 | 23.181 | [ ] |
 | C9 | Comentarios: `tests/` (2ª mitad) + los 7 `.py` (a mano) | 178 | 23.180 | [ ] |
 
@@ -345,3 +345,37 @@ falsos positivos).
   Ficheros grandes (palabras de comentario): plan-block.tsx (≈3.100), question-dock.tsx
   (≈2.500), new-session.tsx (≈1.100), menu-shell.tsx (≈970), model-picker.tsx (≈950),
   practice-cards.tsx (≈800).
+- Sesión 11: C6 terminado: líneas 11–89 de `.traduccion/lotes/C6.txt` en nueve tandas con su
+  commit (menu-shell…phase-divider; plan-block.tsx solo; plan-window…practice-dock;
+  question-dock.tsx solo; question-preview…server-events + session-find-dom…
+  session-view-readers; session-core.ts solo; session.ts…side-thread; sidebar.tsx solo;
+  source-folder-tree…use-side-thread). Ningún JSDoc de estos ficheros estaba en
+  `docs/plugin-api/` (0 coincidencias); no había directivas `turbopackIgnore` ni referencias
+  a encabezados de docs traducidos (solo rutas, `§N` y números de PR). En sidebar.tsx, el
+  comentario de ⌘B termina en una línea `// 2026-09-25).` que la herramienta no extrae; la
+  traducción del grupo anterior acaba en «responsable» para que la frase siga encajando.
+  Literales que se dejan en inglés: "Your thinking", "Your answer", "Other…", "I don't know",
+  "Check your understanding", "Set up your models", "Add a provider key", "+ New session",
+  "Pick nodes", "Pick a provider…", "Shorten selection", "Waiting for input", "Concluded",
+  'Verdict:', 'Problem', 'YOUR THINKING'/'AGENT'S THINKING', "Plan · 4 nodes",
+  "Planning"/"Teaching", "Prediction", Probe/Recall, Thinking…, NEXT PROBLEM, METADATA,
+  "just now"/"5m ago"…, "Untitled session", "Illegal invocation", Teaching/All/Practice,
+  Chains/Import, Done/Clear, Restart/Settings, Rename/Delete/Extract.
+  Glosario añadido en la práctica: *shell* → armazón; *trigger* → disparador; *wrapper* →
+  envoltorio; *flip* (menú) → voltear; *cap* → tope; *hug* → ceñirse; *eyebrow* →
+  antetítulo; *teaser* → avance; *lease* → préstamo; *fan-out* → difusión; *mirror* (ref) →
+  espejo; *refetch* → nueva petición/volver a pedir; *draft* → borrador; *glow* → brillo;
+  *ink* → tinta; *rail* → raíl; *stub* → tramo; *dock off* (flecha) → despegarse; *barb* →
+  lengüeta; *wordmark* → marca; *traffic lights* → semáforos; *watchdog* → perro guardián;
+  *drag mask* → máscara de arrastre; *focus home* → hogar del foco; *strip* → tira;
+  *placement* → colocación; *re-place* → recolocar; *walk* (teclado) → recorrido;
+  *gutter* → margen; *slot* (modelo) → ranura (strong slot → ranura fuerte).
+  C7 empezado: líneas 1–17 de `.traduccion/lotes/C7.txt` (app/api/activity/abort/route.ts a
+  app/api/events/route.ts).
+  C7 pendiente: líneas 18–201 de `.traduccion/lotes/C7.txt` (desde
+  app/api/graph/costs/route.ts). Ficheros grandes (palabras de comentario): electron/main.cjs
+  (≈2.600), components/settings/agent-section.tsx (≈2.350), appearance-section.tsx y
+  keys-section.tsx (≈1.200 cada uno), config.ts (≈1.000; tiene 19 directivas
+  `/* turbopackIgnore: true */` que no se tocan), scripts/smoke-plugin-browser.mjs (≈970),
+  scripts/verify-release.ts (≈900), settings-dialog.tsx y next.config.ts (≈800),
+  appearance.tsx y model-menu.tsx (≈700–750).
