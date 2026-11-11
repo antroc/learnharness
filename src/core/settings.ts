@@ -1,31 +1,34 @@
 /**
- * THE USER SETTINGS RECORD's shape + sanitizer (settings-storage wave,
- * 2026-09-19): one versioned, DELTA-shaped record at the data-dir seam
- * (config.SETTINGS_FILE) holding every non-secret product preference.
+ * La forma + el saneador del REGISTRO DE AJUSTES DEL USUARIO (oleada de
+ * almacenamiento de ajustes, 2026-09-19): un registro versionado y con forma de
+ * DELTA en la frontera del directorio de datos (config.SETTINGS_FILE) que contiene
+ * todas las preferencias no secretas del producto.
  *
- * DELTA SEMANTICS (owner decision, 2026-09-19): the record stores EXPLICIT
- * user choices only — ABSENT keys resolve to the factory defaults compiled
- * into this module (FACTORY_SETTINGS). MODELS are the exception (owner,
- * 2026-09-22 — BYOK all the way down): no factory pins exist, so an absent
- * model key resolves to EMPTY and the per-need gates refuse honestly. A
- * software update that ADDS a knob (new
- * tool, new role, new appearance field) therefore needs no migration: old
- * records simply lack the new keys. `version` is a PRIVATE schema counter
- * for BREAKING shape changes only (field renamed / meaning changed) —
- * unrelated to the app release version. Migrations live in the adapter
- * (src/store/settings.ts), not here.
+ * SEMÁNTICA DE DELTAS (decisión del responsable, 2026-09-19): el registro guarda
+ * solo las elecciones EXPLÍCITAS del usuario — las claves AUSENTES se resuelven a
+ * los valores de fábrica compilados en este módulo (FACTORY_SETTINGS). Los MODELOS
+ * son la excepción (responsable, 2026-09-22 — BYOK hasta el fondo): no existen
+ * fijaciones de fábrica, así que una clave de modelo ausente se resuelve a VACÍO y
+ * las barreras por necesidad se niegan con honestidad. Por eso una actualización
+ * que AÑADE un mando (herramienta nueva, rol nuevo, campo de apariencia nuevo) no
+ * necesita migración: los registros antiguos simplemente no tienen las claves
+ * nuevas. `version` es un contador PRIVADO del esquema solo para cambios de forma
+ * INCOMPATIBLES (campo renombrado / significado cambiado) — no tiene nada que ver
+ * con la versión de la app. Las migraciones viven en el adaptador
+ * (src/store/settings.ts), no aquí.
  *
- * Sanitizer contract (mirrors render-settings.ts discipline): whatever
- * arrives from disk or the network passes through sanitizeUserSettings
- * before use — never trusted raw. Strict on known fields, PRESERVES
- * unknown keys verbatim (a newer record must never be destroyed by an
- * older app reading it). Invalid known values degrade gracefully:
- * out-of-range numbers CLAMP, wrong-typed/invalid fields DROP (resolve to
- * factory default), never throw. File-access policy is the exception:
- * malformed policy stays restricted/empty, never default-unrestricted.
+ * Contrato del saneador (con la misma disciplina que render-settings.ts): todo lo
+ * que llega del disco o de la red pasa por sanitizeUserSettings antes de usarse —
+ * nunca se confía en ello en bruto. Estricto con los campos conocidos, CONSERVA
+ * tal cual las claves desconocidas (un registro más nuevo nunca debe destruirlo una
+ * app más antigua al leerlo). Los valores conocidos no válidos se degradan con
+ * suavidad: los números fuera de rango se ACOTAN y los campos con tipo erróneo o
+ * no válidos se DESCARTAN (se resuelven al valor de fábrica); nunca lanza. La
+ * política de acceso a ficheros es la excepción: una política mal formada se queda
+ * restringida/vacía, nunca pasa al valor por defecto sin restricciones.
  *
- * Browser-safe: pure logic + types only, no node imports. The resolved
- * (fully concrete) view lives in settings-resolution.ts.
+ * Seguro para el navegador: solo lógica pura + tipos, sin importaciones de node.
+ * La vista resuelta (totalmente concreta) vive en settings-resolution.ts.
  */
 
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
@@ -39,60 +42,61 @@ import { isDictationLanguage, type DictationLanguage } from "./dictation.ts";
 import { parseFileAccessSettings, type FileAccessSettings } from "./file-access.ts";
 import { COLOR_OVERRIDE_KEYS, isThemeId, type AppearanceColorOverrides } from "./themes.ts";
 
-/** The schema version this code understands. Bump ONLY for breaking shape
- *  changes (a field renamed/meaning changed); pure additions never bump. */
+/** La versión del esquema que entiende este código. Súbela SOLO con cambios de forma
+ * incompatibles (un campo renombrado o con otro significado); las adiciones puras nunca la suben. */
 export const CURRENT_SETTINGS_VERSION = 1;
 
-/** The background-agent roles whose models the Agent settings expose.
- *  The conversation pair (prober/teacher) stays out — chat-controlled via
- *  the strong slot (one controller, the model picker). Tests pin the set. */
+/** Los roles de agente en segundo plano cuyos modelos exponen los ajustes del agente.
+ * El par de conversación (sondeador/profesor) queda fuera — lo controla el chat con
+ * la ranura fuerte (un solo control, el selector de modelo). Las pruebas fijan el conjunto. */
 export const BACKGROUND_MODEL_ROLES = [
 	"researcher",
 	"demoBuilder",
 	"visualMaker",
 	"extractor",
 	"auditor",
-	// Side questions (#16): listed here for the schema-level override only
-	// (agent.models.sideQuestion). The role itself runs in the foreground,
-	// despite the list's name.
+	// Preguntas laterales (#16): se listan aquí solo para la sustitución a nivel de esquema
+	// (agent.models.sideQuestion). El rol en sí se ejecuta en primer plano,
+	// pese al nombre de la lista.
 	"sideQuestion",
 ] as const;
 
 export type BackgroundModelRole = (typeof BACKGROUND_MODEL_ROLES)[number];
 
-/** A per-role model/thinking override — every field independent (absent
- *  field = that aspect falls back to config.ts's pin for the role). */
+/** Una sustitución de modelo/razonamiento por rol — cada campo independiente (un campo
+ * ausente = ese aspecto recurre a la fijación de config.ts para el rol). */
 export interface RoleModelOverride {
-	/** The model swap: both coordinates or neither (mirrors ChatSettings.model). */
+	/** El cambio de modelo: ambas coordenadas o ninguna (igual que ChatSettings.model). */
 	model?: { provider: string; id: string };
-	/** The thinking budget swap. */
+	/** El cambio de presupuesto de razonamiento. */
 	thinkingLevel?: ThinkingLevel;
 }
 
-// ─── Model slots (model slots wave, 2026-09-20) ──────────────────────────────
+// ─── Ranuras de modelo (oleada de ranuras de modelo, 2026-09-20) ─────────────────
 
-/** The capability tiers a user can pin models into (owner-settled mapping):
- *  strong = prober + teacher (also the per-session default-teacher
- *  starting point); cheap = researcher, demo-builder, extractor, auditor,
-; vision = visual-maker + pdf-reader. Resolution per role:
- *  ROLE OVERRIDE → slot → factory pin. */
+/** Los niveles de capacidad en los que un usuario puede fijar modelos
+ * (correspondencia fijada por el responsable): strong = sondeador + profesor
+ * (también el punto de partida del profesor por defecto de cada sesión); cheap =
+ * investigador, demo-builder, extractor, auditor; vision = visual-maker +
+ * pdf-reader. Resolución por rol: SUSTITUCIÓN DEL ROL → ranura → fijación de fábrica. */
 export const MODEL_SLOTS = ["strong", "cheap", "vision"] as const;
 export type ModelSlotName = (typeof MODEL_SLOTS)[number];
 
-/** The DEFAULT thinking level for UNSET levels only (owner, 2026-09-22):
- *  a slot/override/chat that names a model but no thinking level resolves
- *  to the FIRST entry in this order that the model supports
- *  (getSupportedThinkingLevels); a non-reasoning model resolves "off"
- *  regardless (pi reports exactly ["off"]). EXPLICITLY set levels never
- *  consult this list — they clamp nearest via pi's native
- *  clampThinkingLevel on model switches.
+/** El nivel de razonamiento POR DEFECTO, solo para los niveles SIN FIJAR (responsable,
+ * 2026-09-22): una ranura/sustitución/chat que nombra un modelo pero no un nivel de
+ * razonamiento se resuelve a la PRIMERA entrada de este orden que admita el modelo
+ * (getSupportedThinkingLevels); un modelo sin razonamiento se resuelve a "off" en
+ * cualquier caso (pi informa exactamente ["off"]). Los niveles fijados
+ * EXPLÍCITAMENTE nunca consultan esta lista — al cambiar de modelo se acotan al más
+ * cercano con el clampThinkingLevel nativo de pi.
  *
- *  Client surface (interlude, 2026-09-22): this constant lives in the CORE
- *  BARREL — the UI imports it to auto-populate a thinking level on a FRESH
- *  model pick (one source of truth, AUTH_KEYS precedent; per-model
- *  supportedLevels already reach the client via the catalog). The ordering
- *  has NO other client role: legacy unset records keep the runtime
- *  defaultThinkingLevel fallback at engine build. */
+ * Superficie del cliente (interludio, 2026-09-22): esta constante vive en el BARRIL
+ * DEL NÚCLEO — la interfaz la importa para rellenar automáticamente un nivel de
+ * razonamiento al elegir un modelo NUEVO (una sola fuente de verdad, con el
+ * precedente de AUTH_KEYS; los supportedLevels por modelo ya llegan al cliente a
+ * través del catálogo). El orden NO tiene otro papel en el cliente: los registros
+ * antiguos sin nivel conservan la alternativa defaultThinkingLevel en tiempo de
+ * ejecución al construir el motor. */
 export const DEFAULT_THINKING_ORDER = [
 	"medium",
 	"low",
@@ -102,19 +106,19 @@ export const DEFAULT_THINKING_ORDER = [
 	"max",
 ] as const satisfies readonly ThinkingLevel[];
 
-/** The machine-readable NOT-CONFIGURED refusal envelope (owner, 2026-09-22):
- *  every per-need gate — the turn gate in chat-handler, a job spawn, a
- *  notes import — refuses with this exact shape. HTTP callers get 503 +
- *  this JSON; in-band consumers (the job record's error field) carry the
- *  human `error` line. `missing` names the slot TIER(S) the refused
- *  action needs and found unset. */
+/** El sobre de rechazo NO-CONFIGURADO legible por máquina (responsable, 2026-09-22):
+ * toda barrera por necesidad — la barrera del turno en chat-handler, el lanzamiento
+ * de una tarea, una importación de apuntes — se niega con esta forma exacta. Los
+ * llamadores HTTP reciben 503 + este JSON; los consumidores internos (el campo de
+ * error del registro de la tarea) llevan la línea `error` legible. `missing` nombra
+ * los NIVELES de ranura que necesita la acción rechazada y que encontró sin fijar. */
 export const MODELS_NOT_CONFIGURED_CODE = "models_not_configured" as const;
 export interface ModelsNotConfigured {
-	/** Human-readable — safe to render as-is. */
+	/** Legible por humanos — se puede renderizar tal cual. */
 	error: string;
-	/** The machine discriminator the client switches on. */
+	/** El discriminador de máquina con el que decide el cliente. */
 	code: typeof MODELS_NOT_CONFIGURED_CODE;
-	/** Which slot tiers the refused action needs ("strong" | "cheap" | "vision"). */
+	/** Qué niveles de ranura necesita la acción rechazada ("strong" | "cheap" | "vision"). */
 	missing: ModelSlotName[];
 }
 export function modelsNotConfigured(missing: ModelSlotName[]): ModelsNotConfigured {
@@ -125,16 +129,17 @@ export function modelsNotConfigured(missing: ModelSlotName[]): ModelsNotConfigur
 	};
 }
 
-/** The refusal error text (BYOK, 2026-09-22): job/turn surfaces compose the
- *  record wording around this prefix; UI consumers detect refused work by
- *  it (info tone, not scary-error) — the envelope's home module owns the
- *  string so the writer and the matcher can never drift. */
+/** El texto de error del rechazo (BYOK, 2026-09-22): las superficies de tareas y
+ * turnos componen la redacción del registro alrededor de este prefijo; los
+ * consumidores de la interfaz detectan con él el trabajo rechazado (tono
+ * informativo, no de error alarmante) — el módulo de origen del sobre es dueño de la
+ * cadena, así el que escribe y el que compara nunca se desincronizan. */
 export function isModelsRefusal(error: string | undefined): boolean {
 	return !!error && error.startsWith(modelsNotConfigured([]).error);
 }
-/** The typed throw for in-process seams (extraction pipeline): callers
- *  catch it to skip honestly (trigger) or surface the 503 envelope
- *  (routes) instead of logging a failure. */
+/** La excepción tipada para las fronteras dentro del proceso (proceso de extracción):
+ * los llamadores la capturan para omitir con honestidad (disparador) o exponer el
+ * sobre 503 (rutas) en lugar de registrar un fallo. */
 export class ModelsNotConfiguredError extends Error {
 	readonly envelope: ModelsNotConfigured;
 	constructor(missing: ModelSlotName[]) {
@@ -144,26 +149,27 @@ export class ModelsNotConfiguredError extends Error {
 	}
 }
 
-/** The key-presence refusal (provider-key interlude, owner, 2026-09-25):
- * a PINNED model is not enough — its provider's key must be present, or
- * the action dies mid-stream masked to a generic error. Same envelope
- * family as modelsNotConfigured: HTTP callers get 503 + this JSON;
- * in-band consumers (the job record's error field) carry the human
- * `error` line. `provider` names whose key is gone; `slots` names the
- * slot tier(s) the refused action resolves to that provider. */
+/** El rechazo por presencia de clave (interludio de las claves de proveedor,
+ * responsable, 2026-09-25): no basta con un modelo FIJADO — la clave de su proveedor
+ * debe estar presente, o la acción muere a mitad de streaming disfrazada de error
+ * genérico. Misma familia de sobres que modelsNotConfigured: los llamadores HTTP
+ * reciben 503 + este JSON; los consumidores internos (el campo de error del registro
+ * de la tarea) llevan la línea `error` legible. `provider` nombra de quién falta la
+ * clave; `slots` nombra los niveles de ranura que la acción rechazada resuelve a ese
+ * proveedor. */
 export const PROVIDER_KEY_MISSING_CODE = "provider_key_missing" as const;
 export interface ProviderKeyMissing {
-	/** Human-readable — safe to render as-is. */
+	/** Legible por humanos — se puede renderizar tal cual. */
 	error: string;
-	/** The machine discriminator the client switches on. */
+	/** El discriminador de máquina con el que decide el cliente. */
 	code: typeof PROVIDER_KEY_MISSING_CODE;
-	/** The provider whose key is gone, e.g. "openrouter". */
+	/** El proveedor cuya clave falta, p. ej. "openrouter". */
 	provider: string;
-	/** Which slot tiers the refused action resolves to that provider. */
+	/** Qué niveles de ranura resuelve a ese proveedor la acción rechazada. */
 	slots: ModelSlotName[];
 }
-/** The refusal wording's invariant tail — the matcher below keys on it
- * (the label prefix varies by provider). */
+/** La cola invariante de la redacción del rechazo — el comparador de abajo se basa en
+ * ella (el prefijo de la etiqueta varía según el proveedor). */
 const PROVIDER_KEY_MISSING_TAIL = "key is set — add one in Settings → Keys";
 const CLAUDE_CODE_UNAVAILABLE = "Claude Code is unavailable. Enable and set it up in Settings → Providers.";
 export function providerKeyMissing(provider: string, slots: ModelSlotName[]): ProviderKeyMissing {
@@ -175,16 +181,16 @@ export function providerKeyMissing(provider: string, slots: ModelSlotName[]): Pr
 		slots,
 	};
 }
-/** The refusal error text (same discipline as isModelsRefusal): UI
- * consumers detect key-refused work by the wording (info tone, not
- * scary-error) — the envelope's home module owns the string so the
- * writer and the matcher can never drift. */
+/** El texto de error del rechazo (la misma disciplina que isModelsRefusal): los
+ * consumidores de la interfaz detectan por la redacción el trabajo rechazado por la
+ * clave (tono informativo, no de error alarmante) — el módulo de origen del sobre es
+ * dueño de la cadena, así el que escribe y el que compara nunca se desincronizan. */
 export function isProviderKeyRefusal(error: string | undefined): boolean {
 	return !!error && (error.endsWith(PROVIDER_KEY_MISSING_TAIL) || error === CLAUDE_CODE_UNAVAILABLE);
 }
-/** The typed throw for in-process seams (extraction pipeline) — the
- * ProviderKeyMissing sibling of ModelsNotConfiguredError: callers catch
- * it to skip honestly (trigger) or surface the 503 envelope (routes). */
+/** La excepción tipada para las fronteras dentro del proceso (proceso de extracción)
+ * — la hermana ProviderKeyMissing de ModelsNotConfiguredError: los llamadores la
+ * capturan para omitir con honestidad (disparador) o exponer el sobre 503 (rutas). */
 export class ProviderKeyMissingError extends Error {
 	readonly envelope: ProviderKeyMissing;
 	constructor(provider: string, slots: ModelSlotName[]) {
@@ -197,87 +203,90 @@ export class ProviderKeyMissingError extends Error {
 
 export const CACHE_RETENTIONS = ["none", "short", "long"] as const satisfies readonly CacheRetention[];
 
-/** Stored model-slot preferences. A slot is configured only when model is
- * present; sanitized level-only records can be retained but resolve as unset.
- * A thinking level alone does not select an implicit fallback model. */
+/** Preferencias guardadas de las ranuras de modelo. Una ranura solo está configurada cuando
+ * hay model; los registros depurados que solo tienen nivel pueden conservarse, pero se
+ * resuelven como sin definir. Un nivel de razonamiento por sí solo no elige un modelo de
+ * recurso implícito. */
 export interface ModelSlot {
-	/** Native Pi preference. Absent leaves Pi/environment behavior unchanged. */
+	/** Preferencia nativa de Pi. Si no está, el comportamiento de Pi y del entorno no cambia. */
 	cacheRetention?: CacheRetention;
-	/** Configured model coordinates; provider and id must be supplied together. */
+	/** Coordenadas del modelo configurado; provider e id deben indicarse juntos. */
 	model?: { provider: string; id: string };
-	/** Optional thinking level used with this slot's configured model. */
+	/** Nivel de razonamiento opcional que se usa con el modelo configurado de esta ranura. */
 	thinkingLevel?: ThinkingLevel;
 }
 
-/** The `models` settings section (owner decision 2026-09-20: a dedicated
- *  section — slots are engine-level choices, not one session's). All slots
- *  optional: an absent slot means every role of its tier runs whatever the
- *  deeper tiers of the chain resolve to (per-role override → factory pin). */
+/** La sección de ajustes `models` (decisión del responsable 2026-09-20: una sección
+ * propia — las ranuras son elecciones a nivel de motor, no de una sesión). Todas las
+ * ranuras son opcionales: una ranura ausente significa que todos los roles de su
+ * nivel usan lo que resuelvan los niveles más profundos de la cadena (sustitución
+ * por rol → fijación de fábrica). */
 export interface ModelsSettings {
 	strong?: ModelSlot;
 	cheap?: ModelSlot;
 	vision?: ModelSlot;
 }
 
-// ─── Custom OpenAI-compatible endpoint ───────────────────────────────────────
-// ONE user-configured OpenAI-compatible server (vLLM / Ollama / a proxy). It is
-// one more provider in the Keys list, keyed by a base URL instead of an env var.
-// NON-SECRET config only (base URL + discovered model ids); the API key is a
-// secret in the auth store, never here. Registered into pi-ai as a normal
-// provider (server/custom-provider.ts).
+// ─── Endpoint personalizado compatible con OpenAI ────────────────────────────────
+// UN servidor compatible con OpenAI configurado por el usuario (vLLM / Ollama / un proxy). Es
+// un proveedor más en la lista de claves, identificado por una URL base en lugar de una variable de entorno.
+// Solo configuración NO SECRETA (URL base + ids de modelo descubiertos); la clave de API es un
+// secreto del almacén de autenticación, nunca está aquí. Se registra en pi-ai como un
+// proveedor normal (server/custom-provider.ts).
 
-/** Budget fallbacks only; custom endpoint pricing is unknown. */
+/** Solo valores alternativos de presupuesto; el precio del endpoint personalizado es desconocido. */
 export const CUSTOM_MODEL_DEFAULT_CONTEXT_WINDOW = 8192;
 export const CUSTOM_MODEL_DEFAULT_MAX_TOKENS = 4096;
 
-/** Custom budgets accept every positive integer, including small output caps. */
+/** Los presupuestos personalizados aceptan cualquier entero positivo, incluidos topes de salida pequeños. */
 export const CUSTOM_MODEL_PIN_FLOOR = 1;
 
-/** One discovered custom model. `image`/`reasoning`/`context`/`maxTokens` are
- *  detected from the endpoint's /models metadata; anything it omits falls back
- *  to a default. */
+/** Un modelo personalizado descubierto. `image`/`reasoning`/`context`/`maxTokens` se
+ * detectan a partir de los metadatos /models del endpoint; lo que este omita toma un
+ * valor por defecto. */
 export interface CustomModel {
 	id: string;
-	/** Accepts image input (Vision-capable). Default false (text-only). */
+	/** Acepta entrada de imagen (capaz de visión). Por defecto false (solo texto). */
 	image?: boolean;
-	/** Accepts a reasoning effort (thinking). Default false → the only
-	 *  thinking level is "off", exactly like a non-reasoning built-in. */
+	/** Acepta un esfuerzo de razonamiento (thinking). Por defecto false → el único
+	 * nivel de razonamiento es "off", exactamente como un modelo integrado sin razonamiento. */
 	reasoning?: boolean;
-	/** Context window in tokens, from the endpoint. Absent → the default. */
+	/** Ventana de contexto en tokens, según el endpoint. Ausente → el valor por defecto. */
 	context?: number;
-	/** Max output tokens, from the endpoint. Absent → the default. */
+	/** Máximo de tokens de salida, según el endpoint. Ausente → el valor por defecto. */
 	maxTokens?: number;
 }
 
-/** A user pin for one custom model: it beats what the endpoint publishes
- *  (owner ruling — explicit user intent wins; a local server's number is
- *  often wrong or absent). Absent field = no pin. `reasoning` is tri-state:
- *  true declares reasoning support, false removes that declaration, absent
- *  uses discovery. This is NOT a backend execution/disable switch. */
+/** Una fijación del usuario para un modelo personalizado: prevalece sobre lo que
+ * publica el endpoint (decisión del responsable — gana la intención explícita del
+ * usuario; el número de un servidor local suele ser erróneo o faltar). Campo ausente
+ * = sin fijación. `reasoning` tiene tres estados: true declara que admite
+ * razonamiento, false retira esa declaración y ausente usa el descubrimiento. NO es
+ * un interruptor de ejecución ni de desactivación en el backend. */
 export interface CustomModelOverride {
 	context?: number;
 	maxTokens?: number;
 	reasoning?: boolean;
 }
 
-/** The single custom endpoint's stored config (delta section). */
+/** La configuración guardada del único endpoint personalizado (sección de deltas). */
 export interface CustomProviderSettings {
-	/** Server-owned random authorization nonce; never a credential hash. */
+	/** Nonce aleatorio de autorización propiedad del servidor; nunca un hash de credenciales. */
 	credentialBindingId?: string;
-	/** Explicit authentication intent; never inferred from a saved key. */
+	/** Intención explícita de autenticación; nunca se deduce de una clave guardada. */
 	authMode?: "keyless" | "apiKey";
-	/** Normalized base URL (see normalizeBaseUrl). Empty/absent = not configured. */
+	/** URL base normalizada (ver normalizeBaseUrl). Vacía/ausente = sin configurar. */
 	baseUrl?: string;
-	/** Models this endpoint offers: advertised ids merged with the typed
-	 *  manual ones (rewritten on connect; a failed probe keeps the same
-	 *  endpoint's last snapshot). */
+	/** Modelos que ofrece este endpoint: los ids anunciados fusionados con los
+	 * introducidos a mano (se reescriben al conectar; un sondeo fallido conserva la
+	 * última instantánea del mismo endpoint). */
 	models?: CustomModel[];
-	/** User pins keyed by model id — pure user intent, never rewritten by
-	 *  discovery, pruned on connect to the ids that connect offers. */
+	/** Fijaciones del usuario indexadas por id de modelo — pura intención del usuario,
+	 * nunca las reescribe el descubrimiento; al conectar se podan a los ids que ofrece la conexión. */
 	overrides?: Record<string, CustomModelOverride>;
-	/** Model ids the user typed by hand, for an endpoint that publishes no
-	 *  usable /models list. Kept apart from the snapshot so a reconnect can
-	 *  re-merge them after discovery refreshes. */
+	/** Ids de modelo que el usuario escribió a mano, para un endpoint que no publica una
+	 * lista /models utilizable. Se guardan aparte de la instantánea para que una
+	 * reconexión pueda volver a fusionarlos tras refrescarse el descubrimiento. */
 	manualModels?: string[];
 }
 
@@ -287,8 +296,8 @@ export function parseModelIds(raw: unknown): string[] {
 	return [...new Set(ids)];
 }
 
-/** Canonical base-URL form (single source): trims, requires absolute http(s),
- *  drops trailing slashes. Returns "" for anything invalid ("not configured"). */
+/** Forma canónica de la URL base (fuente única): recorta, exige http(s) absoluto y
+ * quita las barras finales. Devuelve "" para cualquier cosa no válida ("sin configurar"). */
 export function normalizeBaseUrl(raw: string): string {
 	const value = raw.trim();
 	if (!value) return "";
@@ -303,26 +312,26 @@ export function normalizeBaseUrl(raw: string): string {
 	return url.toString().replace(/\/+$/, "");
 }
 
-/** THE single source of "is the custom endpoint usable?": a non-empty base URL.
- *  Key presence is deliberately excluded (keyless local servers are allowed). */
+/** LA fuente única de "¿se puede usar el endpoint personalizado?": una URL base no vacía.
+ * La presencia de la clave se excluye deliberadamente (se permiten servidores locales sin clave). */
 export function customProviderUsable(
 	cp: CustomProviderSettings | undefined,
 ): cp is CustomProviderSettings & { baseUrl: string } {
 	return Boolean(cp?.baseUrl);
 }
 
-/** First-run gate (model-slots wave, owner 2026-09-20): the app refuses
- *  to start chats until the user has actively picked all three slots —
- *  there ARE no defaults for 33 providers; a configured app is one whose
- *  models section carries a model in every slot. Thinking levels stay
- *  optional (absent = the resolved tier's budget). */
+/** Barrera del primer arranque (oleada de ranuras de modelo, responsable 2026-09-20):
+ * la app se niega a iniciar chats hasta que el usuario haya elegido activamente las
+ * tres ranuras — NO HAY valores por defecto para 33 proveedores; una app configurada
+ * es aquella cuya sección de modelos tiene un modelo en cada ranura. Los niveles de
+ * razonamiento siguen siendo opcionales (ausente = el presupuesto del nivel resuelto). */
 export function slotsConfigured(models: ModelsSettings | undefined): boolean {
 	return Boolean(models?.strong?.model && models?.cheap?.model && models?.vision?.model);
 }
 
-/** Which slot a role draws from (model slots wave, 2026-09-20). Includes the
- *  conversation pair and pdfReader (not BackgroundModelRoles — the slot
- *  tier spans every role; only background roles surface per-role overrides). */
+/** De qué ranura tira un rol (oleada de ranuras de modelo, 2026-09-20). Incluye el par
+ * de conversación y pdfReader (no BackgroundModelRoles — el nivel de ranura abarca
+ * todos los roles; solo los roles en segundo plano exponen sustituciones por rol). */
 export const ROLE_SLOT: Readonly<Record<ModelRole, ModelSlotName>> = {
 	prober: "strong",
 	teacher: "strong",
@@ -332,174 +341,182 @@ export const ROLE_SLOT: Readonly<Record<ModelRole, ModelSlotName>> = {
 	auditor: "cheap",
 	visualMaker: "vision",
 	pdfReader: "vision",
-	sideQuestion: "strong", // the conversation chain, like prober/teacher (resolveSideQuestionSpec)
+	sideQuestion: "strong", // la cadena de conversación, como el sondeador/profesor (resolveSideQuestionSpec)
 };
 
-/** General settings — app-level behavior. Version DISPLAY and plans login
- *  live outside the record (package.json / auth.json) by owner decision. */
+/** Ajustes generales — comportamiento a nivel de app. La VISUALIZACIÓN de la versión y
+ * el inicio de sesión de los planes viven fuera del registro (package.json /
+ * auth.json) por decisión del responsable. */
 export interface GeneralSettings {
-	/** Automatic startup/24h update checks (default ON). Manual checks bypass this. */
+	/** Comprobaciones automáticas de actualizaciones al arrancar y cada 24 h (por defecto ACTIVADAS). Las manuales no dependen de esto. */
 	autoUpdate?: boolean;
 }
 
-/** One app-wide dictation preference, shared by every composer. */
+/** Una única preferencia de dictado para toda la app, compartida por todos los compositores. */
 export interface DictationSettings {
 	language?: DictationLanguage;
 }
 
-/** Agent settings — everything about the non-conversation machinery. */
+/** Ajustes del agente — todo lo relativo a la maquinaria que no es de conversación. */
 export interface AgentSettings {
-	/** Maximum simultaneous background-worker model requests (default 8).
-	 *  Direct conversations bypass this limit. Positive safe integers only:
-	 *  no arbitrary ceiling, rounding, or clamping. */
+	/** Máximo de peticiones simultáneas al modelo de los workers en segundo plano (por
+	 * defecto 8). Las conversaciones directas no dependen de este límite. Solo enteros
+	 * seguros positivos: sin techo arbitrario, redondeo ni acotación. */
 	workerRequestConcurrency?: number;
-	/** Background-role model/thinking overrides (absent role = config pin). */
+	/** Sustituciones de modelo/razonamiento de los roles en segundo plano (rol ausente = fijación de config). */
 	models?: Partial<Record<BackgroundModelRole, RoleModelOverride>>;
-	/** Tool toggles keyed by tool id (absent key = enabled). User-level
-	 *  only — no per-chat override (owner decision 2026-09-19). */
+	/** Interruptores de herramientas indexados por id de herramienta (clave ausente =
+	 * activada). Solo a nivel de usuario — sin sustitución por chat (decisión del responsable 2026-09-19). */
 	tools?: Record<string, boolean>;
-	/** Search-engine preference (search wave, 2026-09-20). OPTIONAL by
-	 *  owner decision: setting a key auto-activates its engine — the user
-	 *  never chooses an engine to make search work. An explicit choice only
-	 *  pins the preference (e.g. when BOTH keys are present); the chosen
-	 *  engine must still have its key, else search is honestly unavailable.
-	 *  Absent + no key = unavailable (no silent fallback, no default). */
+	/** Preferencia de motor de búsqueda (oleada de búsqueda, 2026-09-20). OPCIONAL por
+	 * decisión del responsable: poner una clave activa su motor automáticamente — el
+	 * usuario nunca elige un motor para que funcione la búsqueda. Una elección explícita
+	 * solo fija la preferencia (p. ej. cuando están AMBAS claves); el motor elegido debe
+	 * tener igualmente su clave, o la búsqueda no estará disponible, y se dirá con
+	 * honestidad. Ausente + sin clave = no disponible (sin alternativa silenciosa ni valor por defecto). */
 	search?: { engine?: SearchEngineId };
-	/** Prober graph tools (wave 7, owner ruling 2026-09-23): read-only
-	 *  knowledge-graph views for the prober agent — a session list +
-	 *  per-session propositions with understanding levels. Its SUBJECT
-	 *  is the graph but its MECHANISM is agent capability (tool
-	 *  registration), so it lives here in its OWN subsection, not in the
-	 *  tool-toggles map. Absent = enabled (the toggle discipline); the
-	 *  effective gate composes graph.enabled AND this switch. */
+	/** Herramientas del grafo del sondeador (oleada 7, decisión del responsable
+	 * 2026-09-23): vistas de solo lectura del grafo de conocimiento para el agente
+	 * sondeador — una lista de sesiones + las proposiciones de cada sesión con sus
+	 * niveles de comprensión. Su TEMA es el grafo, pero su MECANISMO es una capacidad del
+	 * agente (registro de herramientas), así que vive aquí, en su PROPIA subsección, y no
+	 * en el mapa de interruptores de herramientas. Ausente = activado (la disciplina de
+	 * los interruptores); la barrera efectiva combina graph.enabled Y este interruptor. */
 	graphTools?: { enabled?: boolean };
-	/** System-prompt override SWITCHES keyed by segment path (absent key =
-	 *  off). Switch-on requires the override file to exist (enforced by the
-	 *  route); the switch is explicit so users keep a file on disk but run
-	 *  the source default to compare (owner decision 2026-09-19). */
+	/** INTERRUPTORES de sustitución del prompt del sistema indexados por ruta de segmento
+	 * (clave ausente = desactivado). Encenderlo exige que exista el fichero de
+	 * sustitución (lo hace cumplir la ruta); el interruptor es explícito para que los
+	 * usuarios puedan conservar un fichero en disco y usar el valor por defecto del
+	 * código fuente para comparar (decisión del responsable 2026-09-19). */
 	prompts?: Record<string, boolean>;
-	/** Optional learner-source boundary, OFF when absent. ON with no folders
-	 *  refuses all learner-source reads. Paths are absolute or ~/ anchored;
-	 *  the current policy is read per new tool call/job start. Existing
-	 *  sensitive-location/credential denials always win, not a whole-data ban. */
+	/** Límite opcional de las fuentes del alumno, DESACTIVADO si falta. Activado sin
+	 * carpetas rechaza todas las lecturas de fuentes del alumno. Las rutas son absolutas
+	 * o empiezan por ~/; la política vigente se lee en cada nueva llamada a herramienta o
+	 * inicio de tarea. Las denegaciones existentes de ubicaciones sensibles y
+	 * credenciales siempre ganan; no es una prohibición de todos los datos. */
 	fileAccess?: FileAccessSettings;
 }
 
-/** Markdown-rendering knobs — the bare-bones set (owner decision). */
+/** Mandos del renderizado de Markdown — el conjunto mínimo (decisión del responsable). */
 export interface MdRenderingSettings {
-	/** Heading font weight (100–900, default 900). CSS resolves the nearest
-	 *  available weight of the chosen font — no font introspection needed. */
+	/** Grosor de la fuente de los encabezados (100–900, por defecto 900). CSS resuelve el
+	 * grosor disponible más cercano de la fuente elegida — no hace falta inspeccionar la fuente. */
 	headingWeight?: number;
-	/** Color for **bold** spans (default #ffffff). */
+	/** Color de los tramos en **negrita** (por defecto #ffffff). */
 	boldColor?: string | null;
-	/** Color for *italic* spans (default #ffffff). */
+	/** Color de los tramos en *cursiva* (por defecto #ffffff). */
 	italicColor?: string | null;
 }
 
-/** Appearance settings — theme, color overrides, type, markdown emphasis. */
+/** Ajustes de apariencia — tema, colores sustituidos, tipografía, énfasis de markdown. */
 export interface AppearanceSettings {
-	/** The active theme id (core/themes.ts presets or a custom file under
-	 *  THEMES_DIR). Absent or gone = "default". The theme declares the
-	 *  mode (dark/light) — the old `mode`/`lightBackground` keys are no
-	 *  longer read (theme wave, 2026-11-04). */
+	/** El id del tema activo (preajustes de core/themes.ts o un fichero personalizado en
+	 * THEMES_DIR). Ausente o desaparecido = "default". El tema declara el modo
+	 * (oscuro/claro) — las antiguas claves `mode`/`lightBackground` ya no se leen
+	 * (oleada de temas, 2026-11-04). */
 	theme?: string;
-	/** The background override (null = the theme's). Kept at its pre-theme
-	 *  key so existing records keep their color. */
+	/** El color de fondo sustituido (null = el del tema). Se mantiene en su clave
+	 * anterior a los temas para que los registros existentes conserven su color. */
 	background?: string | null;
-	/** Per-color overrides on top of the theme (null/absent = the theme's).
-	 *  Preserved across theme switches. Bold/italic live in mdRendering. */
+	/** Sustituciones por color sobre el tema (null/ausente = el del tema). Se conservan
+	 * al cambiar de tema. Negrita y cursiva viven en mdRendering. */
 	colors?: AppearanceColorOverrides;
-	/** The main reading font (everything that is Source Sans 3 today), by
-	 *  name — user-chosen from installed fonts. null = Source Sans 3. */
+	/** La fuente principal de lectura (todo lo que hoy es Source Sans 3), por nombre —
+	 * elegida por el usuario entre las fuentes instaladas. null = Source Sans 3. */
 	fontFamily?: string | null;
-	/** Reading font size in px (12–24, default 16). Headings render as
-	 *  multiples of this, so one knob scales the document coherently. */
+	/** Tamaño de la fuente de lectura en px (12–24, por defecto 16). Los encabezados se
+	 * renderizan como múltiplos de él, así que un solo mando escala el documento de forma coherente. */
 	proseFontSize?: number;
-	/** Permit normal font ligatures in code (including inline code and code editors). Default false; prose is unaffected. */
+	/** Permite las ligaduras normales de la fuente en el código (incluidos el código en línea y los editores de código). Por defecto false; la prosa no se ve afectada. */
 	codeLigatures?: boolean;
-	/** Session names in CMU Serif (default true — today's look). */
+	/** Nombres de sesión en CMU Serif (por defecto true — el aspecto actual). */
 	sessionNameSerif?: boolean;
 	mdRendering?: MdRenderingSettings;
 }
 
-/** Knowledge-graph settings — a strict dependency ladder (owner decision
- *  2026-09-19): graph → embedding → clustering → labeling, each rung only
- *  meaningful when its parent is on (the UI grays dependents out; stored
- *  values persist but resolve inert). All default true. */
+/** Ajustes del grafo de conocimiento — una escalera estricta de dependencias
+ * (decisión del responsable 2026-09-19): grafo → embeddings → agrupación →
+ * etiquetado, cada peldaño solo con sentido cuando su padre está activado (la
+ * interfaz atenúa los dependientes; los valores guardados persisten pero se
+ * resuelven inertes). Todos true por defecto. */
 export interface GraphSettings {
-	/** MASTER (and, since wave 7, ONLY): off = no extraction, no auditor.
-	 *  The wave-7 collapse (owner ruling 2026-09-23) deleted the three
-	 *  subordinate rungs — embedding/clustering/labeling — and the BYOK
-	 *  embeddingModel: clustering is the free birth-session partition
-	 *  derived on read (core/session-clusters.ts), labels ARE session
-	 *  names, and the prober graph tools read the ledgers directly — there
-	 *  is nothing left to configure. Data stays stored either way. */
+	/** GENERAL (y, desde la oleada 7, el ÚNICO): desactivado = sin extracción ni auditor.
+	 * El colapso de la oleada 7 (decisión del responsable 2026-09-23) eliminó los tres
+	 * peldaños subordinados — embeddings/agrupación/etiquetado — y el embeddingModel
+	 * BYOK: la agrupación es la partición gratuita por sesión de nacimiento que se deriva
+	 * al leer (core/session-clusters.ts), las etiquetas SON los nombres de sesión y las
+	 * herramientas del grafo del sondeador leen los registros directamente — ya no queda
+	 * nada que configurar. Los datos se siguen guardando en cualquier caso. */
 	enabled?: boolean;
-	/** GRAPH RENDERING (owner, 2026-10-06 — the release graph-controls
-	 *  round): gates ONLY the home's main view. Off = the home shows the
-	 *  chains view instead of the canvas; the ledgers, the extraction
-	 *  pipeline, and every write path are untouched — this is a display
-	 *  switch, not a data switch (the extraction master above is the
-	 *  data switch). Default on. */
+	/** RENDERIZADO DEL GRAFO (responsable, 2026-10-06 — la ronda de controles del grafo de
+	 * la versión): decide SOLO la vista principal del inicio. Desactivado = el inicio
+	 * muestra la vista de cadenas en lugar del lienzo; los registros, el proceso de
+	 * extracción y todas las rutas de escritura no se tocan — es un interruptor de
+	 * visualización, no de datos (el interruptor general de extracción de arriba es el
+	 * de datos). Activado por defecto. */
 	rendering?: boolean;
-	/** The chunk budget (extraction-UX redesign, owner 2026-09-24): the
-	 *  transcript-token share of the extractor's context — a run fires
-	 *  when a chat's UNCOVERED tokens reach it, and the run batches the
-	 *  oldest uncovered messages into runs of ≤ this many tokens. It
-	 *  bounds both cost and chunk size (the extractor prompt also
-	 *  carries the whole graph + instructions, so a smaller budget means
-	 *  more, smaller runs — each paying that fixed overhead).
+	/** El presupuesto de fragmentos (rediseño de la UX de extracción, responsable
+	 * 2026-09-24): la parte de tokens de transcripción del contexto del extractor — una
+	 * ejecución se dispara cuando los tokens NO CUBIERTOS de un chat llegan a ella, y la
+	 * ejecución agrupa los mensajes no cubiertos más antiguos en tandas de ≤ este número
+	 * de tokens. Limita tanto el coste como el tamaño de los fragmentos (el prompt del
+	 * extractor también lleva el grafo entero + las instrucciones, así que un
+	 * presupuesto menor significa más ejecuciones y más pequeñas — y cada una paga ese
+	 * coste fijo).
 	 *
-	 *  FACTORY DEFAULT 4096 (owner, 2026-10-13: halved back from the
-	 *  digest-era 8192 — the labeled passages + message anchors made
-	 *  smaller batches worth their overhead again; the pre-setting
-	 *  constant was 4096, vision-extraction-coverage.md, 2026-09-15).
-	 *  Only the FACTORY moves: an explicit user value always wins.
+	 * VALOR DE FÁBRICA 4096 (responsable, 2026-10-13: se volvió a reducir a la mitad desde
+	 * los 8192 de la era de los resúmenes — los pasajes etiquetados + las anclas de
+	 * mensaje hicieron que los lotes más pequeños volvieran a compensar su coste fijo; la
+	 * constante anterior al ajuste era 4096, vision-extraction-coverage.md, 2026-09-15).
+	 * Solo se mueve el valor de FÁBRICA: un valor explícito del usuario siempre gana.
 	 *
-	 *  FLOOR 500 (EXTRACTION_CHUNK_TOKENS_FLOOR, the implementer's call
-	 *  per the owner's dispatch): every run pays the graph-carrying
-	 *  prompt overhead out of the write channel's money — a budget below
-	 *  ~500 tokens would fire penny-batches that cost more per extracted
-	 *  token than the content is worth, so the sanitizer clamps and the
-	 *  PUT rejects below it. NO CEILING on purpose: a large budget just
-	 *  delays extraction — the user's stated cost/thoroughness tradeoff,
-	 *  not a misconfiguration to police. */
+	 * SUELO 500 (EXTRACTION_CHUNK_TOKENS_FLOOR, decisión del implementador según el
+	 * encargo del responsable): cada ejecución paga el coste fijo del prompt que lleva el
+	 * grafo con el dinero del canal de escritura — un presupuesto por debajo de ~500
+	 * tokens dispararía lotes de calderilla que cuestan más por token extraído de lo que
+	 * vale el contenido, así que el saneador acota y el PUT rechaza por debajo. SIN TECHO
+	 * a propósito: un presupuesto grande solo retrasa la extracción — el equilibrio entre
+	 * coste y exhaustividad que ha elegido el usuario, no una mala configuración que
+	 * vigilar. */
 	extractionChunkTokens?: number;
 }
 
 /**
- * COMPACTION (owner round 14, 2026-10-05): the context-fitting mechanic's
- * user-facing controls: the trigger threshold and opt-in reasoning accounting.
- * The effective trigger is min(this, model contextWindow − 16k reserve)
- * (owner ruling: on big models the setting rules; on small ones the
- * window rules before the provider overflows).
+ * COMPACTACIÓN (ronda 14 del responsable, 2026-10-05): los controles de cara al
+ * usuario de la mecánica de ajuste al contexto: el umbral de disparo y la
+ * contabilidad opcional del razonamiento. El disparo efectivo es min(esto,
+ * contextWindow del modelo − reserva de 16k) (decisión del responsable: en los
+ * modelos grandes manda el ajuste; en los pequeños manda la ventana antes de que el
+ * proveedor se desborde).
  *
- * FACTORY DEFAULT 150_000 (owner ruling).
+ * VALOR DE FÁBRICA 150_000 (decisión del responsable).
  *
- * FLOOR 32_000 (implementer's call, the chunk-budget discipline): below
- * the kept tail (20k) + a summary the chat would re-compact every turn —
- * a burn, not a preference. NO CEILING: a huge threshold just means "fit
- * everything" until the window rule binds.
+ * SUELO 32_000 (decisión del implementador, con la disciplina del presupuesto de
+ * fragmentos): por debajo de la cola conservada (20k) + un resumen, el chat se
+ * volvería a compactar en cada turno — un despilfarro, no una preferencia. SIN TECHO:
+ * un umbral enorme solo significa "que quepa todo" hasta que mande la regla de la
+ * ventana.
  */
 export interface CompactionSettings {
 	thresholdTokens?: number;
-	/** Use saved output usage for replayable same-model Responses reasoning.
-	 *  Absent = false: preserve the original readable-content heuristic. */
+	/** Usa el uso de salida guardado para el razonamiento reproducible de Responses del
+	 * mismo modelo. Ausente = false: conserva la heurística original del contenido legible. */
 	includeReasoning?: boolean;
 }
 
-/** THE record. Every section optional (delta); unknown top-level keys are
- *  preserved verbatim by the sanitizer (forward-compat with newer records). */
+/** EL registro. Todas las secciones son opcionales (deltas); el saneador conserva tal
+ * cual las claves de nivel superior desconocidas (compatibilidad hacia delante con
+ * registros más nuevos). */
 export interface UserSettings {
 	version: number;
 	general?: GeneralSettings;
 	dictation?: DictationSettings;
-	/** Explicit app-wide opt-in; absent/invalid is off, including older records. */
+	/** Activación explícita para toda la app; ausente o no válido es desactivado, también en registros antiguos. */
 	claudeCode?: { enabled?: boolean };
 	agent?: AgentSettings;
-	/** The strong/cheap/vision model slots (model slots wave, 2026-09-20). */
+	/** Las ranuras de modelo fuerte/barata/visión (oleada de ranuras de modelo, 2026-09-20). */
 	models?: ModelsSettings;
-	/** The custom OpenAI-compatible endpoint (non-secret config only). */
+	/** El endpoint personalizado compatible con OpenAI (solo configuración no secreta). */
 	customProvider?: CustomProviderSettings;
 	appearance?: AppearanceSettings;
 	graph?: GraphSettings;
@@ -507,11 +524,12 @@ export interface UserSettings {
 	[key: string]: unknown;
 }
 
-/** Factory defaults for everything core can pin (owner decisions
- *  2026-09-19). NO factory models exist anywhere (owner, 2026-09-22 — BYOK
- *  all the way down): the chat section and every slot stay empty until the
- *  user picks, and the per-need gates refuse honestly; tools default on;
- *  prompts default off — hence their absence here. */
+/** Valores de fábrica de todo lo que el núcleo puede fijar (decisiones del responsable
+ * 2026-09-19). NO existen modelos de fábrica en ninguna parte (responsable, 2026-09-22
+ * — BYOK hasta el fondo): la sección de chat y todas las ranuras quedan vacías hasta
+ * que el usuario elige, y las barreras por necesidad se niegan con honestidad; las
+ * herramientas están activadas por defecto; los prompts, desactivados — de ahí que
+ * falten aquí. */
 export interface FactorySettings {
 	version: number;
 	agent: Required<Pick<AgentSettings, "workerRequestConcurrency">>;
@@ -542,8 +560,8 @@ export const FACTORY_SETTINGS: FactorySettings = {
 	dictation: { language: "en" },
 	appearance: {
 		theme: "default",
-		background: null, // null = the active theme's background
-		colors: {}, // no overrides: every color is the theme's
+		background: null, // null = el fondo del tema activo
+		colors: {}, // sin sustituciones: todos los colores son los del tema
 		fontFamily: null, // Source Sans 3
 		proseFontSize: 16,
 		codeLigatures: false,
@@ -554,25 +572,25 @@ export const FACTORY_SETTINGS: FactorySettings = {
 	compaction: { thresholdTokens: 150_000, includeReasoning: false },
 };
 
-/** The chunk budget's validated floor (GraphSettings.extractionChunkTokens
- *  — see its doc for the penny-batch rationale; the settings PUT names this
- *  in its rejection, the sanitizer clamps to it). */
+/** El suelo validado del presupuesto de fragmentos (GraphSettings.extractionChunkTokens
+ * — ver su documentación para el motivo de los lotes de calderilla; el PUT de ajustes
+ * lo nombra en su rechazo y el saneador acota a él). */
 export const EXTRACTION_CHUNK_TOKENS_FLOOR = 500;
 
-// ─── Sanitizer ─────────────────────────────────────────────────────────────
+// ─── Saneador ───────────────────────────────────────────────────────────────
 
 const PROSE_FONT_MIN = 12;
 const PROSE_FONT_MAX = 24;
 
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
-/** #rgb / #rrggbb (case-insensitive) — the only color format we accept. */
+/** #rgb / #rrggbb (sin distinguir mayúsculas) — el único formato de color que aceptamos. */
 export function isHexColor(value: string): boolean {
 	return /^#[0-9a-fA-F]{3}$/.test(value) || /^#[0-9a-fA-F]{6}$/.test(value);
 }
 
-/** Coerce an arbitrary hex-or-null field: null and valid hex pass through,
- *  anything else becomes null (the factory/per-mode default). */
+/** Convierte un campo arbitrario hexadecimal-o-null: null y los hexadecimales válidos
+ * pasan tal cual, cualquier otra cosa se convierte en null (el valor de fábrica / por modo). */
 function sanitizeHexOrNull(value: unknown): string | null {
 	if (value === null) return null;
 	if (typeof value === "string" && isHexColor(value)) return value;
@@ -621,9 +639,9 @@ function sanitizeRoleOverride(raw: unknown): RoleModelOverride | undefined {
 	return Object.keys(out).length ? out : undefined;
 }
 
-/** The models section (model slots wave, 2026-09-20): each slot keeps
- *  only well-formed parts — the same shape rules as a role override, so a
- *  stale client can't park junk in a slot. */
+/** La sección de modelos (oleada de ranuras de modelo, 2026-09-20): cada ranura
+ * conserva solo las partes bien formadas — las mismas reglas de forma que una
+ * sustitución de rol, para que un cliente desactualizado no pueda aparcar basura en una ranura. */
 function sanitizeModels(raw: Record<string, unknown>): ModelsSettings {
 	const out: ModelsSettings = {};
 	for (const slot of MODEL_SLOTS) {
@@ -638,12 +656,12 @@ function sanitizeModels(raw: Record<string, unknown>): ModelsSettings {
 	return out;
 }
 
-/** A positive integer, or undefined — keeps only meaningful token counts. */
+/** Un entero positivo, o undefined — conserva solo los recuentos de tokens con sentido. */
 function positiveInt(value: unknown): number | undefined {
 	return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
 }
 
-/** One pin, clamped up to the floor (clamp-never-reject on read). */
+/** Una fijación, acotada hacia arriba hasta el suelo (acotar, nunca rechazar, al leer). */
 function sanitizeCustomModelOverride(raw: unknown): CustomModelOverride | undefined {
 	if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return undefined;
 	const rec = raw as Record<string, unknown>;
@@ -656,9 +674,9 @@ function sanitizeCustomModelOverride(raw: unknown): CustomModelOverride | undefi
 	return Object.keys(out).length ? out : undefined;
 }
 
-/** THE pins map + THE prune law: well-formed entries only, ids trimmed, and
- *  when `liveIds` is given every entry for a model the endpoint no longer
- *  advertises drops. POST passes the discovered ids, PATCH the stored list. */
+/** EL mapa de fijaciones + LA ley de poda: solo entradas bien formadas, ids recortados
+ * y, cuando se da `liveIds`, se descarta toda entrada de un modelo que el endpoint ya
+ * no anuncia. POST pasa los ids descubiertos; PATCH, la lista guardada. */
 export function sanitizeCustomModelOverrides(
 	raw: unknown,
 	liveIds?: Iterable<string>,
@@ -675,9 +693,9 @@ export function sanitizeCustomModelOverrides(
 	return out;
 }
 
-/** The customProvider section: normalized base URL (invalid → dropped) and
- *  discovered models (ids trimmed, dupes/empties dropped; image kept only when
- *  true; token counts only as positive ints). Clamp-never-reject. */
+/** La sección customProvider: URL base normalizada (no válida → se descarta) y modelos
+ * descubiertos (ids recortados, duplicados y vacíos descartados; image solo se
+ * conserva si es true; recuentos de tokens solo como enteros positivos). Acotar, nunca rechazar. */
 function sanitizeCustomProvider(raw: Record<string, unknown>): CustomProviderSettings {
 	const out: CustomProviderSettings = {};
 	if (typeof raw.credentialBindingId === "string" && /^[a-f0-9]{32}$/.test(raw.credentialBindingId)) out.credentialBindingId = raw.credentialBindingId;
@@ -723,7 +741,7 @@ function sanitizeBooleanMap(raw: unknown): Record<string, boolean> | undefined {
 
 function sanitizeAgent(raw: Record<string, unknown>): AgentSettings {
 	const out: AgentSettings = {};
-	// Invalid disk values drop: absence resolves to 8, never a silent clamp.
+	// Los valores no válidos del disco se descartan: la ausencia se resuelve a 8, nunca a una acotación silenciosa.
 	if (typeof raw.workerRequestConcurrency === "number" && Number.isSafeInteger(raw.workerRequestConcurrency) && raw.workerRequestConcurrency > 0) {
 		out.workerRequestConcurrency = raw.workerRequestConcurrency;
 	}
@@ -741,24 +759,24 @@ function sanitizeAgent(raw: Record<string, unknown>): AgentSettings {
 	if (tools) out.tools = tools;
 	const prompts = sanitizeBooleanMap(raw.prompts);
 	if (prompts) out.prompts = prompts;
-	// Search preference: lenient read side (an unknown engine id drops;
-	// the write side's parser is strict — a stale client can't brick the
-	// record, it just loses the pin and auto-detection resumes).
+	// Preferencia de búsqueda: lado de lectura indulgente (un id de motor desconocido se
+	// descarta; el analizador del lado de escritura es estricto — un cliente desactualizado no
+	// puede inutilizar el registro, solo pierde la fijación y vuelve la detección automática).
 	if (raw.search !== null && typeof raw.search === "object" && !Array.isArray(raw.search)) {
 		const engine = (raw.search as Record<string, unknown>).engine;
 		if (isSearchEngineId(engine)) out.search = { engine };
 	}
-	// Prober graph tools (wave 7): its own agent-section subsection —
-	// lenient read side (a bad shape drops the key and the default ON
-	// resumes; the write side's parser is strict).
+	// Herramientas del grafo del sondeador (oleada 7): su propia subsección de la sección del
+	// agente — lado de lectura indulgente (una forma incorrecta descarta la clave y vuelve el
+	// valor por defecto ACTIVADO; el analizador del lado de escritura es estricto).
 	if (raw.graphTools !== null && typeof raw.graphTools === "object" && !Array.isArray(raw.graphTools)) {
 		const enabled = (raw.graphTools as Record<string, unknown>).enabled;
 		if (enabled === undefined) out.graphTools = {};
 		else if (typeof enabled === "boolean") out.graphTools = { enabled };
 	}
-	// Never drop a malformed access policy into the unrestricted default.
-	// The strict store reader separately reports its configuration error;
-	// this safe view also preserves the boundary during unrelated UI writes.
+	// Nunca se deja caer una política de acceso mal formada en el valor por defecto sin restricciones.
+	// El lector estricto del almacén informa por separado de su error de configuración;
+	// esta vista segura también conserva el límite durante escrituras de la interfaz no relacionadas.
 	if (raw.fileAccess !== undefined) {
 		const parsed = parseFileAccessSettings(raw.fileAccess);
 		out.fileAccess = parsed.ok ? parsed.settings : { restricted: true, folders: [] };
@@ -780,9 +798,9 @@ function sanitizeMdRendering(raw: unknown): MdRenderingSettings {
 
 function sanitizeAppearance(raw: Record<string, unknown>): AppearanceSettings {
 	const out: AppearanceSettings = {};
-	// Theme wave (2026-11-04): `mode`/`lightBackground` (light-mode wave)
-	// are no longer read — the theme declares the mode. Dropped here like
-	// the graph's dead rungs; the next appearance write flushes them.
+	// Oleada de temas (2026-11-04): `mode`/`lightBackground` (oleada del modo claro)
+	// ya no se leen — el tema declara el modo. Se descartan aquí, como los peldaños
+	// muertos del grafo; la siguiente escritura de apariencia los elimina del todo.
 	if (isThemeId(raw.theme)) out.theme = raw.theme;
 	if (raw.background !== undefined) out.background = sanitizeHexOrNull(raw.background);
 	if (raw.colors !== null && typeof raw.colors === "object" && !Array.isArray(raw.colors)) {
@@ -808,19 +826,19 @@ function sanitizeAppearance(raw: Record<string, unknown>): AppearanceSettings {
 }
 
 function sanitizeGraph(raw: Record<string, unknown>): GraphSettings {
-	// Wave 7 collapse (owner ruling 2026-09-23): the section is the master
-	// switch ONLY. The dead rungs' keys (embedding/clustering/labeling/
-	// embeddingModel) in existing records are simply UNREAD and DROPPED by
-	// this reconstruction — the migration story: the next graph-section
-	// write (PUT is replace-whole) persists the collapsed shape, and no
-	// active code ever looks at the stale fields.
+	// Colapso de la oleada 7 (decisión del responsable 2026-09-23): la sección es SOLO el
+	// interruptor general. Las claves de los peldaños muertos (embedding/clustering/labeling/
+	// embeddingModel) de los registros existentes simplemente NO SE LEEN y esta reconstrucción
+	// las DESCARTA — la historia de la migración: la siguiente escritura de la sección del grafo
+	// (el PUT reemplaza entero) persiste la forma colapsada, y ningún código activo vuelve a
+	// mirar los campos obsoletos.
 	//
-	// extractionChunkTokens (extraction-UX redesign, 2026-09-24): the chunk
-	// budget — clamp-never-reject (the bd68486 discipline): a finite
-	// positive number floors to EXTRACTION_CHUNK_TOKENS_FLOOR (fractions
-	// floor to integers), anything else drops to the factory default at
-	// resolution. A disk record below the floor (older app, hand edit)
-	// clamps UP — the floor is a cost protection, not data to honor.
+	// extractionChunkTokens (rediseño de la UX de extracción, 2026-09-24): el presupuesto de
+	// fragmentos — acotar, nunca rechazar (la disciplina de bd68486): un número positivo
+	// finito se acota hasta EXTRACTION_CHUNK_TOKENS_FLOOR (las fracciones se redondean a la
+	// baja a enteros); cualquier otra cosa se descarta y se resuelve al valor de fábrica. Un
+	// registro en disco por debajo del suelo (app antigua, edición a mano) se acota HACIA
+	// ARRIBA — el suelo es una protección de costes, no un dato que respetar.
 	const out: GraphSettings = {};
 	const enabled = boolOrDrop(raw.enabled);
 	if (enabled !== undefined) out.enabled = enabled;
@@ -833,10 +851,10 @@ function sanitizeGraph(raw: Record<string, unknown>): GraphSettings {
 	return out;
 }
 
-/** clamp-never-reject (the sanitizer's discipline): a finite positive
- *  number floors to COMPACTION_THRESHOLD_FLOOR, anything else drops (the
- *  factory default resolves at read time). Exported for the PUT parser's
- *  reject-with-rationale (the graph chunk-budget precedent). */
+/** acotar, nunca rechazar (la disciplina del saneador): un número positivo finito se
+ * acota hasta COMPACTION_THRESHOLD_FLOOR; cualquier otra cosa se descarta (el valor de
+ * fábrica se resuelve al leer). Se exporta para el rechazo con justificación del
+ * analizador del PUT (el precedente del presupuesto de fragmentos del grafo). */
 export const COMPACTION_THRESHOLD_FLOOR = 32_000;
 
 function sanitizeCompaction(raw: Record<string, unknown>): CompactionSettings {
@@ -851,10 +869,11 @@ function sanitizeCompaction(raw: Record<string, unknown>): CompactionSettings {
 }
 
 /**
- * Coerce arbitrary JSON (disk file, network body) into a valid delta record:
- * known fields validated strictly (invalid ones drop/clamp per module doc),
- * UNKNOWN KEYS PRESERVED VERBATIM (a newer record must survive an older
- * app). Never throws. Non-objects → null.
+ * Convierte JSON arbitrario (fichero en disco, cuerpo de red) en un registro de deltas
+ * válido: los campos conocidos se validan con rigor (los no válidos se descartan o se
+ * acotan según la documentación del módulo) y las CLAVES DESCONOCIDAS SE CONSERVAN TAL
+ * CUAL (un registro más nuevo debe sobrevivir a una app más antigua). Nunca lanza. Lo
+ * que no es un objeto → null.
  */
 export function sanitizeUserSettings(raw: unknown): UserSettings | null {
 	if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
@@ -897,11 +916,11 @@ export function sanitizeUserSettings(raw: unknown): UserSettings | null {
 	if (r.compaction !== undefined && r.compaction !== null && typeof r.compaction === "object") {
 		out.compaction = sanitizeCompaction(r.compaction as Record<string, unknown>);
 	}
-	// Unknown top-level keys ride along untouched (forward-compat). One
-	// known-DEAD key is stripped instead of riding: `chat` (the old
-	// default-settings section) died with per-session models (owner,
-	// 2026-09-28) — a fossil copy on disk must never resurrect through
-	// reads (and any later write flushes it from the file for good).
+	// Las claves de nivel superior desconocidas viajan intactas (compatibilidad hacia delante).
+	// Una clave CONOCIDA Y MUERTA se elimina en lugar de viajar: `chat` (la antigua sección
+	// default-settings) murió con los modelos por sesión (responsable, 2026-09-28) — una copia
+	// fósil en disco nunca debe resucitar mediante las lecturas (y cualquier escritura posterior
+	// la elimina del fichero para siempre).
 	for (const [key, value] of Object.entries(r)) {
 		if (key === "chat") continue;
 		if (!(key in out)) out[key] = value;
