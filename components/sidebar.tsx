@@ -29,64 +29,66 @@ import { isInteractionScopeEligible } from "@/components/plugin-input-focus";
 import { InteractionLayersProvider, useInteractionLayers, useOptionalInteractionLayers } from "@/components/interaction-layers";
 
 /**
- * Toggleable sidebar — NOT a modal drawer: no backdrop, no focus theft. It
- * sits inline next to the content and can stay open while working in a
- * session. Open state persists across pages (provider lives in the root
- * layout) and across reloads (localStorage).
+ * Barra lateral conmutable — NO es un cajón modal: sin fondo, sin robar el
+ * foco. Va en línea junto al contenido y puede quedarse abierta mientras se
+ * trabaja en una sesión. El estado abierto persiste entre páginas (el
+ * proveedor vive en el layout raíz) y entre recargas (localStorage).
  */
 
 const STORAGE_KEY = "lh:sidebar-open";
 
 /*
- * Narrow-window behavior (owner, 2026-09-17): below SIDEBAR_AUTOCLOSE the
- * sidebar would squeeze the page below the 640px window floor (the two
- * numbers compose: 640 + 288 sidebar = 928), so it auto-closes — and
- * auto-RESTORES when the window widens again (owner choice: the sidebar
- * pops back, not a manual re-open). The whole behavior is one expression:
- * rendered = pref && !narrow, where pref is the persisted user choice.
- * Manual closes persist and stay closed; auto-close does not touch the
- * preference. Opening the sidebar while narrow asks the Electron shell to
- * widen the window to the threshold (window.lh.expandWindow, IPC in
- * electron/main.cjs) — the resize listener flips `narrow` and the sidebar
- * appears. In the plain browser there is no window to widen and no
- * suppression — a narrow tab opens the sidebar if the user says so.
+ * Comportamiento en ventana estrecha (responsable, 2026-09-17): por debajo de
+ * SIDEBAR_AUTOCLOSE la barra lateral apretaría la página por debajo del
+ * suelo de ventana de 640px (los dos números se componen: 640 + 288 de barra
+ * = 928), así que se cierra sola — y se RESTAURA sola cuando la ventana
+ * vuelve a ensancharse (elección del responsable: la barra vuelve a aparecer,
+ * no hay que reabrirla a mano). Todo el comportamiento es una expresión:
+ * rendered = pref && !narrow, donde pref es la elección persistida del
+ * usuario. Los cierres manuales persisten y se quedan cerrados; el cierre
+ * automático no toca la preferencia. Abrir la barra lateral en estrecho pide
+ * al armazón de Electron que ensanche la ventana hasta el umbral
+ * (window.lh.expandWindow, IPC en electron/main.cjs) — el listener de
+ * redimensionado cambia `narrow` y la barra aparece. En el navegador normal
+ * no hay ventana que ensanchar ni supresión — una pestaña estrecha abre la
+ * barra lateral si el usuario lo pide.
  *
- * Mirrors SIDEBAR_AUTOCLOSE in electron/main.cjs — keep in sync.
+ * Refleja SIDEBAR_AUTOCLOSE de electron/main.cjs — mantenlos sincronizados.
  */
 import type { ChatGPTControlBridge, NativeSubscriptionControlBridge } from "@/src/core";
 import type { UpdateState } from "@/components/settings/update-settings.tsx";
 import { FilePathDropZone } from "@/components/file-path-drop-zone";
 const SIDEBAR_AUTOCLOSE = 928;
 
-// Module scope, guarded for SSR (the server has no navigator).
+// Ámbito de módulo, protegido para SSR (el servidor no tiene navigator).
 const IS_ELECTRON = typeof navigator !== "undefined" && navigator.userAgent.includes("Electron");
 
 declare global {
 	interface Window {
-		/** Preload bridge (electron/preload.cjs) — Electron only, absent in the browser. */
+		/** Puente de precarga (electron/preload.cjs) — solo en Electron, ausente en el navegador. */
 		lh?: {
-			/** Read-only host OS; determines the native-control gutter. */
+			/** SO anfitrión de solo lectura; determina el margen de los controles nativos. */
 			platform?: string;
-			/** Resolve an OS-backed File without copying/uploading its contents. */
+			/** Resuelve un File respaldado por el SO sin copiar/subir su contenido. */
 			getPathForFile?: (file: File) => string;
-			/** Choose one original directory path, without reading its contents. */
+			/** Elige una ruta de directorio original, sin leer su contenido. */
 			chooseAttachmentFolder?: () => Promise<string | null>;
-			/** External Next desktop-dev uses the server's web connections. */
+			/** El desarrollo de escritorio con Next externo usa las conexiones web del servidor. */
 			subscriptionTransport?: "desktop" | "web";
 			openSubscriptionBrowser?: (action: string) => Promise<void>;
 			chatgpt?: ChatGPTControlBridge;
 			subscriptions?: NativeSubscriptionControlBridge;
 			expandWindow: () => void;
-			/** Native chrome follows the active theme (theme wave): main sets
-			 *  themeSource and repaints the window background / overlay. */
+			/** El cromo nativo sigue el tema activo (oleada de temas): main fija
+			 *  themeSource y vuelve a pintar el fondo / overlay de la ventana. */
 			setAppearance?: (a: { mode: ThemeMode; background: string }) => void;
-			/** The zoom truth (owner round 7): subscribes to "lh:zoom" pushes; returns unsubscribe. */
+			/** La verdad del zoom (ronda 7 del responsable): se suscribe a los avisos "lh:zoom"; devuelve la baja. */
 			onZoom?: (cb: (factor: number) => void) => () => void;
 			getZoom?: () => Promise<number>;
-			/** Observational update events and a snapshot for late subscribers. */
+			/** Eventos de actualización observacionales y una instantánea para los suscriptores tardíos. */
 			onUpdateStatus?: (cb: (status: UpdateState) => void) => () => void;
 			getUpdateState?: () => Promise<UpdateState>;
-			/** Explicit manual check also downloads and stages available updates. */
+			/** La comprobación manual explícita también descarga y prepara las actualizaciones disponibles. */
 			checkForUpdates?: () => Promise<void>;
 			installUpdate?: () => void;
 			onOpenSettings?: (cb: (section: string) => void) => () => void;
@@ -108,49 +110,49 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 		const bridge = window.lh?.chatgpt;
 		if (!bridge) return;
 		const off = bridge.onChange(() => notifySettingsSaved("keys"));
-		notifySettingsSaved("keys"); // cover changes missed before this root-lifetime subscription
+		notifySettingsSaved("keys"); // cubre los cambios que se perdieron antes de esta suscripción que dura lo que la raíz
 		return off;
 	}, []);
-	// Start closed so server and client first-render agree (no hydration
-	// mismatch); the stored value is applied after mount.
+	// Empieza cerrada para que el primer render del servidor y del cliente coincidan (sin
+	// desajuste de hidratación); el valor guardado se aplica tras montar.
 	const [open, setOpen] = useState(false);
 	const [narrow, setNarrow] = useState(false);
 	const [mounted, setMounted] = useState(false);
 
 	useEffect(() => {
-		// Electron shell detection (merged chrome, 2026-09-17): keys the
-		// .lh-electron CSS (app/globals.css) that turns the header bands
-		// into the window's drag surface. Post-mount only — server HTML
-		// and first client render must agree (no hydration mismatch),
-		// and in the plain browser the class never appears.
+		// Detección del armazón de Electron (cromo fusionado, 2026-09-17): activa el
+		// CSS .lh-electron (app/globals.css) que convierte las franjas de cabecera
+		// en la superficie de arrastre de la ventana. Solo tras montar — el HTML del
+		// servidor y el primer render del cliente deben coincidir (sin desajuste de
+		// hidratación), y en el navegador normal la clase nunca aparece.
 		if (IS_ELECTRON) {
 			document.documentElement.classList.add("lh-electron");
 			document.documentElement.dataset.lhPlatform = window.lh?.platform ?? "";
 		}
 
-		// THE ZOOM TRUTH (owner round 7, 2026-10-05): ⌘±/⌘0 zoom the UI
-		// (Electron zoomFactor) while the native traffic lights stay
-		// physical-fixed — the CSS gutter lengths divide by this factor so
-		// their RENDERED size never moves. getZoom covers the first-paint
-		// race; every later change arrives as an lh:zoom push.
+		// LA VERDAD DEL ZOOM (ronda 7 del responsable, 2026-10-05): ⌘±/⌘0 hacen zoom en la
+		// interfaz (zoomFactor de Electron) mientras los semáforos nativos se quedan con
+		// tamaño físico fijo — las longitudes CSS del margen se dividen por este factor
+		// para que su tamaño RENDERIZADO nunca cambie. getZoom cubre la carrera del primer
+		// pintado; cada cambio posterior llega como un aviso lh:zoom.
 		const setZoomVar = (factor: number) =>
 			document.documentElement.style.setProperty("--lh-zoom", String(factor));
 		const off = window.lh?.onZoom?.(setZoomVar);
 		void window.lh?.getZoom?.().then(setZoomVar);
 
 		const stored = localStorage.getItem(STORAGE_KEY);
-		// Default: open (first run introduces the sidebar).
+		// Por defecto: abierta (la primera ejecución presenta la barra lateral).
 		setOpen(stored === null ? true : stored === "1");
 		setMounted(true);
 		return () => off?.();
 	}, []);
 
-	// Narrow-window auto-close/auto-restore (see SIDEBAR_AUTOCLOSE note):
-	// fires only on actual resizes — a boolean compare, no layout work.
-	// Both this and the mount effect land before the first paint, so a
-	// narrow window never flashes the open sidebar on load.
+	// Cierre/restauración automáticos en ventana estrecha (ver la nota de SIDEBAR_AUTOCLOSE):
+	// solo se dispara en redimensionados reales — una comparación booleana, sin trabajo de layout.
+	// Tanto esto como el efecto de montaje llegan antes del primer pintado, así que una
+	// ventana estrecha nunca muestra un destello de la barra abierta al cargar.
 	useEffect(() => {
-		if (!IS_ELECTRON) return; // plain-browser tabs open freely
+		if (!IS_ELECTRON) return; // las pestañas del navegador normal se abren libremente
 		const onResize = () => setNarrow(window.innerWidth < SIDEBAR_AUTOCLOSE);
 		onResize();
 		window.addEventListener("resize", onResize);
@@ -158,11 +160,11 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 	}, []);
 
 	const toggle = useCallback(() => {
-		// Opening while narrow (auto-closed, or the user's own closed-at-
-		// narrow): ask the shell to widen to the threshold — the resize
-		// listener flips `narrow` and the sidebar appears. The preference
-		// persists like any other open, so a restart at a narrow width
-		// still auto-restores when widened.
+		// Abrir en estrecho (cerrada automáticamente, o cerrada por el propio usuario
+		// en estrecho): pide al armazón que ensanche hasta el umbral — el listener
+		// de redimensionado cambia `narrow` y la barra aparece. La preferencia
+		// persiste como cualquier otra apertura, así que un reinicio con ancho
+		// estrecho se sigue restaurando solo al ensanchar.
 		if (narrow && !open) {
 			localStorage.setItem(STORAGE_KEY, "0");
 			setOpen(true);
@@ -175,11 +177,11 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 		});
 	}, [narrow, open]);
 
-	// ⌘B: the global shortcut dispatches kbdEventForAction("toggle-sidebar")
-	// and the context answers on exactly that name — the shared spelling
-	// is the fix for the interlude bug (the listener sat on the pre-
-	// convention name "lh:toggle-sidebar" while the dispatcher sent
-	// "lh:kbd-toggle-sidebar", so ⌘B silently did nothing; owner
+	// ⌘B: el atajo global despacha kbdEventForAction("toggle-sidebar")
+	// y el contexto responde exactamente a ese nombre — la grafía compartida
+	// es el arreglo del fallo del interludio (el listener estaba en el nombre
+	// previo a la convención, "lh:toggle-sidebar", mientras el despachador enviaba
+	// "lh:kbd-toggle-sidebar", así que ⌘B no hacía nada en silencio; responsable
 	// 2026-09-25).
 	useEffect(() => {
 		const event = kbdEventForAction("toggle-sidebar");
@@ -190,24 +192,25 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
 	return (
 		<SidebarContext.Provider value={{ open: open && !narrow, toggle }}>
-			{/* transitions gated on mount: no slide-in flash on page load */}
+			{/* transiciones condicionadas al montaje: sin destello de entrada deslizante al cargar la página */}
 			<div className={cn("flex h-dvh", mounted && "[&_.sidebar-motion]:transition-[width,margin,opacity]")}>{children}</div>
 		</SidebarContext.Provider>
 	);
 }
 
-/** Hamburger for page headers — only visible when the sidebar is closed.
+/** Botón de hamburguesa para las cabeceras de página — solo visible cuando la barra lateral está cerrada.
  *
- *  Owner, round 6c: the toggle is ALWAYS MOUNTED, owning a slot whose
- *  width+margin animate in LOCKSTEP with the sidebar's own width
- *  transition (same duration-200, same easing, both gated on mount) —
- *  before, it mounted/unmounted in one frame, so its 48px footprint
- *  (button + gap) popped and dragged the title and chips sideways while
- *  the sidebar was still mid-slide. When open the slot is exactly zero
- *  (w-0 -mr-3: width 0, the negative margin cancels the header's gap-3),
- *  so resting layouts are pixel-identical to the old conditional render.
- *  The icon fades with the slot and is clipped by it as it collapses —
- *  no popping in either direction. */
+ *  Responsable, ronda 6c: el botón SIEMPRE ESTÁ MONTADO y es dueño de una
+ *  ranura cuyo ancho+margen se animan AL UNÍSONO con la transición de ancho
+ *  de la propia barra lateral (la misma duration-200, la misma curva, ambas
+ *  condicionadas al montaje) — antes se montaba/desmontaba en un solo
+ *  fotograma, así que su huella de 48px (botón + hueco) aparecía de golpe y
+ *  arrastraba el título y los chips de lado mientras la barra aún estaba a
+ *  mitad del deslizamiento. Abierta, la ranura es exactamente cero (w-0
+ *  -mr-3: ancho 0, el margen negativo anula el gap-3 de la cabecera), así
+ *  que los layouts en reposo son idénticos píxel a píxel al antiguo render
+ *  condicional. El icono se desvanece con la ranura y esta lo recorta al
+ *  colapsar — sin saltos en ninguna dirección. */
 export function SidebarToggle() {
 	const { open, toggle } = useSidebar();
 	return (
@@ -227,9 +230,9 @@ export function SidebarToggle() {
 				onClick={toggle}
 				className={cn("sidebar-motion duration-200", open ? "pointer-events-none opacity-0" : "opacity-100")}
 			>
-				{/* Owner, round 6: size-4, SAME as the close glyph — the toggle
-				    must not grow when the sidebar is closed (it did: size-5 here).
-				    The small look is the standard, both directions. */}
+				{/* Responsable, ronda 6: size-4, IGUAL que el glifo de cerrar — el botón
+				no debe crecer cuando la barra lateral está cerrada (lo hacía: aquí era size-5).
+				El aspecto pequeño es el estándar, en ambas direcciones. */}
 				<PanelLeftOpenIcon className="size-4" />
 			</Button>
 			</Hint>
@@ -238,28 +241,31 @@ export function SidebarToggle() {
 }
 
 /**
- * The row's status indicator (owner, minimal-color round): the braille
- * spinner, ONLY while a teach turn is in flight — monochrome motion, the
- * terminal's own glyph, existing exactly as long as the work does and
- * vanishing the moment it ends. Every other state renders NOTHING:
- * phases only advance (all sessions end in Teaching — phase-as-signal was
- * decoration, now retired app-wide), and question-pending is the dominant
- * RESTING state of real sessions — a resting state has no scan value, so
- * the meta line's "Waiting for input" text carries it. Idle is the
- * absence of a signal, by design.
+ * El indicador de estado de la fila (responsable, ronda de color mínimo): el
+ * spinner braille, SOLO mientras hay un turno de enseñanza en curso —
+ * movimiento monocromo, el propio glifo de la terminal, que existe
+ * exactamente lo que dura el trabajo y desaparece en el instante en que
+ * acaba. Cualquier otro estado no renderiza NADA: las fases solo avanzan
+ * (todas las sesiones terminan en Teaching — la fase como señal era
+ * decoración, ahora retirada en toda la app), y pregunta-pendiente es el
+ * estado de REPOSO dominante de las sesiones reales — un estado de reposo no
+ * aporta nada al recorrer la lista, así que lo transmite el texto "Waiting
+ * for input" de la línea de metadatos. Inactivo es la ausencia de señal, por
+ * diseño.
  */
 function SessionStatus({ busy }: { busy: boolean }) {
 	if (!busy) return null;
 	return <BrailleSpinner />;
 }
 
-/** Compact "how long ago": "just now", "5m ago", "3h ago", "2d ago",
- *  then a plain date. How long a session has been WAITING matters more
- *  than an absolute timestamp. Beyond a week the date renders ISO
- *  (YYYY-MM-DD, zero-padded) — the international standard: unambiguous
- *  in any locale and it sorts (owner, typography round 5; the old
- *  M/D/YYYY was the US convention. A user-locale setting can come later
- *  — trivial, a format function swap). Pure — exported for tests. */
+/** "Hace cuánto" compacto: "just now", "5m ago", "3h ago", "2d ago", y luego
+ *  una fecha sencilla. Cuánto tiempo lleva una sesión ESPERANDO importa más
+ *  que una marca de tiempo absoluta. Pasada una semana la fecha se muestra en
+ *  ISO (YYYY-MM-DD, con ceros a la izquierda) — el estándar internacional:
+ *  inequívoca en cualquier configuración regional y ordenable (responsable,
+ *  ronda 5 de tipografía; el antiguo M/D/YYYY era la convención de EE. UU.
+ *  Un ajuste de configuración regional del usuario puede venir después —
+ *  trivial, cambiar una función de formato). Pura — exportada para las pruebas. */
 export function timeAgo(iso: string, now = new Date()): string {
 	const ms = now.getTime() - new Date(iso).getTime();
 	if (ms < 60_000) return "just now";
@@ -275,11 +281,11 @@ export function timeAgo(iso: string, now = new Date()): string {
 	return `${date.getFullYear()}-${mm}-${dd}`;
 }
 
-/** The row's second line: the state when a state exists (waiting/working),
- *  otherwise just how long ago. The message count is DROPPED (owner,
- *  typography round 5): it informed no decision — clutter. messageCount
- *  still rides the API payload, so this is a one-line flip back if it's
- *  ever wanted. */
+/** La segunda línea de la fila: el estado cuando hay estado (esperando/trabajando);
+ *  si no, solo hace cuánto. El recuento de mensajes se QUITÓ (responsable,
+ *  ronda 5 de tipografía): no servía para ninguna decisión — estorbaba.
+ *  messageCount sigue viajando en la carga de la API, así que volver a
+ *  mostrarlo es un cambio de una línea si algún día se quiere. */
 function sessionMeta(chat: ChatListItem): string {
 	if (chat.compacting) return `Compacting context · ${timeAgo(chat.updatedAt)}`;
 	if (chat.pendingQuestion) return `Waiting for input · ${timeAgo(chat.updatedAt)}`;
@@ -291,9 +297,9 @@ function sessionMeta(chat: ChatListItem): string {
 }
 
 /**
- * One session row: the status spinner (only while working), then title +
- * state-aware meta. Exported for render tests — pure function of the
- * list item.
+ * Una fila de sesión: el spinner de estado (solo mientras trabaja), luego el
+ * título + metadatos según el estado. Exportada para las pruebas de render —
+ * función pura del elemento de la lista.
  */
 export function SessionRow({
 	chat,
@@ -305,10 +311,10 @@ export function SessionRow({
 	chat: ChatListItem;
 	active: boolean;
 	onOpen: () => void;
-	/** Keyboard-cycle highlight (shortcut wave A: Alt+↑/↓ + Alt+Enter) —
-	 *  visually distinct from the active session, which stays filled. */
+	/** Resaltado del recorrido con teclado (oleada de atajos A: Alt+↑/↓ + Alt+Enter) —
+	 *  visualmente distinto de la sesión activa, que sigue rellena. */
 	kbdSelected?: boolean;
-	/** Right-click opens the context menu (wave 6: Rename / Delete). */
+	/** El clic derecho abre el menú contextual (oleada 6: Rename / Delete). */
 	onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
 	return (
@@ -325,17 +331,17 @@ export function SessionRow({
 		>
 			<SessionStatus busy={chat.busy || chat.compacting} />
 			<span className="min-w-0 flex-1">
-				{/* Titles are the learner's/teacher's WORDS — Source Sans 3, the
-				    same voice the words were typed in (every input is lh-prose);
-				    the meta line below stays JetBrains Mono (machine data). One
-				    rule, finally applied to the picker too (owner, typography
-				    round): mono = chrome, Source Sans = human words. */}
+				{/* Los títulos son PALABRAS del alumno/profesor — Source Sans 3, la
+				misma voz en la que se escribieron (todo input es lh-prose); la línea de
+				metadatos de abajo sigue en JetBrains Mono (datos de máquina). Una sola
+				regla, aplicada por fin también al selector (responsable, ronda de
+				tipografía): mono = cromo, Source Sans = palabras humanas. */}
 				<span className="block truncate font-prose text-(length:--lh-prose-size)">{chat.title}</span>
 				<span className="block text-xs text-muted-foreground">{sessionMeta(chat)}</span>
 			</span>
-			{/* The dumbbell rides the FAR RIGHT (owner round 6, 2026-10-05) —
-			    was left of the name; right-aligned keeps the titles flush with
-			    the teaching rows and reads cleaner. */}
+			{/* La mancuerna va a la DERECHA DEL TODO (ronda 6 del responsable, 2026-10-05)
+			— antes estaba a la izquierda del nombre; alineada a la derecha mantiene los
+			títulos a ras de las filas de enseñanza y se lee más limpia. */}
 			{(chat.kind ?? "teach") === "practice" && (
 				<DumbbellIcon className="size-3.5 shrink-0 text-muted-foreground/70" aria-label="Practice session" />
 			)}
@@ -343,10 +349,12 @@ export function SessionRow({
 	);
 }
 
-/** The inline-rename row (wave 6): same geometry as SessionRow, but the
- *  title line becomes a text input — select-all on entry (the click means
- *  "replace", the header rename's rule), Enter/blur commits, Esc discards.
- *  The meta line stays so the row never changes height mid-edit. */
+/** La fila de renombrado en línea (oleada 6): la misma geometría que
+ *  SessionRow, pero la línea del título pasa a ser un input de texto —
+ *  selecciona todo al entrar (el clic significa "sustituir", la regla del
+ *  renombrado de la cabecera), Enter/perder el foco confirma, Esc descarta.
+ *  La línea de metadatos se queda para que la fila nunca cambie de altura a
+ *  mitad de edición. */
 export function RenameRow({ chat, onCommit, onCancel }: { chat: ChatListItem; onCommit: (next: string) => void; onCancel: () => void }) {
 	const [draft, setDraft] = useState(chat.title);
 	const interactions = useOptionalInteractionLayers();
@@ -363,13 +371,13 @@ export function RenameRow({ chat, onCommit, onCancel }: { chat: ChatListItem; on
 			data-testid="session-rename-row"
 			className="relative mb-0.5 flex w-full items-center rounded-lg bg-accent px-3 py-2"
 		>
-			{/* NOTHING MOVES (owner, polish round): an idle row renders no
-			    status spacer (SessionStatus is null when not busy), so the
-			    title starts at the row's own px-3 — 12px in. The old rename
-			    row always carried a 14px spacer + gap + the input's border
-			    and padding, landing the text ~41px in (and the meta with
-			    it). The input here is borderless and padding-free at the
-			    exact title x; the underline is the only editing cue. */}
+			{/* NO SE MUEVE NADA (responsable, ronda de pulido): una fila inactiva no
+			renderiza espaciador de estado (SessionStatus es null cuando no está
+			ocupada), así que el título empieza en el propio px-3 de la fila — a 12px.
+			La antigua fila de renombrado siempre llevaba un espaciador de 14px + hueco
+			+ el borde y el relleno del input, dejando el texto a ~41px (y los
+			metadatos con él). Aquí el input no tiene borde ni relleno y está
+			exactamente en la x del título; el subrayado es la única señal de edición. */}
 			<span className="flex min-w-0 w-full flex-col">
 				<input
 					ref={inputRef}
@@ -382,7 +390,7 @@ export function RenameRow({ chat, onCommit, onCancel }: { chat: ChatListItem; on
 						if (e.key === "Escape") {
 							if (interactions && !interactions.isElementEligible(e.currentTarget)) return;
 							interactions?.claimEscape(e);
-							e.stopPropagation(); // discard, not also the sidebar/chat chains
+							e.stopPropagation(); // descartar, no también las cadenas de la barra lateral/el chat
 							onCancel();
 						}
 					}}
@@ -396,9 +404,9 @@ export function RenameRow({ chat, onCommit, onCancel }: { chat: ChatListItem; on
 	);
 }
 
-/** The three-way kind filter (practice sessions, owner 2026-10-04):
- *  Teaching / All / Practice — a client-side filter over the same
- *  snapshot, persisted in localStorage, defaulting to All. */
+/** El filtro de tipo a tres bandas (sesiones de práctica, responsable
+ *  2026-10-04): Teaching / All / Practice — un filtro en el cliente sobre la
+ *  misma instantánea, persistido en localStorage, con All por defecto. */
 export type SessionKindFilter = "teach" | "all" | "practice";
 const KIND_FILTER_KEY = "lh:session-kind-filter";
 
@@ -420,17 +428,18 @@ function SessionsSidebar() {
 	const router = useRouter();
 	const { open: openSettings } = useSettingsDialog();
 
-	/* New session (owner, 2026-09-13): NO POST — the button opens the
-	   sessionless draft view; the session is created only when the first
-	   message is sent (and that message becomes its title). Search: a
-	   client-side filter over the poll snapshot — no server round trip. */
+	/* Sesión nueva (responsable, 2026-09-13): SIN POST — el botón abre la vista
+	de borrador sin sesión; la sesión solo se crea cuando se envía el primer
+	mensaje (y ese mensaje se convierte en su título). Búsqueda: un filtro en
+	el cliente sobre la instantánea del sondeo — sin ida y vuelta al servidor. */
 	const newSession = useCallback(() => {
 		router.push("/chat/new");
 	}, [router]);
 
-	/* FUZZY (owner round 8, 2026-10-05): subsequence match ranked by
-	 * fuzzyScore — prefix beats word-boundary beats scattered. Empty query
-	 * keeps the natural list order (scores are all 0, sort is stable). */
+	/* DIFUSA (ronda 8 del responsable, 2026-10-05): coincidencia de subsecuencia
+	 * ordenada por fuzzyScore — el prefijo gana al límite de palabra, que gana a
+	 * lo disperso. Una consulta vacía mantiene el orden natural de la lista
+	 * (todas las puntuaciones son 0, la ordenación es estable). */
 	const shown = useMemo(() => {
 		const q = query.trim();
 		let list = chats;
@@ -448,9 +457,9 @@ function SessionsSidebar() {
 
 	const refreshInFlightRef = useRef(false);
 	const refresh = useCallback(async () => {
-		// In-flight coalesce (S6): event bursts may land several refresh
-		// calls at once — one fetch serves them all; anything newer arrives
-		// with the next event's fetch.
+		// Agrupación en vuelo (S6): las ráfagas de eventos pueden provocar varias
+		// llamadas de refresco a la vez — una petición las sirve a todas; lo más nuevo
+		// llega con la petición del siguiente evento.
 		if (refreshInFlightRef.current) return;
 		refreshInFlightRef.current = true;
 		try {
@@ -458,16 +467,16 @@ function SessionsSidebar() {
 			const d = (await res.json()) as { chats: ChatListItem[] };
 			setChats(d.chats);
 		} catch {
-			// a transient failure keeps the last snapshot
+			// un fallo transitorio conserva la última instantánea
 			setChats((prev) => prev ?? []);
 		} finally {
 			refreshInFlightRef.current = false;
 		}
 	}, []);
 
-	/* Instant rename propagation (2026-09-17): the chat header's rename
-	   commits dispatch lh:chat-renamed; patch the snapshot in place instead
-	   of waiting for the 2.5s poll. */
+	/* Propagación instantánea del renombrado (2026-09-17): las confirmaciones
+	de renombrado de la cabecera del chat despachan lh:chat-renamed; parchea la
+	instantánea en el sitio en vez de esperar al sondeo de 2,5s. */
 	useEffect(() => {
 		const onRenamed = (e: Event) => {
 			const { id, title } = (e as CustomEvent<{ id: string; title: string }>).detail;
@@ -477,16 +486,17 @@ function SessionsSidebar() {
 		return () => window.removeEventListener("lh:chat-renamed", onRenamed);
 	}, []);
 
-	/* INSTANT TURN-STATE (owner, sidebar round 2026-10-02): the open
-	   session broadcasts lh:turn-state the instant its turn starts
-	   (submitted — the optimistic machine's own flip) and at settle —
-	   busy mirrors the server's own definition (isTurnRunning), so the
-	   patch is exact: spinner up the moment the action happens, cleared
-	   and refetched once at settle (title/order move with turns). The
-	   events channel is the backstop for everything only the server
-	   knows: other windows, wake turns in unopened sessions. A start on
-	   a chat not yet in the snapshot (a brand-new session) = one
-	   immediate refresh instead of a patch. */
+	/* ESTADO DEL TURNO INSTANTÁNEO (responsable, ronda de la barra lateral
+	2026-10-02): la sesión abierta difunde lh:turn-state en el instante en que
+	empieza su turno (submitted — el cambio propio de la máquina optimista) y al
+	asentarse — busy refleja la propia definición del servidor (isTurnRunning),
+	así que el parche es exacto: el spinner aparece en el momento en que ocurre
+	la acción, y se quita y se vuelve a pedir una vez al asentarse (el
+	título/orden se mueven con los turnos). El canal de eventos es la red de
+	seguridad para todo lo que solo sabe el servidor: otras ventanas, turnos de
+	despertar en sesiones sin abrir. Un inicio en un chat que aún no está en la
+	instantánea (una sesión recién creada) = un refresco inmediato en vez de un
+	parche. */
 	const chatsRef = useRef(chats);
 	chatsRef.current = chats;
 	useEffect(() => {
@@ -496,26 +506,26 @@ function SessionsSidebar() {
 				if (chatsRef.current?.some((c) => c.id === id)) {
 					setChats((prev) => (prev ? prev.map((c) => (c.id === id ? { ...c, busy: true } : c)) : prev));
 				} else {
-					void refresh(); // the brand-new session: it isn't in the snapshot yet
+					void refresh(); // la sesión recién creada: aún no está en la instantánea
 				}
 				return;
 			}
 			setChats((prev) => (prev ? prev.map((c) => (c.id === id ? { ...c, busy: false } : c)) : prev));
-			void refresh(); // settle: the server snapshot is now truthful — land it now
+			void refresh(); // asentamiento: la instantánea del servidor ya es fiel — tráela ahora
 		};
 		window.addEventListener("lh:turn-state", onTurnState);
 		return () => window.removeEventListener("lh:turn-state", onTurnState);
 	}, [refresh]);
 
-	/* PUSH (architecture S6, 2026-10-02): the 2.5s poll is RETIRED — the
-	   last standing network poll in the app. List truth arrives as
-	   events: chats-changed (create/rename/delete — the list-SHAPE
-	   writes), and turn-started/turn-settled for EVERY chat (unfiltered:
-	   any chat's turn flips busy/order/phase in this list). Announced
-	   fetches ride the 250ms trailing debounce (the S4/S5 law); resync
-	   (reconnect / dev-restart) is immediate. lh:turn-state +
-	   lh:chat-renamed stay for same-tab INSTANTS — local beats any
-	   round-trip. */
+	/* PUSH (arquitectura S6, 2026-10-02): el sondeo de 2,5s está RETIRADO — el
+	último sondeo de red que quedaba en la app. La verdad de la lista llega como
+	eventos: chats-changed (crear/renombrar/borrar — las escrituras que cambian
+	la FORMA de la lista) y turn-started/turn-settled para TODOS los chats (sin
+	filtrar: el turno de cualquier chat cambia busy/orden/fase en esta lista).
+	Las peticiones anunciadas usan el antirrebote final de 250ms (la ley de
+	S4/S5); la resincronización (reconexión / reinicio de desarrollo) es
+	inmediata. lh:turn-state + lh:chat-renamed se quedan para lo INSTANTÁNEO
+	en la misma pestaña — lo local gana a cualquier ida y vuelta. */
 	const refreshRef = useRef(refresh);
 	refreshRef.current = refresh;
 	const eventDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -538,43 +548,44 @@ function SessionsSidebar() {
 		[],
 	);
 
-	/* ── Keyboard seams (shortcut wave A, 2026-09-17; search-walk round
-	   2026-10-10) ── ⌘⇧F focuses the search field — and THE SEARCH OWNS THE
-	   WALK: ↑/↓ cycle the filtered list (wrap — "cycle"), Enter opens the
-	   walked row, or the FIRST match when nothing is walked (owner,
-	   2026-10-10 — the quick-open pattern: ⌘⇧F, type, Enter, done). The
-	   Alt+↑/↓/↵ global cycle was RETIRED the same round: barely used,
-	   felt laggy. The selection is a row index into `shown`, so the walk
-	   follows whatever the query + kind filter leave. Mouse and keyboard
-	   coexist: hovering doesn't claim, a click or an open clears the
-	   selection. */
+	/* ── Fronteras de teclado (oleada de atajos A, 2026-09-17; ronda del
+	recorrido en la búsqueda 2026-10-10) ── ⌘⇧F enfoca el campo de búsqueda — y
+	LA BÚSQUEDA ES DUEÑA DEL RECORRIDO: ↑/↓ recorren la lista filtrada (con
+	vuelta — "ciclo"), Enter abre la fila recorrida, o la PRIMERA coincidencia
+	cuando no se ha recorrido nada (responsable, 2026-10-10 — el patrón de
+	apertura rápida: ⌘⇧F, escribir, Enter, listo). El ciclo global con
+	Alt+↑/↓/↵ se RETIRÓ en esa misma ronda: apenas se usaba y se notaba lento.
+	La selección es un índice de fila dentro de `shown`, así que el recorrido
+	sigue lo que dejen la consulta + el filtro de tipo. Ratón y teclado
+	conviven: pasar el ratón no reclama, un clic o una apertura borran la
+	selección. */
 	const [kbdIndex, setKbdIndex] = useState<number | null>(null);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
 
-	/* ── Wave 6 chunk A: context menu + inline rename + deletion ──
-	   Right-click a session row → MenuShell: the two management actions
-	   first (owner ruling), then — below a hairline — the extraction
-	   coverage block (owner-locked redesign 2026-09-24, order refined
-	   2026-09-24: Rename/Delete on top, the numbers + manual Extract
-	   affordance at the bottom). The anchor is the row that was
-	   right-clicked — assigned into a ref before the state flip so the
-	   shell measures it on its first (hidden) pass. */
+	/* ── Oleada 6, fragmento A: menú contextual + renombrado en línea + borrado ──
+	Clic derecho en una fila de sesión → MenuShell: primero las dos acciones de
+	gestión (decisión del responsable) y luego — bajo una línea fina — el
+	bloque de cobertura de la extracción (rediseño fijado por el responsable el
+	2026-09-24, orden refinado el 2026-09-24: Rename/Delete arriba, las cifras
+	+ la indicación de Extract manual abajo). El ancla es la fila en la que se
+	hizo clic derecho — asignada a una ref antes del cambio de estado para que
+	el armazón la mida en su primera pasada (oculta). */
 	const [ctxChatId, setCtxChatId] = useState<string | null>(null);
 	const ctxAnchorRef = useRef<HTMLElement | null>(null);
 	const [renamingId, setRenamingId] = useState<string | null>(null);
 	const [deleting, setDeleting] = useState<ChatListItem | null>(null);
 
 	const openContext = (e: React.MouseEvent<HTMLButtonElement>, chat: ChatListItem) => {
-		e.preventDefault(); // suppress the native menu
+		e.preventDefault(); // suprime el menú nativo
 		ctxAnchorRef.current = e.currentTarget;
 		setCtxChatId(chat.id);
 	};
 
-	// The menu contract (agent-section's): any pointerdown outside the menu
-	// or its row closes it; Esc is CLAIMED so it never also aborts a turn
-	// or folds the sidebar. Right-clicking another row re-anchors: its
-	// pointerdown closes this menu, its contextmenu opens the next.
+	// El contrato del menú (el de agent-section): cualquier pointerdown fuera del menú
+	// o de su fila lo cierra; Esc se RECLAMA para que nunca aborte también un turno
+	// ni pliegue la barra lateral. Hacer clic derecho en otra fila lo reancla: su
+	// pointerdown cierra este menú y su contextmenu abre el siguiente.
 	useEffect(() => {
 		if (ctxChatId === null) return;
 		const onPointerDown = (e: PointerEvent) => {
@@ -588,11 +599,11 @@ function SessionsSidebar() {
 		return () => document.removeEventListener("pointerdown", onPointerDown);
 	}, [ctxChatId, interactions]);
 
-	// Inline rename (owner ruling, wave 6): the row swaps to a text input;
-	// commit rides the SAME plumbing as the header rename — PUT the title,
-	// then lh:chat-renamed patches every listener (this sidebar's own
-	// listener patches the snapshot instantly; an open chat header hears
-	// it too). Esc discards; empty commit discards (the header's rules).
+	// Renombrado en línea (decisión del responsable, oleada 6): la fila se cambia por un
+	// input de texto; la confirmación usa la MISMA fontanería que el renombrado de la
+	// cabecera — PUT del título y luego lh:chat-renamed parchea a todos los listeners (el
+	// listener propio de esta barra lateral parchea la instantánea al instante; la cabecera de
+	// un chat abierto también lo oye). Esc descarta; confirmar vacío descarta (las reglas de la cabecera).
 	const commitRename = useCallback(async (id: string, next: string) => {
 		setRenamingId(null);
 		const t = next.trim();
@@ -606,15 +617,15 @@ function SessionsSidebar() {
 			if (!res.ok) throw new Error(`rename failed: ${res.status}`);
 			window.dispatchEvent(new CustomEvent("lh:chat-renamed", { detail: { id, title: t } }));
 		} catch (err) {
-			console.error("rename failed:", err); // keep the old title
+			console.error("rename failed:", err); // conserva el título antiguo
 		}
 	}, []);
 
-	// Delete success: patch the list instantly (the poll is the backstop),
-	// navigate home if the open session died (the chat view unmounts —
-	// drafts die with it, no orphan bubbles), and announce the graph
-	// revision so the graph view refetches (deletion is the one writer
-	// the status poll can't see — no run ever transitions some→none).
+	// Borrado con éxito: parchea la lista al instante (el sondeo es la red de seguridad),
+	// navega al inicio si la sesión abierta ha muerto (la vista del chat se desmonta —
+	// los borradores mueren con ella, sin burbujas huérfanas) y anuncia la revisión
+	// del grafo para que la vista del grafo vuelva a pedirlo (el borrado es el único escritor
+	// que el sondeo de estado no puede ver — ninguna ejecución pasa nunca de algo a nada).
 	const onDeleted = useCallback(
 		(id: string, _mode: ChatDeleteMode, graphRevision: number) => {
 			setDeleting(null);
@@ -629,16 +640,16 @@ function SessionsSidebar() {
 		const onFocusSearch = () => {
 			if (interactions.getActiveModal() || interactions.getTopLayer()?.kind === "popup") return;
 			if (!open) toggle();
-			// A clipped (overflow-hidden) input still focuses — the sidebar's
-			// slide-in doesn't gate the keystroke.
+			// Un input recortado (overflow-hidden) sigue recibiendo el foco — la
+			// entrada deslizante de la barra lateral no condiciona la pulsación.
 			requestAnimationFrame(() => { if (isInteractionScopeEligible(searchRef.current, interactions)) searchRef.current?.focus(); });
 		};
 		window.addEventListener("lh:kbd-sessions-search", onFocusSearch);
 		return () => window.removeEventListener("lh:kbd-sessions-search", onFocusSearch);
 	}, [open, toggle, interactions]);
 
-	// Keep the kbd-selected row in view (the rows are the container's only
-	// buttons, so the index matches).
+	// Mantén a la vista la fila seleccionada con el teclado (las filas son los únicos
+	// botones del contenedor, así que el índice coincide).
 	useEffect(() => {
 		if (kbdIndex === null) return;
 		listRef.current?.querySelectorAll("button")[kbdIndex]?.scrollIntoView({ block: "nearest" });
@@ -647,8 +658,8 @@ function SessionsSidebar() {
 	useEffect(() => {
 		if (!open) return;
 		void refresh();
-		// Opening + navigation refetch; while open, the events channel owns
-		// freshness (S6) — no interval, nothing standing.
+		// Abrir + navegar vuelven a pedir; mientras está abierta, el canal de eventos se
+		// encarga de la frescura (S6) — sin intervalos, nada permanente.
 	}, [open, pathname, refresh]);
 
 	return (
@@ -657,22 +668,22 @@ function SessionsSidebar() {
 			aria-hidden={!open}
 		>
 			<div className="flex h-full w-72 flex-col border-r bg-background">
-				{/* LH wordmark — the owner's header; close toggle sits at the edge.
-				    Merged chrome (2026-09-17): in Electron this band is the
-				    window's drag surface and starts after the traffic lights
-				    (.lh-lights-gutter); in the browser those classes are inert. */}
+				{/* Marca LH — la cabecera del responsable; el botón de cerrar va en el borde.
+				Cromo fusionado (2026-09-17): en Electron esta franja es la superficie de
+				arrastre de la ventana y empieza después de los semáforos
+				(.lh-lights-gutter); en el navegador esas clases son inertes. */}
 				<div className="lh-drag lh-lights-gutter flex items-center justify-between px-4 py-3">
-					{/* The owner's mark (2026-09-17) replaces the "LH" text — still the
-					    home link, still vertically centered by the band's items-center.
-					    The 92px .lh-lights-gutter keeps it clear of the traffic lights
-					    with the lights' own edge-inset as the gap. */}
-					{/* Hover mirrors the ghost toggle buttons (owner ask, 2026-09-17):
-					    same size-9 chip geometry, same hover:bg-accent treatment. */}
+					{/* La marca del responsable (2026-09-17) sustituye al texto "LH" — sigue
+					siendo el enlace al inicio, sigue centrada en vertical por el items-center
+					de la franja. El .lh-lights-gutter de 92px la aparta de los semáforos con el
+					propio margen de borde de estos como hueco. */}
+					{/* El hover imita los botones fantasma de alternar (petición del responsable, 2026-09-17):
+					la misma geometría de chip size-9, el mismo tratamiento hover:bg-accent. */}
 					<Hint
-						// Kept (owner, subtlety round 2026-09-25) but to the RIGHT
-						// of the logo, carrying its real shortcut: ⌘G jumps to
-						// the graph view (keyboard-shortcuts routes it to "/",
-						// the same destination as this logo).
+						// Se mantiene (responsable, ronda de sutileza 2026-09-25) pero a la DERECHA
+						// del logo, con su atajo real: ⌘G salta a la
+						// vista del grafo (keyboard-shortcuts la enruta a "/",
+						// el mismo destino que este logo).
 						label="Home"
 						action="jump-graph"
 						side="right"
@@ -698,7 +709,7 @@ function SessionsSidebar() {
 					</Hint>
 				</div>
 
-				{/* Core doors always lead explicit plugin sidebar placements. */}
+				{/* Las puertas del núcleo siempre van delante de las colocaciones explícitas de plugins en la barra lateral. */}
 				<PluginSidebarActions>
 					<button
 						type="button"
@@ -734,20 +745,20 @@ function SessionsSidebar() {
 							value={query}
 							onChange={(e) => {
 								setQuery(e.target.value);
-								// The list reorders under the query every keystroke —
-								// a stale walk index would point at the wrong row.
+								// La lista se reordena bajo la consulta en cada pulsación —
+								// un índice de recorrido obsoleto apuntaría a la fila equivocada.
 								setKbdIndex(null);
 							}}
-							// THE SEARCH OWNS THE WALK (owner, 2026-10-10 — the
-							// retired Alt+↑/↓/↵ cycle's successor): ↑/↓ cycle the
-							// filtered rows (wrap), Enter opens the walked row —
-							// or the FIRST match when nothing is walked (the
-							// quick-open pattern) — then blurs (focus returns to
-							// the app per the Enter law; the query stays for
-							// re-searching). Esc leaves the search (owner,
-							// keyboard wave): blur back to normal, and claim the
-							// key so the window Esc chain (dictation / abort)
-							// doesn't also fire.
+							// LA BÚSQUEDA ES DUEÑA DEL RECORRIDO (responsable, 2026-10-10 — el
+							// sucesor del ciclo Alt+↑/↓/↵ retirado): ↑/↓ recorren las
+							// filas filtradas (con vuelta), Enter abre la fila recorrida —
+							// o la PRIMERA coincidencia cuando no se ha recorrido nada (el
+							// patrón de apertura rápida) — y luego quita el foco (el foco vuelve a
+							// la app según la ley de Enter; la consulta se queda para
+							// volver a buscar). Esc sale de la búsqueda (responsable,
+							// oleada de teclado): quita el foco para volver a lo normal, y reclama la
+							// tecla para que la cadena de Esc de la ventana (dictado / abort)
+							// no se dispare también.
 							onKeyDown={(e) => {
 								if (e.key === "Escape") {
 									if (!interactions.isElementEligible(e.currentTarget)) return;
@@ -756,12 +767,12 @@ function SessionsSidebar() {
 									e.currentTarget.blur();
 									return;
 								}
-								// Modified keys belong to the surface (⇧↵ etc.).
+								// Las teclas con modificador pertenecen a la superficie (⇧↵, etc.).
 								if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
 								const n = shown?.length ?? 0;
 								if (n === 0) return;
 								if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-									// The rows move, not the caret.
+									// Se mueven las filas, no el cursor.
 									e.preventDefault();
 									const dir = e.key === "ArrowDown" ? 1 : -1;
 									setKbdIndex((i) =>
@@ -787,13 +798,13 @@ function SessionsSidebar() {
 					</Hint>
 				</div>
 
-				{/* The three-way filter, HEADING THE LIST (owner round 8b,
-				    2026-10-05 — moved below the search): it scopes what the
-				    list shows, so it sits directly above it as a caption row;
-				    search stays the top muscle-memory target. Order: Teaching /
-				    Practice / All — the real modes first, "All" as the escape
-				    hatch on the right, mirroring the create-buttons above.
-				    Persisted client-side. */}
+				{/* El filtro a tres bandas, ENCABEZANDO LA LISTA (ronda 8b del responsable,
+				2026-10-05 — movido debajo de la búsqueda): delimita lo que muestra la
+				lista, así que va justo encima de ella como una fila de leyenda; la
+				búsqueda sigue siendo el destino de memoria muscular de arriba. Orden:
+				Teaching / Practice / All — primero los modos reales, "All" como vía de
+				escape a la derecha, igual que los botones de crear de arriba.
+				Persistido en el cliente. */}
 				<div className="mx-3 flex items-center gap-0.5 rounded-md border border-border/60 bg-background p-0.5" data-testid="session-kind-filter">
 					{(["teach", "practice", "all"] as const).map((f) => (
 						<button
@@ -846,16 +857,16 @@ function SessionsSidebar() {
 					)}
 				</div>
 
-					{/* Background agents (owner, sidebar round): the section is
-					    ALWAYS here — empty means empty (the header sits alone); it
-					    populates and grows when processes run. The session list is
-					    flex-1, so this pins to the bottom. Sidebar closed = the
-					    learner opted out (no ambient signal, user decision). */}
+					{/* Agentes en segundo plano (responsable, ronda de la barra lateral): la
+					sección está SIEMPRE aquí — vacía significa vacía (la cabecera sola); se
+					rellena y crece cuando hay procesos en marcha. La lista de sesiones es
+					flex-1, así que esto queda fijado abajo. Barra lateral cerrada = el
+					alumno ha optado por no verlo (sin señal ambiental, decisión del usuario). */}
 					<ActivitySection />
 
-					{/* Settings entry (settings-app wave): same row language as
-					    New session — quiet, bottom-pinned, opens the centered
-					    dialog (also mod+, in the keyboard registry). */}
+					{/* Entrada de ajustes (oleada de la app de ajustes): el mismo lenguaje de
+					fila que New session — discreta, fijada abajo, abre el diálogo centrado
+					(también mod+, en el registro de teclado). */}
 					<div className="px-3 pb-3 pt-1">
 						<Hint label="Settings" action="open-settings" side="right">
 							<button
@@ -871,10 +882,11 @@ function SessionsSidebar() {
 					</div>
 				</div>
 
-				{/* The context menu (wave 6 + the extraction-UX redesign): the
-				    coverage block above, then exactly two management actions
-				    (owner ruling — no more). MenuShell owns placement/focus/arrow
-				    cycling; the dismissal effect above owns the contract. */}
+				{/* El menú contextual (oleada 6 + el rediseño de la UX de extracción): el
+				bloque de cobertura arriba y luego exactamente dos acciones de gestión
+				(decisión del responsable — ni una más). MenuShell es dueño de la
+				colocación/foco/recorrido con flechas; el efecto de descarte de arriba es
+				dueño del contrato. */}
 				{ctxChatId !== null && (
 					<MenuShell onClose={() => { setCtxChatId(null); return "closed"; }}
 						anchorRef={ctxAnchorRef}
@@ -882,12 +894,12 @@ function SessionsSidebar() {
 						preferredSide="down"
 						menuClass="flex w-52 flex-col gap-0.5 rounded-xl border bg-card p-2 text-xs shadow-xl"
 					>
-						{/* The two management actions first, then the extraction block
-						    (owner refinement round, 2026-09-24): Rename/Delete stay at the
-						    top, the coverage numbers + Extract affordance sit below the
-						    hairline — the block is info + a stateful affordance, the
-						    actions above it. Fetched on menu open (the block mounts WITH
-						    the menu); 409 = benign. Renders nothing on a failed read. */}
+						{/* Primero las dos acciones de gestión y luego el bloque de extracción
+						(ronda de refinamiento del responsable, 2026-09-24): Rename/Delete se quedan
+						arriba, las cifras de cobertura + la indicación de Extract van bajo la
+						línea fina — el bloque es información + una indicación con estado, las
+						acciones encima de él. Se pide al abrir el menú (el bloque se monta CON
+						el menú); 409 = inofensivo. No renderiza nada si la lectura falla. */}
 						<button
 							type="button"
 							data-testid="ctx-rename"
@@ -899,11 +911,11 @@ function SessionsSidebar() {
 						>
 							Rename
 						</button>
-						{/* Export as Markdown (owner, release polish 2026-10-06): the
-					    session-markdown engine's user-facing debut — same-origin
-						    anchor download; the route's Content-Disposition names the
-						    file. Sits with the management actions, above Delete (the
-						    destructive action stays last — the danger-fence law). */}
+						{/* Exportar como Markdown (responsable, pulido de la versión 2026-10-06): el
+					debut de cara al usuario del motor session-markdown — descarga mediante un
+					ancla del mismo origen; el Content-Disposition de la ruta da nombre al
+					fichero. Va con las acciones de gestión, encima de Delete (la acción
+					destructiva se queda la última — la ley de la barrera de peligro). */}
 						<button
 							type="button"
 							data-testid="ctx-export-md"
@@ -912,7 +924,7 @@ function SessionsSidebar() {
 								setCtxChatId(null);
 								const a = document.createElement("a");
 								a.href = `/api/chats/${chatId}/markdown`;
-								a.download = ""; // the route's filename wins
+								a.download = ""; // gana el nombre de fichero de la ruta
 								document.body.appendChild(a);
 								a.click();
 								a.remove();
@@ -938,8 +950,8 @@ function SessionsSidebar() {
 					</MenuShell>
 				)}
 
-				{/* The two-option delete dialog (wave 6) — portaled to body
-				    by the component itself, lives here for state locality. */}
+				{/* El diálogo de borrado con dos opciones (oleada 6) — lo pone en portal
+				al body el propio componente; vive aquí por localidad del estado. */}
 				<DeleteSessionDialog
 					chat={deleting}
 					onClose={() => setDeleting(null)}
@@ -949,7 +961,7 @@ function SessionsSidebar() {
 	);
 }
 
-/** The app frame: sidebar inline + content. Rendered once in the root layout. */
+/** El marco de la app: barra lateral en línea + contenido. Se renderiza una vez en el layout raíz. */
 export function AppShell({ children }: { children: React.ReactNode }) {
 	const [contentRoot, setContentRoot] = useState<HTMLElement | null>(null);
 	const pathname = usePathname();
@@ -959,9 +971,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 			<InteractionLayersProvider><SettingsDialogProvider>
 				<SessionsSidebar />
 				<FilePathDropZone className="relative isolate min-w-0 flex-1" onContentRoot={setContentRoot}>{children}</FilePathDropZone>
-				{/* The single document-level keydown listener (keyboard wave A) —
-				    after the content in the tree, but it's window-level so order only
-				    matters for the events it dispatches, never for DOM priority. */}
+				{/* El único listener de keydown a nivel de documento (oleada de teclado A)
+				— después del contenido en el árbol, pero está a nivel de ventana, así que el
+				orden solo importa para los eventos que despacha, nunca para la prioridad en el DOM. */}
 				<KeyboardShortcuts />
 				<PluginWidgets />
 			</SettingsDialogProvider></InteractionLayersProvider>
