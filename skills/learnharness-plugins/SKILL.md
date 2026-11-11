@@ -1,133 +1,164 @@
 ---
 name: learnharness-plugins
-description: Build, inspect, or debug trusted-local LearnHarness plugins using the public API. Covers views/actions/settings, host UI, teaching questions, practice problems, whole-session context, submission interception/images, page-body surfaces, renderers, document conversion, learning-data readers, model calls, managed agents, workers and plugin lifecycle.
+description: Crea, inspecciona o depura plugins locales de confianza de LearnHarness con la API pública. Cubre vistas/acciones/ajustes, interfaz del host, preguntas de enseñanza, problemas de práctica, contexto de toda la sesión, intercepción de envíos e imágenes, superficies sobre el cuerpo de la página, renderizadores, conversión de documentos, lectores de datos de aprendizaje, llamadas a modelos, agentes gestionados, workers y ciclo de vida de los plugins.
 ---
 
-# LearnHarness plugin authoring
+# Autoría de plugins de LearnHarness
 
-## Read the matching contract
+## Lee el contrato correspondiente
 
-Start with the [authoring guide and documentation map](../../docs/plugin-authoring.md),
-then use the [complete API reference](../../docs/plugin-api/README.md) for exact
-signatures, members and linked data/event types. Read the feature contracts relevant
-to the task:
+Empieza por la [guía de autoría y el mapa de la documentación](../../docs/plugin-authoring.md)
+y usa después la [referencia completa de la API](../../docs/plugin-api/README.md) para las
+firmas exactas, los miembros y los tipos de datos y eventos enlazados. Lee los contratos de
+las funcionalidades relevantes para la tarea:
 
-| Area | Reference |
+| Área | Referencia |
 | --- | --- |
-| Host boundaries and implementation map | [Architecture](../../docs/plugin-architecture.md) |
-| Teaching questions/editors/grading | [Question contract](../../docs/plugin-question-contract.md) |
-| Practice problems/editors/processing | [Problem contract](../../docs/plugin-problem-contract.md) |
-| Submission interception, images, surfaces | [Session extensions](../../docs/plugin-session-extension-contract.md) |
-| Read-only transcript/presentation/unsent drafts | [View context](../../docs/plugin-view-context.md) |
-| Controlled hierarchy presentation | [Tree contract](../../docs/plugin-tree-contract.md) |
-| Modal/menu/Escape/focus ownership | [Interaction contract](../../docs/dialog-overlay-contract.md) |
+| Límites del host y mapa de la implementación | [Arquitectura](../../docs/plugin-architecture.md) |
+| Preguntas de enseñanza, editores y calificación | [Contrato de preguntas](../../docs/plugin-question-contract.md) |
+| Problemas de práctica, editores y procesamiento | [Contrato de problemas](../../docs/plugin-problem-contract.md) |
+| Intercepción de envíos, imágenes y superficies | [Extensiones de sesión](../../docs/plugin-session-extension-contract.md) |
+| Transcripción, presentación y borradores sin enviar (solo lectura) | [Contexto de vista](../../docs/plugin-view-context.md) |
+| Presentación controlada de jerarquías | [Contrato de árbol](../../docs/plugin-tree-contract.md) |
+| Propiedad de modales, menús, Escape y foco | [Contrato de interacción](../../docs/dialog-overlay-contract.md) |
 
-In a checkout, public types are under `src/core/`: `plugins.ts`, `plugin-ui.ts`,
+En un checkout, los tipos públicos están en `src/core/`: `plugins.ts`, `plugin-ui.ts`,
 `plugin-agents.ts`, `plugin-workers.ts`, `plugin-questions.ts`, `plugin-problems.ts`,
 `plugin-submissions.ts`, `plugin-view-context.ts`, `plugin-tree.ts`.
-These paths are repository-relative. Use **type-only** imports, never private runtime
-modules. Emit portable declarations with `node scripts/build-plugin-types.mjs`.
-Without a checkout, download the complete authoring skill from **Settings → Community
-plugins → Download authoring skill**. Keep its root `SKILL.md`, `docs/`, `examples/`
-and `types/` together, including the portable `tools/`; use the included SDK rather than running repository build scripts.
-Read `bundle.json` for the producing app/API/SDK versions. API v1 can gain capabilities:
-check actual host compatibility rather than copying a stale `minAppVersion`. Exported
-Hello/recipe distributions conservatively require the producing app version; canonical
-official source manifests remain unchanged. Older targets need capability verification.
+Estas rutas son relativas al repositorio. Usa importaciones **solo de tipos**, nunca módulos
+privados de runtime. Genera declaraciones portables con `node scripts/build-plugin-types.mjs`.
+Sin checkout, descarga la skill de autoría completa desde **Ajustes → Plugins de la
+comunidad → Descargar skill de autoría**. Mantén juntos su `SKILL.md` raíz, `docs/`,
+`examples/` y `types/`, incluidas las `tools/` portables; usa el SDK incluido en lugar de
+ejecutar los scripts de compilación del repositorio.
+Lee `bundle.json` para conocer las versiones de la app, la API y el SDK que lo generaron.
+La API v1 puede ganar capacidades: comprueba la compatibilidad real del host en lugar de
+copiar un `minAppVersion` desfasado. Las distribuciones exportadas de Hello y de las recetas
+exigen, por prudencia, la versión de la app que las generó; los manifiestos fuente canónicos
+de los plugins oficiales no cambian. Para versiones de destino más antiguas hay que verificar
+las capacidades.
 
-## Choose a starting point
+## Elige un punto de partida
 
-Begin with [Hello](../../examples/plugins/hello-plugin/README.md) for the smallest
-view/settings plugin. The [example reading routes](../../docs/plugin-examples.md)
-lead to the canonical UI Showcase, Drawing Pad, Coding Questions, Flashcards and Rich
-Code Blocks source projects included in the skill. Use them as real-world public-API
-references, not private host APIs. Core project IDs are reserved: do not install unchanged
-Community copies. The example guide distinguishes standalone build prerequisites from
-checkout-dependent tests. Managed Agent and Teaching Extension are focused recipes,
-not the primary starting points. Model-using recipes may incur cost when explicitly run.
+Empieza por [Hello](../../examples/plugins/hello-plugin/README.md) para el plugin más pequeño
+de vista y ajustes. Las [rutas de lectura de ejemplos](../../docs/plugin-examples.md) llevan a
+los proyectos fuente canónicos de UI Showcase, Drawing Pad, Coding Questions, Flashcards y
+Rich Code Blocks incluidos en la skill. Úsalos como referencias reales de la API pública, no
+como API privadas del host. Los ID de los proyectos del núcleo están reservados: no instales
+copias sin modificar como plugins de la comunidad. La guía de ejemplos distingue los
+requisitos de compilación independiente de las pruebas que dependen del checkout. Managed
+Agent y Teaching Extension son recetas centradas, no los puntos de partida principales. Las
+recetas que usan modelos pueden tener coste cuando se ejecutan explícitamente.
 
-## Build and install
+## Compila e instala
 
-Prefer developing directly in `<plugins-directory>/<plugin-id>/`: clone/create the
-project there, install its build dependencies, and run `npm run build`. Its output is
-already the installed `dist/`; no copy step is needed. Find the directory in
-**Settings → Community plugins**. The installed folder must match the manifest ID.
+Es preferible desarrollar directamente en `<plugins-directory>/<plugin-id>/`: clona o crea
+allí el proyecto, instala sus dependencias de compilación y ejecuta `npm run build`. Su salida
+ya es el `dist/` instalado; no hace falta ningún paso de copia. El directorio aparece en
+**Ajustes → Plugins de la comunidad**. La carpeta instalada debe coincidir con el ID del
+manifiesto.
 
-For an outside workspace, copy the skill's portable installer into the plugin project
-and wire `npm run install:local -- "<plugins-directory>"` as described in the
-[authoring guide](../../docs/plugin-authoring.md#desarrollar-fuera-del-directorio-de-plugins).
-The command builds before replacing only installed `dist/`, preserving sibling `data/`.
-No destination autodiscovery, saved configuration, automatic enablement or restart.
-The included no-build examples can be copied directly; they do not need npm setup.
+Para un espacio de trabajo externo, copia el instalador portable de la skill en el proyecto
+del plugin y conecta `npm run install:local -- "<plugins-directory>"` como se describe en la
+[guía de autoría](../../docs/plugin-authoring.md#desarrollar-fuera-del-directorio-de-plugins).
+El comando compila antes de sustituir únicamente el `dist/` instalado y conserva el `data/`
+contiguo. No hay autodetección del destino, configuración guardada, activación automática ni
+reinicio. Los ejemplos incluidos que no requieren compilación se pueden copiar directamente;
+no necesitan configurar npm.
 
-## Guardrails
+## Salvaguardas
 
-- Ask the human for product behavior, prompts, defaults, algorithms, source policy,
-  interface and deletion decisions. The platform supplies mechanisms, not product authority.
-- Plugins are trusted local code, not a sandbox. Never expose credentials, mutate core
-  learning records, import host components or inject unsanitized model HTML.
-- Community runtime layout is `<learning data>/plugins/<id>/dist/manifest.json` plus bundles/assets.
-  Optional source/build configuration lives beside `dist/`; persistent `data/` is a sibling.
-  Build directly into `dist/`, not `dist/<id>/`. Bundle JavaScript; no host-side npm install.
-- Distribute built contents into the installed `<id>/dist/`, preserving sibling data.
-  Cleanup targets only generated `dist/`, never workspace/data, and must refuse symlinked
-  `dist/` or misplaced `dist/data/` before deletion.
-- Core code loads directly from app `core-plugins/<id>/`; writable core records are in
-  `<learning data>/core-plugin-data/<id>/`. Always use `ctx.directory`/`ctx.dataDirectory`,
-  never infer sibling paths. Core updates with the app; both origins start disabled and
-  retain explicit choices. Core IDs are reserved; community copies are skipped with a
-  diagnostic, not replacements. Use Settings → Community plugins for installations and
-  Settings → Core plugins for shipped features. `plugins:build-core` stages the four
-  catalog-selected packages; it never installs into learner data.
-- Refresh discovers packages/first builds; admitted code changes need server restart.
-  No hot reload, separate development registration or root-manifest fallback exists.
-- Backend activation is per server; frontend activation per window; view/editor mounts
-  have shorter lifetimes. Scope widgets to mount signals, clean up React roots/events/
-  subscriptions, fence late awaits/publications and avoid top-level side effects.
-- Host view shells own top bar/title/gear. Register actions before explicit placements;
-  registration creates no automatic chrome. Top bars require explicit sessions/own-view
-  targets. Optional action `shortcut` metadata explicitly scopes app-wide/session/own-view
-  invocation and an optional default chord; the existing Keyboard page handles rebinding.
-  Accept `placement: "keyboard"` when opting in. Use `refreshActions()` for plugin-owned
-  dynamic predicates; shortcut scope/default are captured at registration.
-- Use controlled `ctx.ui` helpers, not private imports or DOM-dependent styling. Feed
-  accepted values back through shallow handle updates; replace whole nested props.
-  Model/thinking controls do not write core settings. Keep host keyboard/IME/focus,
-  dictation ownership and one-Escape rules. Declarative action shortcuts do not expose
-  raw events, bypass foreground dialogs/editors, or register OS-wide hotkeys.
-- Session top-bar `context.view` is a fresh detached/frozen whole-session snapshot,
-  including current messages/transcript, presentation and unsent published drafts.
-  Use it instead of a second history parser/shuffle or private DOM inspection. Reads
-  never flush dictation, reveal, save, process or submit. Respect reveal/availability
-  flags for learner-facing output; inspectable history is not sanitized visible prose.
-- Teaching questions use saved schemas/exact occurrence and validate → optional grade →
-  save → continue. Grading returns finite JSON observations; the plugin owns display.
-  Practice problems use validate → optional process → save → continue; only the model's
-  existing `conclude` assesses/closes them. Never invent native envelopes or bypass
-  unavailable implementations. Custom editor values must publish ready before submission.
-- Interceptors are ordered and fail closed while retaining drafts. Keep `hasPendingInput`
-  side-effect-free; call `refreshSubmissions()` on external state changes. Consume only
-  captured material through acknowledged `onAccepted`, never model retry, dismissal or
-  guessed acceptance after a lost response. Attach explicit native images, not paths/URLs
-  or base64 inside answer JSON. Host thinking/images remain separate renderer channels.
-- Surfaces capture one page boundary or exact opaque target; never persist/reconstruct
-  targets or retarget after awaits. They cover body only, expire on navigation and stay
-  below Settings/dialogs. Use public content mounts and respect generation cleanup.
-- `ctx.documents.toMarkdown` accepts a browser File (PDF/strict UTF-8), not paths or
-  JSON-bridge uploads. It is bounded/cooperatively canceled, not OCR/storage/inference.
-- Inference needs explicit available model and truthful user/background purpose. No
-  silent provider/key fallback. Managed conversations and result workers have distinct
-  lifecycle/request-ID semantics; observation/navigation does not cancel execution.
-  Disable/restart interrupts unfinished work; recovery never replays arbitrary tools.
-- Notifications are live hints, not durable logs: use `onResync` plus current snapshots,
-  and release observers rather than polling hidden views.
+- Pregunta a la persona por el comportamiento del producto, los prompts, los valores por
+  defecto, los algoritmos, la política de fuentes, la interfaz y las decisiones de borrado.
+  La plataforma aporta mecanismos, no autoridad sobre el producto.
+- Los plugins son código local de confianza, no un sandbox. No expongas nunca credenciales,
+  no modifiques los registros de aprendizaje del núcleo, no importes componentes del host ni
+  inyectes HTML del modelo sin sanear.
+- La estructura de runtime de la comunidad es `<learning data>/plugins/<id>/dist/manifest.json`
+  más los bundles y recursos. La configuración opcional de fuentes y compilación vive junto a
+  `dist/`; el `data/` persistente es un directorio hermano. Compila directamente en `dist/`,
+  no en `dist/<id>/`. Empaqueta el JavaScript; no hay `npm install` en el lado del host.
+- Distribuye el contenido compilado en el `<id>/dist/` instalado, conservando los datos
+  hermanos. La limpieza solo afecta al `dist/` generado, nunca al espacio de trabajo ni a los
+  datos, y debe negarse a borrar si `dist/` es un enlace simbólico o hay un `dist/data/` mal
+  colocado.
+- El código del núcleo se carga directamente desde `core-plugins/<id>/` de la app; los
+  registros modificables del núcleo están en `<learning data>/core-plugin-data/<id>/`. Usa
+  siempre `ctx.directory`/`ctx.dataDirectory` y no deduzcas nunca rutas hermanas. El núcleo
+  se actualiza con la app; ambos orígenes empiezan desactivados y conservan las elecciones
+  explícitas. Los ID del núcleo están reservados; las copias de la comunidad se omiten con un
+  diagnóstico, no sustituyen al original. Usa Ajustes → Plugins de la comunidad para las
+  instalaciones y Ajustes → Plugins del núcleo para las funcionalidades incluidas.
+  `plugins:build-core` prepara los cuatro paquetes seleccionados en el catálogo; nunca instala
+  nada en los datos del alumno.
+- Actualizar descubre paquetes y primeras compilaciones; los cambios en código ya admitido
+  requieren reiniciar el servidor. No hay recarga en caliente, registro de desarrollo aparte
+  ni respaldo con un manifiesto en la raíz.
+- La activación del backend es por servidor; la del frontend, por ventana; los montajes de
+  vistas y editores tienen vidas más cortas. Limita los widgets a las señales de montaje,
+  limpia raíces de React, eventos y suscripciones, protege los `await` y publicaciones
+  tardíos y evita efectos secundarios en el nivel superior del módulo.
+- Las carcasas de vista del host gestionan la barra superior, el título y el engranaje.
+  Registra las acciones antes de colocarlas explícitamente; registrar no crea interfaz
+  automática. Las barras superiores requieren destinos explícitos de sesiones o de la propia
+  vista. Los metadatos opcionales `shortcut` de una acción delimitan explícitamente la
+  invocación (toda la app, la sesión o la propia vista) y una combinación de teclas por
+  defecto opcional; la página Teclado existente gestiona la reasignación. Acepta
+  `placement: "keyboard"` al habilitarlo. Usa `refreshActions()` para los predicados dinámicos
+  propios del plugin; el ámbito y la combinación por defecto se fijan al registrar.
+- Usa los asistentes controlados de `ctx.ui`, no importaciones privadas ni estilos que
+  dependan del DOM. Devuelve los valores aceptados mediante actualizaciones superficiales del
+  handle; sustituye por completo las props anidadas. Los controles de modelo y razonamiento
+  no escriben en los ajustes del núcleo. Respeta las reglas del host sobre teclado, IME y
+  foco, la propiedad del dictado y la de un único Escape. Los atajos declarativos de acciones
+  no exponen eventos en bruto, no saltan por encima de diálogos o editores en primer plano ni
+  registran atajos globales del sistema operativo.
+- El `context.view` de la barra superior de una sesión es una instantánea nueva, separada y
+  congelada de toda la sesión, que incluye los mensajes y la transcripción actuales, la
+  presentación y los borradores publicados sin enviar. Úsala en lugar de un segundo parser o
+  reordenación del historial o de inspeccionar el DOM privado. Las lecturas nunca vacían el
+  dictado ni revelan, guardan, procesan o envían nada. Respeta los indicadores de revelación
+  y disponibilidad en lo que se muestra al alumno; el historial inspeccionable no es prosa
+  visible saneada.
+- Las preguntas de enseñanza usan esquemas guardados y la ocurrencia exacta, y siguen el
+  ciclo validar → calificar (opcional) → guardar → continuar. La calificación devuelve
+  observaciones JSON finitas; el plugin decide cómo mostrarlas. Los problemas de práctica
+  siguen validar → procesar (opcional) → guardar → continuar; solo el `conclude` existente
+  del modelo los evalúa y cierra. No inventes nunca envoltorios nativos ni te saltes
+  implementaciones no disponibles. Los valores de los editores personalizados deben publicar
+  que están listos antes del envío.
+- Los interceptores van en orden y fallan de forma cerrada conservando los borradores.
+  Mantén `hasPendingInput` sin efectos secundarios; llama a `refreshSubmissions()` cuando
+  cambie el estado externo. Consume solo el material capturado a través de un `onAccepted`
+  confirmado; nunca en un reintento del modelo, un descarte o una aceptación supuesta tras
+  perder la respuesta. Adjunta imágenes nativas explícitas, no rutas, URL ni base64 dentro del
+  JSON de la respuesta. El razonamiento y las imágenes del host siguen siendo canales de
+  renderizado separados.
+- Las superficies capturan un límite de página o un destino opaco exacto; nunca persistas ni
+  reconstruyas destinos ni los cambies tras un `await`. Solo cubren el cuerpo, caducan al
+  navegar y quedan por debajo de Ajustes y los diálogos. Usa los montajes de contenido
+  públicos y respeta la limpieza por generación.
+- `ctx.documents.toMarkdown` acepta un File del navegador (PDF o UTF-8 estricto), no rutas ni
+  subidas por el puente JSON. Está acotado y se cancela de forma cooperativa; no hace OCR,
+  almacenamiento ni inferencia.
+- La inferencia necesita un modelo disponible explícito y un propósito veraz (usuario o
+  segundo plano). No hay respaldo silencioso de proveedor ni de clave. Las conversaciones
+  gestionadas y los workers de resultados tienen semánticas distintas de ciclo de vida y de
+  ID de petición; observar o navegar no cancela la ejecución. Desactivar o reiniciar
+  interrumpe el trabajo sin terminar; la recuperación nunca vuelve a ejecutar herramientas
+  arbitrarias.
+- Las notificaciones son pistas en vivo, no registros duraderos: usa `onResync` junto con
+  instantáneas actuales, y libera los observadores en lugar de sondear vistas ocultas.
 
-## Test without disturbing the installation
+## Prueba sin alterar la instalación
 
-Check plugin types/tests/build, runtime layout, disabled discovery, activation/cleanup,
-restart/data preservation, stale/async generations and native lifecycle paths actually
-used. Test through public APIs and real host controls, not private component imports in
-the plugin. Use disposable data and loopback providers where possible. Portable SDK,
-component/browser fixtures, packaged runtime checks and real-provider/OS tests establish
-different things; report those boundaries. App builds/installs, release changes, commits,
-plugin selection and distribution changes require their own human authorization.
+Comprueba los tipos, pruebas y compilación del plugin, la estructura de runtime, el
+descubrimiento estando desactivado, la activación y limpieza, el reinicio y la conservación
+de datos, las generaciones obsoletas y asíncronas y las rutas del ciclo de vida nativo que
+realmente uses. Prueba a través de las API públicas y los controles reales del host, no con
+importaciones de componentes privados en el plugin. Usa datos desechables y proveedores de
+loopback cuando sea posible. El SDK portable, los fixtures de componentes y navegador, las
+comprobaciones del runtime empaquetado y las pruebas con proveedores reales y sistema
+operativo demuestran cosas distintas; indica esos límites. Compilar o instalar la app, los
+cambios de versión, los commits, la selección de plugins y los cambios de distribución
+requieren su propia autorización humana.
