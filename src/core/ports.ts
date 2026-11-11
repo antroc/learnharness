@@ -1,12 +1,15 @@
 /**
- * Storage ports (the hexagonal seams — vision §1 "storage stays swappable").
+ * Puertos de almacenamiento (las fronteras hexagonales — visión §1 "el
+ * almacenamiento sigue siendo intercambiable").
  *
- * One port per ENTITY, with domain operations — never one generic
- * key/value interface. Core and the service layer that orbits it code
- * against these types only; concrete adapters live in src/store/ (fs
- * JSON/JSONL today, SQLite drop-in later) and are wired exactly once, in
- * the composition root (src/server/stores.ts). Dependencies point one way:
- * adapters may import core; core NEVER imports an adapter.
+ * Un puerto por ENTIDAD, con operaciones de dominio; nunca una interfaz
+ * genérica clave/valor. El núcleo y la capa de servicios que gira a su
+ * alrededor programan solo contra estos tipos; los adaptadores concretos
+ * viven en src/store/ (JSON/JSONL en el sistema de ficheros hoy, SQLite
+ * como sustituto directo más adelante) y se conectan exactamente una vez, en
+ * la raíz de composición (src/server/stores.ts). Las dependencias van en un
+ * solo sentido: los adaptadores pueden importar el núcleo; el núcleo NUNCA
+ * importa un adaptador.
  */
 
 import type { LhMessage } from "./native-messages.ts";
@@ -34,126 +37,128 @@ import type {
 import type { UserSettings } from "./settings.ts";
 import type { Theme, ThemeFile } from "./themes.ts";
 
-// ─── Plugin sessions — plugin-owned data, separate from core chats ──────────
+// ─── Sesiones de plugins — datos propiedad del plugin, separados de los chats del núcleo ───
 
-/** One writer per plugin directory. Failed atomic replacements must throw. */
+/** Un solo escritor por directorio de plugin. Los reemplazos atómicos fallidos deben lanzar una excepción. */
 export interface PluginAgentRecordStore {
 	list(): PluginAgentRecord[];
 	get(id: string): PluginAgentRecord | null;
 	save(record: PluginAgentRecord): void;
 }
 
-/** One writer per plugin task directory; accepted results require an atomic save. */
+/** Un solo escritor por directorio de tareas del plugin; los resultados aceptados exigen un guardado atómico. */
 export interface PluginTaskRecordStore {
 	list(): PluginTaskRecord[];
 	get(id: string): PluginTaskRecord | null;
 	save(record: PluginTaskRecord): void;
 }
 
-// ─── ChatStore — the session record's home (data/chats) ─────────────────────
+// ─── ChatStore — el hogar del registro de sesión (data/chats) ───────────────────
 
 export interface ChatStore {
-	/** Create a session record (persisted immediately). */
-	/** Create a session record; kind "practice" marks a practice session
-	 *  (absent = teach, the default). */
+	/** Crea un registro de sesión (se persiste de inmediato). */
+	/** Crea un registro de sesión; el tipo "practice" marca una sesión de
+	 * práctica (ausente = enseñanza, el valor por defecto). */
 	createChat(title: string, kind?: "practice"): ChatRecord;
-	/** The full record, or null if unknown id / corrupt file. */
+	/** El registro completo, o null si el id es desconocido o el fichero está corrupto. */
 	getChat(id: string): ChatRecord | null;
-	/** All sessions, newest activity first (the sidebar's list view). */
+	/** Todas las sesiones, de actividad más reciente a más antigua (la vista de lista de la barra lateral). */
 	listChats(): ChatSummary[];
-	/** Persist the full native message list (the record IS the agent
-	 * state — Wave B, owner-approved 2026-09-26). */
+	/** Persiste la lista completa de mensajes nativos (el registro ES el estado
+	 * del agente — oleada B, aprobada por el responsable el 2026-09-26). */
 	saveMessages(id: string, messages: LhMessage[]): void;
-	/** Save a processed picture once, without changing conversation activity/order. */
+	/** Guarda una imagen procesada una sola vez, sin cambiar la actividad ni el orden de la conversación. */
 	saveImageSnapshot(id: string, snapshotId: string, image: ImageSnapshot): void;
-	/** Persist the session plan tree (plan tools call this in execute). */
+	/** Persiste el árbol del plan de la sesión (las herramientas del plan lo llaman en execute). */
 	saveTree(id: string, tree: PlanTree): void;
-	/** Append one usage entry to the record's turn log (the money channel,
-	 * 2026-09): idempotent per turn id — each request carries its own, so
-	 * a turn persisted twice appends once while continuation turns (which
-	 * share a response message id) each keep their usage. */
+	/** Añade una entrada de uso al registro de turnos (el canal del dinero,
+	 * 2026-09): idempotente por id de turno — cada petición lleva el suyo, así
+	 * que un turno persistido dos veces se añade una sola vez, mientras que los
+	 * turnos de continuación (que comparten id de mensaje de respuesta) conservan
+	 * cada uno su uso. */
 	appendTurnUsage(id: string, entry: TurnUsage): void;
-	/** Append one extraction-run usage entry — idempotent per startedAt. */
+	/** Añade una entrada de uso de una ejecución de extracción — idempotente por startedAt. */
 	appendExtractionUsage(id: string, entry: ExtractionRunUsage): void;
-	/** Persist the per-chat model/thinking settings (the model control).
-	 *  Replace-whole: the picker sends the complete settings object. */
+	/** Persiste los ajustes de modelo y razonamiento por chat (el control de modelo).
+	 * Reemplazo completo: el selector envía el objeto de ajustes entero. */
 	saveSettings(id: string, settings: ChatSettings): void;
-	/** Rename a session (the header's click-to-edit title, 2026-09-17).
-	 * Like saveSettings: a rename is NOT conversation activity — updatedAt
-	 * stays put, so sidebar order never churns on a rename. */
+	/** Renombra una sesión (el título editable con clic de la cabecera, 2026-09-17).
+	 * Como saveSettings: renombrar NO es actividad de la conversación — updatedAt
+	 * no se mueve, así que el orden de la barra lateral nunca se agita al renombrar. */
 	renameChat(id: string, title: string): ChatRecord;
-	/** Delete the session record entirely (session-deletion wave 6, owner
-	 *  2026-09-22). False when the id is unknown. The graph-ledger purge and
-	 *  job cleanup are the caller's choreography (core/graph-deletion.ts +
-	 *  the DELETE route), not the store's. */
+	/** Borra por completo el registro de la sesión (oleada 6 de borrado de sesiones,
+	 * responsable, 2026-09-22). Devuelve false si el id es desconocido. La purga del
+	 * registro del grafo y la limpieza de tareas son la coreografía del llamador
+	 * (core/graph-deletion.ts + la ruta DELETE), no del almacén. */
 	deleteChat(id: string): boolean;
-	/** Read-modify-write the record's side-question threads (inline
-	 *  clarification threads, 2026-11-02) in one synchronous section — the
-	 *  same per-field discipline as the usage logs, so it never clobbers a
-	 *  concurrent turn's messages. Returns the stored threads, or null when
-	 *  the chat is unknown (deleted mid-answer is not an error). Silent: the
-	 *  side-chat service announces its own changes. Not conversation
-	 *  activity — updatedAt stays put. */
+	/** Lee, modifica y escribe los hilos de preguntas laterales del registro (hilos
+	 * de aclaración en línea, 2026-11-02) en una sola sección síncrona — la misma
+	 * disciplina por campo que los registros de uso, así nunca machaca los mensajes
+	 * de un turno concurrente. Devuelve los hilos guardados, o null si el chat es
+	 * desconocido (que se borre a mitad de respuesta no es un error). Silencioso:
+	 * el servicio del hilo lateral anuncia sus propios cambios. No es actividad
+	 * de la conversación — updatedAt no se mueve. */
 	updateSideChats(id: string, update: (threads: SideChatThread[]) => SideChatThread[]): SideChatThread[] | null;
 }
 
-// ─── GraphStore — the append-only evidence ledgers (data/graph) ──────────────
-// Chains are the stored truth (owner, 2026-09-30): nodes + reasoning
-// chains; edges are a DERIVED view (core/graph.ts) and never touch this
-// seam. Reads return the raw append-order lines; merging chain assertions
-// by (premises, conclusion) is DERIVED in core/graph.ts — the store never
-// decides. The extraction pipeline is the sole writer; this read surface
-// stays.
+// ─── GraphStore — los registros de evidencia de solo adición (data/graph) ────────
+// Las cadenas son la verdad almacenada (responsable, 2026-09-30): nodos + cadenas
+// de razonamiento; las aristas son una vista DERIVADA (core/graph.ts) y nunca tocan
+// esta frontera. Las lecturas devuelven las líneas en bruto en orden de adición; la
+// fusión de aserciones de cadena por (premisas, conclusión) se DERIVA en core/graph.ts
+// — el almacén nunca decide. El proceso de extracción es el único escritor; esta
+// superficie de lectura se queda.
 
 export interface GraphStore {
-	/** Append one GraphNode (ids are unique — no merging needed). */
+	/** Añade un GraphNode (los ids son únicos — no hace falta fusionar). */
 	appendNode(node: GraphNode): void;
-	/** Raw node lines in append order. */
+	/** Líneas de nodos en bruto, en orden de adición. */
 	readNodes(): GraphNode[];
 
-	/** Append one chain ASSERTION (a second session asserting the same
-	 *  (premises, conclusion) appends another line; readers merge). */
+	/** Añade una ASERCIÓN de cadena (una segunda sesión que afirme las mismas
+	 * (premisas, conclusión) añade otra línea; los lectores fusionan). */
 	appendChain(assertion: GraphChain): void;
 	readChains(): GraphChain[];
 
-	/** Append one emission checkpoint. */
+	/** Añade un punto de control de emisión. */
 	appendCheckpoint(checkpoint: SessionCheckpoint): void;
 	readCheckpoints(): SessionCheckpoint[];
-	/** Message-granular extraction coverage (vision-extraction-coverage.md):
-	 *  append-only; one line per covered message. The chat-extraction
-	 *  checkpoint — "uncovered" is derived from these, never tracked. */
+	/** Cobertura de extracción a nivel de mensaje (vision-extraction-coverage.md):
+	 * de solo adición; una línea por mensaje cubierto. El punto de control de la
+	 * extracción del chat — lo "no cubierto" se deriva de aquí, nunca se rastrea. */
 	appendCoverage(entry: CoverageEntry): void;
 	readCoverage(): CoverageEntry[];
 
-	/** Append one cluster-naming run's usage (graph-global money channel) —
-	 *  idempotent per startedAt. */
+	/** Añade el uso de una ejecución de nombrado de clústeres (canal del dinero
+	 * global del grafo) — idempotente por startedAt. */
 
-	/** Upsert one imported-notes source record (config.SOURCES_FILE — a
-	 *  JSON map, not a ledger; an upsert keeps the existing usage log). */
+	/** Inserta o actualiza un registro de fuente de apuntes importados
+	 * (config.SOURCES_FILE — un mapa JSON, no un registro de adición; la
+	 * actualización conserva el registro de uso existente). */
 	upsertSource(source: NotesSource): void;
-	/** Every notes source record, by id order-insensitive. */
+	/** Todos los registros de fuentes de apuntes, por id, sin importar el orden. */
 	readSources(): NotesSource[];
-	/** Remove imported-source bookkeeping only; the service removes graph traces first. */
+	/** Elimina solo la contabilidad de la fuente importada; el servicio elimina antes los rastros del grafo. */
 	deleteSources(ids: ReadonlySet<string>): number;
-	/** Append one run's usage to a source record — idempotent per
-	 *  startedAt, mirroring ChatRecord.extractions. */
+	/** Añade el uso de una ejecución a un registro de fuente — idempotente por
+	 * startedAt, igual que ChatRecord.extractions. */
 	appendSourceUsage(id: string, entry: ExtractionRunUsage): void;
 
-	/** The layout ledger (config.POSITIONS_FILE): nodeId → resting {x,y}.
-	 *  WRITTEN ONLY by the incremental settle after a merge (core/layout.ts
-	 *  settleGraphLayout) — read-only for everything else. */
+	/** El registro de disposición (config.POSITIONS_FILE): nodeId → {x,y} de reposo.
+	 * Lo ESCRIBE SOLO el asentamiento incremental tras una fusión (core/layout.ts
+	 * settleGraphLayout) — de solo lectura para todo lo demás. */
 	readPositions(): Record<string, Position>;
-	/** Replace the whole ledger (the settle is a full-graph computation). */
+	/** Reemplaza el registro entero (el asentamiento es un cálculo sobre todo el grafo). */
 	writePositions(positions: Record<string, Position>): void;
 
-	/** THE DESTRUCTIVE SEAM (session-deletion wave 6, owner 2026-09-22 —
-	 *  the first non-append operation on these ledgers): atomically
-	 *  replace the full contents of any subset of the six rewritable
-	 *  ledgers. Each provided array is written to a temp file and renamed
-	 *  over the ledger (crash-safe: a torn write never replaces the
-	 *  original); absent keys leave their ledger untouched. The pure
-	 *  computation is core/graph-deletion.ts — the store only makes the
-	 *  replacement atomic. */
+	/** LA FRONTERA DESTRUCTIVA (oleada 6 de borrado de sesiones, responsable,
+	 * 2026-09-22 — la primera operación que no es de adición sobre estos
+	 * registros): reemplaza de forma atómica el contenido completo de cualquier
+	 * subconjunto de los seis registros reescribibles. Cada array proporcionado se
+	 * escribe en un fichero temporal y se renombra sobre el registro (a prueba de
+	 * caídas: una escritura a medias nunca reemplaza el original); las claves
+	 * ausentes dejan su registro intacto. El cálculo puro está en
+	 * core/graph-deletion.ts — el almacén solo hace atómico el reemplazo. */
 	rewriteLedgers(next: {
 		nodes?: GraphNode[];
 		chains?: GraphChain[];
@@ -162,124 +167,129 @@ export interface GraphStore {
 	}): void;
 }
 
-/** Separate from graph ledgers and source identity, for future shared views. */
+/** Separado de los registros del grafo y de la identidad de las fuentes, para futuras vistas compartidas. */
 export interface SourceOrganizationStore {
 	read(): import("./source-organization.ts").SourceOrganization;
 	write(state: import("./source-organization.ts").SourceOrganization): void;
 }
 
-// ─── JobStore — background sub-agent jobs (data/jobs) ─────────────────────────
+// ─── JobStore — tareas de subagentes en segundo plano (data/jobs) ─────────────────
 
 export interface CreateJobInit {
 	kind: JobKind;
 	chatId: string;
 	toolCallId: string;
-	/** First activity line (defaults to "starting"). */
+	/** Primera línea de actividad (por defecto, "starting"). */
 	activity?: string;
-	/** Host-owned plugin worker linkage, not model-selected routing. */
+	/** Vinculación con el worker del plugin propiedad del host, no un enrutado elegido por el modelo. */
 	plugin?: PluginJobMetadata;
-	/** Saved on the job before its worker is spawned. */
+	/** Se guarda en la tarea antes de lanzar su worker. */
 	input?: unknown;
 }
 
-/** Mergeable fields — identity (id, kind, chatId, toolCallId, createdAt) is immutable. */
+/** Campos fusionables — la identidad (id, kind, chatId, toolCallId, createdAt) es inmutable. */
 export type JobPatch = Partial<Omit<JobRecord, "id" | "kind" | "chatId" | "toolCallId" | "createdAt">>;
 
 export interface JobStore {
-	/** Create a running job (keyed by toolCallId for spawn dedup). */
+	/** Crea una tarea en ejecución (indexada por toolCallId para deduplicar lanzamientos). */
 	createJob(init: CreateJobInit): JobRecord;
 	getJob(id: string): JobRecord | null;
-	/** Merge a patch into the record; null if unknown id. */
+	/** Fusiona un parche en el registro; null si el id es desconocido. */
 	updateJob(id: string, patch: JobPatch): JobRecord | null;
-	/** All jobs for a chat, newest activity first. */
+	/** Todas las tareas de un chat, de actividad más reciente a más antigua. */
 	listJobs(chatId: string): JobRecord[];
-	/** The job fulfilling a given tool part, if any (spawn-hook dedup). */
+	/** La tarea que atiende una parte de herramienta dada, si la hay (deduplicación del hook de lanzamiento). */
 	findJobByToolCallId(chatId: string, toolCallId: string): JobRecord | null;
-	/** Delete every job record for a chat — running or finished (session-
-	 *  deletion wave 6). Returns how many files were removed. The deletion
-	 *  route refuses while jobs are still running, so by the time this
-	 *  fires every record is terminal. */
+	/** Borra todos los registros de tareas de un chat — en ejecución o terminadas
+	 * (oleada 6 de borrado de sesiones). Devuelve cuántos ficheros se eliminaron.
+	 * La ruta de borrado se niega mientras haya tareas en ejecución, así que cuando
+	 * esto se dispara todos los registros están en estado terminal. */
 	deleteJobsForChat(chatId: string): number;
 }
 
-// ─── SettingsStore — THE user settings record (settings-storage wave, 2026-09-19) ──
+// ─── SettingsStore — EL registro de ajustes del usuario (oleada de almacenamiento de ajustes, 2026-09-19) ──
 
 /**
- * The one record for every non-secret product preference (core/settings.ts
- * UserSettings — delta semantics, see that module's doc). The store is
- * replace-whole on the RECORD; per-section scoping is a server-band concern
- * (single process, no stale-client hazard to defend against at this seam).
- * Schema-version lazy migration happens inside readSettings, never in
- * the callers. (The legacy default-settings.json fold died with the chat
- * section — per-session models, owner 2026-09-28.)
+ * El único registro de todas las preferencias no secretas del producto
+ * (UserSettings de core/settings.ts — semántica de deltas, ver la
+ * documentación de ese módulo). El almacén reemplaza el REGISTRO entero; el
+ * ámbito por sección es asunto de la banda del servidor (un solo proceso, sin
+ * riesgo de clientes desactualizados del que defenderse en esta frontera). La
+ * migración perezosa por versión de esquema ocurre dentro de readSettings,
+ * nunca en los llamadores. (El plegado del antiguo default-settings.json murió
+ * con la sección de chat — modelos por sesión, responsable, 2026-09-28.)
  */
 export interface SettingsStore {
-	/** The sanitized record, or null when none exists yet (first boot). */
+	/** El registro saneado, o null si aún no existe (primer arranque). */
 	readSettings(): UserSettings | null;
-	/** Persist the record (replace-whole). Callers pass a SANITIZED record. */
+	/** Persiste el registro (reemplazo completo). Los llamadores pasan un registro SANEADO. */
 	writeSettings(settings: UserSettings): void;
 }
 
-// ─── ThemeStore — imported custom themes (theme wave, 2026-11-04) ──────────
+// ─── ThemeStore — temas personalizados importados (oleada de temas, 2026-11-04) ──────────
 
 /**
- * Custom themes as `<id>.json` files under config.THEMES_DIR, one per
- * imported theme (core/themes.ts ThemeFile shape). The store persists
- * what it is given; validation and id choice are the route's concern.
- * Unreadable or invalid files are skipped on list, never thrown.
+ * Temas personalizados como ficheros `<id>.json` bajo config.THEMES_DIR, uno
+ * por tema importado (forma ThemeFile de core/themes.ts). El almacén persiste
+ * lo que recibe; la validación y la elección del id son asunto de la ruta.
+ * Los ficheros ilegibles o no válidos se omiten al listar, nunca lanzan.
  */
 export interface ThemeStore {
-	/** Every valid custom theme on disk, sorted by id. */
+	/** Todos los temas personalizados válidos del disco, ordenados por id. */
 	listThemes(): Theme[];
-	/** One custom theme, or null when the file is absent or invalid. */
+	/** Un tema personalizado, o null si el fichero no existe o no es válido. */
 	readTheme(id: string): Theme | null;
-	/** Persist a theme file at `<id>.json` (creates the dir). */
+	/** Persiste un fichero de tema en `<id>.json` (crea el directorio). */
 	writeTheme(id: string, theme: ThemeFile): void;
-	/** Remove `<id>.json`, if present. */
+	/** Elimina `<id>.json`, si existe. */
 	deleteTheme(id: string): void;
 }
 
-// ─── PromptOverrideStore — per-segment system-prompt overrides (2026-09-19) ──
+// ─── PromptOverrideStore — sustituciones del prompt del sistema por segmento (2026-09-19) ──
 
 /**
- * User text overriding ONE source prompt segment (the shared base or one
- * numeric fragment), stored at the data-dir seam mirroring the source
- * layout (config.PROMPTS_OVERRIDE_DIR). File presence is NOT the override:
- * the settings record's agent.prompts switch is the explicit on/off, so a
- * user can keep a customized file on disk while running the source default.
- * The segment LIST is always derived from source at runtime — see the
- * adapter (src/store/prompt-overrides.ts) for the loader rules.
+ * Texto del usuario que sustituye UN segmento del prompt fuente (la base
+ * compartida o un fragmento numerado), guardado en la frontera del directorio
+ * de datos reflejando la estructura del código fuente
+ * (config.PROMPTS_OVERRIDE_DIR). Que exista el fichero NO es la sustitución:
+ * el interruptor agent.prompts del registro de ajustes es el encendido/apagado
+ * explícito, así que un usuario puede conservar un fichero personalizado en
+ * disco mientras usa el valor por defecto del código fuente. La LISTA de
+ * segmentos se deriva siempre del código fuente en tiempo de ejecución — ver
+ * el adaptador (src/store/prompt-overrides.ts) para las reglas del cargador.
  */
 export interface PromptOverrideStore {
-	/** Every override path currently on disk ("system-prompt.md",
-	 *  "teacher/20-teaching.md", ...), POSIX-relative, sorted. */
+	/** Todas las rutas de sustitución que hay ahora en disco ("system-prompt.md",
+	 * "teacher/20-teaching.md", ...), relativas en formato POSIX, ordenadas. */
 	listOverrides(): string[];
-	/** The override text, or null when the path has no file. */
+	/** El texto de la sustitución, o null si la ruta no tiene fichero. */
 	readOverride(segmentPath: string): string | null;
-	/** Persist override text for a segment path (creates parents). */
+	/** Persiste el texto de sustitución de la ruta de un segmento (crea los directorios padre). */
 	writeOverride(segmentPath: string, text: string): void;
-	/** Remove the override file, if present (switches are untouched — an
-	 *  on-switch with no file composes the source default, inert). */
+	/** Elimina el fichero de sustitución, si existe (los interruptores no se tocan —
+	 * un interruptor encendido sin fichero compone el valor por defecto del código
+	 * fuente, inerte). */
 	deleteOverride(segmentPath: string): void;
 }
 
-// ─── AuthStore — BYOK provider keys (auth-keys wave, 2026-09-19) ────────────
+// ─── AuthStore — claves de proveedor BYOK (oleada de claves de autenticación, 2026-09-19) ────
 
 /**
- * The long-standing flat {VAR: value} auth.json map (config.AUTH_FILE) —
- * the same file the Electron app has always hand-edited, now first-class
- * server-managed. Values are opaque strings: shape validation is a
- * server-band concern (core/auth-keys.ts validateKeyShape — the store
- * persists what it is given); env precedence is a server-band concern
- * too (src/server/keys.ts). Unknown vars ride along verbatim.
+ * El antiguo mapa plano {VAR: valor} de auth.json (config.AUTH_FILE) — el
+ * mismo fichero que la app de Electron siempre ha editado a mano, ahora
+ * gestionado por el servidor como ciudadano de primera. Los valores son
+ * cadenas opacas: validar su forma es asunto de la banda del servidor
+ * (validateKeyShape de core/auth-keys.ts — el almacén persiste lo que recibe);
+ * la precedencia del entorno también es asunto de la banda del servidor
+ * (src/server/keys.ts). Las variables desconocidas viajan tal cual.
  */
 export interface AuthStore {
-	/** The whole map — absent or corrupt file = {} ("no keys yet", the
-	 *  documented first-boot state). Never throws. */
+	/** El mapa entero — fichero ausente o corrupto = {} ("aún no hay claves", el
+	 * estado documentado del primer arranque). Nunca lanza. */
 	authVars(): Record<string, string>;
-	/** Set one VAR (atomic write, mode 0600 always, other vars preserved). */
+	/** Fija una VAR (escritura atómica, siempre con modo 0600, el resto de variables se conservan). */
 	setAuthVar(name: string, value: string): void;
-	/** Remove one VAR if present (absent = no-op, still a silent success). */
+	/** Elimina una VAR si existe (ausente = no hace nada, y sigue siendo un éxito silencioso). */
 	deleteAuthVar(name: string): void;
 }
 
