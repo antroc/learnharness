@@ -6,83 +6,83 @@
   </picture>
 </p>
 
-<p align="center"><strong>An agent harness for learning.</strong></p>
+<p align="center"><strong>Un arnés de agentes para aprender.</strong></p>
 
 <p align="center">
-  <a href="https://learnharness.ai">Download</a> ·
-  <a href="#how-it-works">How it works</a> ·
-  <a href="docs/README.md">Documentation</a> ·
-  <a href="https://github.com/amosblomqvist/learnharness/issues">Issues</a> ·
+  <a href="https://learnharness.ai">Descargar</a> ·
+  <a href="#cómo-funciona">Cómo funciona</a> ·
+  <a href="docs/README.md">Documentación</a> ·
+  <a href="https://github.com/amosblomqvist/learnharness/issues">Incidencias</a> ·
   <a href="https://discord.gg/5tCHHQEB2e">Discord</a>
 </p>
 
-LearnHarness uses AI agents to plan and teach lessons from your current understanding to your goal. It builds a detailed picture of what you understand and how you reason. That picture is updated as you learn.
+LearnHarness usa agentes de IA para planificar e impartir lecciones que te llevan desde lo que entiendes ahora hasta tu objetivo. Construye una imagen detallada de lo que entiendes y de cómo razonas, y esa imagen se actualiza a medida que aprendes.
 
-Instead of just giving you an explanation, it uses your answers and thinking to decide what you need next. Teaching builds understanding one reasoning step at a time. Practice makes it usable. A persistent knowledge graph carries it across sessions.
+En lugar de limitarse a darte una explicación, usa tus respuestas y tu forma de pensar para decidir qué necesitas a continuación. La enseñanza construye la comprensión paso a paso, un razonamiento cada vez. La práctica la hace utilizable. Un grafo de conocimiento persistente la conserva de una sesión a otra.
 
-![LearnHarness teaching session](docs/assets/teaching-session.png)
+![Sesión de enseñanza de LearnHarness](docs/assets/teaching-session.png)
 
-## How it works
+## Cómo funciona
 
-1. **Measure.** Before teaching, the agent finds where your understanding ends on each part the lesson depends on. Your answers, confidence, and thinking show it where to start.
-2. **Plan.** It works out a dependency map from that starting point to your goal. You can see the plan, and the lesson adapts when your understanding turns out different.
-3. **Teach.** Each step builds on something you already understand. You predict, get an explanation, and check your understanding. Confusions are repaired before anything is built on them. The aim is for the goal to feel obviously true, not merely familiar.
-4. **Practice.** Separate sessions pose varied problems that require the right knowledge to come to mind without being named first. Problems and hints adapt to your reasoning.
+1. **Medir.** Antes de enseñar, el agente averigua hasta dónde llega tu comprensión en cada parte de la que depende la lección. Tus respuestas, tu grado de confianza y tu razonamiento le indican por dónde empezar.
+2. **Planificar.** Elabora un mapa de dependencias desde ese punto de partida hasta tu objetivo. Puedes ver el plan, y la lección se adapta cuando tu comprensión resulta ser distinta de la prevista.
+3. **Enseñar.** Cada paso se apoya en algo que ya entiendes. Haces una predicción, recibes una explicación y compruebas lo que has entendido. Las confusiones se corrigen antes de construir nada encima. El objetivo es que la meta te parezca evidentemente cierta, no solo familiar.
+4. **Practicar.** Sesiones aparte plantean problemas variados que exigen que el conocimiento adecuado te venga a la cabeza sin que nadie lo nombre antes. Los problemas y las pistas se adaptan a tu razonamiento.
 
-**Think out loud.** The thinking fields let you explain your reasoning, uncertainties, and reactions in your own words. This is how the agent gets a detailed picture rather than just a record of right and wrong answers. You can type or use dictation.
+**Piensa en voz alta.** Los campos de razonamiento te permiten explicar con tus propias palabras tu razonamiento, tus dudas y tus reacciones. Así el agente obtiene una imagen detallada y no un simple registro de aciertos y fallos. Puedes escribir o usar el dictado.
 
-**Bring your files.** In the desktop app, attach PDFs, photos, or any other file with the paperclip, or drag them in. The file stays where it is: the message carries its path, and the agent reads it from there.
+**Trae tus ficheros.** En la aplicación de escritorio, adjunta PDF, fotos o cualquier otro fichero con el clip, o arrástralos. El fichero se queda donde está: el mensaje lleva su ruta y el agente lo lee desde allí.
 
-The agent can also research questions in the background, create visual explanations, show your own images in the lesson and mark them up with arrows and labels, and build interactive demonstrations.
+El agente también puede investigar preguntas en segundo plano, crear explicaciones visuales, mostrar tus propias imágenes en la lección y anotarlas con flechas y etiquetas, y construir demostraciones interactivas.
 
-## Knowledge that carries forward
+## Conocimiento que se acumula
 
-What you are taught accumulates as propositions and reasoning chains: individual claims and the premises that lead to them. The graph shows this structure, with links back to the source sessions. You can also import notes.
+Lo que se te enseña se acumula en forma de proposiciones y cadenas de razonamiento: afirmaciones concretas y las premisas que llevan a ellas. El grafo muestra esta estructura, con enlaces a las sesiones de origen. También puedes importar notas.
 
-Future teaching sessions can read the graph instead of starting from scratch. Practice sessions can draw their material from it. It stores the ideas and their connections, not ratings of your ability.
+Las futuras sesiones de enseñanza pueden leer el grafo en lugar de empezar de cero. Las sesiones de práctica pueden sacar su material de él. Guarda las ideas y sus conexiones, no valoraciones de tu capacidad.
 
-![LearnHarness knowledge graph](docs/assets/knowledge-graph.png)
+![Grafo de conocimiento de LearnHarness](docs/assets/knowledge-graph.png)
 
-## Download and get started
+## Descarga y primeros pasos
 
-**[Download from learnharness.ai](https://learnharness.ai)** · [GitHub Releases](https://github.com/amosblomqvist/learnharness/releases)
+**[Descarga desde learnharness.ai](https://learnharness.ai)** · [Versiones en GitHub](https://github.com/amosblomqvist/learnharness/releases)
 
-- **macOS (Apple Silicon):** signed and notarized DMG. Drag the app to Applications.
-- **Windows (x64):** run the installer. It is currently unsigned; Windows may show an “unknown publisher” or SmartScreen warning.
-- **Linux (x64):** make the AppImage executable and open it, or install the Debian/Ubuntu `.deb`.
+- **macOS (Apple Silicon):** DMG firmado y notarizado. Arrastra la aplicación a Aplicaciones.
+- **Windows (x64):** ejecuta el instalador. De momento no está firmado; Windows puede mostrar un aviso de «editor desconocido» o de SmartScreen.
+- **Linux (x64):** haz ejecutable el AppImage y ábrelo, o instala el `.deb` de Debian/Ubuntu.
 
-Choose your models, then start a session with what you want to understand. You can use provider API keys, supported subscription connections in the desktop app, an installed [Claude Code CLI](docs/claude-code.md), or a [custom OpenAI-compatible endpoint](docs/custom-providers.md), including a local model server. Optional dictation and web search use separate service keys. Web research can use a Tavily, Brave, Exa, Firecrawl, or Ollama key in Settings → Providers → Search. Ollama search uses its hosted service, not a local model server.
+Elige tus modelos y empieza una sesión con lo que quieras entender. Puedes usar claves de API de los proveedores, las conexiones por suscripción compatibles en la aplicación de escritorio, una [CLI de Claude Code](docs/claude-code.md) instalada o un [endpoint personalizado compatible con OpenAI](docs/custom-providers.md), incluido un servidor de modelos local. El dictado y la búsqueda web, ambos opcionales, usan claves de servicio aparte. La investigación web puede usar una clave de Tavily, Brave, Exa, Firecrawl u Ollama en Ajustes → Proveedores → Búsqueda. La búsqueda de Ollama usa su servicio alojado, no un servidor de modelos local.
 
-See [Getting started](docs/getting-started.md) for model setup, dictation, files, and notes imports, and [context, caching, and costs](docs/compaction-accounting.md) for advanced cache preferences.
+Consulta [Primeros pasos](docs/getting-started.md) para la configuración de modelos, el dictado, los ficheros y la importación de notas, y [contexto, caché y costes](docs/compaction-accounting.md) para las preferencias avanzadas de caché.
 
-All three platforms support in-app updates.
+Las tres plataformas admiten actualizaciones desde la propia aplicación.
 
-## Your keys, your data
+## Tus claves, tus datos
 
-- **Your keys and models.** No LearnHarness subscription or markup. Billing depends on your provider, CLI configuration, subscription, or local setup. The live cost meter estimates known API costs, not subscription, CLI, or custom-endpoint charges.
-- **Local storage.** Your chats, graph, settings, and API keys live on your machine. Learning records are plain files you can inspect.
-- **External services.** Models run through your configured providers. Model requests send the context needed for the task; web research and dictation also contact external services. Local storage does not mean offline processing.
-- **Inspectable behavior.** System prompts are visible and editable. The app is open source under the AGPL-3.0 license.
+- **Tus claves y tus modelos.** Sin suscripción ni recargo de LearnHarness. La facturación depende de tu proveedor, de la configuración de la CLI, de tu suscripción o de tu instalación local. El contador de coste en vivo estima los costes conocidos de API, no los cargos de suscripciones, CLI o endpoints personalizados.
+- **Almacenamiento local.** Tus chats, tu grafo, tus ajustes y tus claves de API se guardan en tu máquina. Los registros de aprendizaje son ficheros de texto plano que puedes inspeccionar.
+- **Servicios externos.** Los modelos se ejecutan a través de los proveedores que configures. Las peticiones a los modelos envían el contexto necesario para la tarea; la investigación web y el dictado también contactan con servicios externos. Almacenamiento local no significa procesamiento sin conexión.
+- **Comportamiento inspeccionable.** Los prompts de sistema son visibles y editables. La aplicación es de código abierto con licencia AGPL-3.0.
 
-## Development and support
+## Desarrollo y soporte
 
 ```bash
 npm ci
 npm run plugins:setup
 npm run dev        # http://localhost:3000
-npm test           # fixtures and fake providers
+npm test           # fixtures y proveedores simulados
 ```
 
-See the [documentation index](docs/README.md) for all guides, [development](docs/development.md) for setup and checks, [architecture](docs/architecture.md) for the runtime, [keyboard shortcuts](docs/keyboard.md), [themes](docs/themes.md) for the theme file format, and [desktop builds and releases](docs/desktop-release.md).
+Consulta el [índice de la documentación](docs/README.md) para ver todas las guías, [desarrollo](docs/development.md) para la configuración y las comprobaciones, [arquitectura](docs/architecture.md) para el runtime, los [atajos de teclado](docs/keyboard.md), [temas](docs/themes.md) para el formato de los ficheros de tema y [compilaciones y versiones de escritorio](docs/desktop-release.md).
 
-For trusted local plugins, start with the [authoring guide and capability map](docs/plugin-authoring.md). It links the question, practice-problem, submission, view-context and UI contracts. Use [`examples/plugins/`](examples/plugins/) for small runnable templates, [`plugins/`](plugins/) for feature source projects, and the [host architecture](docs/plugin-architecture.md) for internals.
+Para plugins locales de confianza, empieza por la [guía de autoría y el mapa de capacidades](docs/plugin-authoring.md). Enlaza los contratos de preguntas, problemas de práctica, envíos, contexto de vista e interfaz. Usa [`examples/plugins/`](examples/plugins/) para plantillas pequeñas ejecutables, [`plugins/`](plugins/) para los proyectos fuente de funcionalidades y la [arquitectura del host](docs/plugin-architecture.md) para los detalles internos.
 
-Questions, bug reports, and feature requests: [GitHub Issues](https://github.com/amosblomqvist/learnharness/issues).
+Preguntas, informes de errores y peticiones de funcionalidades: [GitHub Issues](https://github.com/amosblomqvist/learnharness/issues).
 
-Security vulnerabilities: report privately as described in [SECURITY.md](SECURITY.md), not in public issues.
+Vulnerabilidades de seguridad: infórmalas de forma privada como se describe en [SECURITY.md](SECURITY.md), no en incidencias públicas.
 
-## License
+## Licencia
 
 [AGPL-3.0](LICENSE)
 
-The app is free and open forever. If we ever charge for anything, it will be for convenience — managed keys, hosting — never for features you can run locally.
+La aplicación es gratuita y abierta para siempre. Si alguna vez cobramos por algo, será por comodidad —claves gestionadas, alojamiento—, nunca por funcionalidades que puedas ejecutar en local.

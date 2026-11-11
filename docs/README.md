@@ -1,30 +1,30 @@
-# Documentation
+# Documentación
 
-## User guides
+## Guías de usuario
 
-- [Getting started](getting-started.md) — connections, models, sessions, dictation, files, and notes imports.
-- [Keyboard shortcuts](keyboard.md) — defaults, rebinding, and navigation.
-- [Claude Code](claude-code.md) — use an installed CLI and troubleshoot its connection.
-- [Custom and local models](custom-providers.md) — configure an OpenAI-compatible endpoint.
-- [Context, caching, and costs](compaction-accounting.md) — understand the session meters and advanced cache preferences.
-- [Learning-data skill](../skills/learnharness/SKILL.md) — a read-only guide and standalone readers for local learning records.
+- [Primeros pasos](getting-started.md): conexiones, modelos, sesiones, dictado, ficheros e importación de notas.
+- [Atajos de teclado](keyboard.md): valores por defecto, reasignación y navegación.
+- [Claude Code](claude-code.md): usar una CLI instalada y resolver problemas de conexión.
+- [Modelos personalizados y locales](custom-providers.md): configurar un endpoint compatible con OpenAI.
+- [Contexto, caché y costes](compaction-accounting.md): entender los contadores de la sesión y las preferencias avanzadas de caché.
+- [Skill de datos de aprendizaje](../skills/learnharness/SKILL.md): una guía de solo lectura y lectores independientes para los registros de aprendizaje locales.
 
-## Development and maintenance
+## Desarrollo y mantenimiento
 
-- [Development](development.md) — setup, configuration, safe local work, debugging, and checks.
-- [Architecture](architecture.md) — runtime flows, storage, and integration boundaries.
-- [Prompt composition](../src/agent/prompts/README.md) — source fragments and user overrides.
-- [Tool-content recovery](tool-content-recovery.md) — display-only recovery of model-authored escaping defects.
-- [Desktop builds and releases](desktop-release.md) — packaging, release gates, and updates.
+- [Desarrollo](development.md): configuración, trabajo local seguro, depuración y comprobaciones.
+- [Arquitectura](architecture.md): flujos del runtime, almacenamiento y límites de integración.
+- [Composición de prompts](../src/agent/prompts/README.md): fragmentos fuente y personalizaciones del usuario.
+- [Recuperación del contenido de herramientas](tool-content-recovery.md): recuperación, solo para visualización, de defectos de escapado generados por el modelo.
+- [Compilaciones y versiones de escritorio](desktop-release.md): empaquetado, controles previos a la publicación y actualizaciones.
 
-## Teaching method
+## Método de enseñanza
 
-[The theory of learning and teaching](teaching-methodology.md) is the owner's theory underlying the teaching method. It is not a runtime specification or evidence of measured learning outcomes.
+[La teoría del aprendizaje y la enseñanza](teaching-methodology.md) es la teoría del autor en la que se basa el método de enseñanza. No es una especificación del runtime ni una prueba de resultados de aprendizaje medidos.
 
-## History
+## Historia
 
-[Archived design documents](archive/README.md) preserve earlier plans and decisions. They are not current specifications or instructions for development.
+Los [documentos de diseño archivados](archive/README.md) conservan planes y decisiones anteriores. No son especificaciones vigentes ni instrucciones para el desarrollo.
 
-## About these docs
+## Sobre esta documentación
 
-These guides follow the repository source. For a particular installed release, use the documentation at its Git tag and its release notes. Archived plans are historical; unmerged proposals are not documented as available features.
+Estas guías siguen el código fuente del repositorio. Para una versión instalada concreta, usa la documentación de su etiqueta de Git y sus notas de la versión. Los planes archivados son históricos; las propuestas no fusionadas no se documentan como funcionalidades disponibles.

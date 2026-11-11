@@ -1,51 +1,51 @@
-# Security policy
+# Política de seguridad
 
-LearnHarness stores API keys, sign-in tokens, chats, and learning records on your machine, and its agent reads files and fetches web content on your behalf. If you find a way to abuse any of that, please tell us privately so a fix can ship before the details are public.
+LearnHarness guarda en tu máquina claves de API, tokens de inicio de sesión, chats y registros de aprendizaje, y su agente lee ficheros y descarga contenido web en tu nombre. Si encuentras una forma de abusar de cualquiera de esas cosas, avísanos en privado para que pueda publicarse una corrección antes de que los detalles sean públicos.
 
-## Reporting a vulnerability
+## Cómo informar de una vulnerabilidad
 
-**Do not open a public issue, pull request, or Discord post for a security problem.**
+**No abras una incidencia, un pull request ni una publicación en Discord públicos para un problema de seguridad.**
 
-Report it through GitHub's private vulnerability reporting:
+Infórmalo mediante el sistema privado de notificación de vulnerabilidades de GitHub:
 [Security → Report a vulnerability](https://github.com/amosblomqvist/learnharness/security/advisories/new).
 
-If that page is unavailable, message a maintainer on [Discord](https://discord.gg/5tCHHQEB2e) and ask for a private channel. Do not include any details in that first message.
+Si esa página no está disponible, escribe a un mantenedor en [Discord](https://discord.gg/5tCHHQEB2e) y pide un canal privado. No incluyas ningún detalle en ese primer mensaje.
 
-A useful report includes:
+Un informe útil incluye:
 
-- the LearnHarness version and your OS;
-- what an attacker can do and what they need first (a web page the agent reads, a file the learner opens, network access, and so on);
-- steps to reproduce, or a proof of concept;
-- any fix or mitigation you have in mind.
+- la versión de LearnHarness y tu sistema operativo;
+- qué puede hacer un atacante y qué necesita previamente (una página web que lea el agente, un fichero que abra el alumno, acceso a la red, etc.);
+- los pasos para reproducirlo o una prueba de concepto;
+- cualquier corrección o mitigación que se te ocurra.
 
-## What to expect
+## Qué esperar
 
-These are targets, not guarantees:
+Son objetivos, no garantías:
 
-| Step | Target |
+| Paso | Objetivo |
 | --- | --- |
-| Acknowledge your report | within 7 days |
-| Initial assessment (confirmed or not, severity) | within 14 days |
-| Fix released and advisory published | within 90 days of the report |
+| Acusar recibo de tu informe | en un plazo de 7 días |
+| Evaluación inicial (confirmado o no, gravedad) | en un plazo de 14 días |
+| Corrección publicada y aviso de seguridad publicado | en un plazo de 90 días desde el informe |
 
-The fix is developed privately in a GitHub security advisory. We will keep you updated, agree on a disclosure date with you, and credit you in the published advisory unless you prefer to stay anonymous. A CVE can be requested through GitHub when one is warranted.
+La corrección se desarrolla en privado en un aviso de seguridad de GitHub. Te mantendremos informado, acordaremos contigo una fecha de divulgación y te reconoceremos en el aviso publicado, salvo que prefieras permanecer en el anonimato. Se puede solicitar un CVE a través de GitHub cuando esté justificado.
 
-## Supported versions
+## Versiones con soporte
 
-Only the latest release receives security fixes. The desktop app updates itself, so fixes reach users through a new release. If you run from source, update to the latest `main` or the latest release tag.
+Solo la última versión recibe correcciones de seguridad. La aplicación de escritorio se actualiza sola, así que las correcciones llegan a los usuarios mediante una nueva versión. Si la ejecutas desde el código fuente, actualiza a la última `main` o a la última etiqueta de versión.
 
-## Scope
+## Alcance
 
-In scope:
+Dentro del alcance:
 
-- the desktop app (Electron shell, window, and IPC);
-- the local API server, whether started by the desktop app or run from source;
-- the agent and its tools, including prompt injection from web pages, PDFs, or other content that leads to reading, changing, or sending your data;
-- rendered content such as demos, figures, and markdown;
-- the update and release pipeline.
+- la aplicación de escritorio (carcasa de Electron, ventana e IPC);
+- el servidor de API local, tanto si lo inicia la aplicación de escritorio como si se ejecuta desde el código fuente;
+- el agente y sus herramientas, incluida la inyección de prompts desde páginas web, PDF u otro contenido que lleve a leer, modificar o enviar tus datos;
+- el contenido renderizado, como demostraciones, figuras y markdown;
+- el proceso de actualización y publicación de versiones.
 
-Out of scope:
+Fuera del alcance:
 
-- attacks that already require running code as your OS user;
-- bugs in third-party model or service providers themselves (report those to the provider);
-- automated scanner output without a demonstrated impact on LearnHarness.
+- los ataques que ya requieren ejecutar código como tu usuario del sistema operativo;
+- los errores en los propios proveedores de modelos o servicios de terceros (comunícalos al proveedor);
+- la salida de escáneres automáticos sin un impacto demostrado en LearnHarness.

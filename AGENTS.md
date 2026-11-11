@@ -1,15 +1,11 @@
-<!-- BEGIN:nextjs-agent-rules -->
+## Este NO es el Next.js que conoces
 
-## This is NOT the Next.js you know
+Esta versión tiene cambios incompatibles: las API, las convenciones y la estructura de ficheros pueden diferir de tus datos de entrenamiento. Lee la guía correspondiente en `node_modules/next/dist/docs/` (resuelta desde el directorio de este fichero; en monorepos el paquete `next` puede no verse desde la raíz del repositorio) antes de escribir código. Haz caso de los avisos de obsolescencia.
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+`next dev` escribe y vuelve a añadir este bloque; compruébalo en `node_modules/next/dist/server/lib/generate-agent-files.js`. Quitarlo de un diff solo vuelve a crear el cambio sin confirmar; hacer commit de él junto con tu trabajo mantiene limpio el árbol.
 
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+# Nada de suposiciones
 
-<!-- END:nextjs-agent-rules -->
+Toda la autoridad de diseño corresponde a la persona. **No supongas nunca una decisión de diseño o de implementación.** Si algo es ambiguo —nombres, comportamiento, formas de los datos, UX, valores por defecto, límites del alcance, redacción de los prompts—, DETENTE y pregunta con la herramienta de preguntas al usuario antes de seguir. Si estás «un poco inseguro», es que no estás seguro: pregunta. Una suposición equivocada sale mucho más cara que una pregunta. Pregunta pronto, de forma concreta y una sola cosa por llamada.
 
-# No guessing
-
-All design authority belongs to the human. **Never guess a design or implementation decision.** If anything is ambiguous — naming, behavior, data shapes, UX, defaults, scope boundaries, prompt wording — STOP and ask with the ask-user-question tool before proceeding. If you are "a little unsure," you are unsure: ask. A wrong guess is far more expensive than a question. Ask early, ask specific, one question per call.
-
-Concretely: first investigate and plan rigorously (asking the user design questions along the way), get the plan approved by the user, and only then implement. Implementation should be mechanical execution of an approved plan — not interpretation.
+En concreto: primero investiga y planifica con rigor (haciendo al usuario las preguntas de diseño por el camino), consigue que apruebe el plan y solo entonces implementa. La implementación debe ser la ejecución mecánica de un plan aprobado, no una interpretación.

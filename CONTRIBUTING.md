@@ -1,57 +1,57 @@
-# Contributing to LearnHarness
+# Cómo contribuir a LearnHarness
 
-Bug reports, focused fixes, documentation, reviews, and testing are welcome. LearnHarness is a maintainer-led project with a deliberate core learning experience.
+Son bienvenidos los informes de errores, las correcciones acotadas, la documentación, las revisiones y las pruebas. LearnHarness es un proyecto dirigido por sus mantenedores con una experiencia de aprendizaje central deliberada.
 
-## Project direction
+## Dirección del proyecto
 
-Discuss meaningful changes to the project’s vision, teaching methodology, agent behavior, core architecture, or major workflows with maintainers **before implementation**. New features, integrations, and storage-format changes also need discussion first.
+Comenta con los mantenedores **antes de implementar** cualquier cambio relevante en la visión del proyecto, la metodología de enseñanza, el comportamiento del agente, la arquitectura central o los flujos de trabajo principales. Las funcionalidades nuevas, las integraciones y los cambios en el formato de almacenamiento también requieren hablarlo antes.
 
-A fix restores intended behavior; changing what the intended behavior should be is a design proposal. If that behavior is unclear, discuss it first. A fix that requires major architectural or storage changes still needs agreement on the approach.
+Una corrección restablece el comportamiento previsto; cambiar cuál debería ser ese comportamiento es una propuesta de diseño. Si ese comportamiento no está claro, coméntalo primero. Una corrección que exija cambios importantes de arquitectura o de almacenamiento también necesita un acuerdo sobre el enfoque.
 
-Plugins are the intended home for optional capabilities that do not belong in core. The plugin infrastructure is still under development, so discuss the use case rather than assuming a stable extension point exists.
+Los plugins son el lugar previsto para las capacidades opcionales que no pertenecen al núcleo. La infraestructura de plugins aún está en desarrollo, así que plantea el caso de uso en vez de dar por hecho que existe un punto de extensión estable.
 
-## Before starting
+## Antes de empezar
 
-Check existing issues, PRs, and the [public work board](https://github.com/users/amosblomqvist/projects/2) for related work. **In progress** means someone is already working on the problem; coordinate before starting a parallel implementation. A board item is not, by itself, agreement to implement a proposal.
+Revisa las incidencias, los PR y el [tablero de trabajo público](https://github.com/users/amosblomqvist/projects/2) en busca de trabajo relacionado. **In progress** (en curso) significa que alguien ya está trabajando en el problema; coordínate antes de empezar una implementación paralela. Que algo esté en el tablero no supone, por sí solo, que se haya acordado implementar una propuesta.
 
-- [Issues](https://github.com/amosblomqvist/learnharness/issues): concrete bugs and agreed implementation work.
-- [Discussions](https://github.com/amosblomqvist/learnharness/discussions): feature ideas and substantial design proposals. Explain the problem, proposed behavior, and relevant alternatives.
-- [Discord](https://discord.gg/5tCHHQEB2e): quick questions and conversation. Record actionable proposals and decisions on GitHub so others can find the context.
+- [Issues](https://github.com/amosblomqvist/learnharness/issues): errores concretos y trabajo de implementación acordado.
+- [Discussions](https://github.com/amosblomqvist/learnharness/discussions): ideas de funcionalidades y propuestas de diseño de cierto calado. Explica el problema, el comportamiento propuesto y las alternativas relevantes.
+- [Discord](https://discord.gg/5tCHHQEB2e): preguntas rápidas y conversación. Deja constancia en GitHub de las propuestas y decisiones que impliquen acciones, para que otros puedan encontrar el contexto.
 
 ## Pull requests
 
-**Keep each PR focused on one coherent problem.** Include the tests and documentation needed for that change, but leave unrelated fixes, refactors, dependency updates, and formatting changes for separate PRs. Follow the existing architecture and conventions.
+**Centra cada PR en un único problema coherente.** Incluye las pruebas y la documentación necesarias para ese cambio, pero deja para PR independientes las correcciones no relacionadas, las refactorizaciones, las actualizaciones de dependencias y los cambios de formato. Sigue la arquitectura y las convenciones existentes.
 
-Use **clear, precise, concise language**. Explain:
+Usa un **lenguaje claro, preciso y conciso**. Explica:
 
-- The problem, with a link to the relevant issue or discussion if one exists.
-- What changed and why it addresses the problem.
-- How you verified it, including important limitations and anything untested.
+- El problema, con un enlace a la incidencia o discusión correspondiente si existe.
+- Qué ha cambiado y por qué resuelve el problema.
+- Cómo lo has verificado, incluidas las limitaciones importantes y lo que no se ha probado.
 
-Avoid unnecessary jargon, lengthy boilerplate, and unsupported claims. Distinguish observed behavior from hypotheses.
+Evita la jerga innecesaria, el texto de relleno extenso y las afirmaciones sin respaldo. Distingue el comportamiento observado de las hipótesis.
 
-We judge contributions by their results, not the tools used to produce them. AI-assisted and manually written contributions follow the same standards; disclosure of AI assistance is not required. You are responsible for the accuracy of the description, implementation, tests, and documentation.
+Valoramos las contribuciones por sus resultados, no por las herramientas usadas para producirlas. Las contribuciones asistidas por IA y las escritas a mano siguen los mismos estándares; no es obligatorio declarar el uso de IA. Eres responsable de la exactitud de la descripción, la implementación, las pruebas y la documentación.
 
-### Verification
+### Verificación
 
-Run relevant checks and add regression coverage where useful. Briefly describe what you actually tested and any important limitations—for example, whether you used a real provider or mocked responses.
+Ejecuta las comprobaciones pertinentes y añade cobertura de regresión cuando sea útil. Describe brevemente lo que has probado realmente y cualquier limitación importante; por ejemplo, si has usado un proveedor real o respuestas simuladas.
 
-See the [development guide](docs/development.md) for setup and check commands, and the [architecture reference](docs/architecture.md) for runtime boundaries.
+Consulta la [guía de desarrollo](docs/development.md) para la configuración y los comandos de comprobación, y la [referencia de arquitectura](docs/architecture.md) para los límites del runtime.
 
-## Bug reports
+## Informes de errores
 
-Include the app version and relevant environment, what you did, what you expected, and what happened. Add the provider/model when relevant and a minimal example, screenshot, or redacted error if possible. Note whether the problem repeats and any workaround you found. You do not need to know the root cause.
+Indica la versión de la aplicación y el entorno relevante, qué hiciste, qué esperabas y qué ocurrió. Añade el proveedor/modelo cuando proceda y, si es posible, un ejemplo mínimo, una captura de pantalla o un error con los datos sensibles ocultos. Indica si el problema se repite y cualquier solución provisional que hayas encontrado. No hace falta que conozcas la causa raíz.
 
-Do not publish credentials, tokens, private learning records, or private course materials—or use them as test fixtures. Prefer synthetic or shareable examples.
+No publiques credenciales, tokens, registros de aprendizaje privados ni materiales de curso privados, ni los uses como fixtures de prueba. Es preferible usar ejemplos sintéticos o que se puedan compartir.
 
-## Review and credit
+## Revisión y reconocimiento
 
-Maintainers decide project direction and what is accepted. Review may lead to revisions, narrower scope, further discussion, or a decision not to proceed. Passing tests does not, by itself, establish that a proposed behavior belongs in the product.
+Los mantenedores deciden la dirección del proyecto y qué se acepta. La revisión puede dar lugar a modificaciones, a reducir el alcance, a más discusión o a la decisión de no seguir adelante. Que las pruebas pasen no demuestra, por sí solo, que un comportamiento propuesto tenga cabida en el producto.
 
-Where suitable, we build on contributors’ implementations and work through revisions with their authors. We may integrate a contribution with finishing changes while preserving authorship and appropriate credit; adopting part of a PR is not acceptance of the whole proposal.
+Cuando conviene, partimos de las implementaciones de quienes contribuyen y trabajamos las revisiones con sus autores. Podemos integrar una contribución con cambios de remate conservando la autoría y el reconocimiento adecuado; adoptar parte de un PR no supone aceptar la propuesta completa.
 
-A PR does not guarantee acceptance or inclusion in a particular release. Integration and publication are separate; consult the [work board](https://github.com/users/amosblomqvist/projects/2) and [releases](https://github.com/amosblomqvist/learnharness/releases) for current status.
+Un PR no garantiza su aceptación ni su inclusión en una versión concreta. Integrar y publicar son pasos distintos; consulta el [tablero de trabajo](https://github.com/users/amosblomqvist/projects/2) y las [versiones](https://github.com/amosblomqvist/learnharness/releases) para conocer el estado actual.
 
-**Interested in contributing regularly?** If you’d like to help maintain LearnHarness, review and finish fixes, or support other contributors, email me at [contribute@learnharness.ai](mailto:contribute@learnharness.ai). Tell me a little about your interests and how you’d like to help.
+**¿Te interesa contribuir con regularidad?** Si quieres ayudar a mantener LearnHarness, revisar y rematar correcciones o apoyar a otras personas que contribuyen, escríbeme a [contribute@learnharness.ai](mailto:contribute@learnharness.ai). Cuéntame un poco sobre tus intereses y cómo te gustaría ayudar.
 
-LearnHarness is licensed under [AGPL-3.0](LICENSE).
+LearnHarness se distribuye con licencia [AGPL-3.0](LICENSE).

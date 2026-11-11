@@ -1,72 +1,72 @@
-# Getting started
+# Primeros pasos
 
-Download LearnHarness from [learnharness.ai](https://learnharness.ai) or [GitHub Releases](https://github.com/amosblomqvist/learnharness/releases). For running from source, see [Development](development.md).
+Descarga LearnHarness desde [learnharness.ai](https://learnharness.ai) o desde [GitHub Releases](https://github.com/amosblomqvist/learnharness/releases). Para ejecutarlo desde el código fuente, consulta [Desarrollo](development.md).
 
-## Connect models
+## Conectar modelos
 
-Open **Settings → Providers** and configure a connection:
+Abre **Ajustes → Proveedores** y configura una conexión:
 
-- **Provider API keys:** use your own account and pay that provider's rates.
-- **Subscription connections:** ChatGPT, GitHub Copilot, and Grok use their respective sign-in flows and account limits. They do not silently fall back to API-key billing.
-- **[Claude Code](claude-code.md):** use a separately installed and authenticated CLI. Its own configuration controls routing and billing; this is not a subscription-only guarantee.
-- **[Custom endpoint](custom-providers.md):** connect one OpenAI-compatible server, including a local model server. LearnHarness does not install or download models.
+- **Claves de API de proveedores:** usa tu propia cuenta y paga las tarifas de ese proveedor.
+- **Conexiones por suscripción:** ChatGPT, GitHub Copilot y Grok usan sus respectivos flujos de inicio de sesión y los límites de cada cuenta. No recurren en silencio a la facturación por clave de API.
+- **[Claude Code](claude-code.md):** usa una CLI instalada y autenticada por separado. Su propia configuración controla el enrutamiento y la facturación; no es una garantía de uso exclusivo de la suscripción.
+- **[Endpoint personalizado](custom-providers.md):** conecta un servidor compatible con OpenAI, incluido un servidor de modelos local. LearnHarness no instala ni descarga modelos.
 
-Choose **Strong**, **Cheap**, and **Vision** models in Settings. There are no factory model selections. New sessions start with Strong; background roles use their assigned slots or role overrides. A model selected inside an existing session belongs to that session and does not change background-role choices.
+Elige los modelos **Potente**, **Barato** y **Visión** en Ajustes. No hay modelos seleccionados de fábrica. Las sesiones nuevas empiezan con el Potente; los roles en segundo plano usan las ranuras que tengan asignadas o sus personalizaciones por rol. Un modelo seleccionado dentro de una sesión existente pertenece a esa sesión y no cambia la elección de los roles en segundo plano.
 
-Optional web search supports Tavily, Brave, Exa, Firecrawl, and hosted Ollama search; configure a key for the engine you want to use. Research can still fetch known URLs without a search key. Dictation has its own service key below.
+La búsqueda web opcional admite Tavily, Brave, Exa, Firecrawl y la búsqueda alojada de Ollama; configura una clave para el motor que quieras usar. La investigación puede seguir descargando URL conocidas sin clave de búsqueda. El dictado tiene su propia clave de servicio, que se explica más abajo.
 
-## Start a session
+## Empezar una sesión
 
-Choose **Teach** and describe what you want to understand. The agent probes your starting point, presents a plan, and teaches through explanations and checks. Reply naturally to accept or revise the plan.
+Elige **Enseñar** y describe lo que quieres entender. El agente sondea tu punto de partida, presenta un plan y enseña mediante explicaciones y comprobaciones. Responde con naturalidad para aceptar o modificar el plan.
 
-Use the thinking fields to explain your reasoning, uncertainty, or reaction—not only your selected answer. You can type or dictate. Your confidence is self-reported, not an independent assessment.
+Usa los campos de razonamiento para explicar tu razonamiento, tu incertidumbre o tu reacción, no solo la respuesta elegida. Puedes escribir o dictar. Tu grado de confianza lo declaras tú; no es una evaluación independiente.
 
-Choose **Practice** for problems rather than a lesson. Start from selected graph material or describe material directly. Submit your thinking as you work; the model's committed solution is revealed when the problem concludes. Use **Next problem** when ready to continue.
+Elige **Practicar** para resolver problemas en lugar de seguir una lección. Empieza a partir de material seleccionado del grafo o describe el material directamente. Envía tu razonamiento a medida que trabajas; la solución comprometida del modelo se revela cuando el problema concluye. Usa **Siguiente problema** cuando quieras continuar.
 
-Sessions are saved locally, including earlier messages when context is compacted. The [keyboard guide](keyboard.md) covers submission, focus, question controls, and cancellation.
+Las sesiones se guardan en local, incluidos los mensajes anteriores cuando se compacta el contexto. La [guía de teclado](keyboard.md) explica el envío, el foco, los controles de las preguntas y la cancelación.
 
-## Dictation
+## Dictado
 
-1. Create a [Deepgram API key](https://console.deepgram.com/) with the **Member role or higher**, required for [short-lived token minting](https://developers.deepgram.com/reference/auth/tokens/grant).
-2. Add it under **Settings → Providers → Dictation** and choose the language below the key. **Multilingual** supports automatic recognition and mixed-language speech.
-3. Use the microphone or **Mod+D** to start and stop. Review the text before sending. **Esc cancellation discards the pending transcript**; stop normally to keep it.
+1. Crea una [clave de API de Deepgram](https://console.deepgram.com/) con el **rol Member o superior**, necesario para [emitir tokens de corta duración](https://developers.deepgram.com/reference/auth/tokens/grant).
+2. Añádela en **Ajustes → Proveedores → Dictado** y elige el idioma debajo de la clave. **Multilingüe** admite el reconocimiento automático y el habla con varios idiomas mezclados.
+3. Usa el micrófono o **Mod+D** para empezar y parar. Revisa el texto antes de enviarlo. **Cancelar con Esc descarta la transcripción pendiente**; para conservarla, detén el dictado de la forma normal.
 
-Audio streams from your browser directly to Deepgram using a short-lived token. A `403 Insufficient permissions` error while obtaining that token can mean the key's role is insufficient.
+El audio se envía en streaming desde tu navegador directamente a Deepgram con un token de corta duración. Un error `403 Insufficient permissions` al obtener ese token puede significar que el rol de la clave es insuficiente.
 
-## Use local files in a session
+## Usar ficheros locales en una sesión
 
-In the desktop app, use the paperclip's **Files** or **Folder** choice, or drag files/folders into the content area, to insert their local paths. Files supports any file type and multiple selections; Folder attaches one directory path, including an empty folder, without expanding or reading its contents. Newly picked or dropped known folders get a trailing directory separator so their Folder icon survives saved messages and reloads; files stay unchanged. Older unmarked paths are not retrospectively classified. The agent can then locate/read supported content on the machine running LearnHarness under the existing file-access guards; attaching a path does not grant permissions. This is **not an upload**: originals stay where they are. Ordinary browsers cannot expose these local paths through the picker or drag-and-drop; you can paste a full path instead.
+En la aplicación de escritorio, usa la opción **Ficheros** o **Carpeta** del clip, o arrastra ficheros/carpetas al área de contenido, para insertar sus rutas locales. Ficheros admite cualquier tipo de fichero y selecciones múltiples; Carpeta adjunta la ruta de un directorio, aunque esté vacío, sin expandir ni leer su contenido. A las carpetas conocidas recién elegidas o arrastradas se les añade un separador de directorio final para que su icono de carpeta se conserve en los mensajes guardados y al recargar; los ficheros no cambian. Las rutas antiguas sin marcar no se clasifican a posteriori. A partir de ahí, el agente puede localizar y leer contenido compatible en la máquina que ejecuta LearnHarness, dentro de las protecciones de acceso a ficheros existentes; adjuntar una ruta no concede permisos. **No es una subida**: los originales se quedan donde están. Los navegadores normales no pueden exponer estas rutas locales mediante el selector ni el arrastrar y soltar; en su lugar, puedes pegar una ruta completa.
 
-The teacher can show a local raster image or request an annotated visual based on it. Displayed/annotated pictures are saved as session-owned snapshots, so those saved results no longer depend on the original file. This does not snapshot every file attachment. Offline regression tests cover snapshot/payload behavior, not the quality of model-generated annotations.
+El profesor puede mostrar una imagen rasterizada local o pedir un elemento visual anotado basado en ella. Las imágenes mostradas/anotadas se guardan como instantáneas propiedad de la sesión, de modo que esos resultados guardados ya no dependen del fichero original. Esto no crea instantáneas de todos los ficheros adjuntos. Las pruebas de regresión sin conexión cubren el comportamiento de las instantáneas y de la carga útil, no la calidad de las anotaciones generadas por el modelo.
 
-File tools are read-only but have broad filesystem access under the server's user; they are not confined to a selected folder. The sensitive-path guard blocks known credential/private locations, not all sensitive content. Review what you make available: file content read by an agent may be sent to its configured model provider. See [file-access boundaries](architecture.md#file-access-and-external-services).
+Las herramientas de ficheros son de solo lectura, pero tienen un acceso amplio al sistema de ficheros con el usuario del servidor; no están limitadas a una carpeta seleccionada. La protección de rutas sensibles bloquea ubicaciones conocidas de credenciales y datos privados, no todo el contenido sensible. Revisa lo que pones a su alcance: el contenido de los ficheros que lee un agente puede enviarse al proveedor de modelos configurado. Consulta los [límites del acceso a ficheros](architecture.md#acceso-a-ficheros-y-servicios-externos).
 
-## Extract into the graph
+## Extraer al grafo
 
-For lessons, attach material to a session instead. Use the graph's **Extract files… → Files** or **Folder** picker for Markdown, plain text, or PDFs. This is a separate import flow, not the session's path attachments. Extract files accepts `.txt`, `.md`, `.markdown`, `.rst`, `.org`, `.adoc`, `.tex` and `.pdf` (any letter case); other extensions are turned away with a short message. Each supported file is uploaded for processing; folders organize imported sources.
+Para las lecciones, es mejor adjuntar el material a una sesión. Usa el selector **Extraer ficheros… → Ficheros** o **Carpeta** del grafo para Markdown, texto plano o PDF. Es un flujo de importación aparte, distinto de las rutas adjuntas de la sesión. Extraer ficheros acepta `.txt`, `.md`, `.markdown`, `.rst`, `.org`, `.adoc`, `.tex` y `.pdf` (en mayúsculas o minúsculas); las demás extensiones se rechazan con un mensaje breve. Cada fichero compatible se sube para procesarlo; las carpetas organizan las fuentes importadas.
 
-- Files are limited to **25 MiB each**. Imports queue independently, with up to three files in flight.
-- Within the accepted extensions, PDFs are recognized by their `%PDF-` header and converted locally, without OCR. Image-only pages are skipped and counted; scanner text can be inaccurate. Check the import's notices.
-- Other files are read as UTF-8. A zero byte in the first 8 KiB causes rejection before source registration or model calls. This catches many binary files renamed to `.txt`, but is not complete binary detection; UTF-16 text is not decoded correctly and is often rejected. Save text as UTF-8.
-- Imported text then goes through model-based proposition/chain extraction. Local PDF conversion does not make the whole import offline.
-- Completed chunks survive later failures. Retry is explicit and reprocesses the file; unchanged content is not automatically skipped. The file queue does not survive a page reload.
+- Los ficheros están limitados a **25 MiB cada uno**. Las importaciones se encolan de forma independiente, con hasta tres ficheros en curso a la vez.
+- Dentro de las extensiones aceptadas, los PDF se reconocen por su cabecera `%PDF-` y se convierten en local, sin OCR. Las páginas que solo contienen imágenes se omiten y se cuentan; el texto de los escaneos puede ser impreciso. Revisa los avisos de la importación.
+- Los demás ficheros se leen como UTF-8. Un byte cero en los primeros 8 KiB provoca el rechazo antes de registrar la fuente o de llamar al modelo. Esto detecta muchos ficheros binarios renombrados a `.txt`, pero no es una detección completa de binarios; el texto en UTF-16 no se decodifica correctamente y a menudo se rechaza. Guarda el texto como UTF-8.
+- Después, el texto importado pasa por una extracción de proposiciones/cadenas basada en el modelo. La conversión local de PDF no hace que toda la importación funcione sin conexión.
+- Los fragmentos completados sobreviven a los fallos posteriores. Reintentar es una acción explícita y vuelve a procesar el fichero; el contenido que no ha cambiado no se omite automáticamente. La cola de ficheros no sobrevive a una recarga de la página.
 
-The graph stores propositions and reasoning chains with source provenance, **not mastery scores**. A proposition's presence is not proof that you understood or retained it. Automatic session extraction can be disabled independently of graph rendering.
+El grafo guarda proposiciones y cadenas de razonamiento con su procedencia, **no puntuaciones de dominio**. Que una proposición esté presente no demuestra que la hayas entendido o retenido. La extracción automática desde las sesiones se puede desactivar con independencia de la representación del grafo.
 
-## Data, privacy, and usage
+## Datos, privacidad y uso
 
-Chats, graph records, settings, and credentials live on your machine. Packaged desktop data normally lives under:
+Los chats, los registros del grafo, los ajustes y las credenciales se guardan en tu máquina. En la aplicación de escritorio empaquetada, los datos suelen estar en:
 
-| OS | Learning-data folder |
+| Sistema operativo | Carpeta de datos de aprendizaje |
 | --- | --- |
 | macOS | `~/Library/Application Support/LearnHarness/data` |
 | Windows | `%APPDATA%\LearnHarness\data` |
-| Linux | `$XDG_CONFIG_HOME/LearnHarness/data`, or `~/.config/LearnHarness/data` |
+| Linux | `$XDG_CONFIG_HOME/LearnHarness/data`, o `~/.config/LearnHarness/data` |
 
-API-key files sit beside `data`, not inside it. They are plaintext with restrictive file permissions, not an encrypted vault. Keep complete profiles private; do not share credential files or raw debug captures in bug reports.
+Los ficheros de claves de API están junto a `data`, no dentro. Son texto plano con permisos de fichero restrictivos, no un almacén cifrado. Mantén privados los perfiles completos; no compartas ficheros de credenciales ni capturas de depuración sin filtrar en los informes de errores.
 
-**Local storage does not mean local-only processing.** Configured models, subscription/CLI services, web research, and dictation can receive content. A local custom model is a separate setup choice, not an offline guarantee for other enabled services.
+**Almacenamiento local no significa procesamiento exclusivamente local.** Los modelos configurados, los servicios de suscripción/CLI, la investigación web y el dictado pueden recibir contenido. Un modelo personalizado local es una opción de configuración aparte, no una garantía de funcionamiento sin conexión para los demás servicios activados.
 
-Click the context/cost row beneath the composer for Session stats. Dollar figures estimate known API costs; subscription, CLI, and custom-endpoint usage are not treated as free. See [context, caching, and costs](compaction-accounting.md) for the details.
+Haz clic en la fila de contexto/coste que hay bajo el compositor para ver las estadísticas de la sesión. Las cifras en dólares estiman los costes conocidos de API; el uso de suscripciones, CLI y endpoints personalizados no se trata como gratuito. Consulta [contexto, caché y costes](compaction-accounting.md) para más detalles.
 
-Packaged apps support updates under **Settings → General**. Development builds do not run the updater. Report problems through [GitHub Issues](https://github.com/amosblomqvist/learnharness/issues), with reproduction steps and the app/OS version rather than private learning records or keys.
+Las aplicaciones empaquetadas admiten actualizaciones en **Ajustes → General**. Las compilaciones de desarrollo no ejecutan el actualizador. Informa de los problemas a través de [GitHub Issues](https://github.com/amosblomqvist/learnharness/issues), con los pasos para reproducirlos y la versión de la aplicación y del sistema operativo, en lugar de registros de aprendizaje privados o claves.
