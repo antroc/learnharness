@@ -1,35 +1,40 @@
 /**
- * Graph render settings: the shape, the defaults, the sanitizer, and the
- * slider mapping (log-scaled, default-centered) — shared by the client (components/graph-canvas.ts,
- * graph-view.tsx), the server store (src/store/render-settings.ts, which
- * persists them to data/render-settings.json), and the API route.
+ * Ajustes de renderizado del grafo: la forma, los valores por defecto, el saneador
+ * y la correspondencia de los deslizadores (escala logarítmica, centrada en el valor
+ * por defecto) — compartidos por el cliente (components/graph-canvas.ts,
+ * graph-view.tsx), el almacén del servidor (src/store/render-settings.ts, que los
+ * persiste en data/render-settings.json) y la ruta de la API.
  *
- * This module is pure: no DOM, no d3, no node APIs — safe everywhere.
+ * Este módulo es puro: sin DOM, sin d3, sin API de node — seguro en cualquier sitio.
  *
- * Settings are server-persisted (render-settings.json); the localStorage era
- * is over. Whatever arrives from disk or the network is passed through
- * sanitizeRenderSettings before use — never trusted raw.
+ * Los ajustes se persisten en el servidor (render-settings.json); la era de
+ * localStorage se acabó. Todo lo que llega del disco o de la red pasa por
+ * sanitizeRenderSettings antes de usarse — nunca se confía en ello en bruto.
  *
- * SIZE SEMANTICS (2026-09-15 pivot): nodeSize, labelSize, arrowLength and
- * regions.dilation are WORLD UNITS — the same law as the physics spacings.
- * The world scale is canonical: identical settings render identically at
- * any graph size, at any zoom. (They were "screen px at fit zoom" before,
- * which made node sizes a function of graph extent — the small-graph bug.)
+ * SEMÁNTICA DE TAMAÑOS (giro del 2026-09-15): nodeSize, labelSize, arrowLength y
+ * regions.dilation son UNIDADES DEL MUNDO — la misma ley que los espaciados de la
+ * física. La escala del mundo es la canónica: unos ajustes idénticos se renderizan
+ * igual con cualquier tamaño de grafo y cualquier zoom. (Antes eran "px de pantalla
+ * con el zoom de encaje", lo que hacía que el tamaño de los nodos dependiera de la
+ * extensión del grafo — el fallo de los grafos pequeños.)
  *
- * The labelZoom semantics: the sigma-compatible "camera ratio" threshold
- * (1 = fit zoom, SMALLER = zoomed in). Node labels show at ratio <= labelZoom
- * and cross-fade with the cluster labels across a span proportional to the
- * gate (see LABELS_FADE_RATIO in the renderer). Persisted values keep these
- * units across the renderer swap.
+ * La semántica de labelZoom: el umbral de "proporción de cámara" compatible con
+ * sigma (1 = zoom de encaje, MÁS PEQUEÑO = más acercado). Las etiquetas de los nodos
+ * se muestran con proporción <= labelZoom y se funden con las etiquetas de los
+ * clústeres a lo largo de un tramo proporcional a la barrera (ver LABELS_FADE_RATIO
+ * en el renderizador). Los valores persistidos conservan estas unidades tras el
+ * cambio de renderizador.
  *
- * SLIDER LADDERS (2026-09-17, user-directed): every NON-physics knob moves on
- * a hand-authored 11-stop ladder — the classic two-per-octave nice-number
- * series (x1.5 / x1.33 alternation: ...1, 1.5, 2, 3, 4, 6, 8, 12...) — with
- * the DEFAULT dead-center at position 50 (slider step 10, one stop per
- * detent). No more log-slider artifacts like 2.18137...977: a knob's possible
- * values ARE the ladder, the sanitizer snaps any incoming value to the
- * nearest entry, and out-of-range snaps to the end. Physics keeps the
- * fine-grained log sliders (user: "very fine tunable... good as they are").
+ * ESCALERAS DE LOS DESLIZADORES (2026-09-17, a petición del usuario): todos los
+ * mandos que NO son de física se mueven por una escalera de 11 peldaños escrita a
+ * mano — la clásica serie de números redondos de dos por octava (alternando x1,5 /
+ * x1,33: ...1, 1.5, 2, 3, 4, 6, 8, 12...) — con el valor POR DEFECTO justo en el
+ * centro, en la posición 50 (paso del deslizador 10, un peldaño por muesca). Se
+ * acabaron los artefactos de los deslizadores logarítmicos como 2.18137...977: los
+ * valores posibles de un mando SON la escalera, el saneador ajusta cualquier valor
+ * entrante a la entrada más cercana y lo que se sale del rango se ajusta al extremo.
+ * La física conserva los deslizadores logarítmicos de ajuste fino (el usuario: "se
+ * ajustan muy finamente... están bien como están").
  */
 
 import {
@@ -41,30 +46,30 @@ import {
 } from "./layout.ts";
 
 export interface GraphRenderSettings {
-	/** Semantic stamp for the size-unit pivot (2026-09-15): "world" =
-	 *  nodeSize/labelSize/arrowLength/regions.dilation are WORLD units;
-	 *  absent = the old "screen px at fit zoom" semantics — the
-	 *  sanitizer resets those four fields (their meaning changed, not
-	 *  their magnitude) and keeps everything else. */
+	/** Sello semántico del giro de unidades de tamaño (2026-09-15): "world" =
+	 * nodeSize/labelSize/arrowLength/regions.dilation son unidades del MUNDO;
+	 * ausente = la antigua semántica de "px de pantalla con el zoom de encaje" — el
+	 * saneador restablece esos cuatro campos (cambió su significado, no su
+	 * magnitud) y conserva todo lo demás. */
 	sizeUnits: "world";
 	nodeSize: number;
 	edgeWidth: number;
 	arrowLength: number;
-	/** Camera-ratio threshold for node labels (see module doc). */
+	/** Umbral de proporción de cámara para las etiquetas de los nodos (ver la documentación del módulo). */
 	labelZoom: number;
-	/** Node + hover label font size, WORLD units (scales with camera). */
+	/** Tamaño de letra de las etiquetas de nodo y de hover, en unidades del MUNDO (escala con la cámara). */
 	labelSize: number;
-	/** Toggle for the cluster region labels (hulls always draw). */
+	/** Interruptor de las etiquetas de las regiones de los clústeres (las envolventes se dibujan siempre). */
 	clusterLabels: boolean;
-	/** Cluster label font size, px on screen (camera-compensated —
-	 *  constant at any zoom, unlike labelSize which scales with the
-	 *  graph). Defaults to the old REGION_LABEL_SIZE constant (14). */
+	/** Tamaño de letra de las etiquetas de los clústeres, en px de pantalla (compensado
+	 * con la cámara — constante con cualquier zoom, a diferencia de labelSize, que escala
+	 * con el grafo). Por defecto, la antigua constante REGION_LABEL_SIZE (14). */
 	clusterLabelSize: number;
-	/** Region rendering (the blurred cluster tints). Server-persisted
-	 *  since 2026-09-13 (user request) — was session-only dev state. */
+	/** Renderizado de las regiones (los tintes difuminados de los clústeres). Persistido en
+	 * el servidor desde el 2026-09-13 (petición del usuario) — antes era estado de desarrollo solo de la sesión. */
 	regions: RegionTuning;
-	/** Live-sim physics + inference-depth anchoring. Server-persisted
-	 *  since 2026-09-13 (user request) — was session-only dev state. */
+	/** Física de la simulación en vivo + anclaje por profundidad de inferencia. Persistido en
+	 * el servidor desde el 2026-09-13 (petición del usuario) — antes era estado de desarrollo solo de la sesión. */
 	physics: PhysicsTuning;
 }
 
@@ -72,21 +77,22 @@ export interface GraphRenderSettings {
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 
 /**
- * Coerce arbitrary JSON (server file, network body, localStorage leftovers)
- * into valid settings: missing keys fall back to defaults, out-of-range
- * values clamp, wrong types reset. Never throws.
+ * Convierte JSON arbitrario (fichero del servidor, cuerpo de red, restos de
+ * localStorage) en ajustes válidos: las claves que faltan toman los valores por
+ * defecto, los valores fuera de rango se acotan y los tipos erróneos se
+ * restablecen. Nunca lanza.
  */
 export function sanitizeRenderSettings(raw: unknown): GraphRenderSettings {
 	const r = (raw ?? {}) as Partial<GraphRenderSettings>;
-	// Ladder knob: any finite value snaps to the nearest ladder entry (ties
-	// break low); non-numbers fall back to the default (dead-center anyway).
+	// Mando de escalera: cualquier valor finito se ajusta a la entrada más cercana (los empates
+	// van hacia abajo); lo que no es un número toma el valor por defecto (de todos modos, el centro).
 	const ladd = (v: unknown, ladder: readonly number[], dflt: number) =>
 		typeof v === "number" && Number.isFinite(v) ? snapToLadder(v, ladder) : dflt;
-	// The size-unit pivot (2026-09-15): pre-"world" files stored sizes in
-	// "screen px at fit zoom" — a unit whose meaning depended on the
-	// graph's own extent (THE small-graph bug). Those values cannot be
-	// carried into world units honestly, so they reset to defaults; the
-	// reference default IS the old tuned look expressed in world units.
+	// El giro de unidades de tamaño (2026-09-15): los ficheros anteriores a "world" guardaban
+	// los tamaños en "px de pantalla con el zoom de encaje" — una unidad cuyo significado
+	// dependía de la extensión del propio grafo (EL fallo de los grafos pequeños). Esos
+	// valores no se pueden trasladar con honestidad a unidades del mundo, así que vuelven a los
+	// valores por defecto; el valor de referencia ES el antiguo aspecto ajustado, en unidades del mundo.
 	const legacySizes = r.sizeUnits !== "world";
 	return {
 		sizeUnits: "world",
@@ -102,9 +108,9 @@ export function sanitizeRenderSettings(raw: unknown): GraphRenderSettings {
 			CLUSTER_LABEL_SIZE_LADDER,
 			DEFAULT_RENDER_SETTINGS.clusterLabelSize,
 		),
-		// Nested sections (2026-09-13): old files lack them → defaults.
-		// Legacy files also reset regions.dilation (its units changed with
-		// the pivot); the rest of the section's semantics are untouched.
+		// Secciones anidadas (2026-09-13): los ficheros antiguos no las tienen → valores por defecto.
+		// Los ficheros antiguos también restablecen regions.dilation (sus unidades cambiaron con
+		// el giro); el resto de la semántica de la sección no se toca.
 		regions: legacySizes
 			? { ...sanitizeRegionTuning(r.regions), dilation: DEFAULT_REGION_TUNING.dilation }
 			: sanitizeRegionTuning(r.regions),
@@ -112,65 +118,65 @@ export function sanitizeRenderSettings(raw: unknown): GraphRenderSettings {
 	};
 }
 
-// ─── Region + physics tuning (moved from the renderer, 2026-09-13) ─────────────
+// ─── Ajuste de regiones + física (trasladado desde el renderizador, 2026-09-13) ──
 //
-// The renderer's region/physics controls became USER-FACING persisted
-// settings: one shape + one sanitizer in core, consumed by the settings
-// store (this file's schema), the panel, and the renderer's
-// setRegionTuning/setPhysicsTuning. Every clamp below is a SWEEP-VALIDATED
-// safe range (2026-09-13, real graph, renderer's exact sim): each field at
-// both range ends AND all four range corners settles cleanly — no NaN, no
-// explosion (linkStrength ≥ 8 explodes the layout, 5 wobbles; cap 4),
-// no non-settle (velocityDecay 0 never damps; floor 0.1), no 3x sprawl
-// (gravity 0 / charge -1000 excluded). 2026-09-17: CHARGE_RANGE
-// narrowed to [120, 480] around the new −240 default — strictly inside
-// the validated [30, 480], so every corner stays sweep-safe.
+// Los controles de regiones/física del renderizador pasaron a ser ajustes persistidos
+// DE CARA AL USUARIO: una forma + un saneador en el núcleo, que consumen el almacén de
+// ajustes (el esquema de este fichero), el panel y setRegionTuning/setPhysicsTuning del
+// renderizador. Cada acotación de abajo es un rango seguro VALIDADO CON BARRIDOS
+// (2026-09-13, grafo real, la simulación exacta del renderizador): cada campo en ambos
+// extremos del rango Y en las cuatro esquinas del rango se asienta limpiamente — sin NaN,
+// sin explosión (linkStrength ≥ 8 hace explotar la disposición, 5 tambalea; tope 4),
+// sin falta de asentamiento (velocityDecay 0 nunca amortigua; suelo 0,1), sin dispersión
+// x3 (se excluyen gravity 0 / charge -1000). 2026-09-17: CHARGE_RANGE se estrechó a
+// [120, 480] en torno al nuevo valor por defecto −240 — estrictamente dentro del
+// [30, 480] validado, así que todas las esquinas siguen siendo seguras según el barrido.
 
-/** Region rendering knobs (the blurred cluster tints). */
+/** Mandos del renderizado de regiones (los tintes difuminados de los clústeres). */
 export interface RegionTuning {
-	/** Dilation half-width of the round-cap edge strokes, WORLD units
-	 *  (the expansion of the cluster skeleton). */
+	/** Semiancho de dilatación de los trazos de arista con extremos redondeados, en
+	 * unidades del MUNDO (la expansión del esqueleto del clúster). */
 	dilation: number;
-	/** Region softness: the blur's reach, WORLD units (3 box-blur
-	 *  passes ≈ Gaussian). The 2026-09-15 world-unit pivot ended the
-	 *  bitmap-px era — the old reach scaled with the graph's span
-	 *  (blur × span / bitmap), so the same value read 6× softer on a
-	 *  338-node graph than on a 13-node one. Now the reach is canonical
-	 *  like dilation; the renderer rasterizes it (round to bitmap px,
-	 *  floor 1px when the graph out-resolves the blur). */
+	/** Suavidad de la región: el alcance del difuminado, en unidades del MUNDO (3 pasadas
+	 * de difuminado de caja ≈ gaussiano). El giro a unidades del mundo del 2026-09-15
+	 * acabó con la era de los px del mapa de bits — el antiguo alcance escalaba con la
+	 * extensión del grafo (blur × extensión / mapa de bits), así que el mismo valor se
+	 * veía 6 veces más suave en un grafo de 338 nodos que en uno de 13. Ahora el alcance
+	 * es canónico, como la dilatación; el renderizador lo rasteriza (redondeo a px del
+	 * mapa de bits, suelo de 1 px cuando el grafo tiene más resolución que el difuminado). */
 	blur: number;
-	/** Max bitmap dimension (cell = worldSpan / this). Fixed set:
-	 *  see REGION_BITMAP_OPTIONS (dropdown in the panel). */
+	/** Dimensión máxima del mapa de bits (celda = worldSpan / esto). Conjunto fijo:
+	 * ver REGION_BITMAP_OPTIONS (desplegable en el panel). */
 	bitmap: number;
-	/** Region alpha, applied ONCE after the blur (dilate at full
-	 *  opacity → blur → scale). Constant interior, soft edges; overlaps
-	 *  of any count never stack (DECIDED 2026-09-14 — per-stroke alpha
-	 *  accumulated through source-over and double-counted orphans). */
+	/** Alfa de la región, aplicado UNA vez después del difuminado (dilatar con opacidad
+	 * completa → difuminar → escalar). Interior constante, bordes suaves; los
+	 * solapamientos, sean cuantos sean, nunca se apilan (DECIDIDO 2026-09-14 — el alfa
+	 * por trazo se acumulaba con source-over y contaba dos veces los huérfanos). */
 	edgeAlpha: number;
-	/** THE off switch (user 2026-09-15): false = the renderer never runs
-	 *  the region build — no splat, no blur, no readback, no bitmap
-	 *  allocation, no blit. Compute skipped, not just paint hidden.
-	 *  Cluster labels are decoupled and follow `clusterLabels`. */
+	/** EL interruptor de apagado (usuario, 2026-09-15): false = el renderizador nunca
+	 * ejecuta la construcción de regiones — sin salpicado, sin difuminado, sin
+	 * relectura, sin reservar el mapa de bits, sin volcado. Se omite el cálculo, no solo
+	 * se oculta el pintado. Las etiquetas de los clústeres van aparte y siguen a `clusterLabels`. */
 	enabled: boolean;
 }
 
 export const REGION_BITMAP_OPTIONS = [128, 192, 256, 384, 512] as const;
 export const DEFAULT_REGION_TUNING: RegionTuning = {
 	dilation: 20,
-	// New default 40 (owner, 2026-10-07): softer, wider region tints.
+	// Nuevo valor por defecto 40 (responsable, 2026-10-07): tintes de región más suaves y amplios.
 	blur: 40,
 	bitmap: 256,
 	edgeAlpha: 0.2,
 	enabled: true,
 };
 
-/** Nearest member of a fixed option set (dropdowns have no free values). */
+/** El miembro más cercano de un conjunto fijo de opciones (los desplegables no tienen valores libres). */
 function snapToOption(value: number, options: readonly number[]): number {
 	return options.reduce((best, o) => (Math.abs(o - value) < Math.abs(best - value) ? o : best), options[0] as number);
 }
 
-/** Clamp/validate a region tuning. `bitmap` snaps to the nearest allowed
- *  option (a fixed set — dropdown, not a free number). */
+/** Acota y valida un ajuste de regiones. `bitmap` se ajusta a la opción permitida
+ * más cercana (un conjunto fijo — desplegable, no un número libre). */
 export function sanitizeRegionTuning(input: Partial<RegionTuning> | null | undefined): RegionTuning {
 	const d = DEFAULT_REGION_TUNING;
 	const num = (v: unknown, fallback: number): number =>
@@ -183,35 +189,36 @@ export function sanitizeRegionTuning(input: Partial<RegionTuning> | null | undef
 		blur: ladd(input?.blur, REGION_BLUR_LADDER, d.blur),
 		bitmap: snapToOption(bitmap, REGION_BITMAP_OPTIONS),
 		edgeAlpha: ladd(input?.edgeAlpha, REGION_EDGE_ALPHA_LADDER, d.edgeAlpha),
-		// Old persisted files predate the switch: missing → on (the look
-		// users tuned); only an explicit false turns regions off.
+		// Los ficheros persistidos antiguos son anteriores al interruptor: ausente → activado (el
+		// aspecto que ajustaron los usuarios); solo un false explícito apaga las regiones.
 		enabled: typeof input?.enabled === "boolean" ? input.enabled : true,
 	};
 }
 
-/** Live-sim physics controls (user-facing since 2026-09-13): every value
- *  feeds createGraphSimulation — the SAME engine the server settle runs —
- *  so tuning the feel changes exactly what a drag relaxes toward. */
+/** Controles de física de la simulación en vivo (de cara al usuario desde el
+ * 2026-09-13): cada valor alimenta createGraphSimulation — el MISMO motor que ejecuta
+ * el asentamiento del servidor —, así que ajustar la sensación cambia exactamente
+ * aquello hacia lo que se relaja un arrastre. */
 export interface PhysicsTuning {
-	/** Node repulsion (d3 charge, negative = push apart). */
+	/** Repulsión entre nodos (carga de d3, negativa = se separan). */
 	chargeStrength: number;
-	/** Edge attraction: link-spring stiffness multiplier (1 = d3 default). */
+	/** Atracción de las aristas: multiplicador de rigidez del muelle de enlace (1 = valor por defecto de d3). */
 	linkStrength: number;
-	/** Link spring rest length (world units). */
+	/** Longitud de reposo del muelle de enlace (unidades del mundo). */
 	linkDistance: number;
-	/** Central pull toward the graph centroid. */
+	/** Atracción central hacia el centroide del grafo. */
 	gravity: number;
-	/** Per-cluster pull toward the cluster centroid. 0 = off. */
+	/** Atracción por clúster hacia el centroide del clúster. 0 = desactivada. */
 	clusterPull: number;
-	/** Per-tick velocity damping (d3 default 0.4). */
+	/** Amortiguación de la velocidad por tick (valor por defecto de d3: 0,4). */
 	velocityDecay: number;
-	/** Inference-depth anchoring mode (see DepthAnchor in core). */
+	/** Modo de anclaje por profundidad de inferencia (ver DepthAnchor en el núcleo). */
 	depthMode: DepthAnchorMode;
-	/** Depth-anchor pull strength. */
+	/** Fuerza de atracción del ancla de profundidad. */
 	depthStrength: number;
-	/** Spacing between inference levels (world units). */
+	/** Separación entre niveles de inferencia (unidades del mundo). */
 	depthSpacing: number;
-	/** Inner ring radius, radial mode (world units). */
+	/** Radio del anillo interior, modo radial (unidades del mundo). */
 	depthBaseRadius: number;
 }
 
@@ -223,15 +230,15 @@ export const DEFAULT_PHYSICS_TUNING: PhysicsTuning = {
 	clusterPull: CLUSTER_PULL_STRENGTH,
 	velocityDecay: 0.4,
 	depthMode: "off",
-	// 0.8 by sweep on the real graph: 215/216 arrows read upward with
-	// organic sag (mean |dev| from level ~34u at spacing 60); 1.5 gives
-	// crisp rows (dev ~18) if the promoted default wants them.
+	// 0,8 por barrido sobre el grafo real: 215/216 flechas se leen hacia arriba con una
+	// caída orgánica (|desv.| media respecto al nivel ~34u con separación 60); 1,5 da
+	// filas nítidas (desv. ~18) si el valor por defecto promocionado las quiere.
 	depthStrength: 0.8,
 	depthSpacing: 60,
 	depthBaseRadius: 220,
 };
 
-/** Clamp anything into a usable tuning (sliders/JSON can be empty/NaN). */
+/** Acota cualquier cosa a un ajuste utilizable (los deslizadores/JSON pueden venir vacíos o NaN). */
 export function sanitizePhysicsTuning(input: Partial<PhysicsTuning> | null | undefined): PhysicsTuning {
 	const d = DEFAULT_PHYSICS_TUNING;
 	const num = (v: unknown, fallback: number): number =>
@@ -250,20 +257,20 @@ export function sanitizePhysicsTuning(input: Partial<PhysicsTuning> | null | und
 	};
 }
 
-// Sizes are WORLD UNITS (the 2026-09-15 pivot — see the ranges block
-// below for the full story): the world scale is canonical, identical
-// settings render identically at any graph size. The values are the
-// 2026-09-13 re-tune (2px at fit on the reference graph) ÷ its kFit 0.69.
-// The 2026-09-17 bake: the user's live-tuned values (tuned against the
-// real graph after the world-unit pivot), each dead-center on its ladder.
+// Los tamaños son UNIDADES DEL MUNDO (el giro del 2026-09-15 — ver el bloque de rangos
+// de abajo para la historia completa): la escala del mundo es la canónica, y unos ajustes
+// idénticos se renderizan igual con cualquier tamaño de grafo. Los valores son el
+// reajuste del 2026-09-13 (2 px con el encaje en el grafo de referencia) ÷ su kFit 0,69.
+// La consolidación del 2026-09-17: los valores ajustados en vivo por el usuario (sobre el
+// grafo real tras el giro a unidades del mundo), cada uno justo en el centro de su escalera.
 export const DEFAULT_RENDER_SETTINGS: GraphRenderSettings = {
 	sizeUnits: "world",
 	nodeSize: 2,
 	edgeWidth: 1,
 	arrowLength: 2,
-	// New default 0.5 — displays as 1× on the slider (owner, 2026-10-07:
-	// "labels until zoom default one" — the owner speaks in display
-	// values, and the display is ratio/0.5). Labels once zoomed past fit.
+	// Nuevo valor por defecto 0,5 — se muestra como 1× en el deslizador (responsable, 2026-10-07:
+	// "etiquetas hasta el zoom por defecto uno" — el responsable habla en valores de
+	// visualización, y la visualización es proporción/0,5). Etiquetas en cuanto se acerca más allá del encaje.
 	labelZoom: 0.5,
 	labelSize: 3,
 	clusterLabels: true,
@@ -272,68 +279,68 @@ export const DEFAULT_RENDER_SETTINGS: GraphRenderSettings = {
 	physics: DEFAULT_PHYSICS_TUNING,
 };
 
-// ─── The slider ladders (2026-09-17) ─────────────────────────────────────────
+// ─── Las escaleras de los deslizadores (2026-09-17) ──────────────────────────
 //
-// Non-physics knobs move on hand-authored 11-stop ladders — the classic
-// two-per-octave nice-number series (x1.5 / x1.33 alternation: quarter and
-// half steps at the low end, integers above) — with the DEFAULT dead-center
-// at index 5 / slider position 50. The slider steps by 10: one stop per
-// detent, 21 positions → 11 values, all integers or clean fractions. The
-// sanitizer snaps ANY incoming value to the nearest entry, so stored files
-// can never hold (or render) 2.18137...977-style artifacts.
+// Los mandos que no son de física se mueven por escaleras de 11 peldaños escritas a mano —
+// la clásica serie de números redondos de dos por octava (alternando x1,5 / x1,33: pasos
+// de cuarto y de medio en el extremo bajo, enteros por encima) — con el valor POR DEFECTO
+// en el centro, en el índice 5 / posición 50 del deslizador. El deslizador avanza de 10 en
+// 10: un peldaño por muesca, 21 posiciones → 11 valores, todos enteros o fracciones limpias.
+// El saneador ajusta CUALQUIER valor entrante a la entrada más cercana, así que los ficheros
+// guardados nunca pueden contener (ni renderizar) artefactos del estilo 2.18137...977.
 
-// Each ladder is authored around its DEFAULT at index 5: five stops down,
-// five up, following the x1.5 / x4-3 alternation where it lands clean
-// (powers of two at the floors where the series would go fractional).
+// Cada escalera se escribe alrededor de su valor POR DEFECTO en el índice 5: cinco peldaños
+// hacia abajo y cinco hacia arriba, siguiendo la alternancia x1,5 / x4/3 donde sale limpia
+// (potencias de dos en los suelos donde la serie se volvería fraccionaria).
 export const NODE_SIZE_LADDER = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 12] as const;
 export const EDGE_WIDTH_LADDER = [0.1, 0.2, 0.4, 0.6, 0.8, 1, 1.5, 2, 3, 4, 6] as const;
 export const ARROW_LENGTH_LADDER = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 12] as const;
 export const LABEL_SIZE_LADDER = [0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 12, 16] as const;
-// Screen px at any zoom (drawn at size / k). 14 = the old REGION_LABEL_SIZE.
+// Px de pantalla con cualquier zoom (se dibuja con tamaño / k). 14 = el antiguo REGION_LABEL_SIZE.
 export const CLUSTER_LABEL_SIZE_LADDER = [7, 8, 9, 10, 12, 14, 16, 18, 20, 24, 28] as const;
-// Camera-ratio gates; the DISPLAY ladder reads 1.5×, 2×, 3×, 4×, 6×, 8×,
-// 12×, 16×, 24×, 32×, 48× (labelZoomDisplay) with the user's tuned 8×
-// (ratio 4) dead-center — it used to sit at the very end of the axis.
-// Re-centered on the new default (owner, 2026-10-07): display 1× (ratio
-// 0.5) sits dead-center; the upper stops keep the old familiar run, the
-// lower stops go finer where the default now lives. Old stored values
-// snap to the nearest stop (4 → 3, 24 → 3, 0.75 → 0.75).
+// Barreras de proporción de cámara; la escalera de VISUALIZACIÓN marca 1.5×, 2×, 3×, 4×, 6×,
+// 8×, 12×, 16×, 24×, 32×, 48× (labelZoomDisplay), con el 8× ajustado por el usuario
+// (proporción 4) en el centro — antes quedaba en el extremo mismo del eje.
+// Recentrada en el nuevo valor por defecto (responsable, 2026-10-07): la visualización 1×
+// (proporción 0,5) queda en el centro; los peldaños superiores conservan la antigua serie
+// conocida y los inferiores se afinan donde ahora vive el valor por defecto. Los valores
+// guardados antiguos se ajustan al peldaño más cercano (4 → 3, 24 → 3, 0.75 → 0.75).
 export const LABEL_ZOOM_LADDER = [0.125, 0.175, 0.25, 0.35, 0.45, 0.5, 0.75, 1, 1.5, 2, 3] as const;
 
-// ─── Region + physics slider ranges ──────────────────────────────────────────
+// ─── Rangos de los deslizadores de regiones + física ──────────────────────────
 //
-// Same laws as the size sliders: log-scaled, DEFAULT AT 50 (each default is
-// the geometric mean of its ends), coarse 5-step tracks. Signed/zeroed
-// fields get special treatment:
-//   chargeStrength is NEGATIVE — the slider maps |charge| and displays "-x";
-//   clusterPull has an OFF zone — position 0 is exactly 0 (see
-//   toOffSliderPosition), the log range starts one step in. Blur used to
-//   have one too; it's a dropdown since 2026-09-13 (non-integers broke).
+// Las mismas leyes que los deslizadores de tamaño: escala logarítmica, VALOR POR DEFECTO EN 50
+// (cada valor por defecto es la media geométrica de sus extremos), pistas gruesas de 5 pasos.
+// Los campos con signo o con cero tienen un tratamiento especial:
+//   chargeStrength es NEGATIVO — el deslizador representa |charge| y muestra "-x";
+//   clusterPull tiene una zona de APAGADO — la posición 0 es exactamente 0 (ver
+//   toOffSliderPosition) y el rango logarítmico empieza un paso más allá. Blur también
+//   tenía una; es un desplegable desde el 2026-09-13 (los no enteros fallaban).
 
-export const REGION_DILATION_LADDER = [4, 5, 7.5, 10, 15, 20, 30, 40, 60, 80, 120] as const; // world units
-// Re-centered on the new default 40 (owner, 2026-10-07): min 10 per the
-// owner's suggestion, the old ceiling 120 kept, and every old stop from
-// 15 up survives (4/5/7.5 snap to 10).
-export const REGION_BLUR_LADDER = [10, 15, 20, 25, 30, 40, 50, 60, 80, 100, 120] as const; // world units
+export const REGION_DILATION_LADDER = [4, 5, 7.5, 10, 15, 20, 30, 40, 60, 80, 120] as const; // unidades del mundo
+// Recentrado en el nuevo valor por defecto 40 (responsable, 2026-10-07): mínimo 10 a
+// sugerencia del responsable, se conserva el antiguo techo de 120 y sobreviven todos los
+// peldaños antiguos desde 15 hacia arriba (4/5/7.5 se ajustan a 10).
+export const REGION_BLUR_LADDER = [10, 15, 20, 25, 30, 40, 50, 60, 80, 100, 120] as const; // unidades del mundo
 export const REGION_EDGE_ALPHA_LADDER = [0.025, 0.05, 0.075, 0.1, 0.15, 0.2, 0.3, 0.4, 0.6, 0.8, 1] as const;
 
-export const CHARGE_RANGE = { min: -480, max: -120 } as const; // |gm| = 240 (2026-09-17: default −240, dead-center; a subrange of the sweep-validated [30, 480])
+export const CHARGE_RANGE = { min: -480, max: -120 } as const; // |gm| = 240 (2026-09-17: valor por defecto −240, en el centro; un subrango del [30, 480] validado con barridos)
 export const LINK_STRENGTH_RANGE = { min: 0.25, max: 4 } as const; // gm = 1
 export const LINK_DISTANCE_RANGE = { min: 10, max: 160 } as const; // gm = 40
 export const GRAVITY_RANGE = { min: 0.03, max: 0.48 } as const; // gm = 0.12
-export const CLUSTER_PULL_RANGE = { min: 0.0225, max: 1 } as const; // gm = 0.15; 0 = off
+export const CLUSTER_PULL_RANGE = { min: 0.0225, max: 1 } as const; // gm = 0.15; 0 = desactivado
 export const VELOCITY_DECAY_RANGE = { min: 0.18, max: 0.9 } as const; // gm ≈ 0.40
 export const DEPTH_STRENGTH_RANGE = { min: 0.2, max: 3.2 } as const; // gm = 0.8
 export const DEPTH_SPACING_RANGE = { min: 15, max: 240 } as const; // gm = 60
 export const DEPTH_BASE_RADIUS_RANGE = { min: 55, max: 880 } as const; // gm = 220
 
-/** Nearest ladder entry (ties break LOW — deterministic). */
+/** Entrada de la escalera más cercana (los empates van hacia ABAJO — determinista). */
 export function snapToLadder(value: number, ladder: readonly number[]): number {
 	return ladder.reduce((best, v) => (Math.abs(v - value) < Math.abs(best - value) ? v : best), ladder[0] as number);
 }
 
-/** Ladder index of a value (nearest; ties break low) — the slider position
- *  is index × 10 (step-10 track, 11 stops, default at 50). */
+/** Índice en la escalera de un valor (el más cercano; los empates van hacia abajo) — la
+ * posición del deslizador es índice × 10 (pista de paso 10, 11 peldaños, valor por defecto en 50). */
 export function ladderIndex(value: number, ladder: readonly number[]): number {
 	let best = 0;
 	for (let i = 1; i < ladder.length; i++)
@@ -341,53 +348,54 @@ export function ladderIndex(value: number, ladder: readonly number[]): number {
 	return best;
 }
 
-/** Setting value → ladder slider position [0, 100]. */
+/** Valor del ajuste → posición del deslizador de escalera [0, 100]. */
 export function toLadderPosition(value: number, ladder: readonly number[]): number {
 	return ladderIndex(clampToLadder(value, ladder), ladder) * 10;
 }
 
-/** Ladder slider position [0, 100] → setting value (the ladder entry). */
+/** Posición del deslizador de escalera [0, 100] → valor del ajuste (la entrada de la escalera). */
 export function fromLadderPosition(position: number, ladder: readonly number[]): number {
 	const i = Math.min(Math.max(Math.round(position / 10), 0), ladder.length - 1);
 	return ladder[i] as number;
 }
 
-/** Clamp a value into the ladder's span (no snapping — bounds only). */
+/** Acota un valor al intervalo de la escalera (sin ajustar a peldaños — solo límites). */
 function clampToLadder(value: number, ladder: readonly number[]): number {
 	return clamp(value, ladder[0] as number, ladder[ladder.length - 1] as number);
 }
 
-/** Off-aware slider mapping (position 0 → value 0 = OFF; the log range
- *  starts one step in). Inverse of fromOffSliderPosition. */
+/** Correspondencia del deslizador con zona de apagado (posición 0 → valor 0 = APAGADO;
+ * el rango logarítmico empieza un paso más allá). Inversa de fromOffSliderPosition. */
 export function toOffSliderPosition(value: number, min: number, max: number): number {
 	if (value <= 0) return 0;
 	return toSliderPosition(value, min, max);
 }
 
-/** Off-aware slider mapping: position 0 → 0 (off), else log-scaled. */
+/** Correspondencia del deslizador con zona de apagado: posición 0 → 0 (apagado); si no, escala logarítmica. */
 export function fromOffSliderPosition(position: number, min: number, max: number): number {
 	if (position <= 0) return 0;
 	return fromSliderPosition(position, min, max);
 }
 
-/** Setting value → slider position [0, 100] (log scale, default at 50). */
+/** Valor del ajuste → posición del deslizador [0, 100] (escala logarítmica, valor por defecto en 50). */
 export function toSliderPosition(value: number, min: number, max: number): number {
 	const v = clamp(value, min, max);
 	const logSpan = Math.log(max / min);
 	return (100 * Math.log(v / min)) / logSpan;
 }
 
-/** Slider position [0, 100] → setting value (inverse of toSliderPosition). */
+/** Posición del deslizador [0, 100] → valor del ajuste (inversa de toSliderPosition). */
 export function fromSliderPosition(position: number, min: number, max: number): number {
 	const p = clamp(position, 0, 100) / 100;
 	const logSpan = Math.log(max / min);
 	return min * Math.exp(p * logSpan);
 }
 
-/** Display units for labelZoom: ABSOLUTE since 2026-09-17 (ratio / 0.5 —
- *  anchored to the historical pre-bake default, so "8×" keeps its meaning
- *  now that 4 IS the default; the old default-relative form would have
- *  relabeled the user's tuned 8× as "1×"). */
+/** Unidades de visualización de labelZoom: ABSOLUTAS desde el 2026-09-17 (proporción /
+ * 0,5 — ancladas al valor por defecto histórico anterior a la consolidación, así "8×"
+ * conserva su significado ahora que 4 ES el valor por defecto; la antigua forma
+ * relativa al valor por defecto habría vuelto a rotular el 8× ajustado por el usuario
+ * como "1×"). */
 export function labelZoomDisplay(labelZoom: number): string {
 	const v = Math.round((labelZoom / 0.5) * 100) / 100;
 	return `${v}×`;
