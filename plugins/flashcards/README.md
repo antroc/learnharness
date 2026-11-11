@@ -1,163 +1,171 @@
 # Flashcards
 
-A Core LearnHarness plugin: generate fact-recall cues from your graph or uploaded PDF/text files, organize them in flat decks, and review them with FSRS-6. **No Anki integration.** No runtime npm dependencies, private app imports, core graph writes or provider credentials in the package.
+Un plugin del núcleo de LearnHarness: genera pistas de recuerdo de hechos a partir de tu grafo o de ficheros PDF o de texto subidos, organízalas en mazos planos y repásalas con FSRS-6. **Sin integración con Anki.** El paquete no contiene dependencias npm de runtime, importaciones privadas de la app, escrituras en el grafo del núcleo ni credenciales de proveedores.
 
-## Core plugin and source reference
+## Plugin del núcleo y referencia de código
 
-Enable Flashcards in **Settings → Core plugins**. The app supplies and updates its code;
-its writable records live under `<learning data>/core-plugin-data/flashcards/`.
-This source project is reference material, not an installable Community copy:
-`flashcards` is a reserved Core ID even when the Core plugin is disabled or missing.
-A Community fork needs its own manifest/folder ID and a review of contribution, tool
-and fence names that could conflict. Do not copy this build into a Community
-`plugins/flashcards/` folder.
+Activa Flashcards en **Ajustes → Plugins del núcleo**. La app aporta y actualiza su código;
+sus registros escribibles viven en `<learning data>/core-plugin-data/flashcards/`. Este
+proyecto de código es material de referencia, no una copia instalable de la comunidad:
+`flashcards` es un ID reservado del núcleo aunque el plugin del núcleo esté desactivado o
+falte. Un fork de la comunidad necesita su propio ID de manifiesto y carpeta y revisar los
+nombres de contribuciones, herramientas y bloques cercados que puedan entrar en conflicto. No
+copies esta build en una carpeta `plugins/flashcards/` de la comunidad.
 
-Requires a matching host exposing `mountKnowledgePicker`, `mountMarkdown`, `mountTree`,
-page-body `openSurface`, public `mountButton` icons (`icon` / `iconOnly`) and custom
-colors (`variant: 'custom'` / `colors`), the surface `data-plugin-initial-focus`
-contract, and `ctx.workers`. A version string alone does not establish capabilities.
-File generation additionally requires `ctx.documents.toMarkdown`; without it, only
-Generate from file is disabled, while graph generation and existing reviews remain available.
+Requiere un host correspondiente que exponga `mountKnowledgePicker`, `mountMarkdown`,
+`mountTree`, `openSurface` del cuerpo de página, los iconos públicos de `mountButton`
+(`icon` / `iconOnly`) y los colores personalizados (`variant: 'custom'` / `colors`), el
+contrato `data-plugin-initial-focus` de las superficies y `ctx.workers`. Una cadena de versión
+por sí sola no establece las capacidades. La generación a partir de ficheros requiere además
+`ctx.documents.toMarkdown`; sin ella, solo se desactiva Generate from file, mientras que la
+generación desde el grafo y los repasos existentes siguen disponibles.
 
 ## Build
 
-This JavaScript project needs no `.sdk/` or SDK generation. Set up the project's
-development dependencies separately; no npm setup is performed by LearnHarness.
-With dependencies already available, from this folder:
+Este proyecto JavaScript no necesita `.sdk/` ni generar el SDK. Prepara aparte las
+dependencias de desarrollo del proyecto; LearnHarness no hace ninguna preparación con npm.
+Con las dependencias ya disponibles, desde esta carpeta:
 
 ```sh
 npm run build
 ```
 
-The build writes directly to this project's **`dist/`**, bundling the frontend and
-CommonJS backend and copying the manifest, styles and licenses. Cleanup replaces
-only `dist/`, refuses symlinked `dist/` or misplaced `dist/data/`, and preserves sibling
-`data/`. Building does not install, enable or update a Core plugin.
+La build escribe directamente en el **`dist/`** de este proyecto, empaqueta el frontend y el
+backend CommonJS y copia el manifiesto, los estilos y las licencias. La limpieza solo
+sustituye `dist/`, rechaza un `dist/` enlazado simbólicamente o un `dist/data/` mal colocado
+y conserva el `data/` hermano. Compilar no instala, activa ni actualiza un plugin del núcleo.
 
-## Use
+## Uso
 
-Open Flashcards from its stacked-card icon in the sidebar. Select propositions in the real host knowledge picker, run preflight, then confirm generation. It uses the current cheap model slot unless you set a plugin-specific override; calls can incur cost. Graph selection is manual; there are no automatic generation triggers. Each successful chunk adds useful missing cues without replacing existing cards or resetting schedules. Navigation does not cancel work. Failed/interrupted targets require an explicit new generation attempt.
+Abre Flashcards desde su icono de tarjetas apiladas en la barra lateral. Selecciona proposiciones en el selector de conocimiento real del host, ejecuta la comprobación previa y después confirma la generación. Usa la ranura del modelo barato actual salvo que fijes una sustitución específica del plugin; las llamadas pueden tener coste. La selección del grafo es manual; no hay disparadores automáticos de generación. Cada fragmento correcto añade pistas útiles que falten sin sustituir tarjetas existentes ni reiniciar calendarios. La navegación no cancela el trabajo. Los objetivos fallidos o interrumpidos requieren un nuevo intento de generación explícito.
 
-First-generation cards join a deck named after their original source. Initial names use public chat titles or notes-file basenames; host imported-source rename overrides are not yet exposed by the learning reader. Rename collections locally, create custom decks and change memberships without changing core sources. One proposition can occur in multiple decks while keeping one collection, schedule and history. Keep at least one membership when changing memberships. Deletion is a separate, explicit operation that removes Flashcards content, never learning-graph nodes.
+Las tarjetas de la primera generación se unen a un mazo con el nombre de su fuente original. Los nombres iniciales usan los títulos públicos de los chats o los nombres base de los ficheros de notas; el lector de aprendizaje aún no expone los cambios de nombre de fuentes importadas hechos en el host. Renombra las colecciones en local, crea mazos personalizados y cambia las pertenencias sin cambiar las fuentes del núcleo. Una proposición puede aparecer en varios mazos manteniendo una única colección, calendario e historial. Mantén al menos una pertenencia al cambiarlas. Borrar es una operación aparte y explícita que elimina contenido de Flashcards, nunca nodos del grafo de aprendizaje.
 
-### Write cards by hand
+### Escribir tarjetas a mano
 
-The **+** immediately left of a deck's gear opens **Create card**: enter a Name followed by Question and Answer using the same Markdown fields as Edit cue. Saving creates a new Flashcards-only target and its first cue together in that deck. There is no separate target-creation step or existing-target dropdown. Each deliberate new save creates a new target rather than matching existing names; retrying a lost response does not create duplicates.
+El **+** que hay justo a la izquierda del engranaje de un mazo abre **Create card**: introduce un Name y después Question y Answer con los mismos campos de Markdown que Edit cue. Al guardar se crean juntos, en ese mazo, un objetivo nuevo exclusivo de Flashcards y su primera pista. No hay un paso aparte para crear objetivos ni un desplegable de objetivos existentes. Cada guardado nuevo deliberado crea un objetivo nuevo en lugar de buscar coincidencias con nombres existentes; reintentar una respuesta perdida no crea duplicados.
 
-The **+** on an active target row opens **Add cue**, with only Question and Answer. The new cue shares that target's existing schedule and memberships without resetting its history, learning cue or daily introduction count. All fields must be nonblank; Cancel creates nothing. Manual creation needs no configured model, makes no model calls and never writes to the graph. Handwritten targets remain active independently of graph contents, including after restart. Cue rows and the Archive have no creation controls.
+El **+** de la fila de un objetivo activo abre **Add cue**, solo con Question y Answer. La pista nueva comparte el calendario y las pertenencias existentes de ese objetivo sin reiniciar su historial, su pista de aprendizaje ni el recuento diario de introducciones. Ningún campo puede estar en blanco; Cancelar no crea nada. La creación manual no necesita un modelo configurado, no hace llamadas al modelo y nunca escribe en el grafo. Los objetivos escritos a mano siguen activos con independencia del contenido del grafo, también tras reiniciar. Las filas de pistas y el Archive no tienen controles de creación.
 
-### Library and review
+### Biblioteca y repaso
 
-The library uses the native Deck → Proposition → Cue tree, with search and Create deck grouped inside its bordered panel. Click a deck name to rename it inline (Enter/blur saves; Escape cancels); its adjacent outlined Review button starts deck review. Stacked-card glyphs mark decks and the Archive branch. Muted gear menus retain deck settings, memberships, editing/deletion and ordering. Click a cue for a rich question/answer preview, with the proposition name as its single dialog heading and the same centered question/divider/answer styling as review. The preview's red Delete button opens the shared content-deletion confirmation. Search disables ordering until cleared.
+La biblioteca usa el árbol nativo Mazo → Proposición → Pista, con la búsqueda y Create deck agrupados dentro de su panel con borde. Haz clic en el nombre de un mazo para renombrarlo en línea (Enter o perder el foco guarda; Escape cancela); el botón Review con contorno que tiene al lado inicia el repaso del mazo. Unos glifos de tarjetas apiladas marcan los mazos y la rama Archive. Los menús de engranaje atenuados conservan los ajustes del mazo, las pertenencias, la edición y el borrado y la ordenación. Haz clic en una pista para ver una previsualización enriquecida de pregunta y respuesta, con el nombre de la proposición como único encabezado del diálogo y el mismo estilo centrado de pregunta, divisor y respuesta que en el repaso. El botón rojo Delete de la previsualización abre la confirmación compartida de borrado de contenido. La búsqueda desactiva la ordenación hasta que se borra.
 
-Branch selection includes descendants, mixed checkboxes show partial selection, and shared cues stay selected across decks. The action row is always visible: Review all / Practice all switch to Review selected / Practice selected when anything is selected, with natural button widths and a consistent gap as the labels expand. The selection count and Clear sit together on the right; Clear is disabled without a selection. A selection without active cues disables selected review/practice rather than falling back to the whole library; empty containers can still be selected for deletion. Selected review uses exactly the selected active cues, not all cues of their propositions. If a learning/relearning proposition's pinned cue is excluded, that proposition waits for a review scope containing that cue.
+Seleccionar una rama incluye sus descendientes, las casillas mixtas muestran la selección parcial y las pistas compartidas siguen seleccionadas en todos los mazos. La fila de acciones siempre está visible: Review all / Practice all pasan a Review selected / Practice selected cuando hay algo seleccionado, con anchos de botón naturales y una separación constante al alargarse las etiquetas. El recuento de la selección y Clear van juntos a la derecha; Clear está desactivado si no hay selección. Una selección sin pistas activas desactiva el repaso y la práctica de lo seleccionado en lugar de recurrir a toda la biblioteca; los contenedores vacíos se pueden seguir seleccionando para borrarlos. El repaso de lo seleccionado usa exactamente las pistas activas seleccionadas, no todas las pistas de sus proposiciones. Si se excluye la pista fijada de una proposición en aprendizaje o reaprendizaje, esa proposición espera a un ámbito de repaso que contenga esa pista.
 
-Review opens on the host's dimmed, blurred main-pane surface, leaving the sidebar and top bar available. The centered card contains only the question and revealed answer; the controls and dimmed shortcut hints sit outside it. Review, practice and preview cards have a landscape 16:9 minimum height based on their width, with short content centered vertically. A short revealed answer stays within that minimum-sized box; longer content expands it naturally rather than overflowing a fixed aspect ratio. No generic heading appears on the question side; the proposition name appears only after reveal. Close using the host X or Escape. The host focuses the visible card region through the public initial-focus marker. Space only reveals: after reveal it never submits a scheduled-review rating, including on focused rating buttons. Use 1–4 when focus is not in a control, click a rating, or press Enter on a focused rating button. Rating buttons use red/amber/green/blue tints for Again/Hard/Good/Easy through the shared custom-color API. Reveal is a quieter outlined button with a short “Space” hint. The ready count hugs the card's bottom edge, aligned right above the controls. Think, reveal, then self-rate Again/Hard/Good/Easy. Review is local and makes no model calls. The “N ready” count includes the current proposition, due propositions and new propositions admissible under the daily limits; future learning steps are not counted until ready. It counts shared propositions, not every cue.
+El repaso se abre sobre la superficie del panel principal del host, atenuada y desenfocada, dejando disponibles la barra lateral y la superior. La tarjeta centrada solo contiene la pregunta y la respuesta revelada; los controles y las pistas de atajos atenuadas quedan fuera de ella. Las tarjetas de repaso, práctica y previsualización tienen una altura mínima apaisada 16:9 basada en su ancho, con el contenido corto centrado en vertical. Una respuesta revelada corta se queda dentro de esa caja de tamaño mínimo; el contenido más largo la amplía de forma natural en lugar de desbordar una proporción fija. En la cara de la pregunta no aparece ningún encabezado genérico; el nombre de la proposición solo aparece tras revelar. Cierra con la X del host o Escape. El host enfoca la región visible de la tarjeta mediante la marca pública de foco inicial. Espacio solo revela: tras revelar nunca envía una calificación del repaso programado, tampoco sobre botones de calificación enfocados. Usa 1–4 cuando el foco no esté en un control, haz clic en una calificación o pulsa Enter sobre un botón de calificación enfocado. Los botones de calificación usan tintes rojo, ámbar, verde y azul para Again/Hard/Good/Easy mediante la API compartida de colores personalizados. Reveal es un botón con contorno más discreto con una breve pista “Space”. El recuento de listas va pegado al borde inferior de la tarjeta, alineado a la derecha por encima de los controles. Piensa, revela y después califícate con Again/Hard/Good/Easy. El repaso es local y no hace llamadas al modelo. El recuento “N ready” incluye la proposición actual, las proposiciones vencidas y las proposiciones nuevas admisibles según los límites diarios; los pasos de aprendizaje futuros no se cuentan hasta que estén listos. Cuenta proposiciones compartidas, no cada pista.
 
-Ready learning/relearning comes first, then due reviews, then new propositions. New allowance defaults to 20 per deck/day; due reviews are uncapped. A first rating counts in every containing deck; only the admitting/studied deck controls admission. Whole-library review finds an eligible deck without creating a separate global allowance.
+Primero va el aprendizaje y reaprendizaje listo, después los repasos vencidos y después las proposiciones nuevas. El cupo de nuevas es de 20 por mazo y día por defecto; los repasos vencidos no tienen tope. Una primera calificación cuenta en todos los mazos que la contienen; solo el mazo que admite o en el que se estudia controla la admisión. El repaso de toda la biblioteca busca un mazo elegible sin crear un cupo global aparte.
 
-### Delete Flashcards content
+### Borrar contenido de Flashcards
 
-Selecting anything reveals an accessible icon-only trash button immediately right of Review selected / Practice selected. Cue preview/menu Delete and Deck settings → Delete deck… use the same single confirmation, with a muted rendered body explanation and **Delete empty decks too** checked by default. No replacement-deck picker is needed.
+Al seleccionar cualquier cosa aparece un botón de papelera accesible solo con icono justo a la derecha de Review selected / Practice selected. Delete en la previsualización o el menú de una pista y Deck settings → Delete deck… usan la misma confirmación única, con una explicación atenuada en el cuerpo y **Delete empty decks too** marcada por defecto. No hace falta un selector de mazo de sustitución.
 
-Selected cues are physically deleted everywhere they are shared. Removing a target's last cue removes that Flashcards target and its active schedule; surviving targets retain their other cues, schedules and memberships. Past review ratings/timestamps remain available for statistics, but review records no longer retain question/answer snapshots. With empty-deck cleanup checked, only affected decks that become empty (or explicitly selected empty decks) are deleted; unrelated empty decks survive. Unchecking keeps emptied containers. Deck deletion selects the deck's contents, including targets shared with other decks. Learning-graph nodes and native sources are never deleted.
+Las pistas seleccionadas se borran físicamente en todos los sitios donde se comparten. Quitar la última pista de un objetivo elimina ese objetivo de Flashcards y su calendario activo; los objetivos que sobreviven conservan sus demás pistas, calendarios y pertenencias. Las calificaciones y marcas de tiempo de repasos pasados siguen disponibles para las estadísticas, pero los registros de repaso ya no conservan instantáneas de pregunta y respuesta. Con la limpieza de mazos vacíos marcada, solo se borran los mazos afectados que quedan vacíos (o los mazos vacíos seleccionados explícitamente); los mazos vacíos no relacionados sobreviven. Desmarcarla mantiene los contenedores vaciados. Borrar un mazo selecciona su contenido, incluidos los objetivos compartidos con otros mazos. Nunca se borran nodos del grafo de aprendizaje ni fuentes nativas.
 
-Deletion waits until generation finishes or is cancelled, both in the UI and at the backend, so late results cannot recreate deleted content. Confirmation freezes the selection and library revision; a changed library requires a new confirmation. Lost-response retries reuse a text-free durable receipt and do not apply another deletion. Deleted questions are not retained as tombstones or fed to subsequent generations, and are not a generation blacklist.
+El borrado espera a que la generación termine o se cancele, tanto en la interfaz como en el backend, para que los resultados tardíos no puedan volver a crear contenido borrado. La confirmación congela la selección y la revisión de la biblioteca; si la biblioteca cambia, hace falta una confirmación nueva. Los reintentos por respuesta perdida reutilizan un recibo duradero sin texto y no aplican otro borrado. Las preguntas borradas no se conservan como lápidas ni se pasan a generaciones posteriores, y no son una lista negra para la generación.
 
-### Generate from a file
+### Generar a partir de un fichero
 
-Choose **Generate from file…** and select one PDF or UTF-8 text file. The shared host converter uses the same PDF-to-Markdown engine as notes import and the PDF-reader tools; there is no second converter in this package. PDFs are identified by their header or `.pdf` filename, so a corrupt PDF is not silently treated as ordinary text. Other filenames are allowed when their content is valid UTF-8 text, rather than restricting uploads to a short extension list. Unsupported binary/invalid text, empty documents, and PDFs without extractable text are refused. There is no OCR; mixed PDFs may omit image-only pages and present notices before generation.
+Elige **Generate from file…** y selecciona un PDF o un fichero de texto UTF-8. El conversor compartido del host usa el mismo motor de PDF a Markdown que la importación de notas y las herramientas de lectura de PDF; en este paquete no hay un segundo conversor. Los PDF se identifican por su cabecera o por el nombre de fichero `.pdf`, de modo que un PDF corrupto no se trata en silencio como texto normal. Se admiten otros nombres de fichero cuando su contenido es texto UTF-8 válido, en lugar de restringir las subidas a una lista corta de extensiones. Se rechazan el binario no admitido o el texto no válido, los documentos vacíos y los PDF sin texto extraíble. No hay OCR; en los PDF mixtos pueden omitirse las páginas que solo tienen imagen y mostrarse avisos antes de la generación.
 
-The confirmation shows the filename followed by the approximate input-token count in parentheses, together in one muted body paragraph. Graph generation uses the same format with the proposition count instead of a filename. File-conversion notices appear below the summary; neither dialog adds a separate cost-warning sentence. No model calls start until you confirm. Each confirmed new file creates one deck named with its filename, including extension, which you can rename normally. The agent creates atomic facts and recall cues **only inside Flashcards**: nothing is imported into the graph. Cues for one fact share its schedule, just like graph-backed cards; file facts remain active independently of graph contents. Review, practice, daily limits, memberships, editing and statistics work the same way for both origins.
+La confirmación muestra el nombre del fichero seguido del recuento aproximado de tokens de entrada entre paréntesis, juntos en un párrafo atenuado del cuerpo. La generación desde el grafo usa el mismo formato, con el número de proposiciones en lugar del nombre del fichero. Los avisos de la conversión aparecen debajo del resumen; ningún diálogo añade una frase aparte de aviso de coste. No empieza ninguna llamada al modelo hasta que confirmas. Cada fichero nuevo confirmado crea un mazo con su nombre de fichero, incluida la extensión, que puedes renombrar normalmente. El agente crea hechos atómicos y pistas de recuerdo **solo dentro de Flashcards**: no se importa nada al grafo. Las pistas de un mismo hecho comparten su calendario, igual que las tarjetas respaldadas por el grafo; los hechos de ficheros siguen activos con independencia del contenido del grafo. El repaso, la práctica, los límites diarios, las pertenencias, la edición y las estadísticas funcionan igual para ambos orígenes.
 
-Uploading the same filename and exact converted content reopens the existing file deck without another generation run; changed content creates a new deck without modifying existing cards or progress. Generation is chunked to the configured source-text budget and uses the current cheap slot or plugin override. Accepted work continues after navigation and uses the existing cancellation/recovery mechanisms. Explicit retries process failed/cancelled/interrupted chunks, never successful ones. A confirmed file keeps its deck even if generation fails or returns no cards, with a visible result/retry state.
+Subir el mismo nombre de fichero con exactamente el mismo contenido convertido reabre el mazo de fichero existente sin otra ejecución de generación; un contenido distinto crea un mazo nuevo sin modificar las tarjetas ni el progreso existentes. La generación se trocea según el presupuesto de texto fuente configurado y usa la ranura barata actual o la sustitución del plugin. El trabajo aceptado continúa tras la navegación y usa los mecanismos existentes de cancelación y recuperación. Los reintentos explícitos procesan los fragmentos fallidos, cancelados o interrumpidos, nunca los correctos. Un fichero confirmado conserva su mazo aunque la generación falle o no devuelva tarjetas, con un estado visible de resultado y reintento.
 
-Conversion limits are 25 MiB per file, 26 MiB actual multipart body, 1,000 PDF pages and 2 MiB final UTF-8 Markdown including page markers; excess is refused, never silently truncated. The host allows one conversion at a time and reports busy instead of queuing. Cancellation is best-effort: input/page/output limits are **not** a hard CPU timeout or peak-memory bound, and an aborted conversion may hold the slot until the underlying parser stops. Before generation confirmation, leaving the view aborts conversion or ignores late preparation results.
+Los límites de conversión son 25 MiB por fichero, 26 MiB de cuerpo multipart real, 1.000 páginas de PDF y 2 MiB de Markdown UTF-8 final, incluidos los marcadores de página; lo que exceda se rechaza, nunca se trunca en silencio. El host permite una única conversión a la vez e informa de que está ocupado en lugar de ponerla en cola. La cancelación es de mejor esfuerzo: los límites de entrada, páginas y salida **no** son un límite de tiempo de CPU estricto ni un tope de memoria máxima, y una conversión cancelada puede retener el hueco hasta que el parser subyacente se detenga. Antes de confirmar la generación, salir de la vista cancela la conversión o ignora los resultados tardíos de la preparación.
 
-Only the converted Markdown is retained under plugin data for retry and repeat-file identification, not the original upload. This text and the duplicate-detection record belong to the file deck: keeping an empty deck keeps both, and identical uploads reopen it without regeneration; deleting that deck removes both, so a later upload can offer fresh generation. Moving its targets to other decks does not transfer ownership of the saved source text; those local targets remain usable after the original file deck is deleted. Normal background-task records also retain their generation inputs. Uploads do not create graph sources or trigger the graph extraction pipeline.
+Solo se conserva en los datos del plugin el Markdown convertido, para reintentar e identificar ficheros repetidos, no la subida original. Este texto y el registro de detección de duplicados pertenecen al mazo del fichero: conservar un mazo vacío conserva ambos, y las subidas idénticas lo reabren sin regenerar; borrar ese mazo elimina ambos, de modo que una subida posterior puede ofrecer una generación nueva. Mover sus objetivos a otros mazos no transfiere la propiedad del texto fuente guardado; esos objetivos locales siguen siendo utilizables después de borrar el mazo original del fichero. Los registros normales de tareas en segundo plano también conservan sus entradas de generación. Las subidas no crean fuentes en el grafo ni disparan la canalización de extracción del grafo.
 
-### Spaced-repetition overview
+### Resumen de la repetición espaciada
 
-Below the deck panel, the library-wide dashboard shows new/learning/review/relearning proposition counts, current due dates (overdue, today and the next seven study days), and fourteen study days of scheduled-review activity. Shared propositions count once; archived propositions and groups without active cues are excluded from the current-state and due charts. The due chart shows existing next due dates, not a prediction of future repetitions. Activity counts recorded ratings, including historical reviews of cards later archived or deleted, rather than unique propositions. Search and selection do not filter the overview. The overview shares the rating palette: New blue, Learning amber, Review green, Relearning red. Due bars use red for overdue, amber for today and blue for future days; activity bars are green. Only the due chart's second-line dates are dimmed, leaving weekdays and activity dates unchanged.
+Debajo del panel de mazos, el panel de control de toda la biblioteca muestra los recuentos de proposiciones nuevas, en aprendizaje, en repaso y en reaprendizaje, las fechas de vencimiento actuales (vencidas, hoy y los siete días de estudio siguientes) y catorce días de estudio de actividad de repasos programados. Las proposiciones compartidas cuentan una vez; las proposiciones archivadas y los grupos sin pistas activas se excluyen de los gráficos de estado actual y de vencimientos. El gráfico de vencimientos muestra las fechas de vencimiento siguientes existentes, no una predicción de repeticiones futuras. La actividad cuenta las calificaciones registradas, incluidos los repasos históricos de tarjetas archivadas o borradas después, no proposiciones únicas. La búsqueda y la selección no filtran el resumen. El resumen comparte la paleta de las calificaciones: New azul, Learning ámbar, Review verde, Relearning rojo. Las barras de vencimientos usan rojo para lo vencido, ámbar para hoy y azul para los días futuros; las barras de actividad son verdes. Solo se atenúan las fechas de la segunda línea del gráfico de vencimientos; los días de la semana y las fechas de actividad no cambian.
 
-### Extra practice
+### Práctica extra
 
-Choose **Practice selected / Practice all** in the selection row; practice is not duplicated in deck gear menus. Practice snapshots active cues in saved deck/proposition/cue order, deduplicating shared cues and excluding archived/deleted cards. It includes new and non-due cards without a daily limit. Reveal each answer, then select Next; Space reveals or advances. There are no ratings, schedule changes, introduction charges or history writes. Each cue appears once in that practice session. The practice counter counts other cues still in the snapshot, excluding the displayed cue. The counter hugs the card's bottom edge above the controls. “Practice mode does not change your review schedule.” sits centered near the bottom of the pane, flowing below long content instead of covering it. Reveal and Next are quiet outlined buttons with short “Space” hints. Close with the host X or Escape.
+Elige **Practice selected / Practice all** en la fila de la selección; la práctica no se duplica en los menús de engranaje de los mazos. La práctica toma una instantánea de las pistas activas en el orden guardado de mazos, proposiciones y pistas, eliminando duplicados de las pistas compartidas y excluyendo las tarjetas archivadas o borradas. Incluye tarjetas nuevas y no vencidas sin límite diario. Revela cada respuesta y después selecciona Next; Espacio revela o avanza. No hay calificaciones, cambios de calendario, consumo de introducciones ni escrituras en el historial. Cada pista aparece una vez en esa sesión de práctica. El contador de práctica cuenta las otras pistas que siguen en la instantánea, sin incluir la pista mostrada. El contador va pegado al borde inferior de la tarjeta, encima de los controles. “Practice mode does not change your review schedule.” aparece centrado cerca del fondo del panel, fluyendo por debajo del contenido largo en lugar de taparlo. Reveal y Next son botones discretos con contorno y breves pistas “Space”. Cierra con la X del host o Escape.
 
-Settings control desired retention (initially 90%), learning steps (1m 10m), relearning steps (10m), local study-day start (04:00), source chunk budget (approximately 4,000 tokens of source text, excluding instructions and additional context), and generation model/thinking overrides. The model section has its own Follow cheap slot toggle: on follows both model and thinking and hides the override rows; off pins the current cheap model/thinking when available, or opens an unsaved model-selection draft if no cheap model is available. The Model setting uses the native sans label and standard “Follow cheap slot” description underneath it, with the toggle on the right. When off, only the model and thinking pickers appear side by side below, aligned right, without extra labels or a separate default-thinking/reset button. This uses the existing settings API without custom fonts, private widget styling, or extra API fields. Turning the toggle back on clears both overrides; no extra setting or schedule change is introduced. FSRS-6 uses published parameters and deterministic intervals (no fuzz or optimizer). Learning repetitions use the same cue; normal review weights cue selection by its latest self-rating. The schedule is proposition-level, intentionally not identical to card-level Anki scheduling.
+Los ajustes controlan la retención deseada (90 % al principio), los pasos de aprendizaje (1m 10m), los pasos de reaprendizaje (10m), el inicio del día de estudio local (04:00), el presupuesto de los fragmentos de la fuente (unos 4.000 tokens de texto fuente, sin contar instrucciones ni contexto adicional) y las sustituciones de modelo y razonamiento para la generación. La sección del modelo tiene su propio conmutador Follow cheap slot: activado, sigue tanto el modelo como el razonamiento y oculta las filas de sustitución; desactivado, fija el modelo y razonamiento baratos actuales si están disponibles, o abre un borrador de selección de modelo sin guardar si no hay modelo barato disponible. El ajuste Model usa la etiqueta sans nativa y la descripción estándar “Follow cheap slot” debajo, con el conmutador a la derecha. Desactivado, solo aparecen debajo los selectores de modelo y razonamiento, uno junto al otro y alineados a la derecha, sin etiquetas extra ni un botón aparte de razonamiento por defecto o restablecer. Esto usa la API de ajustes existente sin fuentes personalizadas, estilos privados de widgets ni campos extra de la API. Volver a activar el conmutador borra ambas sustituciones; no se introduce ningún ajuste extra ni cambio de calendario. FSRS-6 usa los parámetros publicados e intervalos deterministas (sin variación aleatoria ni optimizador). Las repeticiones de aprendizaje usan la misma pista; el repaso normal pondera la elección de pista por su última autocalificación. El calendario es por proposición y, de forma intencionada, no es idéntico a la planificación por tarjeta de Anki.
 
-Questions/answers use the host's real Markdown rendering, including code, tables, math and Mermaid. Edit cards without resetting progress. Deleting a cue physically removes it from plugin card storage; generation sees only current active cards, never a deleted-card backlog. If its graph proposition disappears, its collection is archived and excluded from review; the same ID returning makes it active again. Source deletion does not reorganize surviving cards.
+Las preguntas y respuestas usan el renderizado real de Markdown del host, incluidos código, tablas, matemáticas y Mermaid. Edita las tarjetas sin reiniciar el progreso. Borrar una pista la elimina físicamente del almacén de tarjetas del plugin; la generación solo ve las tarjetas activas actuales, nunca un historial de tarjetas borradas. Si desaparece la proposición del grafo, su colección se archiva y se excluye del repaso; si vuelve el mismo ID, se activa de nuevo. Borrar una fuente no reorganiza las tarjetas que sobreviven.
 
-## Generation prompts
+## Prompts de generación
 
-All generation prompt wording lives in **`src/generation-prompts.cjs`**:
+Toda la redacción de los prompts de generación está en **`src/generation-prompts.cjs`**:
 
-- **`cardWriting`** — the shared retrieval-task framework: target selection versus cue design; coherent atomic facts; distinct access routes; focused, precise, consistent, tractable and effortful questions; fair self-assessment; false-positive/false-negative checks; and selective, nonredundant cue sets. Examples use request throughput and database transactions. Edit this to change both generation entry points together.
-- **`inputSafety`** — quoted-source handling and grounding requirements.
-- **`outputProtocol`** — concise Markdown capabilities, LaTeX delimiters, literal dollar signs (escaped prose/currency versus code tokens), Mermaid labels, JSON/backslash/newline escaping, and the shared `submit_result` completion/repair procedure. There is no callout or emphasis guidance.
-- **`graphSourceInstructions` / `fileSourceInstructions`** — source-specific tasks, context rules, cardinality and result-shape instructions.
-- **`graphPromptFor` / `filePromptFor`** — the per-chunk user messages and JSON payload wrappers.
+- **`cardWriting`** — el marco compartido de tareas de recuperación: elección del objetivo frente a diseño de la pista; hechos atómicos coherentes; rutas de acceso distintas; preguntas centradas, precisas, coherentes, abordables y que exijan esfuerzo; autoevaluación justa; comprobaciones de falsos positivos y falsos negativos; y conjuntos de pistas selectivos y no redundantes. Los ejemplos usan el rendimiento de peticiones y las transacciones de bases de datos. Edítalo para cambiar a la vez los dos puntos de entrada de generación.
+- **`inputSafety`** — tratamiento de las fuentes citadas y requisitos de fundamentación.
+- **`outputProtocol`** — capacidades concisas de Markdown, delimitadores de LaTeX, signos de dólar literales (prosa o moneda escapadas frente a tokens de código), etiquetas de Mermaid, escapado de JSON, barras invertidas y saltos de línea, y el procedimiento compartido de finalización y reparación de `submit_result`. No hay indicaciones sobre avisos destacados ni énfasis.
+- **`graphSourceInstructions` / `fileSourceInstructions`** — tareas específicas de cada fuente, reglas de contexto, cardinalidad e instrucciones sobre la forma del resultado.
+- **`graphPromptFor` / `filePromptFor`** — los mensajes de usuario por fragmento y los envoltorios JSON de la carga útil.
 
-Both workers use composed instructions from that module. Like core extraction, the **chunk budget covers source material only**, estimated as characters divided by four (rounded up): graph generation sums each selected target's name plus newline plus statement, and file generation counts the Markdown being chunked. Instructions, output schemas, IDs/JSON wrappers, neighboring propositions/chains and existing active cards do not consume that source budget. Graph targets remain indivisible; a target exceeding the source budget gets its own chunk. File chunks retain the existing lossless paragraph/newline preferences and Unicode-safe splitting, including exact retry spans.
+Ambos workers usan instrucciones compuestas desde ese módulo. Igual que en la extracción del núcleo, el **presupuesto de fragmento solo cubre el material fuente**, estimado como caracteres divididos entre cuatro (redondeando hacia arriba): la generación desde el grafo suma el nombre de cada objetivo seleccionado más un salto de línea más su enunciado, y la generación desde ficheros cuenta el Markdown que se trocea. Las instrucciones, los esquemas de salida, los ID y envoltorios JSON, las proposiciones y cadenas vecinas y las tarjetas activas existentes no consumen ese presupuesto de fuente. Los objetivos del grafo siguen siendo indivisibles; un objetivo que supere el presupuesto de fuente recibe su propio fragmento. Los fragmentos de ficheros mantienen las preferencias existentes de párrafo y salto de línea sin pérdida y el troceado seguro para Unicode, incluidos los tramos exactos de reintento.
 
-The **full-request estimate is separate**: it still counts the composed instructions, actual output schema and complete user message using UTF-8 bytes divided by three (rounded up), plus the existing 256-token overhead allowance. Confirmation dialogs report this full input estimate for cost awareness, and model-context checks reserve output space against the full request, not just the source. Changes to the writing framework do not change source-chunk grouping. Result schemas, validators and chunking remain in `src/backend.cjs` and `src/file-generation.cjs`; those mechanics differ between graph targets and extracted file facts. Source-specific instructions still determine whether to use supplied targets or extract new facts, while safety and output mechanics remain separate from the writing framework.
+La **estimación de la petición completa es aparte**: sigue contando las instrucciones compuestas, el esquema de salida real y el mensaje de usuario completo como bytes UTF-8 divididos entre tres (redondeando hacia arriba), más el margen existente de 256 tokens de sobrecarga. Los diálogos de confirmación informan de esta estimación de entrada completa para tener presente el coste, y las comprobaciones del contexto del modelo reservan espacio de salida frente a la petición completa, no solo frente a la fuente. Los cambios en el marco de redacción no cambian la agrupación de los fragmentos de fuente. Los esquemas de resultado, los validadores y el troceado siguen en `src/backend.cjs` y `src/file-generation.cjs`; esa mecánica difiere entre los objetivos del grafo y los hechos extraídos de ficheros. Las instrucciones específicas de cada fuente siguen determinando si usar los objetivos proporcionados o extraer hechos nuevos, mientras que la seguridad y la mecánica de salida siguen separadas del marco de redacción.
 
-## Data and lifecycle
+## Datos y ciclo de vida
 
-Plugin-owned state is `data/flashcards.json`: a versioned JSON snapshot, atomically replaced after local mutations. It contains decks, cues, schedules, review records, generation progress and lightweight file-source metadata. Handwritten targets use a local origin; cue creation receipts make manual-save retries idempotent even after restart, subsequent editing or deletion. Converted file text is stored separately under `data/sources/`, keeping large documents out of the snapshot rewritten on each review. Existing graph-backed records remain compatible and retain their schedules and history. Host-owned task records remain under `data/tasks/`; the plugin does not overwrite them. Disable/update preserves live cards and progress. Store migration atomically purges legacy deleted-cue tombstones and old question/answer review snapshots, moves manual retry receipts out of cues, and forgets orphan upload records whose decks were deleted by older versions. Saved-source removal uses a durable cleanup queue, so a filesystem failure is reported and can be retried or completed on the next activation without restoring a deck. A corrupt/unsupported store is an error, never silently reset.
+El estado propio del plugin es `data/flashcards.json`: una instantánea JSON con versión, sustituida de forma atómica tras las mutaciones locales. Contiene mazos, pistas, calendarios, registros de repaso, progreso de la generación y metadatos ligeros de las fuentes de ficheros. Los objetivos escritos a mano usan un origen local; los recibos de creación de pistas hacen idempotentes los reintentos de guardado manual incluso tras reiniciar, editar o borrar después. El texto convertido de los ficheros se guarda aparte en `data/sources/`, manteniendo los documentos grandes fuera de la instantánea que se reescribe en cada repaso. Los registros respaldados por el grafo existentes siguen siendo compatibles y conservan sus calendarios e historial. Los registros de tareas propiedad del host siguen en `data/tasks/`; el plugin no los sobrescribe. Desactivar o actualizar conserva las tarjetas vivas y el progreso. La migración del almacén purga de forma atómica las antiguas lápidas de pistas borradas y las viejas instantáneas de pregunta y respuesta de los repasos, saca de las pistas los recibos de reintento manual y olvida los registros de subidas huérfanos cuyos mazos borraron versiones anteriores. La eliminación de fuentes guardadas usa una cola de limpieza duradera, de modo que un fallo del sistema de ficheros se notifica y se puede reintentar o completar en la siguiente activación sin restaurar un mazo. Un almacén corrupto o no admitido es un error, nunca se reinicia en silencio.
 
-Review content mounts own only their DOM, widgets and timers. Host presentation cleanup/remount (including development StrictMode replay) does not close the logical review session; actual close, reopen and owner abort still tear down its content scopes. Accepted review ratings and worker chunks are applied once. Cancel closes the batch's application gate before cancelling outstanding tasks; previously applied chunks remain. Restart reconciles durable worker outcomes without replaying unfinished model work. A failed save is visibly separate from successful model generation; retry saving does not make another model call. All content deletion waits until generation finishes or is cancelled to avoid stale results and destinations.
+Los montajes de contenido del repaso solo son dueños de su DOM, sus widgets y sus temporizadores. La limpieza y el remontaje de la presentación por parte del host (incluida la repetición de StrictMode en desarrollo) no cierran la sesión lógica de repaso; el cierre real, la reapertura y la cancelación por el propietario siguen desmontando sus ámbitos de contenido. Las calificaciones de repaso aceptadas y los fragmentos de los workers se aplican una sola vez. Cancelar cierra la barrera de aplicación del lote antes de cancelar las tareas pendientes; los fragmentos ya aplicados se mantienen. El reinicio concilia los resultados duraderos de los workers sin repetir el trabajo del modelo sin terminar. Un guardado fallido se muestra separado de una generación correcta del modelo; reintentar el guardado no hace otra llamada al modelo. Todo borrado de contenido espera a que la generación termine o se cancele, para evitar resultados y destinos obsoletos.
 
-The store is deliberately small and simple: one backend process owns writes. Simultaneously running independent app-server processes against the same plugin data directory is not supported. If dataset size makes rewriting the snapshot expensive, measure that concrete case before introducing more storage machinery.
+El almacén es deliberadamente pequeño y sencillo: un único proceso de backend es dueño de las escrituras. No se admite ejecutar a la vez procesos independientes del servidor de la app sobre el mismo directorio de datos del plugin. Si el tamaño de los datos hace que reescribir la instantánea sea caro, mide ese caso concreto antes de introducir más maquinaria de almacenamiento.
 
-## Tests and boundaries
+## Pruebas y límites
 
-With test dependencies available:
+Con las dependencias de prueba disponibles:
 
 ```sh
 npm test
 ```
 
-The plugin tests cover storage/migrations, deletion and retry receipts, deck-bound
-source cleanup, manual creation, mocked generation/cancellation/recovery, cue-filtered
-review, memberships, scheduling and DST statistics, the dashboard, read-only practice,
-tree selection and frontend lifetimes. Document conversion and host widgets are mocked;
-these checks do not call a model or establish actual-host document conversion or cue quality.
+Las pruebas del plugin cubren el almacenamiento y las migraciones, el borrado y los recibos
+de reintento, la limpieza de fuentes ligadas a mazos, la creación manual, la generación,
+cancelación y recuperación simuladas, el repaso filtrado por pistas, las pertenencias, la
+planificación y las estadísticas con cambios de horario, el panel de control, la práctica de
+solo lectura, la selección en el árbol y los ciclos de vida del frontend. La conversión de
+documentos y los widgets del host están simulados; estas comprobaciones no llaman a ningún
+modelo ni establecen la conversión de documentos con el host real ni la calidad de las
+pistas.
 
-The DOM tests also require **`linkedom`**, which is supplied by the LearnHarness checkout
-but is not declared in this project's package manifest. A copied project needs that
-test prerequisite supplied separately; its build only needs the declared `esbuild`.
+Las pruebas DOM requieren además **`linkedom`**, que aporta el checkout de LearnHarness pero
+no está declarado en el manifiesto de paquete de este proyecto. Un proyecto copiado necesita
+que ese requisito de prueba se aporte por separado; su build solo necesita el `esbuild`
+declarado.
 
-`npm run test:native` is a checkout-oriented maintainer harness, not a standalone-kit
-check. It requires `puppeteer-core`, local Chrome, an Electron Node runtime (checkout
-path by default, or `LH_NODE_RUNTIME`), an already built matching host in
-`LH_STANDALONE` and its `LH_APPROVED_HOST_DIGEST`, plus the built plugin. It copies
-host/package bytes into disposable storage and exercises native widgets against
-synthetic records with loopback catalog traffic. The harness assumes a
-Community-loaded `flashcards` fixture; that admission assumption is not compatible
-with the reserved Core ID on a Core-packaged host. Do not treat it as an instruction
-to install a Community duplicate or as a portable Core smoke test. Browser fixtures
-are not physical Electron-window, real-provider or human UX acceptance.
+`npm run test:native` es un arnés para mantenedores orientado al checkout, no una
+comprobación del kit independiente. Requiere `puppeteer-core`, Chrome local, un runtime de
+Electron Node (por defecto la ruta del checkout, o `LH_NODE_RUNTIME`), un host
+correspondiente ya compilado en `LH_STANDALONE` y su `LH_APPROVED_HOST_DIGEST`, además del
+plugin compilado. Copia los bytes del host y del paquete en almacenamiento desechable y
+prueba los widgets nativos contra registros sintéticos con tráfico de catálogo por loopback.
+El arnés supone una fixture `flashcards` cargada como plugin de la comunidad; ese supuesto de
+admisión no es compatible con el ID reservado del núcleo en un host con paquetes del núcleo.
+No lo tomes como una instrucción para instalar un duplicado de la comunidad ni como una
+prueba de humo portable del núcleo. Las fixtures de navegador no son aceptación con ventana
+física de Electron, proveedores reales ni experiencia de usuario humana.
 
-## Source reading route
+## Ruta de lectura del código
 
-- [`src/main.js`](src/main.js): public view/actions/settings, knowledge selection,
-  document conversion and frontend/backend calls.
+- [`src/main.js`](src/main.js): vista, acciones y ajustes públicos, selección de
+  conocimiento, conversión de documentos y llamadas entre frontend y backend.
 - [`src/library-tree.js`](src/library-tree.js), [`src/review.js`](src/review.js),
-  [`src/practice-queue.js`](src/practice-queue.js) and [`src/dashboard.js`](src/dashboard.js):
-  controlled tree state, surface lifetimes, read-only practice and statistics UI.
+  [`src/practice-queue.js`](src/practice-queue.js) y [`src/dashboard.js`](src/dashboard.js):
+  estado controlado del árbol, ciclos de vida de las superficies, práctica de solo lectura e
+  interfaz de estadísticas.
 - [`src/backend.cjs`](src/backend.cjs), [`src/file-generation.cjs`](src/file-generation.cjs)
-  and [`src/generation-prompts.cjs`](src/generation-prompts.cjs): worker definitions,
-  chunking, validation, explicit confirmation and durable outcome application.
-- [`src/store.cjs`](src/store.cjs), [`src/scheduler.cjs`](src/scheduler.cjs) and
-  [`src/statistics.cjs`](src/statistics.cjs): plugin-owned records and domain algorithms,
-  not host API requirements.
-- [`scripts/build.mjs`](scripts/build.mjs) and [`tests/`](tests/): packaging guards and fixtures.
+  y [`src/generation-prompts.cjs`](src/generation-prompts.cjs): definiciones de workers,
+  troceado, validación, confirmación explícita y aplicación de resultados duraderos.
+- [`src/store.cjs`](src/store.cjs), [`src/scheduler.cjs`](src/scheduler.cjs) y
+  [`src/statistics.cjs`](src/statistics.cjs): registros propios del plugin y algoritmos del
+  dominio, no requisitos de la API del host.
+- [`scripts/build.mjs`](scripts/build.mjs) y [`tests/`](tests/): guardas de empaquetado y
+  fixtures.
 
-See the [example map](../../docs/plugin-examples.md),
-[authoring guide](../../docs/plugin-authoring.md) and
-[API reference](../../docs/plugin-api/README.md).
+Consulta el [mapa de ejemplos](../../docs/plugin-examples.md), la
+[guía de autoría](../../docs/plugin-authoring.md) y la
+[referencia de la API](../../docs/plugin-api/README.md).
 
-## License
+## Licencia
 
-AGPL-3.0-only, matching LearnHarness. The dependency-free FSRS subset is selectively adapted from MIT-licensed `ts-fsrs@5.2.3`; see `FSRS-LICENSE.txt`.
+AGPL-3.0-only, igual que LearnHarness. El subconjunto de FSRS sin dependencias está adaptado selectivamente del `ts-fsrs@5.2.3` con licencia MIT; consulta `FSRS-LICENSE.txt`.
