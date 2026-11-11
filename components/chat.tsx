@@ -1963,8 +1963,8 @@ export function Chat({
 														return null;
 													}
 													default: {
-														// Built-in presentation stays authoritative; plugin renderers
-														// extend only the generic native-tool fallback slot.
+														// La presentación integrada sigue mandando; los renderizadores de los plugins
+														// solo amplían la ranura alternativa genérica de las herramientas nativas.
 														if (part.type.startsWith("tool-")) return <ToolPartRenderer key={pi} part={part} />;
 														return null;
 													}
@@ -1977,29 +1977,29 @@ export function Chat({
 								</Fragment>
 							))}
 
-							{/* THE placeholder, ACTION-gated (owner, optimistic round
-							    3, 2026-10-02): spinner + shimmered Thinking… from the
-							    instant of any action that produces tokens — send,
-							    answer, session start, reattach (status flips to
-							    submitted SYNCHRONOUSLY with the action) — until the
-							    turn's first APPLIED event, where the stream takes over
-							    with the same look: an arrived-but-empty message renders
-							    the thinking ROW (view.ts projects one empty reasoning
-							    part), so submitted ⟺ placeholder and streaming ⟺ a
-							    rendered row, mutually exclusive by construction.
-							    Protocol events (agent_start) apply nothing and release
-							    nothing — the placeholder covers the whole
-							    provider-connect gap. Optional plugin grading/processing
-							    uses EVALUATING… until its POST acknowledges; this changes
-							    only the wording, never the action or stream gates.
-							    turnInFlight: the same state
-							    entered by external discovery (wake) / the poll
-							    fallback. Never collapsible itself. */}
-							{/* Compaction (owner round 15): the same register as the
-						    thinking placeholder — a visible session-wide state while
-						    the summarizer holds the model gate. Mutually exclusive with
-						    the THINKING placeholder by construction (the gate sits
-						    BEFORE beginTurn; the settle kick runs after endTurn). */}
+							{/* EL provisional, sujeto a ACCIONES (responsable, ronda optimista
+							3, 2026-10-02): spinner + Thinking… con brillo desde el
+							instante de cualquier acción que produce tokens — enviar,
+							responder, iniciar sesión, reenganchar (el estado pasa a
+							submitted DE FORMA SÍNCRONA con la acción) — hasta el
+							primer evento APLICADO del turno, donde el stream toma el relevo
+							con el mismo aspecto: un mensaje llegado pero vacío renderiza
+							la FILA de razonamiento (view.ts proyecta una parte de razonamiento
+							vacía), así que submitted ⟺ provisional y streaming ⟺ una
+							fila renderizada, mutuamente excluyentes por construcción.
+							Los eventos de protocolo (agent_start) no aplican nada ni liberan
+							nada — el provisional cubre todo el hueco de conexión con el
+							proveedor. La calificación/el procesamiento opcional de los plugins
+							usa EVALUATING… hasta que su POST acusa recibo; esto cambia
+							solo la redacción, nunca la acción ni las barreras del stream.
+							turnInFlight: el mismo estado
+							al que se entra por descubrimiento externo (despertar) / el sondeo
+							alternativo. Nunca es plegable por sí mismo. */}
+							{/* Compactación (ronda 15 del responsable): el mismo registro que el
+						provisional de razonamiento — un estado visible para toda la sesión mientras
+						el resumidor tiene la barrera de modelo. Mutuamente excluyente con
+						el provisional de THINKING por construcción (la barrera va
+						ANTES de beginTurn; el arranque del asentamiento se ejecuta después de endTurn). */}
 							{compacting && (
 								<span className="flex items-center gap-2 font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									<BrailleSpinner label="Compacting context" />
@@ -2022,19 +2022,19 @@ export function Chat({
 							)}
 						</div>
 
-						{/* The dock's reserved tail (DockOverlay reports its height):
-						    keeps at-rest transcript content scrolling fully clear of
-						    the overlay — the flow-space replacement for the old
-						    sticky dock. Zero only pre-measurement (the first layout
-						    effect reports before paint). */}
+						{/* La cola reservada del dock (DockOverlay comunica su altura):
+						mantiene el contenido de la transcripción en reposo con un scroll que queda
+						del todo libre del overlay — el sustituto en el espacio del flujo del antiguo
+						dock sticky. Es cero solo antes de medir (el primer efecto de
+						layout lo comunica antes de pintar). */}
 						<div aria-hidden data-testid="dock-spacer" style={{ height: dockReserve }} />
 				</ConversationContent>
-				{/* The dock: an overlay sibling of the scroller (the
-				    use-stick-to-bottom pattern). The scroll-down button lives
-				    INSIDE the overlay now (owner refinement round, 2026-09-24):
-				    anchored to the dock block's top edge, so it rides every
-				    height morph (typing, a question growing the band, the
-				    fold) and NEVER overlaps the composer. */}
+				{/* El dock: un overlay hermano del contenedor de scroll (el
+				patrón de use-stick-to-bottom). El botón de bajar ahora vive
+				DENTRO del overlay (ronda de ajustes del responsable, 2026-09-24):
+				anclado al borde superior del bloque del dock, así que acompaña cada
+				cambio de altura (al escribir, cuando una pregunta agranda la franja, el
+				plegado) y NUNCA tapa el compositor. */}
 				<DockOverlay
 					viewReader={inputViewReader}
 					viewTargets={surfaceTarget ? { text: textTarget()!, answer: builtinTarget, thinking: thinkingTarget(), pluginQuestion: pluginQuestionTarget(), pluginProblem: pluginProblemTarget() } : undefined}
@@ -2108,10 +2108,10 @@ export function Chat({
 					}
 					composer={
 						<ChatSessionComposer
-							// Stop aborts ANY in-flight turn (stream-reattach wave): the
-							// square renders while a reattached/wake turn runs too — the
-							// abort channel kills it server-side; stop() alone would
-							// only detach our view.
+							// Detener aborta CUALQUIER turno en curso (oleada de reenganche del stream): el
+							// cuadrado también se renderiza mientras se ejecuta un turno reenganchado/de despertar — el
+							// canal de aborto lo termina en el servidor; stop() por sí solo
+							// solo desengancharía nuestra vista.
 							busy={busy}
 							value={textRef.current}
 							pendingInput={pendingTextInput}
@@ -2123,9 +2123,9 @@ export function Chat({
 							sendAllowed={sendAllowed}
 							dictationActive={dictation.active}
 							onEscape={dictation.active ? dictation.cancel : undefined}
-							// The pause affordance (owner round 16): the placeholder
-							// IS the hint — empty state, exactly where Enter-on-empty
-							// applies.
+							// La indicación de la pausa (ronda 16 del responsable): el provisional
+							// ES la pista — estado vacío, justo donde se aplica Enter con el
+							// compositor vacío.
 							nextProblem={nextReady}
 							onNext={sendNext}
 							placeholder={nextReady ? "Ask anything, or press Enter for the next one." : undefined}
@@ -2133,21 +2133,21 @@ export function Chat({
 					}
 					onSubmitAnswer={(output) => {
 						if (!pending) return;
-						// THE ANSWER IS THE QUESTION CALL'S TOOL RESULT (fork 1, owner
-						// 2026-09-26): one input event, one turn — the hook appends
-						// the optimistic graded result (the AnsweredCard shows at
-						// once) and the server's write-ahead persists it before the
-						// turn; the teacher's reaction streams below it. Dismissals
-						// ride the same callback (QuestionAnswerData.dismissed). The
-						// reading-thinking draft rides along (owner 2026-10-03) — the
-						// check answer is its only carrier.
+						// LA RESPUESTA ES EL RESULTADO DE LA HERRAMIENTA DE LA LLAMADA DE LA PREGUNTA (bifurcación 1, responsable
+						// 2026-09-26): un evento de entrada, un turno — el hook anexa
+						// el resultado calificado optimista (la AnsweredCard se muestra al
+						// instante) y la persistencia anticipada del servidor lo guarda antes del
+						// turno; la reacción del profesor llega por stream debajo. Los descartes
+						// van por el mismo callback (QuestionAnswerData.dismissed). El
+						// borrador del razonamiento de lectura viaja con ella (responsable 2026-10-03) — la
+						// respuesta a la comprobación es su único portador.
 						saveQuestionDraft(pending.key, { readingThinking: readingThinkingRef.current });
 						const reading = readingThinkingRef.current.trim() || undefined;
-						// The pending-id effect clears this only when the question
-						// actually leaves. An offline preflight keeps the draft visible.
+						// El efecto del id pendiente solo lo limpia cuando la pregunta
+						// se va de verdad. Una comprobación previa sin conexión mantiene visible el borrador.
 						const send = () => submitAnswer(pending.tool, pending.toolCallId, reading ? { ...output, readingThinking: reading } : output, pending.key);
-						// Never wait for the helper. The server atomically appends new
-						// raw side updates with this main answer.
+						// Nunca esperes al auxiliar. El servidor anexa de forma atómica las nuevas
+						// actualizaciones laterales en bruto junto con esta respuesta principal.
 						send();
 					}}
 				/>
@@ -2190,10 +2190,10 @@ export function Chat({
 					/>
 				)}
 
-				{/* The session-scoped focuses (chrome-melt wave, 2026-09-19): mounted
-				    INSIDE the session area — absolute inset-0 siblings of the scroller,
-				    so they own the area below the drag bar, right of the sidebar, and
-				    the top bar stays sharp + draggable while a focus is open. */}
+				{/* Los focos con ámbito de sesión (oleada de fundido del cromo, 2026-09-19): se montan
+				DENTRO del área de la sesión — hermanos absolute inset-0 del contenedor de scroll,
+				así que ocupan el área bajo la barra de arrastre, a la derecha de la barra lateral, y
+				la barra superior sigue nítida + arrastrable mientras hay un foco abierto. */}
 				<SurfaceRegion target={surfaceTarget}>
 				{mermaidFocus !== null && (
 					<MermaidOverlay chart={mermaidFocus} onClose={() => setMermaidFocus(null)} />
@@ -2228,19 +2228,19 @@ export function Chat({
 		</CitationActionsContext.Provider>
 		</JobsContext.Provider>
 		</SessionMermaidContext.Provider>
-		{/* The BYOK setup flow (owner, 2026-09-22): one mount serves the
-		    persistent CTA, the refused-send interception, and the job cards'
-		    deep-link. Save keeps the draft in the composer — it never sends
-		    (owner ruling 2026-10-09); Esc also keeps it (the dialog is
-		    closable by design — the gate is the server, not this modal). */}
+		{/* El flujo de configuración BYOK (responsable, 2026-09-22): un único montaje sirve a la
+		llamada a la acción persistente, a la intercepción del envío rechazado y al enlace
+		de las tarjetas de tareas. Save deja el borrador en el compositor — nunca envía
+		(decisión del responsable 2026-10-09); Esc también lo deja (el diálogo se puede
+		cerrar por diseño — la barrera es el servidor, no este modal). */}
 		<SetupDialog
 			open={setupOpen}
 			onClose={() => setSetupOpen(false)}
 			onDone={() => {
 				setSetupOpen(false);
-				// Save only saves (owner ruling 2026-10-09): the draft went
-				// home into the composer at refusal time and STAYS there —
-				// the learner sends it themselves.
+				// Save solo guarda (decisión del responsable 2026-10-09): el borrador volvió
+				// a casa, al compositor, en el momento del rechazo y SE QUEDA ahí —
+				// lo envía el propio alumno.
 			}}
 		/>
 		</ChatActionsContext.Provider>
@@ -2248,53 +2248,56 @@ export function Chat({
 }
 
 /**
- * The floating blob: ONE persistent shell, OVERLAID at the bottom of the
- * column (absolute — a sibling of the scroller, the use-stick-to-bottom
- * pattern; it replaced the old in-flow sticky dock, which died of the
- * fold-latency problem below). Contents swap between the chat composer and
- * the question dock; shell height morphs between variants (WAAPI, quick). A
- * spacer at the end of the transcript (rendered by ChatView from onReserve
- * reports) holds the dock's flow-space, so at-rest content scrolls fully
- * clear of the overlay.
+ * La burbuja flotante: UN envoltorio persistente, SUPERPUESTO en la parte inferior
+ * de la columna (absolute — hermano del contenedor de scroll, el patrón de
+ * use-stick-to-bottom; sustituyó al antiguo dock sticky dentro del flujo, que murió
+ * por el problema de latencia del plegado que se explica abajo). El contenido se
+ * intercambia entre el compositor del chat y el dock de preguntas; la altura del
+ * envoltorio cambia entre variantes (WAAPI, rápido). Un espaciador al final de la
+ * transcripción (lo renderiza ChatView a partir de lo que comunica onReserve)
+ * guarda el espacio del dock en el flujo, así que el contenido en reposo queda del
+ * todo libre del overlay al hacer scroll.
  *
- * Why an overlay (owner, scroll round 1): an in-flow dock IS scroll geometry
- * — folding it shrinks the scroll content, so the fold had to wait until the
- * learner was a full dock-height past the bottom (any closer and the browser
- * clamp pinned them back, re-expanding the box: the oscillation). Decoupled
- * from the flow, the fold is VISUAL ONLY: it fires as soon as the learner
- * leaves the bottom, and the reserved tail only ever GROWS while a question
- * is open (a shrinking tail would reintroduce the clamp).
+ * Por qué un overlay (responsable, ronda 1 de scroll): un dock dentro del flujo
+ * ES geometría de scroll — plegarlo encoge el contenido desplazable, así que el
+ * plegado tenía que esperar a que el alumno estuviera una altura entera de dock
+ * por encima del fondo (más cerca, el ajuste del navegador lo devolvía abajo y
+ * volvía a desplegar la caja: la oscilación). Desacoplado del flujo, el plegado
+ * es SOLO VISUAL: se dispara en cuanto el alumno deja el fondo, y la cola
+ * reservada solo CRECE mientras hay una pregunta abierta (una cola que encogiera
+ * volvería a traer el ajuste).
  *
- * Collapse: scroll up past COLLAPSE_DIST and the dock folds into a slim bar;
- * click it (or scroll back to the bottom) to re-expand. The question form
- * stays MOUNTED while collapsed (hidden, not unmounted) so a half-made
- * selection survives.
+ * Plegado: al subir más allá de COLLAPSE_DIST, el dock se pliega en una barra
+ * fina; haz clic en ella (o vuelve abajo) para desplegarla. El formulario de la
+ * pregunta sigue MONTADO mientras está plegado (oculto, no desmontado), para que
+ * una selección a medias sobreviva.
  */
 /**
- * How a teach-phase question arrives (owner ruling, 2026-09-25): collapsed
- * behind the reveal button when it follows the composer — the learner
- * reads the teaching first — but OPEN when it follows another question
- * (a queued parallel check): the reading already happened, so there is
- * nothing left to wait for and the scroll height it already had is the
- * honest height.
+ * Cómo llega una pregunta de la fase de enseñanza (decisión del responsable,
+ * 2026-09-25): plegada tras el botón de revelación cuando sigue al compositor —
+ * el alumno lee primero la enseñanza —, pero ABIERTA cuando sigue a otra
+ * pregunta (una comprobación paralela en cola): la lectura ya ocurrió, así que no
+ * queda nada que esperar y la altura de scroll que ya tenía es la altura honesta.
  */
-/** The layered-Esc ruling (owner, 2026-10-04): an open overlay claims Esc —
- *  closing itself — before the abort chain may open its confirm. A mermaid
- *  focus, the plan popup, or the setup dialog over a pending question must
- *  close the OVERLAY, never dismiss the question underneath. Priority is
- *  stacking order: the abort confirm (topmost, claims via its own dialog),
- *  then the session overlays (mermaid paints above plan — later in DOM),
- *  then setup (self-closing — the gate only must not fire), then the
- *  2026-10-02 abort chain proper (question before turn). */
+/** La decisión del Esc por capas (responsable, 2026-10-04): un overlay abierto
+ *  reclama el Esc — se cierra él mismo — antes de que la cadena de aborto pueda
+ *  abrir su confirmación. Un foco de mermaid, la ventana del plan o el diálogo de
+ *  configuración encima de una pregunta pendiente deben cerrar el OVERLAY, nunca
+ *  descartar la pregunta de debajo. La prioridad es el orden de apilado: la
+ *  confirmación de aborto (la más alta, reclama mediante su propio diálogo),
+ *  luego los overlays de sesión (mermaid se pinta encima del plan — más tarde en
+ *  el DOM), luego la configuración (se cierra sola — la barrera solo no debe
+ *  dispararse) y luego la cadena de aborto propiamente dicha del 2026-10-02 (la
+ *  pregunta antes que el turno). */
 export type EscAbortTarget = "side-thread" | "mermaid" | "plan" | "setup" | "question" | "problem" | "turn" | null;
 	/**
- * Does the opening topic still owe its first send? The topic is the
- * server's ?prompt= or the sessionStorage stash. The gate is "no real
- * conversation yet" (no user/assistant message) — NOT emptiness: a
- * session started with map picks carries a graph-context MARKER as
- * message[0], and that scaffolding must never swallow the first send
- * (owner report, 2026-10-04: the turn went dead behind it — the old
- * `length === 0` check saw the marker and refused to fire).
+ * ¿Debe aún el tema inicial su primer envío? El tema es el ?prompt= del servidor
+ * o lo guardado en sessionStorage. La barrera es «todavía no hay conversación
+ * real» (ningún mensaje de usuario/asistente) — NO que esté vacío: una sesión
+ * iniciada con elecciones del mapa lleva un MARCADOR de contexto del grafo como
+ * message[0], y ese andamiaje nunca debe tragarse el primer envío (informe del
+ * responsable, 2026-10-04: el turno se quedaba muerto detrás de él — la antigua
+ * comprobación `length === 0` veía el marcador y se negaba a disparar).
  */
 export function initialPromptOwed(messages: readonly { role: string }[], prompt: string | undefined): boolean {
 	if (!prompt) return false;
@@ -2303,22 +2306,23 @@ export function initialPromptOwed(messages: readonly { role: string }[], prompt:
 
 export function escAbortTarget(s: {
 	abortAsk: boolean;
-	/** An open side thread (#16, F11): Esc closes (and commits) it before
-	 *  anything else on the ladder. */
+	/** Un hilo lateral abierto (#16, F11): Esc lo cierra (y lo confirma) antes que
+	 *  cualquier otra cosa de la escalera. */
 	sideThread?: boolean;
 	mermaidFocus: boolean;
 	planOpen: boolean;
 	setupOpen: boolean;
 	pending: boolean;
-	/** An active practice problem (practice sessions, 2026-10-04): Esc
-	 *  opens the discard confirm — below a pending question (the two
-	 *  never coexist, but the layering stays strict), above the turn
-	 *  abort (a live turn can be running BEHIND an idle problem only in
-	 *  teaching sessions — practice problems end their pose turns). */
+	/** Un problema de práctica activo (sesiones de práctica, 2026-10-04): Esc abre
+	 *  la confirmación de descarte — por debajo de una pregunta pendiente (las dos
+	 *  nunca coexisten, pero el orden de capas se mantiene estricto) y por encima
+	 *  del aborto del turno (un turno vivo solo puede estar ejecutándose DETRÁS de un
+	 *  problema en reposo en las sesiones de enseñanza — los problemas de práctica
+	 *  terminan sus turnos de planteamiento). */
 	problem: boolean;
 	busy: boolean;
 }): EscAbortTarget {
-	if (s.abortAsk) return null; // the popup's own Esc — claimed by the dialog
+	if (s.abortAsk) return null; // el propio Esc de la ventana — lo reclama el diálogo
 	if (s.sideThread) return "side-thread";
 	if (s.mermaidFocus) return "mermaid";
 	if (s.planOpen) return "plan";
@@ -2334,34 +2338,37 @@ export function revealArrival(wasQuestion: boolean): { expanded: boolean; reveal
 }
 
 /**
- * A PROBE question's arrival state (flicker round, 2026-09-26): open iff
- * the learner is at the bottom following along; scrolled up in history →
- * arrive as the collapsed bar (owner ruling: "it should just remain
- * closed"). Decided DURING RENDER like the teach seam above — the old
- * after-paint effect painted one stale-open frame first (the box "opened
- * and immediately closed" when scrolled up). Pure for tests.
+ * El estado de llegada de una pregunta de SONDEO (ronda del parpadeo,
+ * 2026-09-26): abierta si y solo si el alumno está abajo siguiendo la
+ * conversación; si ha subido en el historial → llega como la barra plegada
+ * (decisión del responsable: «simplemente debería quedarse cerrada»). Se decide
+ * DURANTE EL RENDER, como la frontera de la enseñanza de arriba — el antiguo
+ * efecto posterior al pintado pintaba antes un fotograma abierto obsoleto (la
+ * caja «se abría y se cerraba de inmediato» con el scroll arriba). Pura, para
+ * las pruebas.
  */
 export function probeArrivalExpanded(isAtBottom: boolean): boolean {
 	return isAtBottom;
 }
 
 /**
- * The geometry-mute's growth rule (flicker round, 2026-09-26): a reserve
- * GROWTH while a question is pending is the dock stretching (the dictation
- * flush landing many lines at once) — the spacer lands in that commit, the
- * smooth catch-up lags by exactly the growth, and that lag is our own
- * motion, not the learner leaving, so the fold machine ignores scroll
- * events for the mute window after (reproduced d≈152 > COLLAPSE_DIST).
- * Shrinks never stamp — that path self-muted the at-bottom re-expand and
- * left the box stuck collapsed (resize round, verified live). Pure for
- * tests.
+ * La regla de crecimiento del silenciado por geometría (ronda del parpadeo,
+ * 2026-09-26): un CRECIMIENTO de la reserva mientras hay una pregunta pendiente
+ * es el dock estirándose (el volcado del dictado que trae muchas líneas de golpe)
+ * — el espaciador llega en ese commit, la puesta al día suave va por detrás
+ * exactamente lo que creció, y ese retraso es movimiento nuestro, no el alumno
+ * yéndose, así que la máquina de plegado ignora los eventos de scroll durante la
+ * ventana de silencio posterior (reproducido d≈152 > COLLAPSE_DIST). Los
+ * encogimientos nunca marcan — esa ruta silenciaba por sí misma el redespliegue
+ * al llegar abajo y dejaba la caja atascada plegada (ronda de redimensionado,
+ * verificado en vivo). Pura, para las pruebas.
  */
 export function shouldStampGeometryMute(nextH: number, prevH: number, pending: boolean): boolean {
 	return pending && nextH > prevH + 1;
 }
 
-/** Reports the transcript's scroll element once StickToBottom attaches it
- *  (its ref lands after first render, like SessionMessageNavigation's). */
+/** Comunica el elemento de scroll de la transcripción en cuanto StickToBottom lo
+ *  engancha (su ref llega después del primer render, como la de SessionMessageNavigation). */
 function TranscriptElementReporter({ onElement }: { onElement: (element: HTMLElement | null) => void }) {
 	const { scrollRef } = useStickToBottomContext();
 	useEffect(() => {
@@ -2376,7 +2383,7 @@ function TranscriptElementReporter({ onElement }: { onElement: (element: HTMLEle
 	return null;
 }
 
-/** Host-only composition/test seam; never part of the plugin SDK. */
+/** Frontera de composición/pruebas solo del host; nunca forma parte del SDK de plugins. */
 export function DockOverlay({
 	viewReader, viewTargets, unavailableOccurrence,
 	pending,
@@ -2432,72 +2439,72 @@ export function DockOverlay({
 	onRetrySync(): void;
 	initialQuestionDraft?: QuestionFormDraft;
 	onSaveQuestionDraft: (draft: QuestionFormDraft) => void;
-	/** The dock's current unsubmitted working, for the side thread. */
+	/** El trabajo actual sin enviar del dock, para el hilo lateral. */
 	workingRef?: { current: string };
-	/** Compaction running for this chat (round 14) — the docks' submit
-	 *  affordance gate (the server's registry is the real one). */
+	/** Compactación en curso en este chat (ronda 14) — la barrera de la indicación
+	 *  de envío de los docks (la real es el registro del servidor). */
 	compactionRunning: boolean;
-	/** The ACTIVE practice problem (practice sessions, 2026-10-04):
-	 *  {toolCallId, input} — dock ownership exactly like a pending
-	 *  question (the composer is replaced); null in teaching sessions. */
+	/** El problema de práctica ACTIVO (sesiones de práctica, 2026-10-04):
+	 *  {toolCallId, input} — propiedad del dock exactamente igual que una pregunta
+	 *  pendiente (se sustituye el compositor); null en las sesiones de enseñanza. */
 	practice: { toolCallId: string; input: unknown } | null;
 	pluginPractice?: Omit<PluginProblemDockProps, "expanded" | "onExpand">;
-	/** (commit, text) — the practice dock's two submit lanes. */
+	/** (commit, text) — los dos carriles de envío del dock de práctica. */
 	onSubmitThinking: (text: string) => void;
-	/** Teach-phase pending question: arrives collapsed behind the reveal button (W5). */
+	/** Pregunta pendiente de la fase de enseñanza: llega plegada tras el botón de revelación (W5). */
 	requiresReveal: boolean;
-	/** The reading-thinking draft (owner 2026-10-03) — owned by ChatView so
-	 *  the submit + dismissal seams (outside this overlay) can merge it. */
+	/** El borrador del razonamiento de lectura (responsable 2026-10-03) — ChatView es su
+	 *  responsable, para que las fronteras de envío + descarte (fuera de este overlay) puedan fusionarlo. */
 	readingThinking: string;
 	readingThinkingRevision: number;
 	onReadingThinking: (v: string) => void;
-	/** Session phase at the pending question — scales the thinking field. */
+	/** Fase de la sesión en la pregunta pendiente — escala el campo de razonamiento. */
 	phase: Phase3;
-	/** The session's usage log — the stats bar beneath the composer folds it. */
+	/** El registro de uso de la sesión — la barra de estadísticas bajo el compositor lo pliega. */
 	turns: TurnUsage[];
 	contextTokens: number | null;
 	cliContextWindow: ReturnType<typeof cliContextWindowOf>;
 	pricing?: SessionPricing;
 	composer: React.ReactNode;
 	onSubmitAnswer: (output: QuestionAnswerData) => void;
-	/** The model control's pass-through (the stats bar hosts it). */
+	/** El paso del control de modelo (lo aloja la barra de estadísticas). */
 	chatId: string;
 	onModelChange: (model: string | undefined) => void;
-	/** Reports the dock's settled height (block + gradient) — ChatView's
-	 *  dockReserve state feeds the transcript's spacer from it. */
+	/** Comunica la altura asentada del dock (bloque + degradado) — el estado
+	 *  dockReserve de ChatView alimenta con ella el espaciador de la transcripción. */
 	onReserve: (h: number) => void;
-	/** The plan marginalia's content (the bare diagram) — rendered only
-	 *  while a question owns the band. Null until a plan exists. */
+	/** El contenido de la nota al margen del plan (el diagrama desnudo) — se renderiza
+	 *  solo mientras una pregunta ocupa la franja. Null hasta que existe un plan. */
 	plan?: React.ReactNode;
-	/** Opens the full-DAG popup (the marginalia + chip share it). */
+	/** Abre la ventana con el DAG completo (la comparten la nota al margen y el chip). */
 	onOpenPlan: () => void;
-	/** The dictation strip (STT wave): rendered in the stats bar's middle
-	 *  slot — the mic button + live meter (components/dictation.tsx). */
+	/** La tira de dictado (oleada STT): se renderiza en la ranura central de la barra
+	 *  de estadísticas — el botón del micrófono + el medidor en vivo (components/dictation.tsx). */
 	dictationSlot?: React.ReactNode;
-	/** Esc in a pending question's field stops dictation (the strip is the
-	 *  stats bar's; the stop belongs to the page-owned hook, threaded down). */
+	/** Esc en el campo de una pregunta pendiente detiene el dictado (la tira es de la
+	 *  barra de estadísticas; la parada pertenece al hook de la página, que se pasa hacia abajo). */
 	dictationCancel?: () => void;
-	/** The queued-steer indicator's lines (composer steering, 2026-10-03):
-	 *  already filtered by visibleQueuedSteers — only undrained steers. */
+	/** Las líneas del indicador de reorientaciones en cola (reorientación desde el compositor,
+	 *  2026-10-03): ya filtradas por visibleQueuedSteers — solo reorientaciones sin vaciar. */
 	queuedSteers: QueuedSteerLine[];
-	/** The persistent setup CTA (BYOK, owner 2026-09-22): the same pill
-	 *  home and /chat/new carry, above the composer while slots are unset. */
+	/** La llamada a la acción persistente de configuración (BYOK, responsable 2026-09-22): la
+	 *  misma píldora que llevan Inicio y /chat/new, encima del compositor mientras las ranuras no estén configuradas. */
 	setupCta?: React.ReactNode;
 }) {
 	const controller = useOptionalInteractionLayers();
 	const { isAtBottom, scrollToBottom, scrollRef } = useStickToBottomContext();
-	// Render-fresh bottom state (flicker round): the arrival block below reads
-	// it DURING RENDER — the same value the after-paint effect used to read a
-	// frame too late. Assigned per render like the other refs below.
+	// Estado de fondo fresco en cada render (ronda del parpadeo): el bloque de llegada de abajo
+	// lo lee DURANTE EL RENDER — el mismo valor que el efecto posterior al pintado leía un
+	// fotograma tarde. Se asigna en cada render, como las demás refs de más abajo.
 	const atBottomRef = useRef(isAtBottom);
 	atBottomRef.current = isAtBottom;
-	// Teach-phase mount (session reload with a pending check): the dock starts
-	// as the collapsed invitation too — the check must not pop open on reload.
+	// Montaje en la fase de enseñanza (recarga de sesión con una comprobación pendiente): el dock también
+	// empieza como la invitación plegada — la comprobación no debe abrirse de golpe al recargar.
 	const [expanded, setExpanded] = useState(!requiresReveal);
-	// Reveal state (W5): false until the learner clicks the invitation. While
-	// false, the scroll machine must NOT auto-expand at the bottom — the
-	// learner reads the teaching first and opens the check when ready. Once
-	// revealed, the normal collapse machine rules apply untouched.
+	// Estado de revelación (W5): false hasta que el alumno hace clic en la invitación. Mientras
+	// sea false, la máquina de scroll NO debe desplegar sola al llegar abajo — el
+	// alumno lee primero la enseñanza y abre la comprobación cuando está listo. Una vez
+	// revelada, se aplican sin cambios las reglas normales de la máquina de plegado.
 	const [revealed, setRevealed] = useState(false);
 	const revealPending = requiresReveal && !revealed;
 
@@ -2510,15 +2517,15 @@ export function DockOverlay({
 	const customViewReader = useRef<(() => { available: boolean }) | null>(null) as ViewReaderRef<{ available: boolean }>;
 	nativeViewReader.changed = practiceViewReader.changed = customViewReader.changed = viewReader?.changed;
 
-	// Teach-question ARRIVAL state, applied during render — BEFORE the
-	// first paint (owner, scroll-honesty round 2026-09-25). Until now the
-	// stale expanded=true left by the previous question painted one frame
-	// of the OPEN question: the dock measured itself tall, permanently
-	// reserved that height, and the collapse after the paint could never
-	// give it back (fold immunity) — so a collapsed teach question scrolled
-	// the transcript as if it had opened. Resetting here means the paint
-	// measures the bar, the reserve keeps the composer's height, and the
-	// only motion is the teaching text itself.
+	// Estado de LLEGADA de una pregunta de enseñanza, aplicado durante el render — ANTES del
+	// primer pintado (responsable, ronda de honestidad del scroll 2026-09-25). Hasta ahora, el
+	// expanded=true obsoleto que dejaba la pregunta anterior pintaba un fotograma
+	// de la pregunta ABIERTA: el dock se medía alto, reservaba esa altura para
+	// siempre, y el plegado posterior al pintado nunca podía
+	// devolverla (inmunidad del plegado) — así que una pregunta de enseñanza plegada desplazaba
+	// la transcripción como si se hubiera abierto. Reiniciar aquí hace que el pintado
+	// mida la barra, que la reserva conserve la altura del compositor y que el
+	// único movimiento sea el propio texto de la enseñanza.
 	const prevPendingIdRef = useRef(pendingId);
 	if (pendingId !== prevPendingIdRef.current) {
 		const wasQuestion = prevPendingIdRef.current !== null;
@@ -2528,35 +2535,35 @@ export function DockOverlay({
 			setExpanded(arrival.expanded);
 			setRevealed(arrival.revealed);
 		} else if (pendingId) {
-			// Probe arrival (flicker round): open iff following at the bottom.
-			// Painted in THIS render — no stale-open frame, no after-paint flip.
+			// Llegada de un sondeo (ronda del parpadeo): abierta si y solo si se sigue la conversación abajo.
+			// Se pinta en ESTE render — sin fotograma abierto obsoleto ni cambio posterior al pintado.
 			setExpanded(probeArrivalExpanded(atBottomRef.current));
 		}
 	}
 
-	// New question MID-SESSION (flicker round): the open/closed state itself
-	// is decided DURING RENDER above; this effect only owns the reveal
-	// scroll for the at-bottom arrival — and now under the SAME fold
-	// suppression the teach reveal uses (the arrival's growth used to
-	// out-run the scroll catch-up, the position machine read the lag as the
-	// learner leaving, and the dock flashed open → bar → open; reproduced
-	// frame-by-frame 2026-09-26, d peaked ~405px). On session mount the dock
-	// starts in its initial state — no scroll, no morph.
+	// Pregunta nueva A MITAD DE SESIÓN (ronda del parpadeo): el propio estado abierto/cerrado
+	// se decide DURANTE EL RENDER, arriba; este efecto solo es responsable del scroll
+	// de revelación para la llegada estando abajo — y ahora bajo la MISMA supresión del
+	// plegado que usa la revelación de la enseñanza (el crecimiento de la llegada solía
+	// adelantarse a la puesta al día del scroll, la máquina de posición leía el retraso como el
+	// alumno yéndose, y el dock parpadeaba abierto → barra → abierto; reproducido
+	// fotograma a fotograma el 2026-09-26, d llegó a ~405px). Al montar la sesión, el dock
+	// empieza en su estado inicial — sin scroll ni transformación.
 	useEffect(() => {
 		if (!pendingId || pendingId === initialPendingRef.current) return;
 		if (!requiresReveal && atBottomRef.current) void suppressFoldDuringReveal();
-		// fire only when a NEW question lands
+		// se dispara solo cuando llega una pregunta NUEVA
 	}, [pendingId]);
 
-	// ── Fold machine (position, not velocity — owner, scroll round 1) ──
-	// The dock is an overlay: folding is visual-only and scroll geometry never
-	// moves, so the thresholds can hug the bottom. Leave it → fold; reach it
-	// again → re-open. The dead band keeps trackpad drift from chattering.
+	// ── Máquina de plegado (posición, no velocidad — responsable, ronda 1 de scroll) ──
+	// El dock es un overlay: plegar es solo visual y la geometría de scroll nunca
+	// se mueve, así que los umbrales pueden pegarse al fondo. Al dejarlo → se pliega; al volver
+	// a alcanzarlo → se reabre. La banda muerta evita que la deriva del trackpad lo haga traquetear.
 	const expandedRef = useRef(expanded);
 	expandedRef.current = expanded;
-	// Dock ownership (the fold machine, the reserve immunity, the arrival
-	// states): a pending question OR an active practice problem — either
-	// replaces the composer and owns the band.
+	// Propiedad del dock (la máquina de plegado, la inmunidad de la reserva, los
+	// estados de llegada): una pregunta pendiente O un problema de práctica activo — cualquiera
+	// de los dos sustituye al compositor y ocupa la franja.
 	const pendingRef = useRef(ownsDock);
 	pendingRef.current = ownsDock;
 	const requiresRevealRef = useRef(requiresReveal);
@@ -2598,26 +2605,26 @@ export function DockOverlay({
 	const unavailableViewKey = unavailableOccurrence ? pluginQuestionOccurrenceKey(unavailableOccurrence) : "";
 	useLayoutEffect(() => { viewReader?.changed?.(); }, [viewReader, mode, expanded, revealPending, readingThinking, unavailableViewKey]);
 
-	// The plan marginalia's flank width (owner, plan-placement round): from
-	// the DOCK container's right edge to the block's right edge — the bare
-	// diagram's canvas. Tracked LIVE by a ResizeObserver on the block
-	// (owner, resize round): every geometry change — window resize, sidebar
-	// toggle, scrollbar appearance, the box's own rewrap — reports the real
-	// width instantly, so the fade floor never lags behind reality (the old
-	// render-time measurement went stale during drag-resizes and the mount
-	// decision popped late).
+	// El ancho del flanco de la nota al margen del plan (responsable, ronda de colocación del plan): desde
+	// el borde derecho del contenedor del DOCK hasta el borde derecho del bloque — el lienzo del
+	// diagrama desnudo. Se sigue EN VIVO con un ResizeObserver sobre el bloque
+	// (responsable, ronda de redimensionado): cada cambio de geometría — redimensionar la ventana, abrir o cerrar
+	// la barra lateral, que aparezca la barra de scroll, el propio reajuste de líneas de la caja — comunica
+	// el ancho real al instante, así que el suelo del fundido nunca va por detrás de la realidad (la antigua
+	// medición en el render se quedaba obsoleta al redimensionar arrastrando y la decisión de
+	// montaje llegaba tarde, de golpe).
 	const [flankW, setFlankW] = useState(0);
 	const flankWRef = useRef(0);
-	// Part A of the same round (the resize mute): any block size change
-	// stamps this — the fold machine ignores scroll events for a beat after,
-	// because a resize/rewrap re-clamps scrollTop and emits PHANTOM scroll
-	// events mid-transient (the box flickered to the bar and back).
-	// Width changes stamp HERE (column resizes); height growth stamps at
-	// the OFFER (see offer below) — the spacer growing is the phantom-scroll
-	// source, not the field stretching. SHRINKS never stamp anywhere: the
-	// fold's own morph shrinks the block and gives back the reserve, and
-	// stamping that self-mutes the at-bottom re-expand — the box got stuck
-	// collapsed (resize round).
+	// Parte A de la misma ronda (el silencio por redimensionado): cualquier cambio de tamaño del bloque
+	// marca esto — la máquina de plegado ignora los eventos de scroll durante un instante después,
+	// porque un redimensionado/reajuste de líneas vuelve a ajustar scrollTop y emite eventos de scroll
+	// FANTASMA en pleno transitorio (la caja parpadeaba a la barra y volvía).
+	// Los cambios de ancho marcan AQUÍ (redimensionados de la columna); el crecimiento de altura marca en
+	// la OFERTA (ver offer más abajo) — el espaciador que crece es el origen del scroll fantasma,
+	// no el campo que se estira. Los ENCOGIMIENTOS nunca marcan en ningún sitio: la
+	// propia transformación del plegado encoge el bloque y devuelve la reserva, y
+	// marcar eso silencia por sí mismo el redespliegue al llegar abajo — la caja se quedaba atascada
+	// plegada (ronda de redimensionado).
 	const geometryAtRef = useRef(0);
 	useIsoLayoutEffect(() => {
 		const block = blockRef.current;
@@ -2636,28 +2643,28 @@ export function DockOverlay({
 		return () => ro.disconnect();
 	}, []);
 
-	// The reserve grows immediately, but never shrinks while a question or
-	// practice problem owns the dock: shrinking flow space could pin a nearby
-	// learner back to the bottom. Composer mode may give space back.
+	// La reserva crece de inmediato, pero nunca encoge mientras una pregunta o un
+	// problema de práctica ocupa el dock: encoger el espacio del flujo podría devolver abajo
+	// a un alumno que esté cerca. El modo compositor sí puede devolver espacio.
 	const reserveRef = useRef(0);
 	const offer = useCallback((blockH: number) => {
 		const next = blockH + GRADIENT_H;
 		if (next <= reserveRef.current + 0.5 && pendingRef.current) return;
-		// Stamp growth at the source, including child-only field resizes, so
-		// stick-to-bottom's catch-up is not mistaken for the learner leaving.
+		// Marca el crecimiento en el origen, incluidos los redimensionados que solo afectan al campo hijo, para que
+		// la puesta al día de stick-to-bottom no se confunda con el alumno yéndose.
 		if (shouldStampGeometryMute(next, reserveRef.current, pendingRef.current)) geometryAtRef.current = Date.now();
 		reserveRef.current = next;
 		onReserve(next);
 	}, [onReserve]);
 
-	// The overlay must not paint over the scroller's scrollbar (owner, scroll
-	// round 2): the scroller reserves symmetric gutters (scrollbar-gutter:
-	// stable both-edges), so inset the overlay's right edge by the gutter —
-	// zero on macOS overlay scrollbars, the real width on classic platforms.
-	// Budget the whole solid dock, leaving only its question area flexible.
-	// The hook measures natural, visible content before the morph/reserve
-	// effect below. Short windows scroll the reading/question/answer body;
-	// the stats/model toolbar remains outside that overflow viewport.
+	// El overlay no debe pintar encima de la barra de scroll del contenedor (responsable, ronda 2
+	// de scroll): el contenedor reserva márgenes simétricos (scrollbar-gutter:
+	// stable both-edges), así que se mete el borde derecho del overlay lo que mide el margen —
+	// cero con las barras de scroll superpuestas de macOS, el ancho real en las plataformas clásicas.
+	// Reparte el presupuesto de todo el dock sólido, dejando flexible solo el área de la pregunta.
+	// El hook mide el contenido natural y visible antes del efecto de transformación/reserva
+	// de más abajo. En ventanas bajas se desplaza el cuerpo de lectura/pregunta/respuesta;
+	// la barra de estadísticas/modelo queda fuera de esa ventana de desbordamiento.
 	const [sbInset, setSbInset] = useState(0);
 	const stateKey = dockStateKey(mode, ownsDock, expanded);
 	const heightMorphRef = useRef<ReturnType<typeof createDockMorph> | null>(null);
@@ -2670,14 +2677,14 @@ export function DockOverlay({
 		onLayout: retargetOpening,
 	});
 
-	// GROWTH MUTE (owner round, 2026-10-05 — the generation churn): during a
-	// live turn the transcript content grows and stick-to-bottom chases it;
-	// the transient distance-from-bottom used to read as the learner
-	// leaving, folding the dock open↔bar ("disappear and appear again").
-	// A ResizeObserver on the scroller's content stamps the SAME mute the
-	// dock's own resizes use — growth frames can never fold. Shrinks stamp
-	// nothing (the fold's own morph shrinks the reserve; muting that would
-	// self-mute the at-bottom re-expand).
+	// SILENCIO POR CRECIMIENTO (ronda del responsable, 2026-10-05 — el vaivén de la generación): durante un
+	// turno vivo, el contenido de la transcripción crece y stick-to-bottom lo persigue;
+	// la distancia transitoria al fondo solía leerse como el alumno
+	// yéndose, y el dock se plegaba abierto↔barra («desaparece y vuelve a aparecer»).
+	// Un ResizeObserver sobre el contenido del contenedor de scroll marca el MISMO silencio que usan
+	// los propios redimensionados del dock — los fotogramas de crecimiento nunca pueden plegar. Los encogimientos no marcan
+	// nada (la propia transformación del plegado encoge la reserva; silenciarla
+	// silenciaría por sí mismo el redespliegue al llegar abajo).
 	const growthAtRef = useRef(0);
 	useEffect(() => {
 		const el = scrollRef.current;
@@ -2693,13 +2700,13 @@ export function DockOverlay({
 		return () => ro.disconnect();
 	}, [scrollRef]);
 
-	// Wheel over the dock must still scroll the transcript (owner, scroll
-	// round 2): the overlay is a SIBLING of the scroller, so the browser's
-	// native scroll chaining stops at the overlay (the old in-flow dock
-	// chained for free). Internal scrollers — the question area, textarea
-	// overflow, the model menus — keep native scrolling, including their
-	// own edge chaining; only when nothing under the cursor can take the
-	// delta do we forward it to the transcript.
+	// La rueda del ratón sobre el dock aún debe desplazar la transcripción (responsable, ronda 2
+	// de scroll): el overlay es HERMANO del contenedor de scroll, así que el encadenamiento
+	// nativo del scroll del navegador se detiene en el overlay (el antiguo dock dentro del flujo
+	// encadenaba gratis). Los contenedores de scroll internos — el área de la pregunta, el desbordamiento
+	// del textarea, los menús de modelo — conservan el scroll nativo, incluido su propio
+	// encadenamiento en los bordes; solo cuando nada bajo el cursor puede absorber el
+	// desplazamiento lo reenviamos a la transcripción.
 	useEffect(() => {
 		const root = blockRef.current;
 		const el = scrollRef.current;
@@ -2709,15 +2716,15 @@ export function DockOverlay({
 		return () => root.removeEventListener("wheel", onWheel);
 	}, [scrollRef]);
 
-	// Explicit expand (bar click): the smooth scroll to the bottom takes
-	// hundreds of ms, during which the position is still legitimately inside
-	// the collapse zone — the machine would instantly re-collapse the dock
-	// (open → snap shut → reopen at the bottom, the flicker). Suppress the
-	// collapse branch until the reveal scroll settles or is interrupted.
-	// (Flicker round, 2026-09-26: extracted — the probe arrival at the
-	// bottom is the SAME motion class and needs the same cover; the owner's
-	// phrasing: the arrival's open and its scroll-to-bottom "should be the
-	// same kind of motion".)
+	// Despliegue explícito (clic en la barra): el scroll suave hasta el fondo tarda
+	// cientos de ms, durante los que la posición sigue estando legítimamente dentro de
+	// la zona de plegado — la máquina volvería a plegar el dock al instante
+	// (abierto → se cierra de golpe → se reabre abajo, el parpadeo). Suprime la
+	// rama de plegado hasta que el scroll de revelación se asiente o se interrumpa.
+	// (Ronda del parpadeo, 2026-09-26: extraído — la llegada de un sondeo estando
+	// abajo es la MISMA clase de movimiento y necesita la misma cobertura; en palabras
+	// del responsable: la apertura de la llegada y su scroll hasta el fondo «deberían ser el
+	// mismo tipo de movimiento».)
 	const expandIntentRef = useRef(false);
 	const intentTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 	const suppressFoldDuringReveal = () => {
@@ -2732,21 +2739,21 @@ export function DockOverlay({
 		});
 	};
 	const expandAndReveal = () => {
-		setRevealed(true); // the teach-check invitation was accepted (W5)
+		setRevealed(true); // se aceptó la invitación a la comprobación de la enseñanza (W5)
 		setExpanded(true);
 		void suppressFoldDuringReveal();
 	};
 	const expandAndRevealRef = useRef(expandAndReveal);
 	expandAndRevealRef.current = expandAndReveal;
-	// ENTER OPENS THE WAITING CHECK (owner, keyboard round 2026-10-06):
-	// while a question waits with the dock CLOSED — behind its reveal
-	// invitation or collapsed by scroll — Enter is never dead. Any live
-	// dictation FINISHES FIRST (the flush lands in the reading-thinking
-	// field, its live claim — the nothing-gets-lost law), then the check
-	// opens. A typing surface or a focused button owns its own Enter (the
-	// reading-thinking field opens from INSIDE when the check is closed;
-	// a focused button activates natively) — this listener claims only
-	// the dead case: plain focus with Enter doing nothing.
+	// ENTER ABRE LA COMPROBACIÓN QUE ESPERA (responsable, ronda de teclado 2026-10-06):
+	// mientras una pregunta espera con el dock CERRADO — tras su invitación de
+	// revelación o plegado por el scroll —, Enter nunca está muerto. Cualquier dictado
+	// vivo TERMINA PRIMERO (el volcado va al campo de razonamiento de
+	// lectura, su reclamo vivo — la ley de que nada se pierde) y luego se abre la
+	// comprobación. Una superficie de escritura o un botón enfocado tiene su propio Enter (el
+	// campo de razonamiento de lectura abre DESDE DENTRO cuando la comprobación está cerrada;
+	// un botón enfocado se activa de forma nativa) — este oyente solo reclama
+	// el caso muerto: foco normal con un Enter que no hace nada.
 	useEffect(() => {
 		if ((!pending && !pluginQuestion && !unreadablePlugin) || expanded) return;
 		const onKeyDown = (e: KeyboardEvent) => {
@@ -2775,24 +2782,24 @@ export function DockOverlay({
 		if (!el) return;
 		const onScroll = () => {
 			if (!pendingRef.current) return;
-			// Resize mute (owner, resize round): a geometry change re-clamps
-			// scrollTop and the browser emits the clamp as a scroll event —
-			// reading the transient position folded the box to the bar for a
-			// flicker. Real scrolling resumes after the brief mute window.
+			// Silencio por redimensionado (responsable, ronda de redimensionado): un cambio de geometría vuelve a ajustar
+			// scrollTop y el navegador emite el ajuste como un evento de scroll —
+			// leer la posición transitoria plegaba la caja a la barra durante un
+			// parpadeo. El scroll real se reanuda tras la breve ventana de silencio.
 			if (Date.now() - geometryAtRef.current < 400) return;
-			// Growth mute (owner round, 2026-10-05): the transcript growing
-			// under a live turn is not the learner leaving.
+			// Silencio por crecimiento (ronda del responsable, 2026-10-05): que la transcripción crezca
+			// bajo un turno vivo no es el alumno yéndose.
 			if (Date.now() - growthAtRef.current < 400) return;
 			const d = el.scrollHeight - el.clientHeight - el.scrollTop;
 			if (expandedRef.current) {
-				// INTENT-GATED FOLD (owner ruling, 2026-10-05): distance alone
-				// folded on stick-to-bottom's catch-up transients; a real fold
-				// needs the distance AND stick-to-bottom agreeing the learner
-				// left the bottom.
+				// PLEGADO SUJETO A LA INTENCIÓN (decisión del responsable, 2026-10-05): la distancia por sí sola
+				// plegaba con los transitorios de puesta al día de stick-to-bottom; un plegado real
+				// necesita la distancia Y que stick-to-bottom esté de acuerdo en que el alumno
+				// dejó el fondo.
 				if (d > COLLAPSE_DIST && !expandIntentRef.current && !atBottomRef.current) setExpanded(false);
 			} else if (d < EXPAND_DIST) {
-				// Teach checks stay collapsed until the learner opens them (W5): the
-				// at-bottom auto-expand would pop the form over the teaching.
+				// Las comprobaciones de la enseñanza siguen plegadas hasta que el alumno las abre (W5): el
+				// despliegue automático al llegar abajo sacaría el formulario encima de la enseñanza.
 				if (requiresRevealRef.current && !revealedRef.current) return;
 				setExpanded(true);
 				void scrollToBottom();
@@ -2802,24 +2809,24 @@ export function DockOverlay({
 		return () => el.removeEventListener("scroll", onScroll);
 	}, [scrollRef, scrollToBottom]);
 
-	// The settled block height (gradient excluded), offered to the spacer.
-	// Only ever called with NATURAL heights — never the animated mid-morph
-	// value (the iso effect's getAnimations guard wraps every call).
+	// La altura asentada del bloque (sin el degradado), ofrecida al espaciador.
+	// Solo se llama con alturas NATURALES — nunca con el valor animado a mitad de
+	// transformación (la guarda getAnimations del efecto iso envuelve cada llamada).
 	const measureBlock = () => {
 		const b = blockRef.current;
 		if (b) offer(b.getBoundingClientRect().height);
 	};
 
-	// The opening variant of a session appears instantly — the fade/rise is
-	// reserved for mid-session transitions.
+	// La variante inicial de una sesión aparece al instante — el fundido/ascenso se
+	// reserva para las transiciones a mitad de sesión.
 	const initialModeRef = useRef(mode);
 
-	// Height morph: animate the shell from its previous height to its new one
-	// whenever the variant (chat ↔ question ↔ collapsed bar) changes. Typing
-	// growth keeps the same stateKey and is NOT animated.
-	// The fold's CONTENT fade (owner round, 2026-10-05): the shell height
-	// morphs, but the bar↔form content used to hard-swap. A WAAPI fade/rise
-	// on the toggle — no remount, so the question form's state survives.
+	// Transformación de altura: anima el envoltorio desde su altura anterior hasta la nueva
+	// siempre que cambia la variante (chat ↔ pregunta ↔ barra plegada). El crecimiento
+	// al escribir conserva la misma stateKey y NO se anima.
+	// El fundido del CONTENIDO del plegado (ronda del responsable, 2026-10-05): la altura del envoltorio
+	// se transforma, pero el contenido barra↔formulario se intercambiaba en seco. Un fundido/ascenso WAAPI
+	// al conmutar — sin remontar, para que el estado del formulario de la pregunta sobreviva.
 	const prevExpandedForFadeRef = useRef(expanded);
 	useIsoLayoutEffect(() => {
 		if (prevExpandedForFadeRef.current === expanded) return;
@@ -2829,16 +2836,16 @@ export function DockOverlay({
 			{ duration: 160, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
 		);
 	}, [expanded]);
-	// The height-morph key (components/dock-state-key.ts): the expanded
-	// term (the fold) belongs to EVERY docked variant — question AND
-	// practice (owner fix, 2026-10-06). Typing growth keeps the key and
-	// never animates; the fold/unfold morphs like teaching always has.
+	// La clave de la transformación de altura (components/dock-state-key.ts): el término
+	// expandido (el plegado) pertenece a TODAS las variantes del dock — pregunta Y
+	// práctica (arreglo del responsable, 2026-10-06). El crecimiento al escribir conserva la clave y
+	// nunca se anima; plegar/desplegar se transforma como siempre ha hecho la enseñanza.
 	useIsoLayoutEffect(() => {
 		const el = shellRef.current;
 		if (!el) return;
-		// The private controller owns only this shell's height animation. Late
-		// child layout can retarget an opening over its remaining original time;
-		// closing and ordinary typing retain their existing behavior.
+		// El controlador privado solo es responsable de la animación de altura de este envoltorio. Un layout
+		// tardío de los hijos puede redirigir una apertura durante el tiempo original que le queda;
+		// el cierre y la escritura normal conservan su comportamiento actual.
 		heightMorphRef.current?.layout(el, stateKey, ownsDock && expanded, measureBlock);
 	});
 
@@ -2851,15 +2858,15 @@ export function DockOverlay({
 					<div ref={bodyRef}>
 					{setupCta}
 					{reconciliation === "failed" && <div role="alert" className="mb-2 rounded-2xl border bg-card px-4 py-3 text-sm">Could not sync the saved session. <Button type="button" variant="ghost" onClick={onRetrySync}>Retry syncing</Button></div>}
-					{/* The queued-steer indicator (owner spec 2026-10-03): quiet
-					    one-liners above the shell - right-aligned to where its corner
-					    rounding starts, truncated, no background, no container. A
-					    line dies when its card lands (visibleQueuedSteers). */}
+					{/* El indicador de reorientaciones en cola (especificación del responsable 2026-10-03):
+					discretas líneas sueltas encima del envoltorio — alineadas a la derecha con el punto
+					donde empieza el redondeo de su esquina, truncadas, sin fondo ni contenedor. Una
+					línea muere cuando llega su tarjeta (visibleQueuedSteers). */}
 					<QueuedSteersBody steers={queuedSteers} />
-					{/* The reading-thinking field (owner 2026-10-03): mounted while a
-					    teach-phase check waits — the same cue that collapses it. It
-					    claims dictated speech until the learner reveals the check
-					    (the dock reclaims then). Rides the check answer on submit. */}
+					{/* El campo de razonamiento de lectura (responsable 2026-10-03): montado mientras una
+					comprobación de la fase de enseñanza espera — la misma señal que la pliega.
+					Reclama la voz dictada hasta que el alumno revela la comprobación
+					(entonces la recupera el dock). Viaja con la respuesta a la comprobación al enviar. */}
 					{(pending || pluginQuestion) && requiresReveal && (
 						<ReadingThinkingField
 							inputRef={readingInputRef}
@@ -2881,8 +2888,8 @@ export function DockOverlay({
 					)}
 					<div ref={shellRef} data-attachment-composer="" className="pointer-events-auto overflow-hidden rounded-2xl border bg-card shadow-lg">
 						{preparationStatus}
-						{/* Include descendant margins (notably practice thinking's
-						    bottom margin) in the natural content measurement. */}
+						{/* Incluye los márgenes de los descendientes (en particular, el margen inferior del
+						razonamiento de la práctica) en la medición del contenido natural. */}
 						<div
 							ref={contentRef}
 							key={mode}
@@ -2942,9 +2949,9 @@ export function DockOverlay({
 					</div>
 					</div>
 					</div>
-					{/* The stats row: beneath the composer/question shell, not
-					    flush to the screen bottom — static height, outside the
-					    morphing shell so it never joins a height animation. */}
+					{/* La fila de estadísticas: bajo el envoltorio del compositor/la pregunta, no
+					pegada al borde inferior de la pantalla — altura estática, fuera del
+					envoltorio que se transforma, para que nunca entre en una animación de altura. */}
 					<StatsBar
 						turns={turns}
 						contextTokens={contextTokens}
@@ -2954,29 +2961,29 @@ export function DockOverlay({
 						chatId={chatId}
 						onModelChange={onModelChange}
 					/>
-					{/* The scroll-down disc (moved here from the Conversation,
-					    owner refinement round 2026-09-24): anchored to the BLOCK's
-					    top edge — above the composer shell AND the stats row, in
-					    the gradient's transparent band — so it never overlaps
-					    any dock element. Because the anchor is the block itself
-					    (not the scroller's bottom), it rides every height change
-					    LIVE: typing growth, a pending question expanding the
-					    band, the 180ms fold morph. pointer-events-auto: the
-					    overlay is none by default. The isAtBottom/scrollToBottom
-					    context still reaches it — DockOverlay is a Conversation
-					    child. */}
+					{/* El disco de bajar (traído aquí desde Conversation,
+					ronda de ajustes del responsable 2026-09-24): anclado al borde superior
+					del BLOQUE — encima del envoltorio del compositor Y de la fila de estadísticas, en
+					la franja transparente del degradado —, así que nunca tapa
+					ningún elemento del dock. Como el ancla es el propio bloque
+					(no el fondo del contenedor de scroll), acompaña EN VIVO cada cambio de
+					altura: el crecimiento al escribir, una pregunta pendiente que agranda la
+					franja, la transformación de plegado de 180 ms. pointer-events-auto: el
+					overlay es none por defecto. El contexto isAtBottom/scrollToBottom
+					sigue llegándole — DockOverlay es hijo de
+					Conversation. */}
 					<ConversationScrollButton className="pointer-events-auto bottom-full mb-2" />
 				</div>
-				{/* The plan marginalia (owner, plan-placement round): the bare
-				    diagram in the band's right flank — boundaless, meet-fitted, part
-				    of the lesson's page rather than a floating widget. Mounted only
-				    while a question owns the band (its reserved height is the canvas);
-				    folding the dock fades + blurs it out of existence, so reading
-				    the transcript in full wipes the margin clean. Click → popup.
-				    Width (owner, resize round): the box shrinks continuously with
-				    the flank; below MARGIN_MIN_W it FADES (never pops away — no
-				    mid-question unmount), and widening past the floor fades it
-				    back in. */}
+				{/* La nota al margen del plan (responsable, ronda de colocación del plan): el
+				diagrama desnudo en el flanco derecho de la franja — sin bordes, ajustado con meet, parte
+				de la página de la lección más que un widget flotante. Montada solo
+				mientras una pregunta ocupa la franja (su altura reservada es el lienzo);
+				plegar el dock la funde + desenfoca hasta hacerla desaparecer, así que leer
+				la transcripción completa deja limpio el margen. Clic → ventana.
+				Ancho (responsable, ronda de redimensionado): la caja encoge de forma continua con
+				el flanco; por debajo de MARGIN_MIN_W se FUNDE (nunca desaparece de golpe — no hay
+				desmontaje a mitad de pregunta), y al ensanchar por encima del suelo vuelve
+				a aparecer con un fundido. */}
 				{(pending || pluginQuestion) && plan && (
 					<Hint label="Open the full plan" side="bottom">
 <button
