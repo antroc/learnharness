@@ -23,7 +23,7 @@
 
 Tipo público del SDK, exportado como `NativePluginProblemDefinition`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Internal heterogeneous registry; public registration remains schema-generic.
+Registro heterogéneo interno; el registro público sigue siendo genérico respecto al esquema.
 
 ```ts
 export type NativePluginProblemDefinition = Omit<PluginProblemTypeDefinition, "validateProblem" | "validateSubmission" | "processSubmission"> & {
@@ -329,7 +329,7 @@ readonly signal: AbortSignal;
 
 Tipo público del SDK, exportado como `PluginProblemProcessingOutcome`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Per-submission observations, never the model's final problem assessment.
+Observaciones por envío, nunca la evaluación final del problema que hace el modelo.
 
 ```ts
 export type PluginProblemProcessingOutcome = {
@@ -432,7 +432,8 @@ mountSubmitted?(container: HTMLElement, context: PluginProblemMountContext<Q> & 
 
 Tipo público del SDK, exportado como `PluginProblemSnapshot`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-The host persists this in the genuine pose acknowledgment, never model arguments.
+El host persiste esto en el acuse genuino de planteamiento, nunca en los argumentos del
+modelo.
 
 ```ts
 export interface PluginProblemSnapshot {

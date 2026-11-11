@@ -20,8 +20,9 @@
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Rendered cluster in a graph snapshot. Members are proposition node IDs;
-hull geometry is derived from their positions at render time.
+Clúster representado en una instantánea del grafo. Los miembros son IDs de nodos de
+proposición; la geometría de la envolvente se deriva de sus posiciones en el momento del
+render.
 
 ```ts
 export interface Cluster {
@@ -39,8 +40,8 @@ export interface Cluster {
 
 ### Cluster id
 
-The labeling record id when claimed; unlabeled clusters still
-appear (hull, no name) with a member-hash id.
+El id del registro de etiquetado cuando se ha reclamado; los clústeres sin etiquetar siguen
+apareciendo (envolvente, sin nombre) con un id basado en el hash de sus miembros.
 
 ```ts
 id: string;
@@ -48,7 +49,7 @@ id: string;
 
 ### Cluster label
 
-null until the naming call has minted/claimed a labeling.
+null hasta que la llamada de nombrado ha creado o reclamado un etiquetado.
 
 ```ts
 label: string | null;
@@ -56,7 +57,7 @@ label: string | null;
 
 ### Cluster members
 
-Node ids, sorted. Hull + centroid are renderer concerns.
+Ids de nodo, ordenados. La envolvente y el centroide son asunto del renderizador.
 
 ```ts
 members: string[];
@@ -66,10 +67,10 @@ members: string[];
 
 Tipo público del SDK, exportado como `CoverageEntry`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-coverage.jsonl entry marking one extracted message by its extraction-view
-fingerprint. Uncovered content is derived by comparing current fingerprints;
-an answer changing a question's view reopens only that message. Chat
-extraction records message coverage; notes imports use source checkpoints.
+Entrada de coverage.jsonl que marca un mensaje extraído por la huella de su vista de
+extracción. El contenido sin cubrir se deriva comparando las huellas actuales; una respuesta
+que cambia la vista de una pregunta reabre solo ese mensaje. La extracción de chats registra
+la cobertura por mensaje; las importaciones de notas usan puntos de control de la fuente.
 
 ```ts
 export interface CoverageEntry {
@@ -95,7 +96,7 @@ chatId: string;
 
 ### CoverageEntry fp
 
-sha256 of the message's view lines — "covered" means exactly this.
+sha256 de las líneas de la vista del mensaje: "cubierto" significa exactamente esto.
 
 ```ts
 fp: string;
@@ -103,7 +104,7 @@ fp: string;
 
 ### CoverageEntry tokens
 
-chars/4 estimate of the message's view — display + budgeting.
+Estimación de caracteres/4 de la vista del mensaje, para mostrar y presupuestar.
 
 ```ts
 tokens: number;
@@ -111,7 +112,7 @@ tokens: number;
 
 ### CoverageEntry foldedAt
 
-ISO — when this message's last extraction run merged.
+ISO: cuándo se fusionó la última ejecución de extracción de este mensaje.
 
 ```ts
 foldedAt: string;
@@ -121,9 +122,10 @@ foldedAt: string;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Counts merged into graph ledgers by one extraction run, also saved with
-extraction usage. Older usage records may omit chains and carry edge counts
-instead; current merges write chain counts.
+Recuentos fusionados en los libros del grafo por una ejecución de extracción, que también se
+guardan con el uso de la extracción. Los registros de uso antiguos pueden omitir las cadenas
+y llevar en su lugar recuentos de aristas; las fusiones actuales escriben recuentos de
+cadenas.
 
 ```ts
 export interface EmissionStats {
@@ -141,7 +143,7 @@ export interface EmissionStats {
 
 ### EmissionStats nodes
 
-New graph nodes appended.
+Nodos nuevos del grafo añadidos.
 
 ```ts
 nodes: number;
@@ -149,7 +151,7 @@ nodes: number;
 
 ### EmissionStats chains
 
-New reasoning chains appended.
+Cadenas de razonamiento nuevas añadidas.
 
 ```ts
 chains?: number;
@@ -157,9 +159,9 @@ chains?: number;
 
 ### EmissionStats droppedChains
 
-Chains removed by simplification during this merge, separate from new
-appends counted in chains. Omitted when none are removed; records without
-this field contribute zero removals.
+Cadenas eliminadas por simplificación durante esta fusión, aparte de las nuevas añadidas que
+se cuentan en chains. Se omite cuando no se elimina ninguna; los registros sin este campo
+aportan cero eliminaciones.
 
 ```ts
 droppedChains?: number;
@@ -169,11 +171,11 @@ droppedChains?: number;
 
 Tipo público del SDK, exportado como `GraphChain`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Stored argument whose premises jointly entail its conclusion. Independent
-arguments remain separate chains even when their conclusion is shared.
-Multi-premise chains produce a derived implication node with the chain's
-arg_ ID; single-premise chains render as direct arrows. Removing a
-proposition cascades to chains referencing it.
+Argumento almacenado cuyas premisas implican conjuntamente su conclusión. Los argumentos
+independientes siguen siendo cadenas separadas aunque compartan conclusión.
+Las cadenas de varias premisas producen un nodo de implicación derivado con el ID arg_ de
+la cadena; las de una sola premisa se representan como flechas directas. Eliminar una
+proposición elimina en cascada las cadenas que hacen referencia a ella.
 
 ```ts
 export interface GraphChain {
@@ -197,7 +199,7 @@ export interface GraphChain {
 
 ### GraphChain id
 
-"arg_" + nanoid-like (store-assigned, the node-minting pattern).
+"arg_" + algo tipo nanoid (lo asigna el almacén, con el mismo patrón que crea los nodos).
 
 ```ts
 id: string;
@@ -205,8 +207,8 @@ id: string;
 
 ### GraphChain premises
 
-Node ids of the argument's premises — at least one, jointly
-sufficient. Extractor-local at the wire; node ids after resolution.
+Ids de nodo de las premisas del argumento: al menos una, conjuntamente suficientes. Locales
+del extractor en la comunicación; ids de nodo tras la resolución.
 
 ```ts
 premises: string[];
@@ -214,7 +216,7 @@ premises: string[];
 
 ### GraphChain conclusion
 
-The node id the premises jointly imply.
+El id de nodo que las premisas implican conjuntamente.
 
 ```ts
 conclusion: string;
@@ -222,8 +224,8 @@ conclusion: string;
 
 ### GraphChain provenance
 
-Every (chat, message) point where this argument was asserted —
-unioned across assertion lines at read time.
+Cada punto (chat, mensaje) donde se afirmó este argumento, unidos a lo largo de las líneas
+de afirmación en el momento de la lectura.
 
 ```ts
 provenance: ProvenancePoint[];
@@ -239,10 +241,10 @@ createdAt: string;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Directed relation derived from stored reasoning chains, not an independent
-ledger record. Canvas edges connect a single premise directly to its
-conclusion, or multiple premises through a derived implication node.
-Logical edges connect proposition premises directly to conclusions.
+Relación dirigida derivada de las cadenas de razonamiento almacenadas, no un registro
+independiente del libro. Las aristas del lienzo conectan una única premisa directamente con
+su conclusión, o varias premisas a través de un nodo de implicación derivado.
+Las aristas lógicas conectan las premisas de proposición directamente con las conclusiones.
 
 ```ts
 export interface GraphEdge {
@@ -296,7 +298,7 @@ export interface GraphNode {
 
 ### GraphNode id
 
-Opaque stable id, store-assigned: "n_" + nanoid-like.
+Id opaco y estable, asignado por el almacén: "n_" + algo tipo nanoid.
 
 ```ts
 id: string;
@@ -304,11 +306,11 @@ id: string;
 
 ### GraphNode name
 
-A very short label for the node — a compact handle like a glossary
-headword ("Will to power", "Divine command theory"): what the graph
-shows at a glance. Presentational only — not unique, not an identity
-key, never precise: the statement carries the precision. Set at
-creation (first line defines); a link-append never changes it.
+Una etiqueta muy corta para el nodo, un asidero compacto como la entrada de un glosario
+("Voluntad de poder", "Teoría del mandato divino"): lo que el grafo muestra de un vistazo. Solo de
+presentación: no es única, no es una clave de identidad y nunca es precisa; la precisión la
+aporta la afirmación. Se fija al crearse (la primera línea la define); añadir un vínculo
+nunca la cambia.
 
 ```ts
 name: string;
@@ -316,11 +318,10 @@ name: string;
 
 ### GraphNode statement
 
-The minimal proposition — one true, self-contained statement, at
-full precision. The IDENTITY ANCHOR: the auditor recognizes a
-re-encounter by judgment against this (link-or-create), not by
-string matching. Shown in the detail card; the canvas label is the
-name.
+La proposición mínima: una afirmación verdadera y autocontenida, con toda su precisión. Es
+el ANCLA DE IDENTIDAD: el auditor reconoce un reencuentro juzgando frente a ella (vincular o
+crear), no comparando cadenas. Se muestra en la tarjeta de detalle; la etiqueta del lienzo
+es el nombre.
 
 ```ts
 statement: string;
@@ -328,8 +329,8 @@ statement: string;
 
 ### GraphNode aliases
 
-Verbatim phrasings sessions used for this proposition (the identity
-audit trail — how the world said what the node says).
+Formulaciones literales que usaron las sesiones para esta proposición (el rastro de
+auditoría de la identidad: cómo dijo el mundo lo que dice el nodo).
 
 ```ts
 aliases: string[];
@@ -343,7 +344,7 @@ createdAt: string;
 
 ### GraphNode provenance
 
-Every (chat, message) point where this proposition came up.
+Cada punto (chat, mensaje) donde surgió esta proposición.
 
 ```ts
 provenance: ProvenancePoint[];
@@ -353,8 +354,9 @@ provenance: ProvenancePoint[];
 
 Tipo público del SDK, exportado como `GraphSnapshot`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Graph projection containing stored propositions/chains and derived rendering,
-layout and provenance data. Derived arrows/junctions are not stored arguments.
+Proyección del grafo que contiene las proposiciones y cadenas almacenadas y los datos
+derivados de render, disposición y procedencia. Las flechas y uniones derivadas no son
+argumentos almacenados.
 
 ```ts
 export interface GraphSnapshot {
@@ -394,8 +396,8 @@ export interface GraphSnapshot {
 
 ### GraphSnapshot nodes
 
-Canvas nodes: propositions plus derived implication nodes for multi-premise
-chains. Each implication node uses its chain's ID.
+Nodos del lienzo: las proposiciones más los nodos de implicación derivados de las cadenas de
+varias premisas. Cada nodo de implicación usa el ID de su cadena.
 
 ```ts
 nodes: GraphNode[];
@@ -403,9 +405,9 @@ nodes: GraphNode[];
 
 ### GraphSnapshot propositions
 
-The STORED proposition nodes alone (no derived implication nodes)
-— the stored truth, like `chains`: consumers that read the world
-(the chain table) take this list, never the canvas image.
+Solo los nodos de proposición ALMACENADOS (sin nodos de implicación derivados): la verdad
+almacenada, como `chains`. Los consumidores que leen el mundo (la tabla de cadenas) usan esta
+lista, nunca la imagen del lienzo.
 
 ```ts
 propositions: GraphNode[];
@@ -413,9 +415,9 @@ propositions: GraphNode[];
 
 ### GraphSnapshot edges
 
-Derived canvas arrows: direct premise → conclusion for single-premise
-chains, or premise → implication node → conclusion for multi-premise chains.
-Rebuilt from chains, not stored separately.
+Flechas derivadas del lienzo: premisa → conclusión directa para las cadenas de una sola
+premisa, o premisa → nodo de implicación → conclusión para las de varias premisas.
+Se reconstruyen a partir de las cadenas; no se almacenan aparte.
 
 ```ts
 edges: GraphEdge[];
@@ -423,8 +425,8 @@ edges: GraphEdge[];
 
 ### GraphSnapshot logicalEdges
 
-Derived direct premise → conclusion arrows over proposition IDs only.
-Depth calculations use these rather than implication-node geometry.
+Flechas derivadas directas premisa → conclusión solo sobre IDs de proposición.
+Los cálculos de profundidad usan estas en lugar de la geometría de los nodos de implicación.
 
 ```ts
 logicalEdges: GraphEdge[];
@@ -432,8 +434,8 @@ logicalEdges: GraphEdge[];
 
 ### GraphSnapshot impLinks
 
-Derived junction linkage for each live multi-premise chain. Layout uses
-premise/conclusion rows to position its implication node between them.
+Vinculación de uniones derivada para cada cadena viva de varias premisas. La disposición usa
+las filas de premisas y conclusión para situar su nodo de implicación entre ellas.
 
 ```ts
 impLinks: Array<{
@@ -445,9 +447,9 @@ impLinks: Array<{
 
 ### GraphSnapshot chains
 
-The STORED reasoning chains (merged by (premises, conclusion) at
-read): the chain table's and the practice pipeline's input — they
-read the truth, never the derived fan-out.
+Las cadenas de razonamiento ALMACENADAS (fusionadas por (premisas, conclusión) al leer): la
+entrada de la tabla de cadenas y del flujo de prácticas, que leen la verdad, nunca el
+abanico derivado.
 
 ```ts
 chains: GraphChain[];
@@ -455,7 +457,7 @@ chains: GraphChain[];
 
 ### GraphSnapshot sessions
 
-chatId → title, for every chat that touched the graph.
+chatId → título, para cada chat que ha tocado el grafo.
 
 ```ts
 sessions: Record<string, string>;
@@ -463,9 +465,9 @@ sessions: Record<string, string>;
 
 ### GraphSnapshot fileSources
 
-srcId → file path, for every IMPORTED NOTES file that touched the
-graph (the format-agnostic front door): a static provenance entry —
-the detail card shows the path as plain text, not a link.
+srcId → ruta del fichero, para cada fichero de NOTAS IMPORTADAS que ha tocado el grafo (la
+puerta de entrada independiente del formato): una entrada de procedencia estática; la
+tarjeta de detalle muestra la ruta como texto plano, no como enlace.
 
 ```ts
 fileSources: Record<string, string>;
@@ -473,7 +475,7 @@ fileSources: Record<string, string>;
 
 ### GraphSnapshot nodeSessions
 
-nodeId → chatIds that touched the node (click-through provenance).
+nodeId → chatIds que han tocado el nodo (procedencia al hacer clic).
 
 ```ts
 nodeSessions: Record<string, string[]>;
@@ -481,12 +483,11 @@ nodeSessions: Record<string, string[]>;
 
 ### GraphSnapshot clusters
 
-Birth-session communities (core/session-clusters.ts: each
-proposition joins the cluster of the session that birthed it —
-session provenance, no Louvain, no embeddings), MIN_CLUSTER_SIZE
-≥ 3 as the hull presentation rule. Propositions only — implication
-nodes are never partitioned. Purely provenance-derived — never
-depends on layout.
+Comunidades por sesión de origen (core/session-clusters.ts: cada proposición se une al
+clúster de la sesión que la originó; procedencia por sesión, sin Louvain ni embeddings), con
+MIN_CLUSTER_SIZE ≥ 3 como regla de presentación de la envolvente. Solo proposiciones: los
+nodos de implicación nunca se particionan. Derivado únicamente de la procedencia; nunca
+depende de la disposición.
 
 ```ts
 clusters: Cluster[];
@@ -494,9 +495,9 @@ clusters: Cluster[];
 
 ### GraphSnapshot positions
 
-Resting layout positions per node id, when a positions ledger
-exists (core/layout.ts settle writes it). Absent on a fresh graph —
-the view then falls back to its own one-shot forceAtlas2 pass.
+Posiciones de reposo de la disposición por id de nodo, cuando existe un libro de posiciones
+(lo escribe el asentamiento de core/layout.ts). No existe en un grafo nuevo; en ese caso la
+vista recurre a su propia pasada única de forceAtlas2.
 
 ```ts
 positions?: Record<string, Position>;
@@ -506,10 +507,10 @@ positions?: Record<string, Position>;
 
 Tipo público del SDK, exportado como `NotesSource`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Imported notes source processed by the extractor → auditor → merger pipeline.
-Provenance identifies the file rather than a chat message, and the source
-owns its extraction usage log. IDs are src_ plus a deterministic file-path
-hash, so re-importing the same path uses the same source identity.
+Fuente de notas importada que procesa el flujo extractor → auditor → fusionador.
+La procedencia identifica el fichero en lugar de un mensaje de chat, y la fuente es
+propietaria de su registro de uso de extracción. Los IDs son src_ más un hash determinista
+de la ruta del fichero, así que reimportar la misma ruta usa la misma identidad de fuente.
 
 ```ts
 export interface NotesSource {
@@ -545,7 +546,7 @@ filePath: string;
 
 ### NotesSource importedAt
 
-ISO — when this file was imported (the checkpoint's foldedAt).
+ISO: cuándo se importó este fichero (el foldedAt del punto de control).
 
 ```ts
 importedAt: string;
@@ -553,9 +554,9 @@ importedAt: string;
 
 ### NotesSource contentFp
 
-Legacy content fingerprint. Accepted when reading old records, but
-ignored: every explicit notes import processes the whole file. New
-imports do not compute or write this field. No migration is needed.
+Huella de contenido heredada. Se acepta al leer registros antiguos, pero se ignora: cada
+importación explícita de notas procesa el fichero completo. Las importaciones nuevas no
+calculan ni escriben este campo. No hace falta ninguna migración.
 
 ```ts
 contentFp?: string;
@@ -563,8 +564,8 @@ contentFp?: string;
 
 ### NotesSource extractions
 
-The run's usage log — same append-only discipline as
-ChatRecord.extractions, idempotent per startedAt.
+El registro de uso de la ejecución, con la misma disciplina de solo añadir que
+ChatRecord.extractions, idempotente por startedAt.
 
 ```ts
 extractions?: ExtractionRunUsage[];
@@ -574,7 +575,7 @@ extractions?: ExtractionRunUsage[];
 
 Tipo público del SDK, exportado como `Position`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-A node's resting position in layout space (the positions ledger).
+La posición de reposo de un nodo en el espacio de disposición (el libro de posiciones).
 
 ```ts
 export interface Position {
@@ -604,9 +605,9 @@ y: number;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Source location for a proposition or reasoning-chain assertion. A message
-ID anchors to a native transcript passage; chat-level and imported-file
-provenance can omit that anchor by using an empty messageId.
+Ubicación de origen de una proposición o de la afirmación de una cadena de razonamiento. Un
+ID de mensaje la ancla a un pasaje nativo de la transcripción; la procedencia a nivel de chat
+o de fichero importado puede omitir esa ancla usando un messageId vacío.
 
 ```ts
 export interface ProvenancePoint {
@@ -622,9 +623,9 @@ export interface ProvenancePoint {
 
 ### ProvenancePoint chatId
 
-The chat this point anchors to — or a notes source id ("src_…"):
-imports carry no message anchors (provenance is the file itself,
-recorded through the mapping line + the source record).
+El chat al que se ancla este punto, o un id de fuente de notas ("src_…"): las importaciones
+no llevan anclas de mensaje (la procedencia es el propio fichero, registrada mediante la
+línea de correspondencia + el registro de la fuente).
 
 ```ts
 chatId: string;
@@ -640,8 +641,8 @@ messageId: string;
 
 Tipo público del SDK, exportado como `SessionCheckpoint`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-sessions.jsonl line — the emission checkpoint for one chat (which chats
-have been folded, and through which updatedAt — never fold twice).
+Línea de sessions.jsonl: el punto de control de emisión de un chat (qué chats se han
+incorporado y hasta qué updatedAt; nunca se incorporan dos veces).
 
 ```ts
 export interface SessionCheckpoint {
@@ -663,7 +664,7 @@ chatId: string;
 
 ### SessionCheckpoint foldedAt
 
-The chat record's `updatedAt` at the time of the fold.
+El `updatedAt` del registro del chat en el momento de incorporarlo.
 
 ```ts
 foldedAt: string;
