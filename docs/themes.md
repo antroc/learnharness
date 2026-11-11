@@ -1,31 +1,31 @@
-# Themes
+# Temas
 
-**Settings → Appearance → Theme** sets the app's UI palette.
-LearnHarness ships eleven presets: Default (the original dark palette), Catppuccin
-Latte, Frappé, Macchiato and Mocha, Rosé Pine and Rosé Pine Dawn, Gruvbox Dark, Ivory, Pastel, and NvChad Onedark.
-Each theme declares whether it is dark or light. The native window background
-follows the effective background, including your override; native control symbols
-choose a contrasting ink. Mermaid diagrams follow the theme's light/dark mode.
-Generated figures keep their own colors and existing inversion controls. Plugins
-that use the app's CSS tokens inherit them; plugin-specific palettes and artwork
-are not rewritten.
+**Ajustes → Apariencia → Tema** establece la paleta de la interfaz de la aplicación.
+LearnHarness incluye once preajustes: Default (la paleta oscura original), Catppuccin
+Latte, Frappé, Macchiato y Mocha, Rosé Pine y Rosé Pine Dawn, Gruvbox Dark, Ivory, Pastel y NvChad Onedark.
+Cada tema declara si es oscuro o claro. El fondo de la ventana nativa
+sigue el fondo efectivo, incluida tu personalización; los símbolos de los controles nativos
+eligen una tinta que contraste. Los diagramas Mermaid siguen el modo claro/oscuro del tema.
+Las figuras generadas conservan sus propios colores y los controles de inversión existentes. Los plugins
+que usan los tokens CSS de la aplicación los heredan; las paletas y las ilustraciones propias de cada plugin
+no se reescriben.
 
-## Overriding single colors
+## Personalizar colores sueltos
 
-The **Colors** block under the theme grid has one field per theme color. A filled
-field wins over the active theme; an empty field uses the theme's value, shown in
-its hint. Overrides are kept when you switch themes, so a background you like
-survives a change of palette. **Reset all** clears every override.
+El bloque **Colores**, bajo la cuadrícula de temas, tiene un campo por cada color del tema. Un campo
+relleno prevalece sobre el tema activo; un campo vacío usa el valor del tema, que se muestra en
+su pista. Las personalizaciones se conservan al cambiar de tema, de modo que un fondo que te guste
+sobrevive a un cambio de paleta. **Restablecer todo** borra todas las personalizaciones.
 
-`background`, `bold` and `italic` keep their pre-theme settings keys
-(`appearance.background`, `mdRendering.boldColor`, `mdRendering.italicColor`), so
-values set in older versions keep working.
+`background`, `bold` e `italic` conservan sus claves de ajustes anteriores a los temas
+(`appearance.background`, `mdRendering.boldColor`, `mdRendering.italicColor`), así que
+los valores establecidos en versiones anteriores siguen funcionando.
 
-## Theme files
+## Ficheros de tema
 
-**Export JSON** downloads the active theme with your overrides applied. Importing
-that file back reproduces what is on screen. **Import JSON** accepts a file in this
-shape:
+**Exportar JSON** descarga el tema activo con tus personalizaciones aplicadas. Importar
+de nuevo ese fichero reproduce lo que se ve en pantalla. **Importar JSON** acepta un fichero con esta
+forma:
 
 ```json
 {
@@ -48,33 +48,33 @@ shape:
 }
 ```
 
-All twelve colors are required, as `#rgb` or `#rrggbb` hex. `mode` is `"dark"` or
-`"light"`. A file with a missing or invalid key is refused, and the error names
-the key.
+Los doce colores son obligatorios, en hexadecimal `#rgb` o `#rrggbb`. `mode` es `"dark"` o
+`"light"`. Un fichero al que le falte una clave o que tenga una clave no válida se rechaza, y el error indica
+cuál es.
 
-| Key | Where it shows |
+| Clave | Dónde se ve |
 |---|---|
-| `background` | Page background |
-| `surface` | Cards, popovers, inputs; hover states derive from it |
-| `border` | Borders and input outlines |
-| `text` | Body text |
-| `textMuted` | Secondary text and hints |
-| `accent` | Focus rings, toggles, the selected theme card |
-| `bold` | **Bold** text in lessons |
-| `italic` | *Italic* text in lessons |
-| `code` | Inline `code` in lessons |
-| `error` | Errors, wrong answers, destructive actions |
-| `success` | Correct answers, connected states |
-| `warning` | Warnings and partial states |
+| `background` | Fondo de la página |
+| `surface` | Tarjetas, popovers, campos de entrada; los estados hover se derivan de él |
+| `border` | Bordes y contornos de los campos |
+| `text` | Texto principal |
+| `textMuted` | Texto secundario y pistas |
+| `accent` | Anillos de foco, interruptores, la tarjeta del tema seleccionado |
+| `bold` | Texto en **negrita** de las lecciones |
+| `italic` | Texto en *cursiva* de las lecciones |
+| `code` | `code` en línea de las lecciones |
+| `error` | Errores, respuestas incorrectas, acciones destructivas |
+| `success` | Respuestas correctas, estados conectados |
+| `warning` | Avisos y estados parciales |
 
-## Where custom themes live
+## Dónde se guardan los temas personalizados
 
-Imported themes are saved as `<id>.json` in the `themes/` folder of the app data
-directory (`data/themes/` in a development checkout, or under Electron `userData`
-in the desktop app). The id is a slug of the name; a name that collides with an
-existing theme gets a `-2`, `-3`… suffix. Preset ids are reserved.
+Los temas importados se guardan como `<id>.json` en la carpeta `themes/` del directorio de datos
+de la aplicación (`data/themes/` en una copia de desarrollo, o en `userData` de Electron
+en la aplicación de escritorio). El id es un slug del nombre; un nombre que coincida con un
+tema existente recibe un sufijo `-2`, `-3`… Los ids de los preajustes están reservados.
 
-Removing the active custom theme switches back to Default and keeps your overrides.
-If the selected file is removed or becomes invalid outside the app, the UI falls
-back to Default; the next appearance save also repairs the saved selection, so
-font and other appearance edits remain available.
+Eliminar el tema personalizado activo vuelve a Default y conserva tus personalizaciones.
+Si el fichero seleccionado se elimina o deja de ser válido fuera de la aplicación, la interfaz vuelve
+a Default; el siguiente guardado de apariencia también repara la selección guardada, así que
+la fuente y los demás cambios de apariencia siguen disponibles.

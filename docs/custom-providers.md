@@ -1,61 +1,61 @@
-# Custom and local models
+# Modelos personalizados y locales
 
-LearnHarness supports **one custom OpenAI-compatible endpoint with multiple models**, including a local model server. The setup/UI builds on PR #62 by Daniel Buckner and Abhishek Thakur. Pi handles inference, message conversion, tools, streaming, and reasoning effort. [Claude Code](claude-code.md) is a separate provider.
+LearnHarness admite **un endpoint personalizado compatible con OpenAI con varios modelos**, incluido un servidor de modelos local. La configuración y la interfaz parten del PR #62 de Daniel Buckner y Abhishek Thakur. Pi se encarga de la inferencia, la conversión de mensajes, las herramientas, el streaming y el esfuerzo de razonamiento. [Claude Code](claude-code.md) es un proveedor aparte.
 
-## Connect
+## Conectar
 
-1. Open **Settings → Providers → + Add a provider → Custom endpoint**, or use the first-run provider picker.
-2. Enter the complete API base URL, such as `http://localhost:11434/v1`. LearnHarness **does not append `/v1`**. HTTP/HTTPS and private-network addresses are supported; embedded credentials, query strings, fragments, and discovery redirects are rejected.
-3. Choose **Keyless** or **API key**. Keyless ignores saved/environment custom keys. API key uses `CUSTOM_OPENAI_API_KEY`; a real environment value overrides a saved value, and the editor identifies environment ownership.
-4. Optionally enter model IDs, separated by commas or whitespace, for servers without working model discovery.
-5. Click **Connect**, then select Strong, Cheap, and Vision models.
+1. Abre **Ajustes → Proveedores → + Añadir un proveedor → Endpoint personalizado**, o usa el selector de proveedor del primer arranque.
+2. Introduce la URL base completa de la API, por ejemplo `http://localhost:11434/v1`. LearnHarness **no añade `/v1`**. Se admiten HTTP/HTTPS y direcciones de red privada; se rechazan las credenciales incrustadas, las cadenas de consulta, los fragmentos y las redirecciones durante el descubrimiento.
+3. Elige **Sin clave** o **Clave de API**. Sin clave ignora las claves personalizadas guardadas o del entorno. Clave de API usa `CUSTOM_OPENAI_API_KEY`; un valor real del entorno prevalece sobre un valor guardado, y el editor indica cuándo la clave procede del entorno.
+4. Opcionalmente, introduce identificadores de modelo, separados por comas o espacios, para servidores en los que el descubrimiento de modelos no funcione.
+5. Pulsa **Conectar** y selecciona los modelos Potente, Barato y Visión.
 
-A key is bound to the canonical endpoint URL and authentication mode. Changing the URL requires a new effective key or explicit consent to reuse it; it is never silently forwarded. Clearing authentication selects Keyless. Use this editor—not generic key management—to change custom credentials.
+Una clave queda vinculada a la URL canónica del endpoint y al modo de autenticación. Cambiar la URL exige una nueva clave efectiva o el consentimiento explícito para reutilizarla; nunca se reenvía en silencio. Borrar la autenticación selecciona Sin clave. Usa este editor —no la gestión genérica de claves— para cambiar las credenciales personalizadas.
 
-Connect requests `GET <base>/models`; reported metadata wins over duplicate entered IDs. A nonfatal discovery failure can fall back to entered IDs. At the same URL, fallback preserves the previous model snapshot/pins; a different URL starts its own snapshot. **401/403, redirects, response-size, and model-count violations fail even with entered IDs.** A failed connect without fallback leaves configuration unchanged.
+Conectar hace la petición `GET <base>/models`; los metadatos informados prevalecen sobre los identificadores introducidos duplicados. Un fallo no fatal del descubrimiento puede recurrir a los identificadores introducidos. Con la misma URL, este recurso conserva la instantánea de modelos y los valores fijados anteriores; una URL distinta empieza su propia instantánea. **Los errores 401/403, las redirecciones y los excesos de tamaño de respuesta o de número de modelos fallan aunque haya identificadores introducidos.** Una conexión fallida sin recurso alternativo deja la configuración sin cambios.
 
-Discovery is not a continuous health or capability check. LearnHarness does not install a backend, download models, or perform custom-endpoint OAuth.
+El descubrimiento no es una comprobación continua de salud ni de capacidades. LearnHarness no instala un backend, no descarga modelos ni hace OAuth con endpoints personalizados.
 
-## Budgets and reasoning
+## Presupuestos y razonamiento
 
-Edit each model's pins offline:
+Edita sin conexión los valores fijados de cada modelo:
 
-| Setting | Resolution |
+| Ajuste | Resolución |
 | --- | --- |
-| Context budget | User pin → reported limit → **8192 fallback** |
-| Maximum output | User pin → reported limit → **4096 fallback** |
-| Reasoning support | User declaration → reported support |
+| Presupuesto de contexto | Valor fijado por el usuario → límite informado → **8192 por defecto** |
+| Salida máxima | Valor fijado por el usuario → límite informado → **4096 por defecto** |
+| Soporte de razonamiento | Declaración del usuario → soporte informado |
 
-Positive integer token pins are accepted, including small output limits; blank removes a pin. The editor labels reported, fallback, and pinned values. **These are request/compaction budgets, not commands to resize the backend's context.** Configure the server separately and match its active limits. Reconnecting prunes pins only to the resulting model IDs.
+Se aceptan valores fijados de tokens enteros positivos, incluidos límites de salida pequeños; dejarlo en blanco elimina el valor fijado. El editor indica qué valores son informados, por defecto o fijados. **Son presupuestos para las peticiones y la compactación, no órdenes para cambiar el tamaño del contexto del backend.** Configura el servidor por separado y haz que coincida con sus límites activos. Al reconectar, los valores fijados solo se depuran para quedarse con los identificadores de modelo resultantes.
 
-Reasoning support declares a capability; it does not enable execution. The normal Pi effort picker remains available, but **Off may not disable a backend's default thinking**. There is no model-name inference, Ollama preset, thinking-map/compatibility editor, or nonstandard-header editor.
+El soporte de razonamiento declara una capacidad; no activa su ejecución. El selector normal de esfuerzo de Pi sigue disponible, pero **Desactivado puede no desactivar el razonamiento por defecto de un backend**. No hay inferencia a partir del nombre del modelo, ni preajuste de Ollama, ni editor de mapa de razonamiento/compatibilidad, ni editor de cabeceras no estándar.
 
-## Images
+## Imágenes
 
-All custom models are Vision-selectable; reported image-capable models appear first. Choose a backend that actually understands images.
+Todos los modelos personalizados se pueden seleccionar como Visión; los que informan de que admiten imágenes aparecen primero. Elige un backend que entienda imágenes de verdad.
 
-Every custom-engine image-bearing request attempts delivery even when discovery omitted image support. This includes file reads, PDF pages, and visual previews. A request-local model allowance lets Pi encode images without changing the catalog's capability claims. Text-only servers may reject them; errors surface without silent text-only fallback. Payload delivery tests do not establish real-model image quality.
+Toda petición con imágenes al motor personalizado intenta entregarlas aunque el descubrimiento no indicara soporte de imágenes. Esto incluye lecturas de ficheros, páginas de PDF y vistas previas visuales. Una autorización del modelo local a la petición permite a Pi codificar imágenes sin cambiar lo que el catálogo declara sobre sus capacidades. Los servidores que solo admiten texto pueden rechazarlas; los errores se muestran sin recurrir en silencio a solo texto. Las pruebas de entrega de la carga útil no demuestran la calidad con imágenes de un modelo real.
 
-## Editing, credentials, and recovery
+## Edición, credenciales y recuperación
 
-Nonsecret configuration lives in `settings.json.customProvider`; saved keys and an internal binding live in `auth.json`. Authorization requires matching binding IDs, URL, and mode. A crash between auth/settings writes leaves the provider disabled rather than sending a key to a mismatched endpoint. Keyless also needs a valid nonsecret binding but never resolves a key. Missing private storage can initialize; malformed/unreadable storage fails closed without overwrite.
+La configuración no secreta se guarda en `settings.json.customProvider`; las claves guardadas y una vinculación interna están en `auth.json`. La autorización exige que coincidan los identificadores de vinculación, la URL y el modo. Un fallo entre las escrituras de autenticación y de ajustes deja el proveedor desactivado en lugar de enviar una clave a un endpoint que no corresponde. Sin clave también necesita una vinculación no secreta válida, pero nunca resuelve una clave. Si falta el almacenamiento privado, se puede inicializar; un almacenamiento mal formado o ilegible falla de forma segura sin sobrescribirse.
 
-If authorization is interrupted, reload and explicitly reconnect. An environment key changing endpoints does not authorize a shadowed saved key for that new URL. Disconnect prevents a latent environment key from reviving the provider. These are crash/restart guards, not a power-loss/fsync transaction guarantee.
+Si la autorización se interrumpe, recarga y vuelve a conectar explícitamente. Una clave del entorno que cambia de endpoint no autoriza una clave guardada que quede oculta para esa nueva URL. Desconectar impide que una clave latente del entorno reactive el proveedor. Son protecciones frente a fallos y reinicios, no una garantía transaccional frente a cortes de corriente/fsync.
 
-Stale editor saves return **409**: reload and retry. Mutations preserve unrelated settings changes; failed edits do not claim success. Each new model operation resolves current endpoint, credentials, limits, and effort; in-flight requests keep their setup. Disconnecting/removing a model does not remap saved selections or rewrite history.
+Los guardados obsoletos del editor devuelven **409**: recarga y vuelve a intentarlo. Las modificaciones conservan los cambios de ajustes no relacionados; las ediciones fallidas no se dan por correctas. Cada nueva operación de modelo resuelve el endpoint, las credenciales, los límites y el esfuerzo vigentes; las peticiones en curso mantienen su configuración. Desconectar o quitar un modelo no reasigna las selecciones guardadas ni reescribe el historial.
 
-Discovery limits are **15 seconds**, **8 MiB**, and **10,000 models**; configuration bodies are bounded to **64 KiB**. Desktop capability/same-origin browser checks are not multi-user authentication.
+Los límites del descubrimiento son **15 segundos**, **8 MiB** y **10.000 modelos**; los cuerpos de configuración están limitados a **64 KiB**. Las comprobaciones de capacidad del escritorio y de mismo origen del navegador no son autenticación multiusuario.
 
-## Pricing and older development configurations
+## Precios y configuraciones de desarrollo antiguas
 
-Prices are **unknown/unpriced**, not $0—even for a local server. Internal zero rates are Pi-required placeholders; there is no rate editor. See [accounting](compaction-accounting.md).
+Los precios son **desconocidos/sin precio**, no 0 $, incluso con un servidor local. Las tarifas internas a cero son marcadores que exige Pi; no hay editor de tarifas. Consulta [contabilidad](compaction-accounting.md).
 
-The earlier unshipped `models.json` configuration is not read or migrated. Existing early development profiles need explicit endpoint configuration/reconnect and model reselection; files/history are not deleted or silently remapped.
+La configuración anterior `models.json`, que nunca llegó a publicarse, no se lee ni se migra. Los perfiles de desarrollo antiguos necesitan configurar el endpoint de forma explícita, reconectar y volver a seleccionar los modelos; los ficheros y el historial no se borran ni se reasignan en silencio.
 
-## Maintainer entry points
+## Puntos de entrada para mantenedores
 
-- [`server/custom-provider.ts`](../src/server/custom-provider.ts): discovery/registration; [`custom-provider-http.ts`](../src/server/custom-provider-http.ts): HTTP revisions and mutation boundaries.
-- [`custom-provider-auth.ts`](../src/server/custom-provider-auth.ts) and the [binding contract](../src/core/custom-provider-auth.ts): credential authorization and restart behavior.
-- [`agent/models.ts`](../src/agent/models.ts): per-operation engine resolution and image allowance.
+- [`server/custom-provider.ts`](../src/server/custom-provider.ts): descubrimiento y registro; [`custom-provider-http.ts`](../src/server/custom-provider-http.ts): revisiones HTTP y límites de las modificaciones.
+- [`custom-provider-auth.ts`](../src/server/custom-provider-auth.ts) y el [contrato de vinculación](../src/core/custom-provider-auth.ts): autorización de credenciales y comportamiento al reiniciar.
+- [`agent/models.ts`](../src/agent/models.ts): resolución del motor por operación y autorización de imágenes.
 
-`tests/custom-provider-*.test.*` covers fake endpoints, binding/restart failures, concurrent editing, UI, and payload delivery—not backend installation or real-model capabilities.
+`tests/custom-provider-*.test.*` cubre endpoints simulados, fallos de vinculación y reinicio, edición concurrente, interfaz y entrega de la carga útil; no la instalación del backend ni las capacidades de modelos reales.
