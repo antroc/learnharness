@@ -51,7 +51,8 @@ export type JsonValue = null | boolean | number | string | JsonValue[] | {
 
 Tipo público del SDK, exportado como `PluginQuestionAnnotationRead`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Unreadable annotations remain classified as questions: never expose raw input.
+Las anotaciones ilegibles siguen clasificadas como preguntas: nunca expongas la entrada en
+bruto.
 
 ```ts
 export type PluginQuestionAnnotationRead = {
@@ -169,7 +170,7 @@ contractVersion: number;
 
 ### PluginQuestionAnnotationRead binding
 
-Only available after matching a supplied canonical native occurrence.
+Solo disponible tras coincidir con una ocurrencia nativa canónica aportada.
 
 ```ts
 binding?: {
@@ -362,7 +363,7 @@ readonly answer: A;
 
 Tipo público del SDK, exportado como `PluginQuestionAttempt`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Visibility only: an unsuccessful attempt never grants pending authority.
+Solo visibilidad: un intento fallido nunca concede autoridad pendiente.
 
 ```ts
 export interface PluginQuestionAttempt {
@@ -394,7 +395,8 @@ protocolVersion: 1 | 2;
 
 ### PluginQuestionAttempt requiresGrading
 
-Protocol v2 freezes grading at pose time; historical v1 omits this field.
+El protocolo v2 congela la calificación en el momento de plantear la pregunta; la v1
+histórica omite este campo.
 
 ```ts
 requiresGrading?: true;
@@ -454,7 +456,7 @@ kind: "plugin-question-cancelled";
 
 ### PluginQuestionCancellation questionId
 
-Omitted only when the question is unreadable: explicit dismissal or protocol cancellation, with an exact occurrence binding.
+Se omite solo cuando la pregunta es ilegible: descarte explícito o cancelación del protocolo, con una vinculación exacta a la ocurrencia.
 
 ```ts
 questionId?: string;
@@ -524,10 +526,10 @@ focus(): void;
 
 ### PluginQuestionEditorHandle handleKeyDown
 
-Optional editing override. Omission or "pass" uses host defaults:
-Enter submits, Shift+Enter keeps native newline editing, Tab cycles fields.
-Unhandled Escape moves to the next host field, or blurs an editor-only chain.
-Meta/Ctrl+Enter remains reserved host submission.
+Sustitución opcional de la edición. Omitirla o "pass" usa los valores por defecto del host:
+Enter envía, Shift+Enter mantiene la edición nativa de saltos de línea y Tab recorre los
+campos. Un Escape no gestionado pasa al siguiente campo del host o quita el foco de una
+cadena formada solo por editores. Meta/Ctrl+Enter sigue reservado al envío del host.
 
 ```ts
 handleKeyDown?(key: PluginQuestionEditorKey): "handled" | "pass";
@@ -601,7 +603,7 @@ readonly answer: PluginQuestionAnswerState;
 
 ### PluginQuestionEditorProps onChange
 
-Synchronous publication; stale mount publications are ignored by the host.
+Publicación síncrona; el host ignora las publicaciones de montajes obsoletos.
 
 ```ts
 onChange(answer: PluginQuestionAnswerState): void;
