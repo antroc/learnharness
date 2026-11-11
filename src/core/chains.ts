@@ -2,35 +2,38 @@ import type { GraphNode } from "./contracts/graph.ts";
 import { stripModelValueDebris } from "./value-debris.ts";
 
 /**
- * Selection-facing chain views — pure + browser-safe (the shell's chain
- * table consumes these; the barrel exports them). Born in the practice
- * contracts (2026-09-29), orphaned onto their own module when the batch
- * practice module was replaced by practice sessions (2026-10-04).
+ * Vistas de cadenas orientadas a la selección: puras y seguras en el navegador
+ * (las consume la tabla de cadenas del shell; las exporta el barrel). Nacieron
+ * en los contratos de prácticas (2026-09-29) y quedaron huérfanas en su propio
+ * módulo cuando las sesiones de práctica sustituyeron al módulo de práctica
+ * por lotes (2026-10-04).
  */
 
-/** One reasoning chain — a selection-facing VIEW of stored follows-edges:
- *  all edges into one conclusion, as premises → that conclusion. Singleton
- *  chains (premises: []) carry edge-less nodes. */
+/** Una cadena de razonamiento: una VISTA orientada a la selección de las
+ *  aristas follows almacenadas: todas las aristas que llegan a una conclusión,
+ *  como premisas → esa conclusión. Las cadenas unitarias (premises: []) llevan
+ *  nodos sin aristas. */
 export interface ReasoningChain {
-	/** The chain's identity — the CONCLUSION node's id (chains group by
-	 *  conclusion, so the two are one). */
+	/** La identidad de la cadena: el id del nodo CONCLUSIÓN (las cadenas se
+	 *  agrupan por conclusión, así que ambos son lo mismo). */
 	id: string;
-	/** Premise node ids — every follows-edge source into the conclusion,
-	 *  sorted. Empty = a singleton chain (an edge-less node). */
+	/** Ids de los nodos premisa: el origen de cada arista follows que llega a la
+	 *  conclusión, ordenados. Vacío = una cadena unitaria (un nodo sin aristas). */
 	premises: string[];
-	/** The conclusion node id (=== id; mirrored so renderings read
-	 *  "premises → conclusion" without indirection). */
+	/** El id del nodo conclusión (=== id; se repite para que las representaciones
+	 *  lean "premisas → conclusión" sin indirección). */
 	conclusion: string;
 }
 
-/** The stored chains filtered to a selection (chains-primary, owner
- *  2026-09-30): a chain rides along iff its conclusion AND every premise
- *  are selected; a node in no surviving chain is a singleton chain
- *  (premises: []). Premise-only nodes whose chain was excluded are
- *  singletons — the same inclusion law as the pre-chains edge grouping.
- *  Every stored chain keeps its OWN id (arg_…) — two independent
- *  arguments for one conclusion stay distinct. Deterministic: chains
- *  sorted by id, premises sorted. */
+/** Las cadenas almacenadas filtradas a una selección (primero las cadenas,
+ *  responsable 2026-09-30): una cadena entra si y solo si su conclusión Y todas
+ *  sus premisas están seleccionadas; un nodo que no está en ninguna cadena
+ *  superviviente es una cadena unitaria (premises: []). Los nodos que solo son
+ *  premisa y cuya cadena quedó excluida son unitarios: la misma ley de
+ *  inclusión que la agrupación por aristas anterior a las cadenas. Cada cadena
+ *  almacenada conserva su PROPIO id (arg_…): dos argumentos independientes
+ *  para una conclusión siguen siendo distintos. Determinista: cadenas
+ *  ordenadas por id, premisas ordenadas. */
 export function chainsForSelection(
 	nodes: ReadonlyArray<Pick<{ id: string }, "id">>,
 	chains: ReadonlyArray<Pick<{ id: string; premises: string[]; conclusion: string }, "id" | "premises" | "conclusion">>,
@@ -53,20 +56,23 @@ export function chainsForSelection(
 	return included.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
 }
 
-/** A chain as one world-facing line — the propositions' NAMES joined
- *  by the derivation arrow: "Premise one, Premise two → Conclusion"; a
- *  singleton shows its "(no premises)" marker. Pure + browser-safe.
- *  Unknown ids fall back to the raw id (honest, never guessed).
- *  Premises sort by id — the same determinism law as chainsForSelection. */
-/** Resolve ONE target string to a canonical proposition id (owner round
- *  9, 2026-10-05 — the mastery-trace contract): id first (exact), then
- *  name (case-insensitive, trimmed — names are presentational handles,
- *  not unique; an ambiguous name resolves to the FIRST node in store
- *  order). Returns null when nothing matches — the caller rejects.
- *  Validation set is the WHOLE graph, not the session's picks: pickless
- *  sessions and future graph-tools poses stay valid. The debris strip
- *  (whitehead, 2026-10-09) heals copy-syntax (`:node-id`, quoted ids)
- *  before matching — targets are membership values like correctAnswer. */
+/** Una cadena como una sola línea de cara al mundo: los NOMBRES de las
+ *  proposiciones unidos por la flecha de derivación: "Premisa uno, Premisa dos
+ *  → Conclusión"; una unitaria muestra su marcador "(no premises)". Puro y
+ *  seguro en el navegador. Los ids desconocidos recurren al id en bruto
+ *  (honesto, nunca adivinado). Las premisas se ordenan por id: la misma ley de
+ *  determinismo que chainsForSelection. */
+/** Resuelve UNA cadena objetivo a un id de proposición canónico (ronda 9 del
+ *  responsable, 2026-10-05: el contrato del rastro de dominio): primero el id
+ *  (exacto) y luego el nombre (sin distinguir mayúsculas, recortado; los
+ *  nombres son asas de presentación, no únicas; un nombre ambiguo se resuelve
+ *  al PRIMER nodo en el orden del almacén). Devuelve null si nada coincide; el
+ *  llamante rechaza. El conjunto de validación es TODO el grafo, no lo elegido
+ *  en la sesión: las sesiones sin elección y los futuros planteamientos con
+ *  herramientas de grafo siguen siendo válidos. La limpieza de restos
+ *  (whitehead, 2026-10-09) repara la sintaxis copiada (`:node-id`, ids entre
+ *  comillas) antes de comparar: los objetivos son valores de pertenencia, como
+ *  correctAnswer. */
 export function resolveTargetId(
 	target: string,
 	nodes: ReadonlyArray<Pick<GraphNode, "id" | "name">>,

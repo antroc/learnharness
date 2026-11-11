@@ -1,8 +1,8 @@
-/** Shared provenance only: no credential-store reads in the agent layer. */
+/** Solo procedencia compartida: en la capa del agente no se lee el almacén de credenciales. */
 interface AuthBoot {
-	/** Names owned by the original launch environment. */
+	/** Nombres que pertenecen al entorno de arranque original. */
 	realEnv: Set<string>;
-	/** Names reflected into process.env by LearnHarness's key store. */
+	/** Nombres que el almacén de claves de LearnHarness refleja en process.env. */
 	fillGap: Set<string>;
 }
 const BOOT_KEY = Symbol.for("lh.authBoot");
@@ -13,7 +13,7 @@ export function authEnvRecord(): AuthBoot {
 	return g[BOOT_KEY];
 }
 
-/** External CLIs own their authentication. Never pass LearnHarness-only injections. */
+/** Las CLI externas gestionan su propia autenticación. Nunca se les pasan inyecciones exclusivas de LearnHarness. */
 export function externalCliEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
 	const result = { ...env };
 	const { realEnv, fillGap } = authEnvRecord();

@@ -1,31 +1,35 @@
 /**
- * The curated auth-key catalog + shape rules (auth-keys wave, 2026-09-19).
- * PURE, browser-safe — no fs, no env. The catalog drives the auth page's
- * key list (label, description, where-to-get docs link) and the write-side
- * shape validation (owner decision: SHAPE-ONLY validation, no live pings —
- * a revoked key looks fine until a real call fails; that trade was chosen
- * over phoning providers).
+ * El catálogo curado de claves de autenticación + las reglas de forma (oleada
+ * auth-keys, 2026-09-19). PURO y seguro en el navegador: sin fs ni entorno. El
+ * catálogo alimenta la lista de claves de la página de autenticación
+ * (etiqueta, descripción, enlace a la documentación de dónde conseguirla) y la
+ * validación de forma al escribir (decisión del responsable: validación SOLO
+ * DE FORMA, sin comprobaciones en vivo; una clave revocada parece correcta
+ * hasta que falla una llamada real; se eligió ese compromiso antes que llamar
+ * a los proveedores).
  *
- * The store itself is the long-standing flat {VAR: value} auth.json map
- * (see config.AUTH_FILE): keys are identified BY their environment-variable
- * name — the same name consumers read today (OPENROUTER_API_KEY, …), so the
- * catalog id IS the file key and the env var, one name everywhere.
+ * El almacén en sí es el mapa plano {VAR: value} de auth.json de siempre (ver
+ * config.AUTH_FILE): las claves se identifican POR el nombre de su variable de
+ * entorno, el mismo nombre que leen hoy los consumidores (OPENROUTER_API_KEY,
+ * …), así que el id del catálogo ES la clave del fichero y la variable de
+ * entorno: un solo nombre en todas partes.
  *
- * Unknown vars found in the file (outside the catalog) are PRESERVED
- * verbatim and surfaced as generic entries — forward-compat for future
- * entries (e.g. a plans-login token) without a schema change — but they
- * are not hand-writable through the curated API (only the catalog's keys
- * have shapes worth checking and docs worth showing).
+ * Las variables desconocidas del fichero (fuera del catálogo) se CONSERVAN tal
+ * cual y se muestran como entradas genéricas (compatibilidad hacia delante
+ * para entradas futuras, p. ej. un token de inicio de sesión de planes, sin
+ * cambiar el esquema), pero no se pueden escribir a mano mediante la API
+ * curada (solo las claves del catálogo tienen formas que merezca la pena
+ * comprobar y documentación que merezca la pena mostrar).
  */
 
-/** One curated key entry. `id` is the env-var/file key name. */
+/** Una entrada de clave curada. `id` es el nombre de la variable de entorno/clave del fichero. */
 export interface AuthKeyInfo {
 	id: string;
-	/** Human label for the settings page. */
+	/** Etiqueta legible para la página de ajustes. */
 	label: string;
-	/** One-sentence what-is-this-for. */
+	/** Una frase sobre para qué sirve. */
 	description: string;
-	/** Where the user gets a key (opens in the real browser via the shell). */
+	/** Dónde consigue el usuario una clave (se abre en el navegador real mediante el shell). */
 	docsUrl: string;
 }
 
@@ -74,9 +78,9 @@ export function isKnownAuthKey(id: string): boolean {
 	return AUTH_KEY_IDS.has(id);
 }
 
-/** One model-provider key row for the settings page's dropdown: which
- *  pi-ai provider, the env var its key rides in, and the human label
- *  (pi's own Provider.name). */
+/** Una fila de clave de proveedor de modelos para el desplegable de la página
+ *  de ajustes: qué proveedor de pi-ai, la variable de entorno en la que va su
+ *  clave y la etiqueta legible (el propio Provider.name de pi). */
 export interface AuthProviderInfo {
 	id: string;
 	envVar: string;
@@ -84,23 +88,27 @@ export interface AuthProviderInfo {
 }
 
 /**
- * THE MODEL-PROVIDER KEY TABLE (provider-keys interlude, 2026-09-19):
- * every pi-ai provider that takes a PLAIN api-key env var — derived from
- * pi-ai's own provider→env-var table at generation time, so it can never
- * drift from what pi actually reads: tests/auth-provider-keys.test.ts
- * re-derives the truth from pi-ai (builtinProviders + findEnvKeys via a
- * truthy-for-every-var proxy env) and asserts EXACT equality with this
- * table — a pi-ai upgrade that adds/renames a provider key fails the gate
- * loudly instead of drifting silently.
+ * LA TABLA DE CLAVES DE PROVEEDORES DE MODELOS (interludio de claves de
+ * proveedor, 2026-09-19): todos los proveedores de pi-ai que usan una variable
+ * de entorno de clave API SIMPLE, derivada de la propia tabla
+ * proveedor→variable de pi-ai al generarla, así que nunca puede desviarse de
+ * lo que lee pi de verdad: tests/auth-provider-keys.test.ts vuelve a derivar
+ * la verdad desde pi-ai (builtinProviders + findEnvKeys con un entorno proxy
+ * que da valor a todas las variables) y comprueba la igualdad EXACTA con esta
+ * tabla; una actualización de pi-ai que añada o renombre una clave de
+ * proveedor hace fallar la barrera con estruendo en lugar de desviarse en
+ * silencio.
  *
- * EXCLUDED by owner spec — providers whose auth is not a plain key this
- * wave: github-copilot (OAuth), amazon-bedrock (AWS creds), google-vertex
- * (ADC), azure (needs a base URL), the cloudflare
- * account-scoped pair. Anthropic keeps ANTHROPIC_API_KEY only — its
- * AUTH_TOKEN/OAUTH_TOKEN alternates stay env-only. openai-codex exposes
- * no env-key (naturally absent). Providers sharing one env var (moonshotai
- * / moonshotai-cn, opencode / opencode-go, the qwen-token-plan pair,
- * xiaomi variants) each keep their own row — the UI groups as it wishes.
+ * EXCLUIDOS por especificación del responsable: los proveedores cuya
+ * autenticación no es una clave simple en esta oleada: github-copilot (OAuth),
+ * amazon-bedrock (credenciales de AWS), google-vertex (ADC), azure (necesita
+ * una URL base) y el par de cloudflare con ámbito de cuenta. Anthropic
+ * mantiene solo ANTHROPIC_API_KEY; sus alternativas AUTH_TOKEN/OAUTH_TOKEN se
+ * quedan solo en el entorno. openai-codex no expone clave de entorno (ausente
+ * de forma natural). Los proveedores que comparten una variable de entorno
+ * (moonshotai / moonshotai-cn, opencode / opencode-go, el par
+ * qwen-token-plan, las variantes de xiaomi) mantienen cada uno su propia
+ * fila; la interfaz los agrupa como quiera.
  */
 export const AUTH_PROVIDER_KEYS: readonly AuthProviderInfo[] = [
 	{ id: "ant-ling", envVar: "ANT_LING_API_KEY", label: "Ant Ling" },
@@ -141,11 +149,13 @@ export const AUTH_PROVIDER_KEYS: readonly AuthProviderInfo[] = [
 ] as const;
 
 /**
- * THE single custom endpoint's identity: a user-configured OpenAI-compatible
- * server registered into pi-ai at runtime (server/custom-provider.ts). NOT part
- * of AUTH_PROVIDER_KEYS (that table is test-pinned to pi-ai's built-ins and is
- * env-var-keyed); this one is keyed by a user-supplied base URL, and its key
- * rides this reserved env var (optional — keyless local servers allowed).
+ * La identidad del ÚNICO endpoint personalizado: un servidor compatible con
+ * OpenAI configurado por el usuario y registrado en pi-ai en ejecución
+ * (server/custom-provider.ts). NO forma parte de AUTH_PROVIDER_KEYS (esa tabla
+ * está fijada por las pruebas a los proveedores integrados de pi-ai y se
+ * indexa por variable de entorno); este se indexa por una URL base que aporta
+ * el usuario, y su clave va en esta variable de entorno reservada (opcional:
+ * se permiten servidores locales sin clave).
  */
 export const CUSTOM_PROVIDER = {
 	id: "custom",
@@ -153,30 +163,34 @@ export const CUSTOM_PROVIDER = {
 	label: "Custom endpoint",
 } as const;
 
-/** Every distinct env var a model-provider key rides in (the write side's
- *  writability check — see isProviderEnvVar below; also drives which
- *  PRESENT provider vars surface as status rows). */
+/** Todas las variables de entorno distintas en las que va una clave de
+ *  proveedor de modelos (la comprobación de escritura; ver isProviderEnvVar
+ *  más abajo; también decide qué variables de proveedor PRESENTES aparecen
+ *  como filas de estado). */
 export const AUTH_PROVIDER_ENV_VARS: ReadonlySet<string> = new Set(AUTH_PROVIDER_KEYS.map((p) => p.envVar));
 
-/** Is this env-var name the key of SOME pi-ai model provider? */
+/** ¿Es este nombre de variable de entorno la clave de ALGÚN proveedor de modelos de pi-ai? */
 export function isProviderEnvVar(envVar: string): boolean {
 	return AUTH_PROVIDER_ENV_VARS.has(envVar);
 }
 
-/** Shape-check result: ok, or a 400-ready message naming the expectation. */
+/** Resultado de la comprobación de forma: ok, o un mensaje listo para un 400 que dice lo esperado. */
 export type KeyShapeResult = { ok: true } | { ok: false; error: string };
 
 /**
- * The write-side shape gate (owner decision: reject bad pastes with 400 —
- * a truncated or wrong-family key can never land in the store). Values are
- * TRIMMED first (paste hygiene); empty-after-trim always fails.
+ * La barrera de forma al escribir (decisión del responsable: rechazar con 400
+ * los pegados incorrectos; una clave truncada o de otra familia nunca puede
+ * llegar al almacén). Los valores primero se RECORTAN (higiene del pegado);
+ * quedarse vacío tras recortar siempre falla.
  *
- * CURATED keys carry family rules (Tavily's tvly-… and Firecrawl's fc-…
- * prefixes; Brave, Exa, Ollama and Deepgram use length floors + paste hygiene only).
- * MODEL-PROVIDER keys use genericProviderKeyGuard below instead (families
- * vary by provider — only paste hygiene applies; owner spec: min length
- * ~12, no whitespace). OPENROUTER_API_KEY moved to the generic guard with
- * the provider-keys interlude — no sk-or family check anymore.
+ * Las claves CURADAS llevan reglas de familia (los prefijos tvly-… de Tavily y
+ * fc-… de Firecrawl; Brave, Exa, Ollama y Deepgram solo usan longitud mínima +
+ * higiene del pegado). Las claves de PROVEEDORES DE MODELOS usan en su lugar
+ * genericProviderKeyGuard, más abajo (las familias varían según el proveedor;
+ * solo se aplica la higiene del pegado; especificación del responsable:
+ * longitud mínima ~12, sin espacios). OPENROUTER_API_KEY pasó a la protección
+ * genérica con el interludio de claves de proveedor; ya no se comprueba la
+ * familia sk-or.
  */
 export function validateKeyShape(id: string, rawValue: string): KeyShapeResult {
 	const value = rawValue.trim();
@@ -190,55 +204,58 @@ export function validateKeyShape(id: string, rawValue: string): KeyShapeResult {
 				? nonEmpty(20)
 				: { ok: false, error: `${id} must start with "tvly-" (Tavily's key format)` };
 		case "BRAVE_API_KEY":
-			// No public format — a length floor + paste hygiene only.
+			// Sin formato público: solo una longitud mínima + higiene del pegado.
 			return nonEmpty(20);
 		case "EXA_API_KEY":
 		case "OLLAMA_API_KEY":
-			// No documented key prefix: use the provider-key paste guard.
+			// Sin prefijo de clave documentado: se usa la protección de pegado de las claves de proveedor.
 			return nonEmpty(12);
 		case "FIRECRAWL_API_KEY":
 			return value.startsWith("fc-")
 				? nonEmpty(20)
 				: { ok: false, error: `${id} must start with "fc-" (Firecrawl's key format)` };
 		case "DEEPGRAM_API_KEY":
-			// No public format — the length floor only catches truncated pastes.
+			// Sin formato público: la longitud mínima solo detecta pegados truncados.
 			return nonEmpty(20);
 		default:
 			return { ok: false, error: `unknown key "${id}" (supported: ${[...AUTH_KEY_IDS].join(", ")})` };
 	}
 }
 
-/** The generic truncation guard for MODEL-PROVIDER keys (families vary —
- *  only paste hygiene applies; owner spec: trim, no whitespace, min 12). */
+/** La protección genérica contra truncados para las claves de PROVEEDORES DE
+ *  MODELOS (las familias varían; solo se aplica la higiene del pegado;
+ *  especificación del responsable: recortar, sin espacios, mínimo 12). */
 export function genericProviderKeyGuard(id: string, rawValue: string): KeyShapeResult {
 	const value = rawValue.trim();
 	if (value.length >= 12 && !/\s/.test(value)) return { ok: true };
 	return { ok: false, error: `${id} must be at least 12 characters with no whitespace` };
 }
 
-/** A masked key never leaves the server as plaintext (owner decision:
- *  last 4 chars + length — enough to identify which key is stored after
- *  rotating between several, and to spot a mis-pasted family). */
+/** Una clave enmascarada nunca sale del servidor en claro (decisión del
+ *  responsable: los últimos 4 caracteres + la longitud; suficiente para
+ *  identificar qué clave está guardada tras rotar entre varias y para detectar
+ *  un pegado de la familia equivocada). */
 export function maskKey(value: string): string {
 	const v = value.trim();
-	if (v.length <= 4) return `…${v}`; // degenerate paste — still never the whole value
+	if (v.length <= 4) return `…${v}`; // pegado degenerado: aun así, nunca el valor entero
 	return `…${v.slice(-4)}`;
 }
 
-/** One key's status row for the GET view (never carries plaintext). */
+/** La fila de estado de una clave para la vista del GET (nunca lleva texto en claro). */
 export interface AuthKeyStatus {
 	id: string;
-	/** Catalog metadata when the key is curated; null for unknown-file-var
-	 *  entries (preserved + surfaced, but no curated form to edit through). */
+	/** Metadatos del catálogo si la clave está curada; null para las entradas de
+	 *  variables desconocidas del fichero (se conservan y se muestran, pero sin
+	 *  formulario curado con el que editarlas). */
 	info: AuthKeyInfo | null;
-	/** A key is present when EITHER the environment or the file has it. */
+	/** Una clave está presente si la tiene el entorno O el fichero. */
 	present: boolean;
-	/** Ordinary masked tail + count, e.g. "…ab12 (64 chars)"; custom keys
-	 * use full redaction, with no credential characters at any length. */
+	/** Final enmascarado normal + recuento, p. ej. "…ab12 (64 chars)"; las claves
+	 * personalizadas se ocultan por completo, sin caracteres de la credencial sea cual sea su longitud. */
 	masked: string | null;
-	/** Where the live value comes from, given env-wins precedence. */
+	/** De dónde sale el valor vivo, con la precedencia de que gana el entorno. */
 	source: "env" | "file" | "none";
-	/** True when the file holds a value that the environment shadows — the
-	 *  settings page explains why a saved key is not the live one. */
+	/** True cuando el fichero tiene un valor que el entorno tapa; la página de
+	 *  ajustes explica por qué una clave guardada no es la que está en uso. */
 	shadowedByEnv: boolean;
 }
