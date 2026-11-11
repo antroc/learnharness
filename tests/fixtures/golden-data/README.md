@@ -1,47 +1,51 @@
-# Golden fixtures — real user data, read through production paths
+# Datos de referencia: datos reales de usuario, leídos por las rutas de producción
 
-**The law (owner ruling, 2026-10-10):** this directory is a REAL data dir —
-verbatim records written by the real application code, never hand-edited. Any
-intentional on-disk format change updates these fixtures IN THE SAME COMMIT;
-an unintentional change fails `tests/golden-fixtures.test.ts`. When schema
-stamps land (Wave D), the stamping commit updates these files with it.
+**La norma (decisión del propietario, 2026-10-10):** este directorio es un directorio de
+datos REAL: registros literales escritos por el código real de la aplicación, nunca
+editados a mano. Cualquier cambio intencionado del formato en disco actualiza estos datos
+EN EL MISMO COMMIT; un cambio no intencionado hace fallar `tests/golden-fixtures.test.ts`.
+Cuando lleguen las marcas de versión del esquema (oleada D), el commit que las ponga
+actualizará estos ficheros con él.
 
-`tests/golden-fixtures.test.ts` copies this dir to a temp dir, points the
-production stores at it via the `LH_DATA_DIR` seam, and reads EVERYTHING
-through the real read paths — chat records (contract folds + the LLM wire
-flattening), graph ledgers (shape guards + the full derivation), jobs,
-settings. It also pins marker COVERAGE: every custom-marker kind and the
-core tool surface must appear in real data here.
+`tests/golden-fixtures.test.ts` copia este directorio a uno temporal, apunta allí los
+almacenes de producción mediante la costura `LH_DATA_DIR` y lo lee TODO por las rutas de
+lectura reales: registros de chat (los pliegues del contrato + el aplanado de la
+comunicación con el LLM), libros del grafo (comprobaciones de forma + la derivación
+completa), tareas y ajustes. También fija la COBERTURA de marcadores: cada tipo de marcador
+personalizado y la superficie de herramientas del núcleo deben aparecer aquí en datos
+reales.
 
-## What's inside
+## Contenido
 
-- `chats/chat_mv27rrra_feff23b6.json` — the teach-side master (owner-built,
-  2026-10-10): probe-handoff, plan-block, compaction, subagent-steer,
-  subagent-abort, and every teach tool (quiz, ask_user_question, plan_init,
-  probe, probe_done, recall, explain, research, demo, visual, pdf, find,
-  grep, ls, read, list_sessions, list_propositions). Plan tree + 25 turn
-  records + a per-chat model override.
-- `chats/chat_mv293wv5_10656952.json` — the practice lifecycle (owner-built,
-  2026-10-10): graph-context (the bracketed preamble), problem ×2,
-  practice-thinking ×2, conclude ×2, practice-next, problem-dismissed — the
-  full marker cycle of a practice session, including the dismissal.
-- `graph/` — the real ledgers: nodes (282 lines), chains (160), sessions (8),
+- `chats/chat_mv27rrra_feff23b6.json`: la referencia principal de la parte de enseñanza
+  (construida por el propietario, 2026-10-10): probe-handoff, plan-block, compaction,
+  subagent-steer, subagent-abort y todas las herramientas de enseñanza (quiz,
+  ask_user_question, plan_init, probe, probe_done, recall, explain, research, demo, visual,
+  pdf, find, grep, ls, read, list_sessions, list_propositions). Árbol del plan + 25
+  registros de turnos + una sustitución de modelo por chat.
+- `chats/chat_mv293wv5_10656952.json`: el ciclo de vida de la práctica (construido por el
+  propietario, 2026-10-10): graph-context (el preámbulo entre corchetes), problem ×2,
+  practice-thinking ×2, conclude ×2, practice-next, problem-dismissed; el ciclo completo de
+  marcadores de una sesión de práctica, incluido el descarte.
+- `graph/`: los libros reales: nodes (282 líneas), chains (160), sessions (8),
   coverage (93), sources (4), render-settings, positions.
-- `jobs/` — five records covering kind × status: research done + aborted by
-  learner, demo done, visual done, pdf error.
-- `settings.json` — the stamped settings record (version 1, model slots).
+- `jobs/`: cinco registros que cubren tipo × estado: research terminada y cancelada por el
+  alumno, demo terminada, visual terminada, pdf con error.
+- `settings.json`: el registro de ajustes con marca de versión (versión 1, ranuras de
+  modelo).
 
-## Regenerating / extending
+## Regenerar o ampliar
 
-Run the app (`npm run dev`), exercise the feature against `data/`, then copy
-the produced record in verbatim. Do not hand-edit content; if a record needs
-pruning, re-run the flow instead.
+Ejecuta la app (`npm run dev`), ejercita la funcionalidad contra `data/` y copia tal cual
+el registro producido. No edites el contenido a mano; si hace falta recortar un registro,
+vuelve a ejecutar el flujo.
 
-## Stamps
+## Marcas de versión
 
-These files are deliberately the UNSTAMPED legacy shape (schema-stamp wave,
-2026-10-10): lazy v1 means absence reads as current-valid, so this set pins
-the pre-stamp read path forever. Stamped writes (chat `version: 1`, the
-`graph/format.json` sidecar) are pinned by `tests/schema-stamps.test.ts`.
-New records copied in after their first post-stamp write will carry the
-stamps — that shape is equally current-valid.
+Estos ficheros tienen deliberadamente la forma heredada SIN MARCA (oleada de marcas de
+esquema, 2026-10-10): la v1 perezosa significa que la ausencia se lee como válida
+actualmente, así que este conjunto fija para siempre la ruta de lectura anterior a las
+marcas. Las escrituras con marca (`version: 1` en los chats, el fichero adjunto
+`graph/format.json`) las fija `tests/schema-stamps.test.ts`. Los registros nuevos copiados
+después de su primera escritura posterior a las marcas llevarán las marcas; esa forma es
+igualmente válida actualmente.

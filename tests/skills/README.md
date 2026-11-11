@@ -1,18 +1,21 @@
-# LearnHarness data skill tests
+# Pruebas de la skill de datos de LearnHarness
 
-Run independently of the application, with Python 3.10+ and no dependencies:
+Se ejecutan con independencia de la aplicación, con Python 3.10+ y sin dependencias:
 
 ```sh
 python3 -B -m unittest discover -s tests/skills -v
 ```
 
-These tests exercise the self-contained readers in `skills/learnharness/` against
-small synthetic records and the native golden data in `tests/fixtures/golden-data/`.
-They check preservation of learning evidence, graph selection/merging, unsupported
-formats, path boundaries, and unchanged file bytes/mtimes. A portability test copies
-the skill and fixture data outside the repository and invokes both output formats
-from an unrelated working directory, checking that no cache or data files appear.
+Estas pruebas ejercitan los lectores autocontenidos de `skills/learnharness/` contra
+pequeños registros sintéticos y los datos de referencia nativos de
+`tests/fixtures/golden-data/`. Comprueban que se conserva la evidencia de aprendizaje, la
+selección y fusión del grafo, los formatos no admitidos, los límites de rutas y que los
+bytes y los mtime de los ficheros no cambian. Una prueba de portabilidad copia la skill y
+los datos de prueba fuera del repositorio e invoca ambos formatos de salida desde un
+directorio de trabajo sin relación, comprobando que no aparecen ficheros de caché ni de
+datos.
 
-No real installed-user profile, provider keys, app server, LLM, or network is used.
-The test command is intentionally separate from the app's Node test suite; the skill
-has no app-runtime, release, or website integration.
+No se usa ningún perfil real de usuario instalado, claves de proveedores, servidor de la
+app, LLM ni red. El comando de pruebas está separado a propósito del conjunto de pruebas de
+Node de la app; la skill no tiene integración con el runtime de la app, las versiones ni el
+sitio web.

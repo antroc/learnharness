@@ -1,16 +1,16 @@
-# Historical documents
+# Documentos históricos
 
-These records preserve earlier designs, plans, and their original reasoning. They may contradict each other and the current implementation. Dates and status claims inside them describe their historical context, not today's product or development policy.
+Estos registros conservan diseños y planes anteriores y su razonamiento original. Pueden contradecirse entre sí y con la implementación actual. Las fechas y las afirmaciones de estado que contienen describen su contexto histórico, no el producto ni la política de desarrollo de hoy.
 
-For current guidance, start with the [documentation index](../README.md), [architecture](../architecture.md), or [development guide](../development.md).
+Para orientación actual, empieza por el [índice de la documentación](../README.md), la [arquitectura](../architecture.md) o la [guía de desarrollo](../development.md).
 
-| Document | Historical context |
+| Documento | Contexto histórico |
 | --- | --- |
-| [Vision and plans](vision.md) | Begun 2026-08-22; owner-authored product direction mixed with evolving implementation plans. |
-| [Build plan v1](plan.md) | 2026-08-22 implementation waves and observations. |
-| [Architecture, 2026-09-08](architecture-2026-09-08.md) | Pre-audit architecture, superseded in September. Its supersession notes are also historical. |
-| [Probe → teach split](probe-teach-split.md) | September agent/phase design and later amendments. |
-| [Pi engine swap](pi-engine-swap.md) | 2026-09-12 migration proposal; the current runtime has moved beyond its proposed wire/record design. |
-| [First release planning](release-0.3.md) | 2026-10-06 polish ideas and compatibility discussion, not a release runbook. |
+| [Visión y planes](vision.md) | Empezado el 2026-08-22; dirección del producto escrita por el propietario, mezclada con planes de implementación en evolución. |
+| [Plan de construcción v1](plan.md) | Oleadas de implementación y observaciones del 2026-08-22. |
+| [Arquitectura, 2026-09-08](architecture-2026-09-08.md) | Arquitectura anterior a la auditoría, sustituida en septiembre. Sus notas de sustitución también son históricas. |
+| [División sondeo → enseñanza](probe-teach-split.md) | Diseño de agentes y fases de septiembre y enmiendas posteriores. |
+| [Cambio al motor Pi](pi-engine-swap.md) | Propuesta de migración del 2026-09-12; el runtime actual ha ido más allá del diseño de comunicación y registros propuesto. |
+| [Planificación de la primera versión](release-0.3.md) | Ideas de pulido y debate de compatibilidad del 2026-10-06, no un procedimiento de publicación. |
 
-The substantive text is retained, with archive notices and navigation repairs. References to missing design notes or a private Obsidian vault are historical citations, not bundled documentation or permission to access private sources. Do not use archived cleanup/data-wipe instructions on current user profiles.
+El texto sustancial se conserva, con avisos de archivo y enlaces de navegación reparados. Las referencias a notas de diseño que faltan o a un vault privado de Obsidian son citas históricas, no documentación incluida ni un permiso para acceder a fuentes privadas. No uses las instrucciones archivadas de limpieza o borrado de datos en perfiles de usuario actuales.

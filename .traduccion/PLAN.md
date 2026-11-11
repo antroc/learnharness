@@ -51,8 +51,11 @@ comentarios y docstrings de los 7 ficheros Python. El código en sí no se modif
   "**Índice de miembros** (…)", "[Índice de la API]", los enlaces a guías de la cabecera y
   el comentario `<!-- Generado por … -->`. Consecuencia conocida: la prueba
   `tests/plugin-api-reference.test.ts` (que compara con una regeneración) falla en esta
-  rama; no se toca. `docs/plugin-api/README.md` aún tiene sin traducir sus encabezados y su
-  prosa; antes de traducir sus encabezados, comprueba si algo enlaza a sus anclas.
+  rama; no se toca. También se tradujeron en todos los ficheros "— N firmas o variantes" y
+  las cabeceras de las tablas de parámetros ("| Parámetro | Tipo |"). Excepción: los
+  encabezados de `docs/plugin-api/README.md` sí se tradujeron (nada enlaza a sus anclas).
+  Para la prosa se usa `.traduccion/prosa.py` (extrae los párrafos fuera de código y
+  encabezados, agrupa los repetidos y aplica la traducción por id, como `comentarios.cjs`).
 
 ## Herramienta para comentarios de código
 
@@ -86,7 +89,7 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 |------|-----------|---------:|---------:|--------|
 | M1 | Raíz, docs generales y prompts del agente (`src/agent/**/*.md`) | 40 | 30.172 | [x] |
 | M2 | Docs de plugins (`docs/plugin-*.md`, flashcards) y READMEs de `plugins/` y `examples/` | 20 | 34.368 | [x] |
-| M3 | `docs/plugin-api/` | 22 | 31.155 | [~] parcial |
+| M3 | `docs/plugin-api/` | 22 | 31.155 | [x] |
 | M4 | `docs/archive/`, `skills/` y READMEs de `tests/` | 14 | 26.742 | [ ] |
 | C1 | Comentarios: `src/core/contracts`, `src/store`, `src/server/pi`, `src/agent` (sin subagents) | 86 | 28.518 | [ ] |
 | C2 | Comentarios: `src/agent/subagents`, `src/server` | 59 | 30.924 | [ ] |
