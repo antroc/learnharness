@@ -1,27 +1,27 @@
 "use client";
 
 /**
- * FOCUS HYGIENE — transient transcript controls don't keep focus
- * (owner, keyboard round 2026-10-10). A pointer click on a thinking
- * toggle, a copy button, a plan chip used to LEAVE focus on that
- * button; the learner's next Enter then re-activated the toggle
- * instead of submitting (see enter-submits.ts for the other half of
- * the fix). Here we restore, after pointer activation, exactly the
- * state clicking empty transcript space produces: focus falls back to
- * the body — Enter submits, arrows cycle the question rows, nothing
- * re-toggles. Deliberately NOT a focus-into-a-text-field: a focused
- * field would own the arrows as caret moves, against the arrows-always
- * law (owner, 2026-10-10).
+ * HIGIENE DEL FOCO — los controles transitorios de la transcripción no
+ * conservan el foco (responsable, ronda de teclado 2026-10-10). Un clic de
+ * puntero en un conmutador de razonamiento, un botón de copiar o un chip de plan
+ * solía DEJAR el foco en ese botón; el siguiente Enter del alumno volvía entonces
+ * a activar el conmutador en vez de enviar (ver enter-submits.ts para la otra
+ * mitad del arreglo). Aquí restauramos, tras la activación con puntero,
+ * exactamente el estado que produce hacer clic en un espacio vacío de la
+ * transcripción: el foco vuelve al body — Enter envía, las flechas recorren las
+ * filas de la pregunta, nada se vuelve a conmutar. A propósito NO se enfoca un
+ * campo de texto: un campo enfocado se quedaría con las flechas como movimientos
+ * del cursor, en contra de la ley de las flechas siempre (responsable, 2026-10-10).
  *
- * Keyboard-activated clicks are untouched: e.detail === 0 marks the
- * synthesized click of Enter/Space on a keyboard-focused button — the
- * keyboard user keeps their focus.
+ * Los clics activados con teclado no se tocan: e.detail === 0 marca el clic
+ * sintetizado de Enter/Espacio sobre un botón enfocado con teclado — quien usa el
+ * teclado conserva su foco.
  */
 
-/** Attach as (or compose into) a transient control's onClick: blurs the
- *  control after POINTER clicks (keyboard clicks keep focus). Node-safe
- *  duck-typing — no HTMLElement global needed (the test harness runs
- *  bare node with linkedom). */
+/** Se engancha como onClick de un control transitorio (o se compone en él): quita
+ *  el foco al control después de los clics de PUNTERO (los clics de teclado
+ *  conservan el foco). Tipado pato seguro en Node — no hace falta el global
+ *  HTMLElement (el banco de pruebas ejecuta Node pelado con linkedom). */
 export function blurAfterPointerClick(e: {
 	detail: number;
 	currentTarget: EventTarget | null;

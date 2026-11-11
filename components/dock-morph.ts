@@ -1,12 +1,12 @@
-/** Private height-only WAAPI owner for DockOverlay. Content fades and plugin
- * animations are deliberately outside this controller's ownership. */
+/** Responsable WAAPI privado, solo de la altura, para DockOverlay. Los fundidos del contenido
+ * y las animaciones de los plugins quedan a propósito fuera de la responsabilidad de este controlador. */
 const DURATION = 120;
 const EASING = "cubic-bezier(0.2, 0.8, 0.2, 1)";
 const EPSILON = 1;
 
-/** An important inline height overrides WAAPI without cancelling it. Measuring
- * the actual shell preserves CSS max-height clamps, borders and all children.
- * Restore even when layout throws; no measurement style survives this call. */
+/** Una altura en línea con !important prevalece sobre WAAPI sin cancelarlo. Medir
+ * el envoltorio real conserva los topes max-height del CSS, los bordes y todos los hijos.
+ * Restaura aunque el layout lance una excepción; ningún estilo de medición sobrevive a esta llamada. */
 export function naturalDockHeight(shell: HTMLElement) {
 	const value = shell.style.getPropertyValue("height");
 	const priority = shell.style.getPropertyPriority("height");
@@ -31,8 +31,8 @@ export function createDockMorph() {
 		owned = null;
 	};
 	return {
-		/** Offer natural block geometry before starting a transition. Initial
-		 * appearance is instant; same-key typing never animates. */
+		/** Ofrece la geometría natural del bloque antes de empezar una transición. La
+		 * aparición inicial es instantánea; escribir con la misma clave nunca anima. */
 		layout(shell: HTMLElement, key: string, opening: boolean, onNaturalLayout: () => void) {
 			if (previous?.shell === shell && previous.key === key) {
 				if (owned && live(owned.animation)) return;
@@ -51,26 +51,26 @@ export function createDockMorph() {
 			}
 			previous = { shell, key, height };
 		},
-		/** Called after height constraints, including child-only ResizeObserver
-		 * deliveries. Only an already-running opening may change its target. */
+		/** Se llama después de las restricciones de altura, incluidas las entregas de ResizeObserver
+		 * que solo afectan a los hijos. Solo una apertura que ya esté en marcha puede cambiar su destino. */
 		retarget(key: string) {
 			const active = owned;
 			if (!active || active.key !== key || !active.opening || !live(active.animation)) return;
 			const effect = active.animation.effect as KeyframeEffect | null;
 			if (!effect) return;
-			// Read the visible starting point BEFORE temporarily bypassing WAAPI.
+			// Lee el punto de partida visible ANTES de saltarse temporalmente WAAPI.
 			const visible = active.shell.getBoundingClientRect().height;
-			// Keep the original DOCUMENT-TIMELINE completion, not wall time.
-			// Pending starts can have null currentTime; no animation time has
-			// elapsed yet. A suspended document timeline likewise consumes none.
+			// Conserva el final original de la LÍNEA DE TIEMPO DEL DOCUMENTO, no el tiempo de reloj.
+			// Los inicios pendientes pueden tener currentTime null; aún no ha transcurrido
+			// tiempo de animación. Una línea de tiempo del documento suspendida tampoco consume ninguno.
 			const currentTime = active.animation.currentTime;
 			const remaining = active.duration - (typeof currentTime === "number" ? currentTime : 0);
 			if (remaining <= 0) return;
 			const target = naturalDockHeight(active.shell);
 			if (Math.abs(target - active.target) <= EPSILON || !live(active.animation)) return;
-			// Reset BEFORE shortening duration: otherwise a late retarget could
-			// transiently finish the effect at its old currentTime. All writes are
-			// synchronous, with the captured visible height as the new first frame.
+			// Reinicia ANTES de acortar la duración: si no, un redireccionamiento tardío podría
+			// terminar momentáneamente el efecto en su currentTime antiguo. Todas las escrituras son
+			// síncronas, con la altura visible capturada como nuevo primer fotograma.
 			active.animation.currentTime = 0;
 			effect.setKeyframes([{ height: `${visible}px` }, { height: `${target}px` }]);
 			effect.updateTiming({ duration: remaining });
@@ -78,8 +78,8 @@ export function createDockMorph() {
 			active.target = target;
 			if (previous?.key === key) previous.height = target;
 		},
-		/** Layout-effect cleanup also runs for Activity hide. Reconnection starts
-		 * from the preserved DOM without replaying a stale transition. */
+		/** La limpieza del efecto de layout también se ejecuta al ocultar con Activity. La
+		 * reconexión parte del DOM conservado sin repetir una transición obsoleta. */
 		dispose() {
 			cancel();
 			previous = null;

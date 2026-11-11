@@ -9,8 +9,8 @@ import { notifySettingsSaved, onSettingsSaved } from "@/components/settings-sign
 
 const INITIAL = { language: undefined as DictationLanguage | undefined, saving: false, error: null as string | null };
 
-/** One confirmed preference and one write in flight, shared by every surface.
- * The factory keeps transport tests isolated without a second persistence path.
+/** Una preferencia confirmada y una escritura en curso, compartidas por todas las superficies.
+ * La fábrica mantiene aisladas las pruebas del transporte sin una segunda ruta de persistencia.
  */
 export function createDictationLanguageStore(request: typeof fetch, saved: () => void = () => {}) {
 	let snapshot = INITIAL;
@@ -56,7 +56,7 @@ export function createDictationLanguageStore(request: typeof fetch, saved: () =>
 	}
 
 	function save(language: DictationLanguage): Promise<boolean> {
-		// A different selection must never inherit the previous write's success.
+		// Una selección distinta nunca debe heredar el éxito de la escritura anterior.
 		if (writing || snapshot.language === undefined) return Promise.resolve(false);
 		revision++;
 		reading = null;
@@ -105,8 +105,8 @@ export function createDictationLanguageStore(request: typeof fetch, saved: () =>
 
 let announcingSave = false;
 const store = createDictationLanguageStore((...args) => fetch(...args), () => {
-	// All our readers already received the confirmed PUT response. Keep the
-	// repo's notification contract without depending on a redundant GET.
+	// Todos nuestros lectores ya recibieron la respuesta confirmada del PUT. Conserva el
+	// contrato de notificaciones del repo sin depender de un GET redundante.
 	announcingSave = true;
 	try { notifySettingsSaved("dictation"); } finally { announcingSave = false; }
 });
@@ -119,8 +119,8 @@ function subscribe(listener: () => void) {
 		stopSignals = onSettingsSaved((section) => {
 			if (section === "dictation" && !announcingSave) void store.load(true).catch(() => {});
 		});
-		// A confirmed preference lives for the window, not the page. Navigation
-		// and reopening Settings must not add a new network failure point.
+		// Una preferencia confirmada vive lo que la ventana, no lo que la página. La navegación
+		// y reabrir Ajustes no deben añadir un nuevo punto de fallo de red.
 		void store.getLanguage().catch(() => {});
 	}
 	return () => { off(); if (--readers === 0) { stopSignals?.(); stopSignals = undefined; } };

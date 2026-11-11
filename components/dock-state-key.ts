@@ -1,17 +1,18 @@
 /**
- * The dock shell's variant key (the WAAPI height-morph trigger,
- * components/chat.tsx DockOverlay). Whenever this string CHANGES between
- * renders, the shell morphs its height (120ms) and re-reserves the
- * transcript tail; when it stays the same, height changes are measured
- * only (typing growth never animates).
+ * La clave de variante del envoltorio del dock (el disparador de la
+ * transformación de altura WAAPI, DockOverlay de components/chat.tsx). Siempre
+ * que esta cadena CAMBIA entre renders, el envoltorio transforma su altura
+ * (120 ms) y vuelve a reservar la cola de la transcripción; cuando no cambia,
+ * los cambios de altura solo se miden (el crecimiento al escribir nunca se anima).
  *
- * The expanded term (the fold: full form ↔ slim bar) belongs to EVERY
- * docked variant — question AND practice. For two months it keyed on
- * `pending` (the question's tool call) alone, which is null in practice
- * sessions: the practice dock folded and re-expanded with an INSTANT
- * height jump while teaching morphed (owner report 2026-10-06, "opens
- * and closes instantly"). The fold machine itself already treats
- * practice as a dock owner; this key now agrees.
+ * El término expandido (el plegado: formulario completo ↔ barra fina) pertenece
+ * a TODAS las variantes del dock — pregunta Y práctica. Durante dos meses la
+ * clave dependió solo de `pending` (la llamada a herramienta de la pregunta),
+ * que es null en las sesiones de práctica: el dock de práctica se plegaba y
+ * desplegaba con un salto de altura INSTANTÁNEO mientras la enseñanza se
+ * transformaba (informe del responsable 2026-10-06, «se abre y se cierra al
+ * instante»). La propia máquina de plegado ya trataba la práctica como
+ * propietaria del dock; ahora esta clave coincide.
  */
 export function dockStateKey(mode: string, docked: boolean, expanded: boolean): string {
 	return docked ? `${mode}:${expanded}` : `${mode}:-`;

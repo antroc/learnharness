@@ -4,10 +4,11 @@ import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { HostDialog } from "@/components/host-dialog";
 import type { ChatDeleteMode, ChatListItem } from "@/src/core";
 
-/** The graph-traces checkbox copy (owner, 2026-09-24 flow rework — was
- *  the delete-nodes option's body in the two-button design): the
- *  graph-touching consequence says so, shared-topic survival included.
- *  Exported pure for render pins: the copy is design, not implementation. */
+/** El texto de la casilla de las trazas del grafo (responsable, reelaboración
+ *  del flujo del 2026-09-24 — era el cuerpo de la opción delete-nodes en el
+ *  diseño de dos botones): la consecuencia que toca el grafo lo dice, incluida
+ *  la supervivencia de los temas compartidos. Exportada como función pura para
+ *  las fijaciones de render: el texto es diseño, no implementación. */
 export const TRACES_COPY = {
 	testid: "delete-traces",
 	checkbox: "delete-traces-checkbox",
@@ -16,48 +17,50 @@ export const TRACES_COPY = {
 };
 
 /**
- * Session deletion (wave 6 chunk A; owner flow rework 2026-09-24) — THE
- * destructive-confirmation surface, portaled z-50 like the setup dialog,
- * now in the node dialog's shape (the two must read as one design):
+ * Borrado de sesiones (oleada 6, fragmento A; reelaboración del flujo del
+ * responsable 2026-09-24) — LA superficie de confirmación destructiva, en un
+ * portal con z-50 como el diálogo de configuración, ahora con la forma del
+ * diálogo de nodos (los dos deben leerse como un único diseño):
  *
- *   - red title "Delete session?" in the abort-turn look (owner, 2026-10-13
- *     polish: text-sm font-semibold JetBrains Mono via the UI default —
- *     the serif display title is gone), the session name below it in
- *     JetBrains Mono at normal text-sm size (was sized-up text-lg), no
- *     code-block chrome;
- *   - ONE unchecked-by-default checkbox "Also remove its graph traces"
- *     (unchecked = preserve-graph: the session record, its jobs, and its
- *     extraction bookkeeping die; the graph keeps every contribution.
- *     checked = delete-nodes: the session's ledger traces go too);
- *   - a bottom row Cancel + destructive-red Delete, exactly the node
- *     dialog's pair.
+ *   - título rojo "Delete session?" con el aspecto de abort-turn (responsable,
+ *     pulido del 2026-10-13: text-sm font-semibold JetBrains Mono por el valor
+ *     por defecto de la interfaz — el título de cabecera con serifa ha
+ *     desaparecido), el nombre de la sesión debajo en JetBrains Mono con el
+ *     tamaño text-sm normal (antes text-lg agrandado), sin cromo de bloque de
+ *     código;
+ *   - UNA casilla desmarcada por defecto "Also remove its graph traces"
+ *     (desmarcada = preserve-graph: mueren el registro de la sesión, sus tareas y
+ *     su contabilidad de extracción; el grafo conserva todas las aportaciones.
+ *     marcada = delete-nodes: también se van las trazas de la sesión en el registro);
+ *   - una fila inferior Cancel + Delete en rojo destructivo, exactamente el par
+ *     del diálogo de nodos.
  *
- * Retryable failures render honestly with a Try-again: 409 turn_in_flight /
- * jobs_running ("wait for running work") and 503 extraction_winding_down
- * ("in a moment") both clear on their own — the server's error line is
- * already written for the user; we show it verbatim. Try-again is just
- * Delete pressed again — the mode re-derives from the checkbox.
+ * Los fallos reintentables se muestran con honestidad con un Try again: 409
+ * turn_in_flight / jobs_running («espera al trabajo en curso») y 503
+ * extraction_winding_down («en un momento») se despejan solos — la línea de error
+ * del servidor ya está escrita para el usuario; la mostramos tal cual. Try again
+ * es simplemente volver a pulsar Delete — el modo se vuelve a derivar de la casilla.
  */
 export function DeleteSessionDialog({
 	chat,
 	onClose,
 	onDeleted,
 }: {
-	/** The session up for deletion; null = closed. */
+	/** La sesión que se va a borrar; null = cerrado. */
 	chat: Pick<ChatListItem, "id" | "title"> | null;
 	onClose: () => void;
-	/** Success path — the sidebar owns navigation + list patching. */
+	/** Ruta de éxito — la barra lateral es responsable de la navegación + el parcheo de la lista. */
 	onDeleted: (id: string, mode: ChatDeleteMode, graphRevision: number) => void;
 }) {
 	const [traces, setTraces] = useState(false);
 	const [busy, setBusy] = useState(false);
-	// Retry IS pressing Delete again: the mode always derives from the
-	// checkbox's current state (a toggle between failure and retry is a
-	// change of intent, honored as such — the checkbox is disabled while
-	// busy, so no mid-flight switches).
+	// Reintentar ES volver a pulsar Delete: el modo siempre se deriva del
+	// estado actual de la casilla (cambiarla entre el fallo y el reintento es un
+	// cambio de intención y se respeta como tal — la casilla está desactivada mientras
+	// está ocupado, así que no hay cambios a mitad de vuelo).
 	const [failure, setFailure] = useState<{ code: string; error: string } | null>(null);
 
-	// Fresh state per session: closing resets, opening a new chat starts clean.
+	// Estado nuevo por sesión: cerrar reinicia, abrir un chat nuevo empieza limpio.
 	useEffect(() => {
 		if (!chat) {
 			setTraces(false);
@@ -80,8 +83,8 @@ export function DeleteSessionDialog({
 				graphRevision?: number;
 			};
 			if (!res.ok) {
-				// 409 (turn/jobs running) and 503 (extraction winding down) are
-				// both retryable — keep the dialog open, show the server's line.
+				// El 409 (turno/tareas en ejecución) y el 503 (extracción terminando) son
+				// ambos reintentables — mantén el diálogo abierto y muestra la línea del servidor.
 				setFailure({ code: body.code ?? "error", error: body.error ?? `Delete failed (${res.status})` });
 				setBusy(false);
 				return;
@@ -110,8 +113,8 @@ export function DeleteSessionDialog({
 			/>;
 }
 
-/** The dialog's pure body — exported for SSR pins (the settings-dialog /
- *  node-dialog body pattern). The wrapper owns state + effects + portal. */
+/** El cuerpo puro del diálogo — exportado para las fijaciones SSR (el patrón del
+ *  cuerpo del diálogo de ajustes / de nodos). El envoltorio es responsable del estado, los efectos y el portal. */
 export function DeleteSessionBody({
 	chat,
 	traces,
@@ -123,7 +126,7 @@ export function DeleteSessionBody({
 	renderFrame,
 }: {
 	chat: Pick<ChatListItem, "id" | "title">;
-	/** The graph-traces checkbox — unchecked by default (preserve-graph). */
+	/** La casilla de las trazas del grafo — desmarcada por defecto (preserve-graph). */
 	traces: boolean;
 	busy: boolean;
 	failure: { code: string; error: string } | null;
@@ -142,11 +145,11 @@ export function DeleteSessionBody({
 			className="w-[32rem] max-w-[calc(100vw-2rem)] rounded-xl border bg-card p-5 shadow-xl"
 		>
 			<h2 className="text-sm font-semibold text-destructive">Delete session?</h2>
-			{/* The session name below the title in JetBrains Mono (owner,
-			    2026-09-24): no code-block chrome — the font already says
-			    code. Owner, 2026-10-13 polish: normal text-sm size (was
-			    sized-up text-lg), still white. Same shape as the node
-			    dialog. */}
+			{/* El nombre de la sesión bajo el título en JetBrains Mono (responsable,
+			2026-09-24): sin cromo de bloque de código — la fuente ya dice
+			código. Responsable, pulido del 2026-10-13: tamaño text-sm normal (antes
+			text-lg agrandado), sigue en blanco. La misma forma que el diálogo
+			de nodos. */}
 			<div className="mt-1.5">
 				<code data-testid="session-name-code" className="font-mono text-sm text-foreground">
 					{chat.title}
@@ -191,9 +194,9 @@ export function DeleteSessionBody({
 					</button>
 				</div>
 			)}
-			{/* The node dialog's exact bottom row: quiet Cancel, destructive
-			    red Delete (border + text, fill on hover — the app's
-			    established destructive pair). */}
+			{/* La misma fila inferior que el diálogo de nodos: Cancel discreto, Delete en
+			rojo destructivo (borde + texto, relleno al pasar el ratón — el par
+			destructivo establecido de la app). */}
 			<div className="mt-4 flex justify-end gap-2">
 				<button
 					type="button"

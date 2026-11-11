@@ -22,19 +22,20 @@ import { SessionStarter } from "@/components/start-session";
 import type { TurnUsage } from "@/src/core";
 
 /**
- * Home — the knowledge graph is the main view, full-bleed edge to edge
- * (owner, graph-view round 1): the canvas owns the whole column, running
- * under the header and the new-session dock, both of which float over it
- * with no gradient scrims. Sessions live in the toggleable sidebar.
+ * Inicio — el grafo de conocimiento es la vista principal, a sangre de borde a
+ * borde (responsable, ronda 1 de la vista de grafo): el lienzo ocupa toda la
+ * columna y pasa por debajo de la cabecera y del dock de nueva sesión, que flotan
+ * los dos encima sin velos de degradado. Las sesiones viven en la barra lateral
+ * conmutable.
  */
 export function Home({
 	initialConfigured,
 	rendering = true,
 }: {
 	initialConfigured: boolean;
-	/** GRAPH RENDERING off (owner, 2026-10-06): the home's main view is
-	 * the chains view, not the canvas. Read server-side per navigation —
-	 * changing the setting applies on the next visit home. */
+	/** RENDERIZADO DEL GRAFO desactivado (responsable, 2026-10-06): la vista
+	 * principal de Inicio es la vista de cadenas, no el lienzo. Se lee en el servidor
+	 * en cada navegación — cambiar el ajuste se aplica en la siguiente visita a Inicio. */
 	rendering?: boolean;
 }) {
 	const controller = useOptionalInteractionLayers();
@@ -44,23 +45,23 @@ export function Home({
 	const surfaceTarget = usePageSurfaceBoundary({ active: pathname === "/", viewKey: "/", bodyRef });
 	const chromeStyle = useSurfaceChromeStyle(surfaceTarget);
 	const [topic, setTopic] = useState("");
-	/* The topic MIRROR ("nothing gets lost" round, 2026-10-01 — same
-	 * mechanics as the chat composer, owner's consistency ruling): a
-	 * dictation flush lands via setState, invisible to a closure that
-	 * waited through `await finish()`. Kept current at every write. */
+	/* El ESPEJO del tema (ronda de «nada se pierde», 2026-10-01 — la misma mecánica
+	 * que el compositor del chat, decisión de coherencia del responsable): un volcado
+	 * del dictado llega mediante setState, invisible para un closure que esperó
+	 * durante `await finish()`. Se mantiene al día en cada escritura. */
 	const topicRef = useRef("");
-	// First-run gate (model-slots wave, owner 2026-09-20): chats cannot
-	// start until the user has picked all three slots — no defaults for
-	// 33 providers. The dock shows the CTA while unconfigured; submitting
-	// a topic opens the setup dialog WITH THE DRAFT PRESERVED (Save
-	// stores slots only; the learner sends the message themselves).
+	// Barrera de la primera ejecución (oleada de ranuras de modelo, responsable 2026-09-20): los chats no pueden
+	// empezar hasta que el usuario elige las tres ranuras — no hay valores por defecto para
+	// 33 proveedores. El dock muestra la llamada a la acción mientras no está configurado; enviar
+	// un tema abre el diálogo de configuración CONSERVANDO EL BORRADOR (Save
+	// solo guarda las ranuras; el alumno envía el mensaje él mismo).
 	const { catalog, configured, zeroKeys } = useModelSetup(initialConfigured);
 	const [setupOpen, setSetupOpen] = useState(false);
-	// Voice dictation (STT wave, 2026-09-17): finals append at the end of the
-	// topic draft; the strip lives in the stats bar's middle slot.
+	// Dictado por voz (oleada STT, 2026-09-17): los finales se añaden al final del
+	// borrador del tema; la tira vive en la ranura central de la barra de estadísticas.
 	const dictation = useDictation({
-		// Ref-first: the join reads the mirror so the send resuming after
-		// `await finish()` sees the dictated tail.
+		// Primero la ref: la unión lee el espejo, para que el envío que se reanuda tras
+		// `await finish()` vea la cola dictada.
 		append: (t) => {
 			const v = joinDictation(topicRef.current, t);
 			topicRef.current = v;
@@ -71,15 +72,15 @@ export function Home({
 	const startingRef = useRef(false);
 	const starterRef = useRef(new SessionStarter());
 	const [startError, setStartError] = useState(false);
-	/* Run end focuses the topic input (owner, 2026-10-01): the hands are on
-	 * the keyboard from the stop. Falling edge only; this surface's only
-	 * dictation target IS this textarea, so no case-split is needed. */
+	/* El fin de la ejecución enfoca el campo del tema (responsable, 2026-10-01): las
+	 * manos están en el teclado por la parada. Solo en el flanco de bajada; el único
+	 * destino de dictado de esta superficie ES este textarea, así que no hace falta distinguir casos. */
 	const topicInputRef = useRef<HTMLDivElement>(null);
-	// Tab navigates INTO the topic composer (owner, keyboard round
-	// 2026-10-06): the only text field on this surface — and home's
-	// composer is its OWN textarea, not the shared Composer component,
-	// so the chain is the ref itself (the smoke caught a selector that
-	// matched nothing here).
+	// Tab navega HACIA DENTRO del compositor del tema (responsable, ronda de teclado
+	// 2026-10-06): el único campo de texto de esta superficie — y el compositor de
+	// Inicio es su PROPIO textarea, no el componente Composer compartido,
+	// así que la cadena es la propia ref (la prueba de humo detectó un selector que
+	// aquí no coincidía con nada).
 	const cycleTopicField = useCallback(
 		(): readonly HTMLElement[] => (topicInputRef.current ? [topicInputRef.current] : []),
 		[],
@@ -95,22 +96,22 @@ export function Home({
 		}
 	}, [dictation.active, controller]);
 
-	/* PRACTICE MODE (owner, 2026-10-04): the graph composer's teach |
-	 *  practice switch — practice creates a kind:"practice" session and
-	 *  may carry proposition picks from the chain table (the chip above
-	 *  the composer opens the picker; the picks seed the opening prompt).
-	 *  Not enforcing any input format — the picks are a convenience. */
+	/* MODO PRÁCTICA (responsable, 2026-10-04): el conmutador enseñanza |
+	 *  práctica del compositor del grafo — la práctica crea una sesión kind:"practice"
+	 *  y puede llevar proposiciones elegidas en la tabla de cadenas (el chip encima
+	 *  del compositor abre el selector; lo elegido siembra el prompt inicial).
+	 *  No impone ningún formato de entrada — lo elegido es una comodidad. */
 	const [mode, setMode] = useState<"teach" | "practice">("teach");
 	const [practiceProps, setPracticeProps] = useState<{ id: string; name: string; statement: string }[]>([]);
 	const [chainSelectOpen, setChainSelectOpen] = useState(false);
-	// The chain table is CONTROLLED off this id set (the lifted pick).
+	// La tabla de cadenas está CONTROLADA por este conjunto de ids (la elección elevada).
 	const pickedIds = useMemo(() => new Set(practiceProps.map((p) => p.id)), [practiceProps]);
 
-	/* FINISH DICTATION FIRST (owner, 2026-10-01): Enter may arrive while a
-	 * run is live with the topic still deferred in the run's buffer — stop
-	 * the run, let the last finals land, THEN read the REF mirror (not the
-	 * state closure) and run. Applies before the setup/key guards too, so
-	 * an intercepted draft is the complete one. */
+	/* PRIMERO TERMINA EL DICTADO (responsable, 2026-10-01): Enter puede llegar con
+	 * una ejecución viva y el tema aún aplazado en el búfer de la ejecución — detén la
+	 * ejecución, deja que lleguen los últimos finales, DESPUÉS lee el espejo de la REF
+	 * (no el closure del estado) y ejecuta. También se aplica antes de las guardas de
+	 * configuración/clave, para que un borrador interceptado sea el completo. */
 	const start = () => {
 		if (!dictation.active) {
 			void begin();
@@ -121,19 +122,19 @@ export function Home({
 	const begin = async () => {
 		const t = topicRef.current.trim();
 		if (!t || startingRef.current) return;
-		// Unconfigured: the send INTERCEPTS into the setup flow (the draft
-		// stays in the textarea; the learner sends it after Save).
+		// Sin configurar: el envío se INTERCEPTA hacia el flujo de configuración (el borrador
+		// se queda en el textarea; el alumno lo envía después de Save).
 		if (!configured) {
 			setSetupOpen(true);
 			return;
 		}
-		// The pre-send KEY guards (owner interlude, no-orphan-chats): the
-		// models case guards BEFORE creation; the key cases must too — a
-		// refused first send would otherwise leave an orphan error-shell
-		// chat in the sidebar (the 503 lands only after POST /api/chats
-		// already created the record). Zero providers opens connection setup;
-		// an unavailable selection with another provider opens its ordinary
-		// picker. The server's admission gate remains the belt.
+		// Las guardas de CLAVE previas al envío (interludio del responsable, sin chats huérfanos): el
+		// caso de los modelos se protege ANTES de la creación; los casos de clave también deben hacerlo — un
+		// primer envío rechazado dejaría si no un chat huérfano con el envoltorio de error
+		// en la barra lateral (el 503 llega solo después de que POST /api/chats
+		// ya creara el registro). Sin proveedores se abre la configuración de la conexión;
+		// una selección no disponible habiendo otro proveedor abre su selector
+		// normal. La barrera de admisión del servidor sigue siendo el cinturón.
 		if (zeroKeys) {
 			setSetupOpen(true);
 			return;
@@ -141,17 +142,17 @@ export function Home({
 		const strong = catalog?.slots.strong?.model;
 		if (selectedModelUnavailable(catalog, strong ? `${strong.provider}:${strong.id}` : undefined)) {
 			openModelPicker();
-			return; // Preserve the draft and never create an orphan session.
+			return; // Conserva el borrador y no crees nunca una sesión huérfana.
 		}
 		startingRef.current = true;
 		setBusy(true);
 		setStartError(false);
 		try {
-			// The map context (owner, 2026-10-04): picks in EITHER mode ride
-			// the CREATION as graphContext — the server writes a
-			// graph-context marker as message[0] (a separate custom message
-			// before the learner's first user message, propositions + the
-			// chains among them); the prompt stays the learner's own words.
+			// El contexto del mapa (responsable, 2026-10-04): lo elegido en CUALQUIERA de los dos modos viaja
+			// con la CREACIÓN como graphContext — el servidor escribe un marcador
+			// de contexto del grafo como message[0] (un mensaje personalizado aparte,
+			// antes del primer mensaje de usuario del alumno, con las proposiciones + las
+			// cadenas entre ellas); el prompt sigue siendo las palabras del propio alumno.
 			const target = await starterRef.current.start({
 				title: t,
 				...(mode === "practice" ? { kind: "practice" } : {}),
@@ -167,24 +168,24 @@ export function Home({
 
 	return (
 		<div className="relative h-dvh">
-			{/* Window-drag strip (merged chrome, owner 2026-09-17): a dedicated
-			    mask element, deliberately FIRST in the DOM. Electron's app-region
-			    mask resolves by DOM order — a no-drag element subtracts only drag
-			    regions that came EARLIER in the tree — not by z-index, so the
-			    header's old inline drag region (after <main>) re-added itself over
-			    the graph chrome row's carve-out and the buttons dragged the window.
-			    Placed first, every carved control (chrome row, node detail card,
-			    the toggle) comes later and subtracts correctly. Pure mask: it
-			    never needs to receive events — the mask routes the pixels. */}
+			{/* Franja de arrastre de la ventana (cromo fusionado, responsable 2026-09-17): un
+			elemento de máscara dedicado, a propósito el PRIMERO en el DOM. La máscara de
+			app-region de Electron se resuelve por orden en el DOM — un elemento no-drag solo
+			resta las regiones de arrastre que aparecieron ANTES en el árbol —, no por
+			z-index, así que la antigua región de arrastre en línea de la cabecera (después de
+			<main>) se volvía a añadir encima del recorte de la fila de cromo del grafo y los
+			botones arrastraban la ventana. Al ir primero, cada control recortado (fila de
+			cromo, tarjeta de detalle del nodo, el conmutador) viene después y resta bien.
+			Máscara pura: nunca necesita recibir eventos — la máscara enruta los píxeles. */}
 			<div className="lh-drag absolute inset-x-0 top-0 h-13" aria-hidden="true" />
 
-			{/* The main view — full-bleed (owner, graph-view round 1): no
-			    padding on any side; it runs from the sidebar to the right edge
-			    and from the bottom to the top, under everything else. With
-			    rendering OFF (graph.rendering, owner 2026-10-06) it is the
-			    MINIMAL HOME — a quiet knowledge-base summary + the graph
-			    chrome's survivors; data, extraction, and the pick flow are
-			    untouched, and the chain table stays behind its button. */}
+			{/* La vista principal — a sangre (responsable, ronda 1 de la vista de grafo): sin
+			relleno por ningún lado; va de la barra lateral al borde derecho
+			y de abajo arriba, por debajo de todo lo demás. Con el
+			renderizado DESACTIVADO (graph.rendering, responsable 2026-10-06) es el
+			INICIO MÍNIMO — un discreto resumen de la base de conocimiento + lo que sobrevive
+			del cromo del grafo; los datos, la extracción y el flujo de elección no se
+			tocan, y la tabla de cadenas sigue detrás de su botón. */}
 			<div ref={bodyRef} className="absolute inset-0">
 			<main className="absolute inset-0">
 				{rendering ? (
@@ -205,19 +206,19 @@ export function Home({
 			</main>
 
 
-			{/* New session — same floating blob as the chat composer, docked
-			    OVER the graph (no gradient: the graph runs clean under it to the
-			    bottom edge). Matches chat.tsx's DOCK geometry (max-w-[46rem]
-			    px-4) so nothing shifts when a session starts (owner). */}
+			{/* Nueva sesión — la misma burbuja flotante que el compositor del chat, acoplada
+			ENCIMA del grafo (sin degradado: el grafo pasa limpio por debajo hasta el
+			borde inferior). Coincide con la geometría del DOCK de chat.tsx (max-w-[46rem]
+			px-4), para que nada se mueva cuando empieza una sesión (responsable). */}
 			<div className="pointer-events-none absolute inset-x-0 bottom-0 pb-5">
 				<div className="pointer-events-auto mx-auto w-full max-w-[46rem] px-4">
-					{/* The pick bar (owner vision, 2026-10-04): the chain
-					    table's selection is PERSISTENT — picked
-					    propositions show here as a count + Clear in EITHER
-					    mode (it survives mode switches; only a practice
-					    send consumes it). Practice mode with nothing picked
-					    shows the pick HINT so the affordance is discoverable;
-					    teaching mode with nothing picked renders nothing. */}
+					{/* La barra de elección (visión del responsable, 2026-10-04): la selección de la
+					tabla de cadenas es PERSISTENTE — las proposiciones
+					elegidas se muestran aquí como un recuento + Clear en CUALQUIERA de los dos
+					modos (sobrevive a los cambios de modo; solo un envío de
+					práctica la consume). El modo práctica sin nada elegido
+					muestra la PISTA de elección para que la indicación se pueda descubrir;
+					el modo enseñanza sin nada elegido no renderiza nada. */}
 					<ComposerActions
 						picker={(practiceProps.length > 0 || mode === "practice") && (
 							<NodePickerControl
@@ -260,9 +261,9 @@ export function Home({
 						defaultDropTarget
 						onKeyDown={(e) => {
 							if (!isInteractionScopeEligible(e.currentTarget, controller)) return;
-							// Esc ends dictation (the dictate decisions: click-again or
-							// Esc) — stopPropagation claims it (keyboard wave A) so
-							// the window chain doesn't also abort a turn.
+							// Esc termina el dictado (las decisiones del dictado: otro clic o
+							// Esc) — stopPropagation lo reclama (oleada A de teclado) para que
+							// la cadena de window no aborte también un turno.
 							if (e.key === "Escape" && dictation.active) {
 								controller?.claimEscape(e);
 								e.preventDefault();
@@ -280,8 +281,8 @@ export function Home({
 						className="field-sizing-content lh-input max-h-48 min-h-10 flex-1 resize-none bg-transparent px-2.5 py-2 outline-none placeholder:text-muted-foreground"
 					/>
 					<AttachFilesButton editorRef={topicInputRef} />
-					{/* No tooltip on the start square — the ↵ glyph is the
-					    affordance (owner, subtlety round 2026-09-25). */}
+					{/* Sin tooltip en el cuadrado de inicio — el glifo ↵ es la
+					indicación (responsable, ronda de sutileza 2026-09-25). */}
 					<button
 						type="submit"
 						aria-label="Start session"
@@ -291,10 +292,10 @@ export function Home({
 						<CornerDownLeftIcon className="size-5" />
 					</button>
 					</form>
-					{/* Same as the chat view's under-composer stats bar (owner) — no
-					    session yet, so the LEFT side renders nothing (wave 7 sweep)
-					    while the RIGHT keeps the strong-slot control (fix wave: the
-					    pills write /api/settings/models). */}
+					{/* Igual que la barra de estadísticas bajo el compositor de la vista de chat (responsable) — aún
+					no hay sesión, así que el lado IZQUIERDO no renderiza nada (barrido de la oleada 7)
+					mientras que el DERECHO conserva el control de la ranura Strong (oleada de arreglos: las
+					píldoras escriben /api/settings/models). */}
 					<StatsBar
 						dictationSlot={<DictationBar dictation={dictation} />}
 						turns={[] as TurnUsage[]}
@@ -325,25 +326,25 @@ export function Home({
 
 			<SurfaceRegion target={surfaceTarget} />
 			</div>
-			{/* Floating host chrome stays outside page-content coverage, after
-			    the region at the same owned-surface rank. The drag mask remains
-			    first so later controls retain their Electron no-drag carve-outs. */}
+			{/* El cromo flotante del host queda fuera de la cobertura del contenido de la
+			página, después de la región, con el mismo rango de superficie propia. La máscara de
+			arrastre sigue la primera para que los controles posteriores conserven sus recortes no-drag de Electron. */}
 			<header style={chromeStyle} className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-2 px-3 py-2">
 				<div className="pointer-events-auto">
 					<SidebarToggle />
 				</div>
 			</header>
 
-			{/* First-run setup (unconfigured): the CTA's target and the send
-			    interception's landing surface — stage 1 is the self-contained
-			    first-key screen (zero-keys wave); Save never sends — the
-			    draft stays for the learner to send (owner 2026-10-09). */}
+			{/* Configuración de la primera ejecución (sin configurar): el destino de la llamada a
+			la acción y la superficie a la que llega la intercepción del envío — la fase 1 es la
+			pantalla autónoma de la primera clave (oleada de cero claves); Save nunca envía — el
+			borrador se queda para que lo envíe el alumno (responsable 2026-10-09). */}
 			<SetupDialog
 				open={setupOpen}
 				onClose={() => setSetupOpen(false)}
 				onDone={() => {
 					setSetupOpen(false);
-					// Save only saves: the draft waits in the composer.
+					// Save solo guarda: el borrador espera en el compositor.
 				}}
 				/>
 		</div>

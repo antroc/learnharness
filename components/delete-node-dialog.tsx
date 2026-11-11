@@ -3,31 +3,34 @@
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { HostDialog } from "@/components/host-dialog";
 
-/** The 409 extraction_running line (owner phrasing, node interlude):
- *  the server's error names the extraction; the ACTIVITY DOCK is the
- *  surface the user actually watches drain. Exported pure for pins. */
+/** La línea del 409 extraction_running (redacción del responsable, interludio
+ *  de nodos): el error del servidor nombra la extracción; el DOCK DE ACTIVIDAD es
+ *  la superficie donde el usuario ve realmente cómo se vacía. Exportada como
+ *  función pura para las fijaciones. */
 export const EXTRACTION_RETRY_LINE = "An extraction is running — try again when the activity dock drains.";
 
 /**
- * Node deletion (node interlude, Platform's 50bfcba engine) — the
- * confirm surface, portaled z-50 like the session-delete dialog whose
- * tone it follows. FULL DEATH by owner ruling: the node, every edge
- * touching it, every event naming it, its position.
+ * Borrado de nodos (interludio de nodos, motor 50bfcba de Platform) — la
+ * superficie de confirmación, en un portal con z-50 como el diálogo de borrado
+ * de sesión, cuyo tono sigue. MUERTE COMPLETA por decisión del responsable: el
+ * nodo, todas las aristas que lo tocan, todos los eventos que lo nombran, su
+ * posición.
  *
- * MINIMAL BY OWNER RULING (2026-09-30): NO pre-flight impact read —
- * what full death takes is obvious (the edges die with the node), the
- * fetch flickered the dialog open-closed, and richer facts would only
- * grow more confusing as deletion semantics evolve (rewiring talk is
- * on the table). The screen is: title, names, one permanence line,
- * Cancel / Delete. The 409 extraction_running still gets the dock
- * phrasing with a Try-again — the run is never aborted server-side,
- * it clears on its own; other failures state themselves plainly.
+ * MÍNIMO POR DECISIÓN DEL RESPONSABLE (2026-09-30): NADA de lectura previa del
+ * impacto — lo que se lleva la muerte completa es evidente (las aristas mueren
+ * con el nodo), la lectura hacía parpadear el diálogo abierto-cerrado, y unos
+ * datos más ricos solo resultarían más confusos a medida que evolucione la
+ * semántica del borrado (se está hablando de recablear). La pantalla es: título,
+ * nombres, una línea sobre la permanencia, Cancel / Delete. El 409
+ * extraction_running sigue recibiendo la redacción del dock con un Try again —
+ * la ejecución nunca se aborta en el servidor, se despeja sola; los demás fallos
+ * se explican por sí mismos, sin rodeos.
  *
- * WORDING: "node"/"nodes" — THE UI word for graph objects (owner
- * ruling, same day, standardized everywhere in the UI).
+ * REDACCIÓN: "node"/"nodes" — LA palabra de la interfaz para los objetos del
+ * grafo (decisión del responsable, el mismo día, estandarizada en toda la interfaz).
  */
-/** The dialog's pure body — exported for SSR pins (the settings-dialog
- *  body pattern). The wrapper owns state + effects + the portal. */
+/** El cuerpo puro del diálogo — exportado para las fijaciones SSR (el patrón del
+ *  cuerpo del diálogo de ajustes). El envoltorio es responsable del estado, los efectos y el portal. */
 export function DeleteNodeBody({
 	nodes,
 	folders = [],
@@ -37,9 +40,9 @@ export function DeleteNodeBody({
 	onRun,
 	renderFrame,
 }: {
-	/** One node (the canvas context menu) or many (the chain table's
-	 *  selection). One names it alone; many pluralize the title and
-	 *  list the names. */
+	/** Un nodo (el menú contextual del lienzo) o muchos (la selección de la tabla de
+	 *  cadenas). Uno se nombra solo; muchos ponen el título en plural y listan los
+	 *  nombres. */
 	nodes: { id: string; name: string }[];
 	folders?: { id: string; name: string }[];
 	busy: boolean;
@@ -60,15 +63,15 @@ export function DeleteNodeBody({
 			<h2 className="text-sm font-semibold text-destructive">
 				{folders.length > 0 ? (nodes.length > 0 ? "Delete nodes and remove empty folders?" : "Remove empty folders?") : nodes.length === 1 ? "Delete node?" : `Delete ${nodes.length} nodes?`}
 			</h2>
-			{/* The node name(s) below the title in JetBrains Mono (owner,
-			    2026-09-24): the name is the payload — mono suits it, and
-			    NO code-block chrome (the font already says code). Owner,
-			    2026-10-13 polish: title loses the serif display look for the
-			    abort-turn look (text-sm font-semibold mono, red kept), and
-			    the names drop the sized-up text-lg for normal text-sm —
-			    still white, still mono. Same shape as the session dialog.
-			    A multi-selection lists its names (capped at 8 + "and K
-			    more" — the count in the title carries the full number). */}
+			{/* El nombre o los nombres de nodo bajo el título en JetBrains Mono (responsable,
+			2026-09-24): el nombre es la carga útil — la monoespaciada le sienta bien, y
+			SIN el cromo de bloque de código (la fuente ya dice código). Responsable,
+			pulido del 2026-10-13: el título pierde el aspecto de cabecera con serifa por el
+			aspecto de abort-turn (text-sm font-semibold mono, se mantiene el rojo), y
+			los nombres dejan el text-lg agrandado por el text-sm normal —
+			siguen en blanco y en monoespaciada. La misma forma que el diálogo de sesión.
+			Una selección múltiple lista sus nombres (con un tope de 8 + "and K
+			more" — el recuento del título lleva el número completo). */}
 			<div className="mt-1.5">
 				{nodes.length === 1 ? (
 					<code data-testid="node-name-code" className="font-mono text-sm text-foreground">
@@ -125,9 +128,9 @@ export function DeleteNodeBody({
 					data-testid="node-delete-confirm"
 					onClick={onRun}
 					disabled={busy}
-					// Destructive red (owner, polish round) — the
-					// app's established destructive pair (chat's
-					// refusal banner): border + text, fill on hover.
+					// Rojo destructivo (responsable, ronda de pulido) — el
+					// par destructivo establecido de la app (el aviso de
+					// rechazo del chat): borde + texto, relleno al pasar el ratón.
 					className="rounded-sm border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-40"
 				>
 					{busy ? "Deleting…" : "Delete"}
@@ -146,25 +149,25 @@ export function DeleteNodeDialog({
 	onClose,
 	onDeleted,
 }: {
-	/** The nodes up for deletion; null/empty = closed. One (the canvas
-	 *  context menu) or many (the chain table's selection). Names from
-	 *  the client's snapshot — what the user sees is what the dialog
-	 *  names. */
+	/** Los nodos que se van a borrar; null/vacío = cerrado. Uno (el menú contextual
+	 *  del lienzo) o muchos (la selección de la tabla de cadenas). Nombres sacados de
+	 *  la instantánea del cliente — lo que ve el usuario es lo que nombra el
+	 *  diálogo. */
 	nodes: { id: string; name: string }[] | null;
 	folders?: { id: string; name: string }[];
 	onRemoveFolder?: (id: string) => Promise<void>;
 	onFoldersDeleted?: (ids: string[]) => void;
 	onClose: () => void;
-	/** Success path — the callers announce lh:graph-revision so the
-	 *  snapshot refetches. The deleted ids ride along so
-	 *  selection-side callers can prune. */
+	/** Ruta de éxito — quienes llaman anuncian lh:graph-revision para que la
+	 *  instantánea se vuelva a leer. Los ids borrados viajan con él para que quienes
+	 *  llaman desde el lado de la selección puedan podar. */
 	onDeleted: (nodeIds: string[], graphRevision: number) => void;
 }) {
 	const [busy, setBusy] = useState(false);
 	const hasItems = Boolean(nodes?.length || folders.length);
 	const [failure, setFailure] = useState<{ code: string; error: string } | null>(null);
 
-	// Fresh state per dialog: closing resets.
+	// Estado nuevo por diálogo: cerrar reinicia.
 	useEffect(() => {
 		if (!hasItems) {
 			setBusy(false);
@@ -172,11 +175,11 @@ export function DeleteNodeDialog({
 		}
 	}, [hasItems]);
 
-	// Sequential full deaths — never parallel (the store's revision
-	// counter and the sweep must observe them in order). A failure STOPS
-	// the run: what died, died; the failure line names why the rest
-	// still stands (extraction_running especially must not be plowed
-	// through). onDeleted fires with everything that actually died.
+	// Muertes completas secuenciales — nunca en paralelo (el contador de revisiones
+	// del almacén y el barrido deben verlas en orden). Un fallo DETIENE
+	// la ejecución: lo que murió, murió; la línea del fallo dice por qué el resto
+	// sigue en pie (sobre todo extraction_running no debe arrollarse
+	// sin más). onDeleted se dispara con todo lo que murió de verdad.
 	const run = async () => {
 		if (!hasItems || busy) return;
 		setBusy(true);

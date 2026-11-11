@@ -76,8 +76,8 @@ function DictationLanguagePicker({ preference, disabled }: {
 		>
 			<div onKeyDown={(event) => {
 				if (event.key === "Enter") {
-					// Empty search results must not submit the composer, but a
-					// focused option button still needs Enter's native click.
+					// Unos resultados de búsqueda vacíos no deben enviar el compositor, pero un
+					// botón de opción enfocado sigue necesitando el clic nativo de Enter.
 					if (event.target instanceof HTMLInputElement) event.preventDefault();
 					event.stopPropagation();
 				}

@@ -5,16 +5,16 @@ import { ChevronRightIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
- * The graph-context card (owner, 2026-10-04): the session's map pick —
- * message[0] of a session started with propositions picked from the
- * graph. Scaffolding, not a turn: minimal, muted, collapsed by default;
- * expand reveals the picked propositions (name — statement) and the
- * reasoning chains among them (premises → conclusion lines). The model
- * reads the same content through the marker's own text (toLlmMessages);
- * this card is the learner's face of it.
+ * La tarjeta de contexto del grafo (responsable, 2026-10-04): la elección del
+ * mapa de la sesión — message[0] de una sesión iniciada con proposiciones
+ * elegidas del grafo. Andamiaje, no un turno: mínima, atenuada, plegada por
+ * defecto; al desplegarla muestra las proposiciones elegidas (nombre —
+ * enunciado) y las cadenas de razonamiento entre ellas (líneas premisas →
+ * conclusión). El modelo lee el mismo contenido a través del propio texto del
+ * marcador (toLlmMessages); esta tarjeta es su cara para el alumno.
  */
 
-/** The graph-context marker's details (native-messages.ts). */
+/** Los detalles del marcador de contexto del grafo (native-messages.ts). */
 export interface GraphContextData {
 	propositions: { id: string; name: string; statement: string }[];
 	chains: string[];

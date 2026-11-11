@@ -8,8 +8,8 @@ import { INSERT_FILE_PATHS_EVENT } from "@/components/path-input";
 
 export const BROWSER_NOTICE = "Local file paths can only be attached in the desktop app. You can paste a full path instead.";
 
-/** The content area only: the sidebar is deliberately outside this zone.
- * Existing files stay where they are; only quoted path strings enter drafts. */
+/** Solo el área de contenido: la barra lateral queda a propósito fuera de esta zona.
+ * Los ficheros existentes se quedan donde están; solo entran en los borradores cadenas de ruta entre comillas. */
 export function FilePathDropZone({ children, className, onContentRoot }: {
 	children: React.ReactNode;
 	className?: string;
@@ -26,8 +26,8 @@ export function FilePathDropZone({ children, className, onContentRoot }: {
 	const hasFiles = (event: React.DragEvent) => Array.from(event.dataTransfer.types).includes("Files");
 	const clearDrag = () => { depth.current = 0; setDragging(false); };
 	useEffect(() => {
-		// The sidebar remains a non-target, but dropping a file there must not
-		// navigate the app away. No indicator or attachment is produced there.
+		// La barra lateral sigue sin ser un destino, pero soltar un fichero ahí no debe
+		// hacer que la app navegue a otra parte. Ahí no se produce ningún indicador ni adjunto.
 		const preventOutsideNavigation = (event: DragEvent) => {
 			if (Array.from(event.dataTransfer?.types ?? []).includes("Files")
 				&& event.target instanceof Node && !root.current?.contains(event.target)) event.preventDefault();
@@ -69,8 +69,8 @@ export function FilePathDropZone({ children, className, onContentRoot }: {
 				clearDrag();
 				const resolve = window.lh?.getPathForFile;
 				if (!resolve) { setNotice(BROWSER_NOTICE); return; }
-				// Inspect only the dropped item's type, never traverse its entries.
-				// Positively known directories get a durable trailing separator.
+				// Examina solo el tipo del elemento soltado, nunca recorras sus entradas.
+				// Los directorios conocidos con certeza reciben un separador final duradero.
 				const entries = Array.from(event.dataTransfer.items).filter((item) => item.kind === "file");
 				const paths: string[] = [];
 				let skipped = 0;
@@ -78,10 +78,10 @@ export function FilePathDropZone({ children, className, onContentRoot }: {
 					try {
 						let directory = false;
 						try { directory = entries[index]?.webkitGetAsEntry?.()?.isDirectory === true; }
-						catch { /* Unknown type stays unmarked, not guessed. */ }
+						catch { /* Un tipo desconocido se queda sin marcar, no se adivina. */ }
 						const original = resolve(file);
 						const path = directory ? directoryReferencePath(original) : original;
-						quoteFilePath(path); // Same rooted-path validity rule as typed chips.
+						quoteFilePath(path); // La misma regla de validez de ruta con raíz que los chips escritos.
 						paths.push(path);
 					} catch { skipped++; }
 				}

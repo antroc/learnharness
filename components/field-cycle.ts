@@ -5,19 +5,20 @@ import { useOptionalInteractionLayers } from "./interaction-layers";
 import { isInteractionScopeEligible } from "./plugin-input-focus";
 
 /**
- * TAB CYCLES THE ACTIVE SURFACE'S TEXT FIELDS (owner, keyboard round
- * 2026-10-06): forward-only, wrapping; Tab from outside the chain
- * focuses the FIRST field — "navigate in". Shift+Tab is NOT ours (the
- * global thinking-level cycle owns it — owner ruling the same round),
- * so there is no reverse gear; the chain wraps.
+ * TAB RECORRE LOS CAMPOS DE TEXTO DE LA SUPERFICIE ACTIVA (responsable, ronda de
+ * teclado 2026-10-06): solo hacia delante, dando la vuelta; Tab desde fuera de la
+ * cadena enfoca el PRIMER campo — «navegar hacia dentro». Shift+Tab NO es nuestro
+ * (es del ciclo global del nivel de razonamiento — decisión del responsable en la
+ * misma ronda), así que no hay marcha atrás; la cadena da la vuelta.
  *
- * The event (not a prop bridge): the global Tab handler dispatches
- * `lh:kbd-cycle-fields` and each composer-bearing surface answers with
- * its own chain, gathered at event time from live DOM — the fields
- * mount/unmount with the docks, so a query beats stale refs. The quiz
- * dock's own Tab claim (rows ↔ thinking, while an option question is
- * expanded) stops propagation at the document level, so this hook only
- * ever hears Tab on surfaces WITHOUT an active claim — no double act.
+ * El evento (no un puente por props): el manejador global de Tab despacha
+ * `lh:kbd-cycle-fields` y cada superficie con compositor responde con su propia
+ * cadena, recogida del DOM vivo en el momento del evento — los campos se montan y
+ * desmontan con los docks, así que una consulta gana a unas refs obsoletas. El
+ * propio reclamo de Tab del dock de quiz (filas ↔ razonamiento, mientras una
+ * pregunta con opciones está desplegada) detiene la propagación a nivel de
+ * documento, así que este hook solo oye Tab en superficies SIN un reclamo activo
+ * — sin doble acción.
  */
 export function useFieldCycle(fields: () => readonly HTMLElement[]) {
 	const controller = useOptionalInteractionLayers();

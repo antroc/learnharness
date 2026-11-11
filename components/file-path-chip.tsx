@@ -27,12 +27,12 @@ function fileIcon(label: string) {
 
 export interface FilePathChipProps {
 	path: string;
-	/** Editors can make the chip atomic; transcript renderers can omit this. */
+	/** Los editores pueden hacer atómico el chip; los renderizadores de la transcripción pueden omitir esto. */
 	contentEditable?: false;
 	className?: string;
 }
 
-/** Pure presentation: no links, open actions, HTML injection or path probing. */
+/** Presentación pura: sin enlaces, acciones de abrir, inyección de HTML ni sondeo de rutas. */
 export function FilePathChip({ path, contentEditable, className }: FilePathChipProps) {
 	const label = filePathLabel(path);
 	const Icon = isDirectoryReference(path) ? Folder : fileIcon(label);
@@ -50,8 +50,8 @@ export function FilePathChip({ path, contentEditable, className }: FilePathChipP
 	);
 }
 
-/** Ordinary learner text stays ordinary text; only quoted paths and tutor
- *  citations become chips. */
+/** El texto normal del alumno sigue siendo texto normal; solo las rutas entre
+ *  comillas y las citas del tutor se convierten en chips. */
 export function PathText({ text }: { text: string }) {
 	return (
 		<>
