@@ -125,58 +125,60 @@ import {
 import { ReadingThinkingField } from "@/components/reading-thinking";
 import { currentUserThinkingOpen, setAllUserThinkingOpen } from "@/components/thinking-block";
 
-/** One width for everything: transcript, cards, and the bottom blob share this column. */
+/** Un único ancho para todo: transcripción, tarjetas y la burbuja inferior comparten esta columna. */
 /**
- * Width tokens (wave-5 reskin, owner decision): the teaching PROSE spans the
- * full session width with a thin px-6 margin; the composer/question DOCK is
- * deliberately narrower (~46rem centered) per the reference. Same ELEMENT,
- * same place — width polish only.
+ * Tokens de ancho (rediseño de la oleada 5, decisión del responsable): la PROSA
+ * de enseñanza ocupa todo el ancho de la sesión con un margen fino px-6; el
+ * DOCK del compositor/las preguntas es a propósito más estrecho (~46rem,
+ * centrado), según la referencia. Mismo ELEMENTO, mismo sitio — solo un
+ * pulido del ancho.
  */
 const COLUMN = "mx-auto w-full max-w-none px-6";
 const DOCK = "mx-auto w-full max-w-[46rem] px-4";
-// The DOCK container's fixed width (46rem) and the plan marginalia's
-// geometry (owner, plan-placement round): the bare diagram sits in the
-// dock band's RIGHT flank — MARGIN_GAP from the DOCK container's edge and
-// the same from the column's right edge. The box width is pure CSS, so
-// the diagram shrinks CONTINUOUSLY with the flank; MARGIN_MIN_W is only
-// the fade floor (owner, resize round) — below it the marginalia fades
-// out over the normal transition instead of popping away, and it stays
-// mounted while the question owns the band so widening fades it back.
+// El ancho fijo del contenedor del DOCK (46rem) y la geometría de la nota al margen
+// del plan (responsable, ronda de colocación del plan): el diagrama desnudo va en el flanco
+// DERECHO de la franja del dock — a MARGIN_GAP del borde del contenedor del DOCK y a
+// la misma distancia del borde derecho de la columna. El ancho de la caja es CSS puro, así que
+// el diagrama se encoge de forma CONTINUA con el flanco; MARGIN_MIN_W es solo el
+// suelo del fundido (responsable, ronda de redimensionado) — por debajo, la nota al margen
+// se desvanece con la transición normal en vez de desaparecer de golpe, y sigue
+// montada mientras la pregunta ocupa la franja, para que al ensanchar vuelva a aparecer.
 const DOCK_W = 46 * 16;
 const MARGIN_GAP = 16;
 const MARGIN_MIN_W = 220;
-// The dock overlay's gradient band (h-24) — part of the reserved tail.
+// La franja con degradado del overlay del dock (h-24) — parte de la cola reservada.
 const GRADIENT_H = 96;
-// Fold thresholds (owner, scroll round 1, tuned round 3): pixel distance
-// from the bottom — position, not velocity. Leave the bottom → the box
-// folds (visual only); reach it again → it re-opens. 96 (was 64, owner
-// round 3) tolerates a small peek upward without folding; the dead band
-// vs EXPAND_DIST absorbs trackpad drift.
+// Umbrales de plegado (responsable, ronda 1 de scroll, ajustados en la ronda 3): distancia en
+// píxeles desde abajo — posición, no velocidad. Al dejar el fondo → la caja se
+// pliega (solo visual); al volver a alcanzarlo → se reabre. 96 (era 64, ronda 3 del
+// responsable) tolera asomarse un poco hacia arriba sin plegar; la banda muerta
+// frente a EXPAND_DIST absorbe la deriva del trackpad.
 const COLLAPSE_DIST = 96;
 const EXPAND_DIST = 16;
 
 /**
- * Server-sync channel for artifact renderers: the CENTRAL jobs poll in Chat
- * calls syncFromServer() when a background job settles — the wake turn's
- * steer + response are already persisted by then, so fresh messages replace
- * local state in one pull. sendText feeds the demo error-fix loop.
- * (contracts.ts "THE ASYNC PROTOCOL" §4.)
+ * Canal de sincronización con el servidor para los renderizadores de artefactos:
+ * el sondeo CENTRAL de tareas de Chat llama a syncFromServer() cuando se asienta
+ * una tarea en segundo plano — para entonces, la reorientación y la respuesta del
+ * turno de despertar ya están persistidas, así que los mensajes nuevos sustituyen
+ * al estado local de una sola vez. sendText alimenta el bucle de corrección de
+ * errores de las demos. (contracts.ts "THE ASYNC PROTOCOL" §4.)
  */
 export const ChatActionsContext = createContext<{
 	chatId: string;
 	syncFromServer: () => Promise<void>;
-	/** Send a user message into the session (demo error-fix loop, W6). */
+	/** Envía un mensaje de usuario a la sesión (bucle de corrección de errores de las demos, W6). */
 	sendText: (text: string) => void;
-	/** Opens the model setup dialog (BYOK, 2026-09-22): refused job cards
-	 *  deep-link into the same SetupDialog the send interception uses. */
+	/** Abre el diálogo de configuración de modelos (BYOK, 2026-09-22): las tarjetas
+	 *  de tareas rechazadas enlazan al mismo SetupDialog que usa la intercepción del envío. */
 	openSetup: () => void;
 } | null>(null);
 
-/** The BYOK refusal envelope from the transport's error text: the
- *  DefaultChatTransport throws the 503 body VERBATIM as the error message,
- *  so the machine-readable {code, missing} shape survives to here. Real
- *  errors (any other text) read as null and keep the honest banner.
- *  Exported pure for tests. */
+/** El sobre de rechazo BYOK a partir del texto de error del transporte: el
+ *  DefaultChatTransport lanza el cuerpo del 503 TAL CUAL como mensaje de error,
+ *  así que la forma {code, missing}, legible por máquina, sobrevive hasta aquí.
+ *  Los errores reales (cualquier otro texto) dan null y conservan el aviso
+ *  honesto. Exportada como función pura para las pruebas. */
 export function parseModelsRefusal(message: string | undefined): ModelSlotName[] | null {
 	if (!message) return null;
 	try {
@@ -191,11 +193,11 @@ export function parseModelsRefusal(message: string | undefined): ModelSlotName[]
 	}
 }
 
-/** The provider-key refusal's transport seam (zero-keys wave, Platform's
- *  66dbea9): same discipline as parseModelsRefusal — the 503 body rides
- *  the thrown error message verbatim, so the envelope's own matcher
- *  (core, invariant-tail) decides; the wording can never drift client-
- *  side. Exported pure for tests. */
+/** La frontera de transporte del rechazo por clave de proveedor (oleada de cero
+ *  claves, 66dbea9 de Platform): la misma disciplina que parseModelsRefusal — el
+ *  cuerpo del 503 viaja tal cual en el mensaje del error lanzado, así que decide
+ *  el propio comparador del sobre (core, invariant-tail); la redacción nunca
+ *  puede desviarse en el cliente. Exportada como función pura para las pruebas. */
 export function parseProviderKeyRefusal(message: string | undefined): boolean {
 	if (!message) return false;
 	try {
@@ -206,10 +208,10 @@ export function parseProviderKeyRefusal(message: string | undefined): boolean {
 	}
 }
 
-/** Retry sends no composer text. Its refusal must not resurrect the draft
- * from an earlier, already-durable text send over today's unsent composer.
- * Retire that fallback synchronously, never when the async Retry settles:
- * a later ordinary send may own a new recovery draft by then. */
+/** Reintentar no envía texto del compositor. Su rechazo no debe resucitar el borrador
+ * de un envío de texto anterior, ya duradero, por encima del compositor actual sin enviar.
+ * Retira esa alternativa de forma síncrona, nunca cuando se asiente el Reintentar
+ * asíncrono: para entonces, un envío normal posterior puede tener un borrador de recuperación nuevo. */
 export function retryFailedResponse(
 	send: (input: ChatInput) => void,
 	submittedDraft: { current: string | null },
@@ -218,14 +220,14 @@ export function retryFailedResponse(
 	void send({ type: "retry" });
 }
 
-/** useLayoutEffect that is silent during SSR (client components still render on the server in Next). */
+/** useLayoutEffect que no dice nada durante el SSR (en Next, los componentes de cliente también se renderizan en el servidor). */
 const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
-/** A wake-pipeline steer message: user-role delivery whose metadata marks it
- * as a sub-agent result — rendered as an artifact card, never a bubble. */
-/** The quiet system line (custom-message scheme rendering): centered, muted,
- *  small — the transcript's voice for events that are not speech (wake
- *  scaffolding). */
+/** Un mensaje de reorientación del proceso de despertar: una entrega con rol de usuario cuyos
+ * metadatos lo marcan como resultado de un subagente — se renderiza como tarjeta de artefacto, nunca como burbuja. */
+/** La línea discreta del sistema (renderizado del esquema de mensajes
+ *  personalizados): centrada, atenuada, pequeña — la voz de la transcripción
+ *  para los eventos que no son habla (andamiaje del despertar). */
 function SystemLine({ children, testId }: { children: React.ReactNode; testId?: string }) {
 	return (
 		<div
@@ -237,8 +239,8 @@ function SystemLine({ children, testId }: { children: React.ReactNode; testId?: 
 	);
 }
 
-/** One immediate optimistic placeholder; only its wording changes during
- * host-managed submission evaluation. The spinner keeps its identity. */
+/** Un único provisional optimista inmediato; solo cambia su redacción durante la
+ * evaluación del envío gestionada por el host. El spinner conserva su identidad. */
 export function PendingTurnIndicator({ evaluating }: { evaluating: boolean }) {
 	return (
 		<span className="flex items-center gap-2 font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -253,13 +255,14 @@ function isSubagentSteer(m: LhViewMessage): boolean {
 }
 
 /**
- * The teaching session. All chat state lives in useChat; the server persists
- * the canonical transcript after every turn.
+ * La sesión de enseñanza. Todo el estado del chat vive en useChat; el servidor
+ * persiste la transcripción canónica después de cada turno.
  *
- * The bottom blob is ONE persistent shell whose contents swap (chat composer ↔
- * question dock ↔ collapsed bar). The shell is sticky INSIDE the scroller —
- * never overlapping the transcript at rest, never covering the scrollbar —
- * and DockOverlay animates its height on variant changes.
+ * La burbuja inferior es UN envoltorio persistente cuyo contenido se intercambia
+ * (compositor del chat ↔ dock de preguntas ↔ barra plegada). El envoltorio es
+ * sticky DENTRO del contenedor de scroll — nunca tapa la transcripción en
+ * reposo ni cubre la barra de scroll — y DockOverlay anima su altura cuando
+ * cambia la variante.
  */
 export function Chat({
 	chatId,
@@ -275,37 +278,37 @@ export function Chat({
 	chatId: string;
 	title: string;
 	initialMessages: LhMessage[];
-	/** Memory-only settlement notice supplied on reopening. */
+	/** Aviso de asentamiento, solo en memoria, que se proporciona al reabrir. */
 	initialError?: string;
-	/** The session kind (practice sessions, owner 2026-10-04): practice
-	 *  renders no phase chip (no probe→teach arc applies) and a Practice
-	 *  tag rides the header instead. */
+	/** El tipo de sesión (sesiones de práctica, responsable 2026-10-04): la práctica
+	 *  no renderiza el chip de fase (no aplica el arco sondeo→enseñanza) y en su
+	 *  lugar la cabecera lleva una etiqueta Practice. */
 	kind?: "teach" | "practice";
 	initialPrompt?: string;
-	/** A teacher turn is running server-side but attached to no client
-	 * (navigated away mid-turn, returned while in flight). */
+	/** Hay un turno del profesor ejecutándose en el servidor pero sin enganchar a
+	 * ningún cliente (se navegó a otra parte a mitad de turno y se volvió con él en curso). */
 	initiallyInFlight?: boolean;
-	/** A compaction holds the chat's model gate at mount (navigated away
-	 * mid-compaction — the registry is live server state, the
-	 * compaction-changed event already fired). The transcript spinner
-	 * and send gates key on it. */
+	/** Una compactación tiene la barrera de modelo del chat al montarse (se navegó a
+	 * otra parte a mitad de compactación — el registro es estado vivo del servidor y el
+	 * evento compaction-changed ya se disparó). El spinner de la transcripción y las
+	 * barreras de envío dependen de esto. */
 	initiallyCompacting?: boolean;
-	/** slotsConfigured(server record) — the persistent setup CTA keys on
-	 *  it (BYOK, owner 2026-09-22). The server gate stays the truth; this
-	 *  only decides whether the pill rides the composer. */
+	/** slotsConfigured(registro del servidor) — la llamada a la acción persistente
+	 *  de configuración depende de esto (BYOK, responsable 2026-09-22). La barrera del
+	 *  servidor sigue siendo la verdad; esto solo decide si la píldora va en el compositor. */
 	initialConfigured?: boolean;
 }) {
-	// Reattach plumbing (background-turn runner wave): the hook holds the
-	// settled terminal's callback — a stable ref assigned below, once
-	// syncFromServer exists (refs, not closures: no stale capture).
+	// Fontanería del reenganche (oleada del ejecutor de turnos en segundo plano): el hook guarda
+	// el callback del terminal asentado — una ref estable asignada más abajo, en cuanto
+	// existe syncFromServer (refs, no closures: nada de capturas obsoletas).
 	const reattachSettledRef = useRef<() => void>(() => {});
 
-	// THE SESSION HOOK (Wave D, owner-approved 2026-09-26): the app-owned
-	// replacement for useChat + the AI-SDK transport. The record is native
-	// history; the VIEW (grouped, golden-master) is derived client-side
-	// (core/view.ts projectView); sends are ONE explicit input event each
-	// ({chatId, input} — the stash indirection died with the SDK), and the
-	// turn stream is the VERBATIM AgentEvent passthrough the server emits.
+	// EL HOOK DE SESIÓN (oleada D, aprobado por el responsable el 2026-09-26): el sustituto,
+	// propio de la app, de useChat + el transporte del AI SDK. El registro es el historial
+	// nativo; la VISTA (agrupada, golden master) se deriva en el cliente
+	// (core/view.ts projectView); los envíos son UN evento de entrada explícito cada uno
+	// ({chatId, input} — la indirección del alijo murió con el SDK), y el stream del
+	// turno es el paso TAL CUAL de los AgentEvent que emite el servidor.
 	const { canonicalMessages, reconciliation, reconcile, pluginQuestionAvailability, pluginQuestionDraft, pluginProblemAvailability, pluginProblemDraft, dismissPluginQuestion, readRecord, messages, nativeMessages, hasConfirmedConversation, contextTokens, send, continueIfOwed, steer, steerQueue, submitAnswer, dismissQuestion, dismissProblem, questionDraft, saveQuestionDraft, status, evaluating, error, stop, clearError, resumeStream, setReattachSettled } =
 		useChatSession({ chatId, initialMessages, initialError, initiallyInFlight });
 
@@ -349,23 +352,23 @@ export function Chat({
 	const sourceTextParts = useMemo(() => firstSourceTextParts(messages), [messages]);
 	const sideEntries = useMemo(() => sideEntryPoints(nativeMessages, messages), [nativeMessages, messages]);
 
-	// The reattach settled terminal → the sync-and-continue seam (below).
+	// El terminal asentado del reenganche → la frontera de sincronizar y continuar (más abajo).
 	setReattachSettled(() => reattachSettledRef.current());
 
-	// A turn running server-side, attached to no live view of ours (navigate
-	// away mid-turn, or a wake turn discovered mid-session): the reattach
-	// stream is the primary channel (resumeStream — the same rendering path
-	// as a live turn); this flag is the FALLBACK liveness source — it gates
-	// the composer, shows the pre-first-chunk shimmer, and drives the 1500ms
-	// record poll that adopts at settle if the stream can't attach.
+	// Un turno que se ejecuta en el servidor sin enganchar a ninguna vista viva nuestra (se navegó
+	// a otra parte a mitad de turno, o se descubrió un turno de despertar a mitad de sesión): el
+	// stream de reenganche es el canal principal (resumeStream — la misma ruta de renderizado
+	// que un turno vivo); este indicador es la fuente ALTERNATIVA de vida del turno — bloquea
+	// el compositor, muestra el brillo previo al primer fragmento y dirige el sondeo del
+	// registro cada 1500 ms, que lo adopta al asentarse si el stream no consigue engancharse.
 	const [turnInFlight, setTurnInFlight] = useState(initiallyInFlight ?? false);
 
-	// Session title: click-to-rename (owner, 2026-09-17). Clicking the header
-	// title opens edit mode with everything selected — typing replaces, arrows
-	// move inside. Enter or a click away commits (PUT /api/chats/:id); Escape
-	// discards. The server never bumps updatedAt on a rename (sidebar order
-	// must not churn), and the sidebar patch is instant via the window event —
-	// its 2.5s poll is only a backstop.
+	// Título de la sesión: clic para renombrar (responsable, 2026-09-17). Hacer clic en el título
+	// de la cabecera abre el modo de edición con todo seleccionado — escribir sustituye, las flechas
+	// se mueven dentro. Enter o un clic fuera confirman (PUT /api/chats/:id); Escape
+	// descarta. El servidor nunca actualiza updatedAt al renombrar (el orden de la barra lateral
+	// no debe moverse), y el parche de la barra lateral es instantáneo gracias al evento de window —
+	// su sondeo de 2,5 s es solo una red de seguridad.
 	const [titleText, setTitleText] = useState(title);
 	const [renaming, setRenaming] = useState(false);
 	const [titleDraft, setTitleDraft] = useState("");
@@ -375,7 +378,7 @@ export function Chat({
 		async (next: string) => {
 			setRenaming(false);
 			const t = next.trim();
-			if (t === "" || t === titleText) return; // empty commit = discard
+			if (t === "" || t === titleText) return; // confirmación vacía = descartar
 			try {
 				const res = await fetch(`/api/chats/${chatId}`, {
 					method: "PUT",
@@ -388,14 +391,14 @@ export function Chat({
 					new CustomEvent("lh:chat-renamed", { detail: { id: chatId, title: t } }),
 				);
 			} catch (err) {
-				console.error("rename failed:", err); // keep the old title
+				console.error("rename failed:", err); // se conserva el título antiguo
 			}
 		},
 		[chatId, titleText],
 	);
 
-	// Select-all when edit mode opens: the click means "replace", so the
-	// whole title highlights on entry (owner ask, 2026-09-17).
+	// Seleccionar todo al abrir el modo de edición: el clic significa «sustituir», así que
+	// todo el título se resalta al entrar (petición del responsable, 2026-09-17).
 	useEffect(() => {
 		if (renaming) {
 			const el = titleInputRef.current;
@@ -406,8 +409,8 @@ export function Chat({
 		}
 	}, [renaming]);
 
-	// ── Keyboard seams (shortcut wave A, 2026-09-17) ──
-	// F2 opens the title rename (the chat header owns the editing state).
+	// ── Fronteras de teclado (oleada A de atajos, 2026-09-17) ──
+	// F2 abre el renombrado del título (la cabecera del chat es responsable del estado de edición).
 	useEffect(() => {
 		const onRename = () => {
 			if (!isInteractionScopeEligible(sessionFindScopeRef.current, controller)) return;
@@ -418,10 +421,10 @@ export function Chat({
 		return () => window.removeEventListener("lh:kbd-rename-session", onRename);
 	}, [titleText, controller]);
 
-	// The OTHER rename surface (wave 6: the sidebar's inline rename): its
-	// commit dispatches the same lh:chat-renamed event this header's rename
-	// does — if it renamed THIS chat, patch the header title in place (the
-	// event is the single source of truth; the header is one more listener).
+	// La OTRA superficie de renombrado (oleada 6: el renombrado en línea de la barra lateral): su
+	// confirmación despacha el mismo evento lh:chat-renamed que el renombrado de esta cabecera
+	// — si renombró ESTE chat, parchea el título de la cabecera en su sitio (el
+	// evento es la única fuente de verdad; la cabecera es un oyente más).
 	useEffect(() => {
 		const onRenamed = (e: Event) => {
 			const { id, title } = (e as CustomEvent<{ id: string; title: string }>).detail;
@@ -431,13 +434,13 @@ export function Chat({
 		return () => window.removeEventListener("lh:chat-renamed", onRenamed);
 	}, [chatId]);
 
-	// The Esc chain's last link: abort the turn. The background runner
-	// decoupled turns from views, so the abort is ALWAYS the remote kill
-	// (POST /api/activity/abort — any in-flight turn dies server-side, our
-	// view renders the aborted-partial close when the finish arrives). A
-	// LOCAL view also detaches first — stop() settles the client instantly
-	// and keeps the partial; the server-side partial persists via the
-	// abort's own onFinish. Inert when nothing runs (busyRef gate).
+	// El último eslabón de la cadena de Esc: abortar el turno. El ejecutor en segundo plano
+	// desacopló los turnos de las vistas, así que el aborto es SIEMPRE la terminación remota
+	// (POST /api/activity/abort — cualquier turno en curso muere en el servidor y nuestra
+	// vista renderiza el cierre parcial abortado cuando llega el final). Una vista
+	// LOCAL además se desengancha antes — stop() asienta el cliente al instante
+	// y conserva el parcial; el parcial del lado del servidor se persiste mediante el
+	// propio onFinish del aborto. Inerte cuando no se ejecuta nada (barrera busyRef).
 	const abortInFlightTurn = useCallback(() => {
 		if (localStreamRef.current) stop();
 		void fetch("/api/activity/abort", {
@@ -445,19 +448,19 @@ export function Chat({
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ kind: "turn", id: chatId }),
 		}).catch(() => {
-			/* transient — the turn settles on its own; the record poll adopts */
+			/* transitorio — el turno se asienta solo; el sondeo del registro lo adopta */
 		});
-		// 409 not_running is the benign raced-settle: the stream's finish
-			// already settled the view (or the poll fallback adopts) — nothing owed.
+		// 409 not_running es la carrera benigna de asentamiento: el final del stream
+			// ya asentó la vista (o lo adopta el sondeo alternativo) — no se debe nada.
 	}, [chatId, stop]);
-	// ESC-abort guard (owner, 2026-10-02): the abort chain opens a confirm
-	// popup EVERYWHERE (streams and pending questions alike). Both window
-	// listeners fire per Esc, so the state gate here — not stopPropagation
-	// ordering — is what keeps the popup's own Esc from chaining.
-	// LAYERED ESC (owner, 2026-10-04): an open overlay CLAIMS Esc — closing
-	// itself — before the abort chain may open its confirm. A mermaid focus,
-	// the plan popup, or the setup dialog over a pending question must not
-	// dismiss the question underneath.
+	// Protección del aborto con ESC (responsable, 2026-10-02): la cadena de aborto abre una
+	// ventana de confirmación EN TODAS PARTES (tanto streams como preguntas pendientes). Los dos
+	// oyentes de window se disparan con cada Esc, así que lo que evita que el propio Esc de la
+	// ventana encadene es esta barrera de estado — no el orden de stopPropagation.
+	// ESC POR CAPAS (responsable, 2026-10-04): un overlay abierto RECLAMA el Esc — se cierra
+	// él mismo — antes de que la cadena de aborto pueda abrir su confirmación. Un foco de mermaid,
+	// la ventana del plan o el diálogo de configuración encima de una pregunta pendiente no deben
+	// descartar la pregunta de debajo.
 	const [abortAsk, setAbortAsk] = useState<AbortMode | null>(null);
 	const abortAskRef = useRef<AbortMode | null>(null);
 	abortAskRef.current = abortAsk;
@@ -485,7 +488,7 @@ export function Chat({
 			else if (target === "turn") setAbortAsk("turn");
 			else if (target === "mermaid") setMermaidFocus(null);
 			else if (target === "plan") setPlanOpen(false);
-			// setup closes itself; null = nothing to do — both claimed.
+			// la configuración se cierra sola; null = nada que hacer — ambos reclamados.
 		};
 		window.addEventListener("lh:kbd-abort-turn", onAbort);
 		return () => window.removeEventListener("lh:kbd-abort-turn", onAbort);
@@ -502,18 +505,18 @@ export function Chat({
 				abortInFlightTurn();
 				return;
 			}
-			// From a pending question the dismiss is silent (A2, 2026-10-03):
-			// the skipped toolResult lands via the SILENT route, no turn, no
-			// wake — the next plain send is the wake. MID-TURN (owner,
-			// 2026-10-04 — the GLM loop): the question can only dangle because a
-			// turn is STILL RUNNING, so the discard ALSO kills that turn; the
-			// route parks the dismissal (202) and the settle applies it.
+			// Desde una pregunta pendiente, el descarte es silencioso (A2, 2026-10-03):
+			// el toolResult omitido entra por la ruta SILENCIOSA, sin turno ni
+			// despertar — el siguiente envío normal es el despertar. A MITAD DE TURNO (responsable,
+			// 2026-10-04 — el bucle de GLM): la pregunta solo puede quedar colgante porque un
+			// turno SIGUE EJECUTÁNDOSE, así que el descarte TAMBIÉN termina ese turno; la
+			// ruta aparca el descarte (202) y el asentamiento lo aplica.
 			const p = pendingRef.current;
 			if (p) {
 				const question = (p.input as { question?: string } | null)?.question ?? "";
 				const reading = readingThinkingRef.current.trim() || undefined;
 				clearReadingThinking();
-				void closeSideThreadRef.current(); // its note lands after the skip
+				void closeSideThreadRef.current(); // su nota llega después de la omisión
 				const answer = dismissedAnswer(toolQuestionKind(p.tool), question);
 				void dismissQuestion(
 					p.toolCallId,
@@ -523,10 +526,10 @@ export function Chat({
 				if (busyRef.current) abortInFlightTurn();
 				return;
 			}
-			// The practice discard (owner, 2026-10-04): ask-style — the
-			// silent marker route; the conclude synthesis rides the user's
-			// next input. The composer returns immediately. Mid-turn the
-			// discard also kills the running turn (same park + settle law).
+			// El descarte de la práctica (responsable, 2026-10-04): al estilo de ask — la
+			// ruta silenciosa del marcador; la síntesis de cierre viaja con la siguiente
+			// entrada del usuario. El compositor vuelve de inmediato. A mitad de turno, el
+			// descarte también termina el turno en curso (la misma ley de aparcar + asentar).
 			const problem = activeProblemRef.current;
 			if (problem) {
 				void dismissProblem(problem.toolCallId);
@@ -535,19 +538,19 @@ export function Chat({
 		},
 		[abortInFlightTurn, dismissQuestion, dismissProblem, closeAbortAsk],
 	);
-	// Mount continuation: if the stored transcript ends with a fulfilled tool
-	// (a job result landed while no client was open), resume the lesson — the
-	// SDK's sendAutomaticallyWhen only fires inside addToolOutput, so reloads
-	// need this nudge. Once per mount; the turn that follows ends in text (or
-	// a pending question), so no loop. NEVER while a turn is already running
-	// server-side — that would double-run the teacher (the server would 409
-	// it; the poll below resumes instead).
+	// Continuación al montar: si la transcripción guardada termina con una herramienta completada
+	// (llegó el resultado de una tarea sin ningún cliente abierto), reanuda la lección — el
+	// sendAutomaticallyWhen del SDK solo se dispara dentro de addToolOutput, así que las recargas
+	// necesitan este empujón. Una vez por montaje; el turno siguiente termina en texto (o
+	// en una pregunta pendiente), así que no hay bucle. NUNCA mientras ya se esté ejecutando un turno
+	// en el servidor — eso ejecutaría dos veces al profesor (el servidor le respondería con un
+	// 409; en su lugar lo reanuda el sondeo de más abajo).
 	const mountContinuation = useRef(false);
 	useEffect(() => {
 		if (mountContinuation.current) return;
 		mountContinuation.current = true;
 		if (!turnInFlight) continueIfOwed(initialMessages);
-		// mount-only by design (turnInFlight read at initial value)
+		// solo al montar, a propósito (turnInFlight se lee con su valor inicial)
 	}, []);
 
 	const pendingPlugin = pendingPluginQuestionOf(canonicalMessages);
@@ -557,8 +560,8 @@ export function Chat({
 	const pluginProblemIdentity = activeProblemOf(canonicalMessages)?.pluginProblem?.problemId;
 	const pluginCanonicalIdentity = pendingPlugin?.questionId ?? (unreadablePlugin ? pluginQuestionOccurrenceKey(unreadablePlugin.occurrence) : pluginProblemIdentity ?? null);
 	useEffect(() => {
-		// Effect reconnection (including StrictMode replay) must renew the
-		// canonical read; a retained identity ref cannot certify a connection.
+		// La reconexión del efecto (incluida la repetición de StrictMode) debe renovar la
+		// lectura canónica; una ref de identidad conservada no puede certificar una conexión.
 		if (pluginCanonicalIdentity) void reconcile();
 	}, [pluginCanonicalIdentity, reconcile]);
 	useServerEvent("plugins-changed", () => {
@@ -566,15 +569,15 @@ export function Chat({
 	});
 	const pending = findPendingToolCall(messages, pendingQuestionOf(nativeMessages));
 	const malformedQuestions = malformedQuestionsOf(nativeMessages);
-	// The abort handler reads the pending question from a ref (the window
-	// listener is mount-scoped; the value it needs is render-scoped).
+	// El manejador del aborto lee la pregunta pendiente de una ref (el oyente de window
+	// tiene el ámbito del montaje; el valor que necesita tiene el ámbito del render).
 	const pendingRef = useRef(pending);
 	pendingRef.current = pending;
 
-	// THE ACTIVE PRACTICE PROBLEM (practice sessions, 2026-10-04): the
-	// same dock-ownership rule as a pending question — an active problem
-	// replaces the composer. Computed from the NATIVE record (the fold is
-	// the gate the tools themselves read), not the projected view.
+	// EL PROBLEMA DE PRÁCTICA ACTIVO (sesiones de práctica, 2026-10-04): la
+	// misma regla de propiedad del dock que una pregunta pendiente — un problema activo
+	// sustituye al compositor. Se calcula a partir del registro NATIVO (el plegado es
+	// la barrera que leen las propias herramientas), no de la vista proyectada.
 	const activeProblem = activeProblemOf(nativeMessages);
 	const activeProblemOccurrence = activeProblemOccurrenceOf(nativeMessages);
 	const activeProblemRef = useRef(activeProblem);
@@ -584,22 +587,22 @@ export function Chat({
 	const busy = localStream || turnInFlight || reconciliation !== "ready";
 	const busyRef = useRef(busy);
 	busyRef.current = busy;
-	// The attach handoff (stream-reattach wave): the moment a resumed
-	// stream takes over the rendering — the SDK left "ready", so
-	// submitted/streaming means chunks are flowing — localStream covers
-	// busy/shimmer/gates on its own. Keeping turnInFlight set would only
-	// double-render the shimmer and keep the 1500ms fallback poll fighting
-	// the live stream it was a fallback FOR.
+	// El traspaso del enganche (oleada de reenganche del stream): en el momento en que un stream
+	// reanudado toma el renderizado — el SDK salió de "ready", así que
+	// submitted/streaming significa que llegan fragmentos — localStream cubre por sí solo
+	// ocupado/brillo/barreras. Mantener turnInFlight activo solo conseguiría
+	// renderizar dos veces el brillo y que el sondeo alternativo de 1500 ms siguiera peleando con
+	// el stream vivo del que era alternativa.
 	useEffect(() => {
 		if (turnInFlight && (status === "submitted" || status === "streaming")) setTurnInFlight(false);
 	}, [status, turnInFlight]);
 
-	// Mid-session discovery (jobs poll, handoff watch): a server-side turn
-	// exists that none of our views holds — attach to it through the same
-	// resume path as mount reattach (live rendering, instant catch-up). The
-	// flag stays as the fallback until the stream attaches (watcher above);
-	// concurrent resume calls are SDK-guarded (a newer one aborts the older
-	// request), so discovery ticks re-firing this are harmless.
+	// Descubrimiento a mitad de sesión (sondeo de tareas, vigilancia del traspaso): existe un turno
+	// en el servidor que no tiene ninguna de nuestras vistas — engánchate a él por la misma
+	// ruta de reanudación que el reenganche al montar (renderizado vivo, puesta al día instantánea). El
+	// indicador se queda como alternativa hasta que el stream se engancha (el vigilante de arriba);
+	// las llamadas de reanudación simultáneas las protege el SDK (una más nueva aborta la petición
+	// más antigua), así que no pasa nada si los ticks de descubrimiento vuelven a dispararlo.
 	const turnInFlightRef = useRef(turnInFlight);
 	turnInFlightRef.current = turnInFlight;
 	const attachToRunningTurn = useCallback(() => {
@@ -607,11 +610,11 @@ export function Chat({
 		void resumeStream();
 	}, [resumeStream]);
 
-	// The practice dock's send (ONE lane, owner 2026-10-05): POSTs the
-	// thinking against the ACTIVE problem — whether it claims an answer is
-	// read from the text by the agent, not declared here. Starts a turn;
-	// the dock stays mounted (the problem is still active until the agent
-	// concludes).
+	// El envío del dock de práctica (UN solo carril, responsable 2026-10-05): hace POST del
+	// razonamiento contra el problema ACTIVO — si afirma una respuesta lo decide el agente
+	// leyendo el texto, no se declara aquí. Inicia un turno;
+	// el dock sigue montado (el problema sigue activo hasta que el agente
+	// lo cierra).
 	const submitThinking = useCallback(
 		(text: string) => {
 			const problem = activeProblemRef.current;
@@ -621,27 +624,27 @@ export function Chat({
 		[send],
 	);
 
-	// Teach-phase check (W5, vision §2): a pending QUIZ that lands once a
-	// plan node is OCCUPIED (phaseAt3 "teach") starts collapsed behind a
-	// "Check your understanding" reveal button; probe- and plan-phase
-	// questions auto-open as today. Both teach quizzing tools obey the
-	// law (owner, 2026-10-09: explain checks join quiz checks behind the
-	// reveal); predictions of either mechanic and ask always arrive open.
-	// A pending question can never precede its phase's seam in the transcript (the teacher's turn
-	// ends at the question call), so the session's current phase IS the
-	// question's phase.
+	// Comprobación de la fase de enseñanza (W5, visión §2): un QUIZ pendiente que llega una vez que
+	// un nodo del plan está OCUPADO (phaseAt3 "teach") empieza plegado tras un botón de
+	// revelación "Check your understanding"; las preguntas de las fases de sondeo y de plan
+	// se abren solas, como hasta ahora. Las dos herramientas de quiz de la enseñanza cumplen la
+	// ley (responsable, 2026-10-09: las comprobaciones de explain se suman a las de quiz tras la
+	// revelación); las predicciones de cualquiera de las dos mecánicas y ask llegan siempre abiertas.
+	// Una pregunta pendiente nunca puede preceder a la frontera de su fase en la transcripción (el turno
+	// del profesor termina en la llamada de la pregunta), así que la fase actual de la sesión ES la
+	// fase de la pregunta.
 	const requiresReveal = pendingPlugin ? pendingPlugin.variant === "teach" && pendingPlugin.input.type === "check" : pending !== null && questionNeedsReveal(pending.tool, pending.input, phaseAt3(messages));
 
-	/* The READING-THINKING channel (owner 2026-10-03): a draft field for
-	 * thinking while reading the teaching prose, mounted while a check waits
-	 * behind its reveal, riding the check answer (or its dismissal) as the
-	 * separate `readingThinking` field. Reset per pending question. */
+	/* El canal de RAZONAMIENTO DURANTE LA LECTURA (responsable 2026-10-03): un campo de
+	 * borrador para pensar mientras se lee la prosa de enseñanza, montado mientras una
+	 * comprobación espera tras su revelación, que viaja con la respuesta a la comprobación
+	 * (o con su descarte) como el campo aparte `readingThinking`. Se reinicia con cada pregunta pendiente. */
 	const [readingThinkingSeed, setReadingThinkingSeed] = useState({ questionId: null as string | null, value: "", revision: 0 });
 	const readingThinkingRef = useRef("");
 
-	// ⌘T (toggle-user-thinking, owner round 2026-10-07): set EVERY user
-	// thinking row to one state — transcript rows default open, so the
-	// first press collapses everything, the second re-expands.
+	// ⌘T (toggle-user-thinking, ronda del responsable 2026-10-07): pone TODAS las filas de
+	// razonamiento del usuario en un mismo estado — las filas de la transcripción están abiertas por
+	// defecto, así que la primera pulsación lo pliega todo y la segunda lo vuelve a desplegar.
 	useEffect(() => {
 		const onToggle = () => {
 			if (isInteractionScopeEligible(sessionFindScopeRef.current, controller)) setAllUserThinkingOpen(!currentUserThinkingOpen());
@@ -658,8 +661,8 @@ export function Chat({
 	}, []);
 	const pendingQuestionId = pendingPlugin ? pluginQuestionOccurrenceKey(pendingPlugin.occurrence) : pending?.key ?? null;
 	useLayoutEffect(() => {
-		// Different calls never share a draft; a failed submission of THIS
-		// call restores the reading channel alongside the form's snapshot.
+		// Llamadas distintas nunca comparten borrador; un envío fallido de ESTA
+		// llamada restaura el canal de lectura junto con la instantánea del formulario.
 		const value = pendingPlugin ? pluginQuestionDraft(pendingPlugin).readingThinking : pendingQuestionId ? questionDraft(pendingQuestionId)?.readingThinking ?? "" : "";
 		readingThinkingRef.current = value;
 		setReadingThinkingSeed((previous) =>
@@ -669,15 +672,15 @@ export function Chat({
 		);
 	}, [pendingQuestionId, questionDraft, pluginQuestionDraft]);
 
-	// The phase at every message (one linear fold): the transcript draws a
-	// color-coded dotted divider at each boundary; the header chip reads the
-	// session's current phase.
+	// La fase en cada mensaje (un único plegado lineal): la transcripción dibuja un
+	// divisor de puntos con código de color en cada límite; el chip de la cabecera lee la
+	// fase actual de la sesión.
 	const phases = useMemo(() => phaseTimeline(messages), [messages]);
 
 	const [composerDraftRevision, setComposerDraftRevision] = useState(0);
-	/* The composer draft ref is synchronous, so sends and dictation flushes
-	 * read the latest text without a parent render per input event. Explicit
-	 * resets still bump a revision so the local field can sync. */
+	/* La ref del borrador del compositor es síncrona, así que los envíos y los volcados del
+	 * dictado leen el texto más reciente sin un render del padre por cada evento de entrada. Los
+	 * reinicios explícitos siguen incrementando una revisión para que el campo local se sincronice. */
 	const textRef = useRef("");
 	const composerEditRevision = useRef(0);
 	const applyText = useCallback((v: string) => {
@@ -687,19 +690,19 @@ export function Chat({
 	const recordComposerText = useCallback((v: string) => {
 		textRef.current = v; composerEditRevision.current++;
 	}, []);
-	// Saved slot completeness is live, but the session's selected route
-	// comes from its own ordinary model control, never today's Strong pin.
+	// La completitud de las ranuras guardadas está viva, pero la ruta elegida para la sesión
+	// sale de su propio control normal de modelo, nunca de la fijación Strong de hoy.
 	const { catalog, configured, zeroKeys } = useModelSetup(initialConfigured);
 	const catalogRef = useRef(catalog);
 	catalogRef.current = catalog;
 	const [selectedModel, setSelectedModel] = useState<string | undefined>();
 	const recordSelectedModel = useCallback((model: string | undefined) => { submissionModel.observe(model); setSelectedModel(model); }, [submissionModel]);
 	const [setupOpen, setSetupOpen] = useState(false);
-	/** The last explicitly-sent draft (composer send): the
-	 *  refusal flow restores it into the composer, where it waits for the
-	 *  learner to re-send (Save never auto-sends, owner 2026-10-09).
-	 *  Auto-continuations (probe answers) never set it — their refusal
-	 *  opens recovery with no replay. */
+	/** El último borrador enviado de forma explícita (envío del compositor): el
+	 *  flujo de rechazo lo restaura en el compositor, donde espera a que el alumno
+	 *  lo vuelva a enviar (Save nunca envía solo, responsable 2026-10-09).
+	 *  Las continuaciones automáticas (respuestas a sondeos) nunca lo fijan — su
+	 *  rechazo abre la recuperación sin repetición. */
 	const draftRef = useRef<string | null>(null);
 	const openingDraftRef = useRef<string | null>(null);
 	const [openingError, setOpeningError] = useState(false);
@@ -735,7 +738,7 @@ export function Chat({
 			const raw = validatePluginBuiltinSubmissionAnswer(question, prepared.answer);
 			const answer = buildAnswer(question, { ...raw, ...(prepared.thinking.text ? { thinking: prepared.thinking.text } : {}), ...(requiresReveal && prepared.readingThinking.text ? { readingThinking: prepared.readingThinking.text } : {}) }, original.tool);
 			const images = submissionImages(prepared, target.channels);
-			// Save newer native edits without changing the prepared payload.
+			// Guarda las ediciones nativas más nuevas sin cambiar la carga preparada.
 			capture(); saveQuestionDraft(original.key, { readingThinking: readingThinkingRef.current });
 			attempt.deliver();
 			return send({ type: "answer", toolCallId: original.toolCallId, occurrence: target.question.occurrence, answer: { ...answer, ...(images ? { images } : {}) } }, attempt.accepted, original.key, attempt.refused);
@@ -823,15 +826,15 @@ export function Chat({
 	const deliverOpeningPrompt = (prompt: string, captureNative = false) => {
 		let submitted = prompt;
 		openingDraftRef.current = prompt;
-		// Persist uncertainty BEFORE the POST: another mount must restore,
-		// not race the still-arriving request. No storage means no auto-send.
+		// Persiste la incertidumbre ANTES del POST: otro montaje debe restaurar, no
+		// competir con la petición que aún está llegando. Sin almacenamiento no hay envío automático.
 		if (!stashOpeningPrompt(chatId, prompt, true)) {
 			applyText(prompt);
 			setOpeningError(true);
 			return;
 		}
 		setOpeningError(false);
-		draftRef.current = prompt; // The existing 503 flow must restore it too.
+		draftRef.current = prompt; // El flujo existente del 503 también debe restaurarlo.
 		void prepareText(captureNative ? undefined : prompt, () => {
 			clearOpeningPrompt(chatId);
 			openingDraftRef.current = null;
@@ -856,14 +859,14 @@ export function Chat({
 			() => {
 				sentInitial.current = true;
 				const entry = readOpeningPromptEntry(chatId);
-				const prompt = initialPrompt || entry?.text; // Legacy links still work.
+				const prompt = initialPrompt || entry?.text; // Los enlaces antiguos siguen funcionando.
 				if (!initialPromptOwed(initialMessages, prompt)) {
 					if (initialMessages.some(m => m.role === "user" || m.role === "assistant")) clearOpeningPrompt(chatId);
 					return;
 				}
 				openingDraftRef.current = prompt!;
 				if (entry?.attempted || initiallyInFlight) {
-					applyText(prompt!); // Interrupted start: the learner explicitly resends.
+					applyText(prompt!); // Inicio interrumpido: el alumno vuelve a enviar de forma explícita.
 					return;
 				}
 				deliverOpeningPrompt(prompt!);
@@ -874,8 +877,8 @@ export function Chat({
 	useEffect(() => {
 		if (!hasConfirmedConversation) return;
 		clearOpeningPrompt(chatId);
-		// A later canonical read may confirm a lost acknowledgment. Clear
-		// only the unchanged recovered draft, never the learner's newer work.
+		// Una lectura canónica posterior puede confirmar un acuse perdido. Limpia
+		// solo el borrador recuperado sin cambios, nunca el trabajo más nuevo del alumno.
 		const opening = openingDraftRef.current;
 		if (opening !== null && textRef.current === opening) applyText("");
 		if (draftRef.current === opening) draftRef.current = null;
@@ -883,32 +886,32 @@ export function Chat({
 		setOpeningError(false);
 	}, [chatId, hasConfirmedConversation, applyText]);
 
-	// THE BYOK REFUSAL (owner, 2026-09-22): a send that lands the server's
-	// 503 models_not_configured envelope renders as the SETUP FLOW, never
-	// the error banner. The gate refuses BEFORE the write-ahead persist,
-	// so the server record is the truth minus the refused send — the
-	// optimistic message is an orphan that goes HOME: refetch the record,
-	// drop the orphan, put the draft back in the composer, open the
-	// dialog (the prefilled tiers carry their picks, the unpinned ones the
-	// "needed" marks). The draft stays in the composer until the learner
-	// re-sends it (owner ruling 2026-10-09).
+	// EL RECHAZO BYOK (responsable, 2026-09-22): un envío que recibe el sobre 503
+	// models_not_configured del servidor se renderiza como el FLUJO DE CONFIGURACIÓN, nunca
+	// como el aviso de error. La barrera rechaza ANTES de la persistencia anticipada,
+	// así que el registro del servidor es la verdad menos el envío rechazado — el
+	// mensaje optimista es un huérfano que vuelve A CASA: vuelve a leer el registro,
+	// quita el huérfano, devuelve el borrador al compositor y abre el
+	// diálogo (los niveles prerrellenados llevan su elección; los no fijados, las marcas
+	// "needed"). El borrador se queda en el compositor hasta que el alumno
+	// lo vuelve a enviar (decisión del responsable 2026-10-09).
 	useEffect(() => {
 		if (!error) return;
 		const missing = parseModelsRefusal(error.message);
-		// The key-refusal twin (zero-keys wave): a pinned model whose
-		// provider key is gone also restores the draft. With another provider
-		// connected, repair belongs to the ordinary current-session picker;
-		// otherwise setup derives its exclusive provider/loading stage.
+		// El gemelo del rechazo por clave (oleada de cero claves): un modelo fijado cuya
+		// clave de proveedor ha desaparecido también restaura el borrador. Con otro proveedor
+		// conectado, la reparación corresponde al selector normal de la sesión actual;
+		// en otro caso, la configuración deriva su fase exclusiva de proveedor/carga.
 		const keyRefused = parseProviderKeyRefusal(error.message);
-		if (!missing && !keyRefused) return; // a real error keeps the honest banner
-		// ORDER MATTERS: clearError() flips this effect's own dep (`error`)
-		// and would cancel the in-flight work below — so the banner dismiss,
-		// the draft restore, and the dialog open all land TOGETHER after the
-		// record refetch (the honest truth minus the refused send).
+		if (!missing && !keyRefused) return; // un error real conserva el aviso honesto
+		// EL ORDEN IMPORTA: clearError() cambia la propia dependencia de este efecto (`error`)
+		// y cancelaría el trabajo en curso de más abajo — así que cerrar el aviso,
+		// restaurar el borrador y abrir el diálogo ocurren JUNTOS después de
+		// volver a leer el registro (la verdad honesta menos el envío rechazado).
 		let cancelled = false;
 		void (async () => {
 			try { await readRecord({ isCurrent: () => !cancelled }); }
-			catch { /* refusal handling still restores the draft on a failed read */ }
+			catch { /* el tratamiento del rechazo sigue restaurando el borrador si falla la lectura */ }
 			if (cancelled) return;
 			if (draftRef.current !== null) {
 				if (!textRef.current) applyText(draftRef.current);
@@ -921,18 +924,18 @@ export function Chat({
 		return () => {
 			cancelled = true;
 		};
-		// (readRecord/clearError are stable per useChat instance — the
-		//  dep pair [error, chatId] is what the flow actually keys on.)
+		// (readRecord/clearError son estables por instancia de useChat — el par de
+		//  dependencias [error, chatId] es de lo que depende realmente el flujo.)
 	}, [error, chatId, readRecord]);
-	// Voice dictation (STT wave, 2026-09-17): finals append at the end of
-	// the current text (the page owns the separator, dictate-flush style);
-	// interims ghost in the stats bar's middle slot next to the meter.
-	// TAB CYCLES THE CHAT'S FIELDS (owner, keyboard round 2026-10-06):
-	// reading-thinking → the active dock's field → the composer, in
-	// visual order, forward-only with wrap; Tab from anywhere else
-	// focuses the first live field (navigate IN). Gathered from live
-	// DOM at event time — the docks mount and unmount, refs would go
-	// stale. The quiz dock's rows↔thinking claim never reaches here.
+	// Dictado por voz (oleada STT, 2026-09-17): los finales se añaden al final del
+	// texto actual (la página es responsable del separador, al estilo de dictate-flush);
+	// los intermedios aparecen como fantasma en la ranura central de la barra de estadísticas, junto al medidor.
+	// TAB RECORRE LOS CAMPOS DEL CHAT (responsable, ronda de teclado 2026-10-06):
+	// razonamiento de lectura → el campo del dock activo → el compositor, en
+	// orden visual, solo hacia delante y dando la vuelta; Tab desde cualquier otro sitio
+	// enfoca el primer campo vivo (navegar HACIA DENTRO). Se recogen del DOM vivo
+	// en el momento del evento — los docks se montan y desmontan, las refs quedarían
+	// obsoletas. El reclamo filas↔razonamiento del dock de quiz nunca llega aquí.
 	const cycleChatFields = useCallback((): readonly HTMLElement[] => {
 		const pick = (sel: string) => Array.from(document.querySelectorAll<HTMLElement>(sel));
 		return [
@@ -944,8 +947,8 @@ export function Chat({
 	}, []);
 	useFieldCycle(cycleChatFields);
 	const recording = useDictation({
-		// Ref-first (see textRef): the join is computed from the mirror so a
-		// send resuming after `await finish()` reads the dictated tail.
+		// Primero la ref (ver textRef): la unión se calcula a partir del espejo, para que un
+		// envío que se reanuda tras `await finish()` lea la cola dictada.
 		append: (t) => { if (!pluginOwnsDock) applyText(joinDictation(textRef.current, t)); },
 		disabled: pluginOwnsDock && !pluginMicAvailable,
 	});
@@ -955,17 +958,17 @@ export function Chat({
 		error: recording.destinationId === "main" ? recording.error : null,
 		blocked: recording.destinationId !== "main" && recording.active,
 	};
-	/* When a dictation run ends, the bare composer takes focus (owner
-	 * 2026-10-01) — the hands are already on the keyboard from the stop.
-	 * Falling edge of `active` only (idle→idle never focuses), and ONLY the
-	 * composer: with a question pending the Composer is unmounted, the ref
-	 * is null, and the thinking field is left alone by design. */
+	/* Cuando termina una ejecución de dictado, el compositor desnudo toma el foco
+	 * (responsable 2026-10-01) — las manos ya están en el teclado por la parada.
+	 * Solo en el flanco de bajada de `active` (idle→idle nunca enfoca), y SOLO el
+	 * compositor: con una pregunta pendiente el Composer está desmontado, la ref
+	 * es null y el campo de razonamiento se deja en paz a propósito. */
 	const dictationWasActiveRef = useRef(false);
 	const composerInputRef = useRef<HTMLDivElement>(null);
 
-	// CITE (2026-10-31): selected tutor text → a citation chip in the
-	// composer, then its comment popover. The transcript's scroll element
-	// arrives late (StickToBottom attaches it), so it is reported up.
+	// CITE (2026-10-31): texto del tutor seleccionado → un chip de cita en el
+	// compositor y después su ventana de comentario. El elemento de scroll de la transcripción
+	// llega tarde (lo engancha StickToBottom), así que se comunica hacia arriba.
 	const [transcriptElement, setTranscriptElement] = useState<HTMLElement | null>(null);
 	const [citationEdit, setCitationEdit] = useState<CitationEditTarget | null>(null);
 	const lastCiteInputRef = useRef<HTMLElement | null>(null);
@@ -985,12 +988,12 @@ export function Chat({
 		() => createCiteAction({ chatId, composer: citeInput, openEditor: setCitationEdit }),
 		[chatId, citeInput],
 	);
-	// One durable companion per explanation/check, in teaching AND practice.
-	// Main requests append new raw exchanges from every thread; closing only hides the UI.
+	// Un acompañante duradero por cada explicación/comprobación, en la enseñanza Y en la práctica.
+	// Las peticiones principales añaden los intercambios en bruto nuevos de cada hilo; cerrar solo oculta la interfaz.
 	const workingRef = useRef("");
 	const sideThread = useSideThread(chatId, nativeMessages, () => {
-		// Plugin editors own opaque answer/submission values. Only host Thinking
-		// is safe helper context; read its live draft without introspecting the renderer.
+		// Los editores de los plugins son responsables de valores opacos de respuesta/envío. Solo el
+		// Thinking del host es contexto seguro para el auxiliar; lee su borrador vivo sin examinar el renderizador.
 		if (pendingPlugin) return pendingPlugin.showThinking ? pluginQuestionDraft(pendingPlugin).thinking : "";
 		if (activeProblem?.pluginProblem) return pluginProblemDraft(activeProblem.pluginProblem).thinking;
 		return workingRef.current;
@@ -1051,7 +1054,7 @@ export function Chat({
 		window.addEventListener(kbdEventForChat("toggle-question-thread"), toggleQuestionThread);
 		return () => window.removeEventListener(kbdEventForChat("toggle-question-thread"), toggleQuestionThread);
 	}, [toggleQuestionThread]);
-	// Advancing the lesson does not close or disable an old conversation.
+	// Avanzar la lección no cierra ni desactiva una conversación antigua.
 	const sideActions = useMemo(() => createSideQuestionActions({ open: openSideThread }), [openSideThread]);
 	const selectionActions = useMemo(() => [citeAction, ...sideActions], [citeAction, sideActions]);
 	const router = useRouter();
@@ -1075,35 +1078,35 @@ export function Chat({
 			dictationWasActiveRef.current = true;
 		} else if (dictationWasActiveRef.current) {
 			dictationWasActiveRef.current = false;
-			// Do not steal focus from a helper or a newer interaction owner.
+			// No robes el foco a un auxiliar ni a un responsable de la interacción más nuevo.
 			if (!document.activeElement?.closest('[data-testid="side-thread"]') && isInteractionScopeEligible(composerInputRef.current, controller)) composerInputRef.current!.focus();
 		}
 	}, [dictation.active, controller]);
 
-	// Jobs never gate the composer (contracts.ts "THE ASYNC PROTOCOL" §4): job
-	// tools resolve with an ack mid-turn, so the learner can interject while
-	// sub-agents run — a feature, not a race: the wake pipeline queues steers
-	// until the current turn ends. Only a QUESTION pending or a turn in
-	// flight (client or server-side wake turn) gates sending.
-	// A LIVE dictation also makes the composer sendable (owner 2026-10-01):
-	// the spoken text is deferred in the run's buffer — Enter must be able
-	// to trigger the finish-first send (see onSend), not be gated out by an
-	// empty textarea. If nothing was said, the send is a harmless no-op.
-	// Steering (2026-10-03): a turn in flight no longer gates the composer —
-	// Enter while a turn runs STEERS it (the quiet queue above the composer);
-	// a pending question still owns the interaction (the dock replaces the
-	// composer, and there is no live turn to steer anyway — questions end
-	// turns).
-	// Compaction (owner round 14): the RUNNING state — compaction-changed
-	// flips it; the send paths, canSend, and the docks gate on it (the
-	// server's registry mutex is the structural gate; this is the
-	// affordance).
+	// Las tareas nunca bloquean el compositor (contracts.ts "THE ASYNC PROTOCOL" §4): las
+	// herramientas de tareas se resuelven con un acuse a mitad de turno, así que el alumno puede intervenir mientras
+	// se ejecutan los subagentes — es una funcionalidad, no una carrera: el proceso de despertar encola las reorientaciones
+	// hasta que termina el turno actual. Solo una PREGUNTA pendiente o un turno en
+	// curso (turno de despertar del cliente o del servidor) bloquea el envío.
+	// Un dictado VIVO también hace que el compositor se pueda enviar (responsable 2026-10-01):
+	// el texto hablado se aplaza en el búfer de la ejecución — Enter debe poder
+	// disparar el envío que primero termina el dictado (ver onSend), no quedar bloqueado por un
+	// textarea vacío. Si no se dijo nada, el envío es una operación nula inofensiva.
+	// Reorientación (2026-10-03): un turno en curso ya no bloquea el compositor —
+	// Enter mientras se ejecuta un turno lo REORIENTA (la cola discreta encima del compositor);
+	// una pregunta pendiente sigue siendo la responsable de la interacción (el dock sustituye al
+	// compositor, y de todos modos no hay ningún turno vivo que reorientar — las preguntas terminan
+	// los turnos).
+	// Compactación (ronda 14 del responsable): el estado de EJECUCIÓN — compaction-changed
+	// lo cambia; las rutas de envío, canSend y los docks dependen de él (el
+	// mutex del registro del servidor es la barrera estructural; esto es la
+	// indicación).
 	const [compacting, setCompacting] = useState(initiallyCompacting);
 	submissionLive.current.ready = !compacting && reconciliation === "ready";
-	// A failed model response (issue #110): Retry keeps the saved input
-	// and completed work, without another learner message. Offered from
-	// "error" too: a dropped stream leaves the model there, and send()
-	// recovers from it. Later compaction requires new input instead.
+	// Una respuesta fallida del modelo (issue #110): Reintentar conserva la entrada guardada
+	// y el trabajo completado, sin otro mensaje del alumno. También se ofrece desde
+	// "error": un stream cortado deja ahí al modelo, y send()
+	// se recupera de ello. Una compactación posterior exige en cambio una entrada nueva.
 	const retryable = !pluginOwnsDock && (status === "ready" || status === "error") && !busy && !compacting && endsInFailedTurn(nativeMessages);
 	const retryFailedTurn = () => retryFailedResponse(send, draftRef);
 	const sendAllowed = !pluginOwnsDock && reconciliation === "ready" && !pending && !activeProblem && !compacting && !submissionRunner.occupied;
@@ -1112,10 +1115,10 @@ export function Chat({
 	const pendingThinkingTarget = thinkingTarget();
 	const pendingThinkingInput = !!pendingThinkingTarget && !!pluginManager?.hasPendingSubmissionInput(pendingThinkingTarget);
 
-	/* THE PRACTICE PAUSE (owner round 16): between problems — practice
-	 * kind, nothing active, nothing in flight, and at least one problem
-	 * has ever been posed (the fresh session's opening turn is owed, not
-	 * the move-on). Enter-on-empty and the Next chip both key on it. */
+	/* LA PAUSA DE LA PRÁCTICA (ronda 16 del responsable): entre problemas — tipo
+	 * práctica, nada activo, nada en curso y al menos un problema planteado
+	 * alguna vez (en una sesión nueva se debe el turno de apertura, no el
+	 * pasar al siguiente). Enter con el compositor vacío y el chip Next dependen de esto. */
 	const nextReady =
 		kind === "practice" &&
 		!pending &&
@@ -1134,14 +1137,14 @@ export function Chat({
 		void send({ type: "next" });
 	}, [nextReady, send, submissionRunner, pendingTextInput]);
 
-	/* ENTER FROM ANYWHERE (owner round 16 refinement, 2026-10-06 —
-	 * keyboard-first): the move-on must not require composer focus. The
-	 * window-level Enter (typing surfaces and buttons excluded — a
-	 * focused composer/button keeps its own lane, so no double fire)
-	 * fires the signal from body focus, a scroll, anywhere. sendNext
-	 * self-guards on nextReady, so the listener is inert outside the
-	 * pause — the dock-mounted listeners are gone by then (docks unmount
-	 * when nothing is active; the two never overlap). */
+	/* ENTER DESDE CUALQUIER SITIO (ajuste de la ronda 16 del responsable, 2026-10-06 —
+	 * primero el teclado): pasar al siguiente no debe exigir el foco en el compositor. El
+	 * Enter a nivel de window (excluidas las superficies de escritura y los botones — un
+	 * compositor/botón enfocado conserva su propio carril, así que no hay doble disparo)
+	 * dispara la señal con el foco en el body, tras un scroll, desde cualquier sitio. sendNext
+	 * se protege a sí mismo con nextReady, así que el oyente es inerte fuera de la
+	 * pausa — para entonces los oyentes montados en los docks ya no están (los docks se desmontan
+	 * cuando no hay nada activo; los dos nunca coinciden). */
 	useEnterSubmits(sendNext, sessionFindScopeRef);
 
 	const syncFromServer = useCallback(async () => {
