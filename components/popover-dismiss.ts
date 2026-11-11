@@ -2,13 +2,14 @@ import { useEffect, type RefObject } from "react";
 import { useInteractionLayer, useInteractionLayers } from "./interaction-layers";
 
 /**
- * Close-on-dismissal for floating panels (graph chrome, 2026-09-17):
- * any pointerdown landing OUTSIDE the control's root closes it; Escape
- * closes it too. The root contains both the toggle button and the panel,
- * so clicks on the control's own button stay "inside" — its toggle keeps
- * working — while a click on a sibling chrome button counts as outside:
- * pointerdown closes the open panel first, then the sibling's click opens
- * its own. Two dropdowns can therefore never be open at once.
+ * Cierre al descartar para los paneles flotantes (cromo del grafo,
+ * 2026-09-17): cualquier pointerdown que caiga FUERA de la raíz del control
+ * lo cierra; Escape también. La raíz contiene tanto el botón de alternar
+ * como el panel, así que los clics en el propio botón del control se quedan
+ * "dentro" — su alternancia sigue funcionando —, mientras que un clic en un
+ * botón hermano del cromo cuenta como externo: pointerdown cierra primero el
+ * panel abierto y luego el clic del hermano abre el suyo. Por tanto, nunca
+ * puede haber dos desplegables abiertos a la vez.
  */
 export function usePopoverDismiss(
 	rootRef: RefObject<HTMLElement | null>,

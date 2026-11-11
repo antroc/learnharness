@@ -19,7 +19,7 @@ function enterRegion(boundary: SurfaceBoundary, root: HTMLElement, remembered = 
 	if (active instanceof HTMLElement && root.contains(active) && controller.isElementEligible(active)) return;
 	const previous = remembered ? boundary.remembered.get(root) : undefined;
 	if (previous && controller.isElementEligible(previous)) { previous.focus({ preventScroll: true }); return; }
-	// Opt-in content entry only. Owning-page/native return policy is unchanged.
+	// Solo entrada de contenido opcional. La política de retorno de la página propietaria/nativa no cambia.
 	if (root.hasAttribute("data-plugin-session-surface")) {
 		const marked = [...root.querySelectorAll<HTMLElement>("[data-plugin-initial-focus]")].find(element => controller.isElementEligible(element));
 		if (marked) {
@@ -36,14 +36,14 @@ function enterRegion(boundary: SurfaceBoundary, root: HTMLElement, remembered = 
 		if (!heading.hasAttribute("tabindex")) heading.setAttribute("tabindex", "-1");
 		heading.focus({ preventScroll: true });
 	} else {
-		// The semantic surface root is display:contents; focus its painted frame.
+		// La raíz semántica de la superficie es display:contents; enfoca su marco pintado.
 		const fallback = root.querySelector<HTMLElement>("[data-plugin-session-surface-frame]") ?? root;
 		if (!fallback.hasAttribute("tabindex")) fallback.setAttribute("tabindex", "-1");
 		fallback.focus({ preventScroll: true });
 	}
 }
 
-/** A view, not a modal: no trap, global hiding, viewport portal or scroll lock. */
+/** Una vista, no un modal: sin trampa de foco, ocultación global, portal al viewport ni bloqueo del scroll. */
 export function PluginSurface({ pluginId, title, background = "dimmed", onClose, runtime, boundary, opener, children }: {
 	pluginId?: string;
 	title: string;
@@ -70,8 +70,8 @@ export function PluginSurface({ pluginId, title, background = "dimmed", onClose,
 	const focusInitial = useCallback(() => {
 		if (controller.getTopLayer()?.id === layerId && root.current) enterRegion(boundary, root.current);
 	}, [boundary, controller, layerId]);
-	// Capture authority BEFORE useInteractionLayer's registration cleanup. A
-	// covered disposal and a departing page have no return authority.
+	// Captura la autoridad ANTES de la limpieza del registro de useInteractionLayer. Un
+	// desecho tapado y una página que se va no tienen autoridad de retorno.
 	useLayoutEffect(() => () => {
 		if (boundary.signal.aborted || controller.getTopLayer()?.id !== layerId) return;
 		const generation = controller.getGeneration() + 1;
@@ -86,8 +86,8 @@ export function PluginSurface({ pluginId, title, background = "dimmed", onClose,
 	}, [boundary, controller, layerId, opener]);
 	const layer = useInteractionLayer({
 		id: layerId, kind: "view", enabled: !runtime.signal.aborted && !boundary.signal.aborted,
-		// Stack siblings share only the page owner, never another surface's
-		// lifecycle (a menu/dialog may explicitly own a surface descendant).
+		// Los hermanos de la pila solo comparten el responsable de la página, nunca el ciclo
+		// de vida de otra superficie (un menú/diálogo puede ser dueño explícito de un descendiente de la superficie).
 		ownerId: controller.ownerOf(boundary.body)?.id ?? null,
 		rootRef: root, portalRef: popup, onClose: close, focusInitial,
 	});
@@ -114,9 +114,9 @@ export function PluginSurface({ pluginId, title, background = "dimmed", onClose,
 				</svg>
 			</button>
 			</div>
-			{/* Same INTEGER rank, after the frame: even passive z-50 tooltips
-			    paint above this frame, while the host remains below newer views.
-			    No transform: fixed-position popup geometry remains viewport-based. */}
+			{/* El mismo rango ENTERO, después del marco: incluso los tooltips pasivos z-50
+			se pintan por encima de este marco, mientras el host queda por debajo de las vistas más nuevas.
+			Sin transform: la geometría de las ventanas emergentes en posición fija sigue basada en el viewport. */}
 			<div ref={popup} data-interaction-popup-host={layer.id}
 				className="pointer-events-none [&>*]:pointer-events-auto"
 				style={{ position: "absolute", inset: 0, zIndex: 100 + layer.order }} />

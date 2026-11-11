@@ -7,7 +7,7 @@ import type { Dictation } from "@/components/dictation";
 import { claimPluginInputFocus, PluginDictationControl, usePluginDictation } from "@/components/plugin-dictation";
 import { PluginModelPicker, PluginThinkingPicker, type PickerCommand } from "@/components/plugin-model-picker";
 
-/** Deferred transcript callbacks can be async; send must wait for all deliveries. */
+/** Los callbacks diferidos de la transcripción pueden ser asíncronos; el envío debe esperar todas las entregas. */
 export function createTranscriptDelivery() {
 	const pending = new Set<Promise<void>>();
 	let failure: { error: unknown } | null = null;
@@ -18,8 +18,8 @@ export function createTranscriptDelivery() {
 			try { task = Promise.resolve(deliver()); }
 			catch (error) { task = Promise.reject(error); }
 			pending.add(task);
-			// Observe/report without replacing the promise returned to the engine:
-			// Dictation.finish must await it and reject on failed delivery.
+			// Observa/informa sin sustituir la promesa devuelta al motor:
+			// Dictation.finish debe esperarla y rechazar si la entrega falla.
 			void task.then(() => pending.delete(task), (error: unknown) => {
 				failure = { error }; pending.delete(task); onError(error);
 			});
@@ -47,7 +47,7 @@ function run(callback: () => void | Promise<void>, report: (error: unknown) => v
 	try { void Promise.resolve(callback()).catch(report); } catch (error) { report(error); }
 }
 
-/** The exact core composer, with its learning/file defaults explicitly disabled. */
+/** El composer exacto del núcleo, con sus valores por defecto de aprendizaje/ficheros desactivados explícitamente. */
 export function PluginComposer({ value, onChange, onSend, busy = false, onStop, canSend, placeholder = "Message…", autoFocus, onError = reportDefault }: PluginComposerProps & Extra) {
 	return <Composer value={value} onChange={(next) => run(() => onChange(next), onError)} onSend={() => run(onSend, onError)}
 		onStop={() => run(() => onStop?.(), onError)} busy={busy} canSend={canSend ?? value.trim().length > 0}
@@ -94,7 +94,7 @@ export function PluginStandardComposer({ composer, model, thinking, dictation: d
 			<PluginComposer {...composer} canSend={composer.canSend ?? (composer.value.trim().length > 0 || dictation.active)}
 				onSend={async () => { await dictation.finish(); await latest.current.composer.onSend(); }} onError={onError} />
 		</div>
-		{/* Like the native dock, controls sit below the text-only shell. */}
+		{/* Como en el dock nativo, los controles van debajo del armazón solo de texto. */}
 		<div className="flex items-center gap-1.5 px-3 pt-2 font-ui text-xs text-muted-foreground">
 			<PluginDictationControl dictation={dictation} disabled={dictationProps.disabled} />
 			<PluginModelPicker {...model} commandRef={modelCommand} onError={onError} />

@@ -1,7 +1,7 @@
 import type { LhMessage, PluginSubmission, PluginSubmissionContext, PluginSubmissionInterceptor, PluginSubmissionTarget } from "../src/core/index.ts";
 import { copyPluginSubmissionHistory, copyPluginSubmissionTarget, preparePluginSubmission } from "../src/core/index.ts";
 
-/** Captured registration identity, not just an interceptor ID. */
+/** Identidad de registro capturada, no solo un ID de interceptor. */
 export interface SubmissionInterceptorRegistration {
 	readonly pluginId: string;
 	readonly pluginName: string;
@@ -22,8 +22,8 @@ function abortable<T>(value: T | PromiseLike<T>, signal: AbortSignal): Promise<T
 		Promise.resolve(value).then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
 	});
 }
-/** Observe the host control's known route only; no parallel model resolver.
- * Initial/unresolved reads and credential/catalog refreshes are not changes. */
+/** Observa solo la ruta conocida del control del host; sin un resolvedor de modelos paralelo.
+ * Las lecturas iniciales/sin resolver y los refrescos de credenciales/catálogo no son cambios. */
 export class SubmissionModelEpoch {
 	private known: string | undefined;
 	private revision = 0;
@@ -36,8 +36,8 @@ export class SubmissionModelEpoch {
 	isCurrent(revision: number) { return revision === this.revision; }
 }
 
-/** One native-view lease. Reservation precedes STT/editor awaits; release is
- * HTTP acknowledgment/refusal, deliberately NOT model stream completion. */
+/** Un préstamo de vista nativa. La reserva precede a los await de STT/editor; la liberación
+ * es el acuse/rechazo HTTP, a propósito NO el final del stream del modelo. */
 export class PluginSubmissionRunner {
 	private active: SubmissionAttempt | null = null;
 	constructor(private changed: () => void = () => {}) {}
@@ -112,7 +112,7 @@ export class SubmissionAttempt {
 		}
 		return new Error(`${message}${message.includes("Your input has been kept.") ? "" : ". Your input has been kept."}`);
 	}
-	/** Freeze observer registration before the first POST. */
+	/** Congela el registro de observadores antes del primer POST. */
 	deliver() { this.check(); this.phase = "delivering"; this.changed(); }
 	accepted = () => {
 		if (this.finished) return;

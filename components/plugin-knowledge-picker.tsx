@@ -9,7 +9,7 @@ import { HostDialog } from "@/components/host-dialog";
 import { InteractionLayerOwner, useInteractionLayer, useInteractionLayers, useOptionalInteractionLayers, type InteractionLayer, type OpeningLease } from "@/components/interaction-layers";
 import { HostContentRootContext, HostRouteLifetimeContext, type HostRouteLifetime } from "./host-content-root";
 
-/** One replaceable selector slot in the shared controller, not a private stack. */
+/** Una ranura de selector sustituible en el controlador compartido, no una pila privada. */
 const PICKER_SLOT = "knowledge-picker";
 const PICKER_LAYER = "knowledge-picker";
 interface PickerOrigin {
@@ -19,7 +19,7 @@ interface PickerOrigin {
 	modal: boolean;
 }
 
-/** A local view, never a modal: sidebar and native page chrome remain available. */
+/** Una vista local, nunca un modal: la barra lateral y el cromo nativo de la página siguen disponibles. */
 function PanePicker({ origin, openingLease, onClose, children }: {
 	origin: PickerOrigin; openingLease: OpeningLease; onClose: () => "closed"; children: ReactNode;
 }) {
@@ -32,8 +32,8 @@ function PanePicker({ origin, openingLease, onClose, children }: {
 		const search = root.current?.querySelector<HTMLElement>('input[aria-label="Search nodes"]');
 		if (search && controller.isElementEligible(search)) search.focus({ preventScroll: true });
 	}, [controller]);
-	// Snapshot authority before registration cleanup; covered/expired views do
-	// not return focus into an old route or steal it from a newer interaction.
+	// Instantánea de la autoridad antes de la limpieza del registro; las vistas tapadas/caducadas
+	// no devuelven el foco a una ruta antigua ni se lo roban a una interacción más reciente.
 	useLayoutEffect(() => () => {
 		if (origin.route?.signal.aborted || controller.getTopLayer()?.id !== PICKER_LAYER) return;
 		const generation = controller.getGeneration() + 1;
@@ -60,7 +60,7 @@ function PanePicker({ origin, openingLease, onClose, children }: {
 	</InteractionLayerOwner.Provider>, origin.pane!);
 }
 
-/** The practice picker, controlled by a plugin; graph/source IO remains host-owned. */
+/** El selector de práctica, controlado por un plugin; la E/S del grafo/fuentes sigue siendo del host. */
 export function PluginKnowledgePicker({ value, onChange, disabled, signal, onError }: PluginKnowledgePickerProps & {
 	signal: AbortSignal;
 	onError: (error: unknown) => void;
@@ -102,8 +102,8 @@ export function PluginKnowledgePicker({ value, onChange, disabled, signal, onErr
 
 	useLayoutEffect(() => {
 		alive.current = true;
-		// Only retry a graph-ready request waiting for its exact predecessor's
-		// unregister barrier. Other UI changes revoke pending leases centrally.
+		// Solo reintenta una petición lista para el grafo que espera la barrera de
+		// baja de su predecesora exacta. Otros cambios de interfaz revocan los préstamos pendientes de forma central.
 		const unsubscribe = controller?.subscribe(() => {
 			const source = origin.current;
 			if (source && ((source.owner && controller.getLayer(source.owner.id) !== source.owner) || source.route?.signal.aborted)) { close(); return; }
@@ -114,8 +114,8 @@ export function PluginKnowledgePicker({ value, onChange, disabled, signal, onErr
 		if (signal.aborted) abort();
 		return () => {
 			signal.removeEventListener("abort", abort); unsubscribe?.();
-			// Activity retains state: reset the logical opening before marking
-			// this owner inactive, so a later explicit click can open it anew.
+			// Activity conserva el estado: reinicia la apertura lógica antes de marcar
+			// inactivo a este responsable, para que un clic explícito posterior pueda volver a abrirla.
 			close(); alive.current = false;
 		};
 	}, [controller, signal, close, promote]);
@@ -130,8 +130,8 @@ export function PluginKnowledgePicker({ value, onChange, disabled, signal, onErr
 	const show = () => {
 		if (!alive.current || signal.aborted || latest.current.disabled || pending.current) return;
 		if (!controller) { latest.current.onError(new Error("Interaction layers require InteractionLayersProvider in AppShell (or the test fixture)")); return; }
-		// React portals originate at the global widget host. Resolve actual DOM
-		// ownership at invocation instead of inheriting that root's context.
+		// Los portales de React se originan en el host global de widgets. Resuelve la
+		// pertenencia real del DOM en la invocación en vez de heredar el contexto de esa raíz.
 		const invocationOwner = controller.ownerOf(trigger.current);
 		let ancestor = invocationOwner;
 		let modal = false;
@@ -145,7 +145,7 @@ export function PluginKnowledgePicker({ value, onChange, disabled, signal, onErr
 			latest.current.onError(new Error("Knowledge picker source is no longer in an active host pane")); return;
 		}
 		// Global dialogs own their own lifetime; the unrelated page behind a
-		// modal may navigate without expiring its still-live picker.
+		// el modal puede navegar sin que caduque su selector aún vivo.
 		const source: PickerOrigin = { pane, route: modal ? null : route, owner: invocationOwner, modal };
 		const owner: OpeningLease | null = controller.reserveOpening(PICKER_SLOT, { opener: trigger.current, onRevoke: () => {
 			if (lease.current !== owner) return;

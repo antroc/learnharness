@@ -6,8 +6,8 @@ import { MessageResponse } from "@/components/ai-elements/message";
 import { WorkerResultDetails } from "@/components/artifacts/worker-result-presentation";
 import { Hint } from "@/components/ui/hint";
 
-/** Host presentation shared by persisted worker results and the plugin widget.
- * Rich bodies may replace the text, never the host identity/status. */
+/** Presentación del host compartida por los resultados de worker persistidos y el widget del plugin.
+ * Los cuerpos enriquecidos pueden sustituir el texto, nunca la identidad/estado del host. */
 export function PluginWorkerResultSurface({ label, status, text, children, presentation = "collapsed" }: {
 	label: string;
 	status: "succeeded" | "failed" | "cancelled" | "interrupted";

@@ -1,6 +1,6 @@
-/** Defer opening setup until its owning effect and native boundary have
- * committed. Cleanup can retire a not-yet-started setup; this never retries a
- * submission whose finalization/hooks have already begun. */
+/** Difiere la preparación de la apertura hasta que su efecto propietario y el límite
+ * nativo se hayan confirmado. La limpieza puede retirar una preparación aún no
+ * iniciada; esto nunca reintenta un envío cuya finalización/hooks ya han empezado. */
 export function scheduleOpeningSubmission(isCurrent: () => boolean, start: () => void): () => void {
 	let live = true;
 	queueMicrotask(() => { if (live && isCurrent()) start(); });

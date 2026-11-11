@@ -11,7 +11,7 @@ function SchemaRow({ row, onError }: { row: PluginSettingsRow; onError?: (error:
 	const change = async (value: string | number | boolean): Promise<boolean> => {
 		if (changing.current || row.disabled) return false;
 		try {
-			// The discriminant controls the editor; no coercion outside that editor.
+			// El discriminante controla el editor; sin coerciones fuera de ese editor.
 			const validate = row.validate as ((value: typeof row.value) => string | undefined) | undefined;
 			const message = validate?.(value);
 			if (message) { setError(message); return false; }
@@ -23,8 +23,8 @@ function SchemaRow({ row, onError }: { row: PluginSettingsRow; onError?: (error:
 			setError(undefined);
 			changing.current = true;
 			const result = (row.onChange as (value: typeof row.value) => void | Promise<void>)(value);
-			// Disabling a native range mid-gesture cancels its drag. Synchronous
-			// controlled acknowledgements need no pending state; async saves do.
+			// Desactivar un range nativo a mitad de gesto cancela su arrastre. Los acuses
+			// controlados síncronos no necesitan estado pendiente; los guardados asíncronos sí.
 			if (result && typeof result.then === "function") {
 				setPending(true);
 				await result;
@@ -53,7 +53,7 @@ function SchemaRow({ row, onError }: { row: PluginSettingsRow; onError?: (error:
 	</div>;
 }
 
-/** Shared by imperative ctx.ui mounts and the host's declarative settings pages. */
+/** Compartido por los montajes imperativos de ctx.ui y las páginas de ajustes declarativas del host. */
 export function PluginSettingsRows({ schema, onError }: { schema: PluginSettingsSchema; onError?: (error: unknown) => void }) {
 	return <div className="flex flex-col gap-2">{schema.rows.map((row) => <SchemaRow key={row.key} row={row} onError={onError} />)}</div>;
 }

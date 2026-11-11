@@ -5,8 +5,8 @@ import { DictationBar, useDictation, type Dictation } from "@/components/dictati
 import { claimPluginInputFocus } from "@/components/plugin-input-focus";
 export { claimPluginInputFocus, dispatchFocusedPluginShortcut } from "@/components/plugin-input-focus";
 
-/** The callback is the explicit plugin destination. It is never registered
- * as the core composer/question target or core submit finisher. */
+/** El callback es el destino explícito del plugin. Nunca se registra como
+ * destino del composer/pregunta del núcleo ni como finalizador del envío del núcleo. */
 export function usePluginDictation({ append, disabled = false }: {
 	append: (text: string) => void | Promise<void>;
 	disabled?: boolean;
@@ -14,8 +14,8 @@ export function usePluginDictation({ append, disabled = false }: {
 	return useDictation({ append, destination: "explicit", disabled });
 }
 
-/** Standalone and preset composition share the exact engine and meter.
- * The caller owns the hook/controller and can await finish() before send. */
+/** La composición independiente y la predefinida comparten exactamente el mismo motor y medidor.
+ * Quien llama es dueño del hook/controlador y puede esperar a finish() antes de enviar. */
 export function PluginDictationControl({ dictation, disabled = false }: {
 	dictation: Dictation;
 	disabled?: boolean;

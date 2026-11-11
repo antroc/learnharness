@@ -24,8 +24,8 @@ export function PluginQuestionPresentation({ snapshot, chatId, registration, ans
 		const controller = new AbortController();
 		const container = root.current.ownerDocument.createElement("div");
 		root.current.append(container);
-		// All slots belong to this mount generation. Late callbacks and async
-		// cleanup can only mutate detached children, never a replacement's UI.
+		// Todas las ranuras pertenecen a esta generación de montaje. Los callbacks tardíos y la
+		// limpieza asíncrona solo pueden cambiar hijos desenganchados, nunca la interfaz de un sustituto.
 		const headerContainer = answer && headerRoot?.current ? container.ownerDocument.createElement("span") : undefined;
 		if (headerContainer) {
 			headerContainer.className = "inline-flex items-center";
@@ -52,12 +52,12 @@ export function PluginQuestionPresentation({ snapshot, chatId, registration, ans
 			}, fail);
 		} catch { fail(); }
 		return release;
-		// Stable saved identity: canonical adoption does not remount slots.
+		// Identidad guardada estable: la adopción canónica no vuelve a montar las ranuras.
 	}, [mount, snapshot.questionId, chatId, headerRoot, footerRoot]);
 	const fallback = !mount || unavailable;
 	return <>
-		{/* Keep the host root attached even during fallback so a replacement
-		    generation can mount immediately; each mount still owns its child. */}
+		{/* Mantén enganchada la raíz del host incluso durante la alternativa para que una
+		generación sustituta pueda montarse de inmediato; cada montaje sigue siendo dueño de su hijo. */}
 		<div ref={root} hidden={fallback} />
 		{fallback && (answer
 			? <div className="whitespace-pre-wrap text-sm">{typeof answer.answer === "string" ? answer.answer : JSON.stringify(answer.answer, null, 2)}</div>
@@ -69,8 +69,8 @@ export function PluginQuestionAnswered({ snapshot, answer, chatId, registration 
 	const headerRoot = useRef<HTMLSpanElement>(null);
 	const footerRoot = useRef<HTMLDivElement>(null);
 	return <>
-		{/* Reading precedes the question, exactly as in native answered cards.
-		    Presence remains authoritative, including defined empty channels. */}
+		{/* La lectura va antes de la pregunta, exactamente como en las tarjetas nativas respondidas.
+		La presencia sigue siendo determinante, incluidos los canales vacíos definidos. */}
 		{(answer.readingThinking !== undefined || !!answer.images?.readingThinking?.length) && <ThinkingBlock
 			testId="reading-thinking-block" label="YOUR THINKING" text={answer.readingThinking ?? ""} images={answer.images?.readingThinking} defaultOpen
 		/>}

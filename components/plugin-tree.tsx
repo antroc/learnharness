@@ -7,7 +7,7 @@ import { navigateTreeRows } from "./tree-navigation";
 import { useOptionalInteractionLayers, isInteractionElementVisible } from "./interaction-layers";
 import { isInteractionScopeEligible } from "./plugin-input-focus";
 
-/** Private widget validation: validate the full controlled update before mounting. */
+/** Validación privada del widget: valida la actualización controlada completa antes de montar. */
 export function validatePluginTree(tree: PluginTreeProps): void {
 	const columns = new Set<string>();
 	for (const column of tree.columns ?? []) {
@@ -32,7 +32,7 @@ function Content({ value, renderContent }: { value: PluginTreeContent; renderCon
 	return typeof value === "string" ? value : renderContent(value);
 }
 
-/** Native presentation and root-local row navigation; content keeps its own controls. */
+/** Presentación nativa y navegación de filas local a la raíz; el contenido conserva sus propios controles. */
 export function PluginTree({ label, rows, header, columns = [], signal, onError, renderContent }: PluginTreeProps & {
 	signal: AbortSignal;
 	onError?: (error: unknown) => void;

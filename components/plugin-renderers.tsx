@@ -10,11 +10,11 @@ import { ToolCallCard } from "@/components/artifacts/tool-call-card";
 import { DispatchCard } from "@/components/artifacts/dispatch-card";
 import { JobsContext } from "@/components/jobs-context";
 
-/** The Markdown dispatch uses this same exclusive built-in language. */
+/** El despacho de Markdown usa este mismo lenguaje integrado exclusivo. */
 export const BUILTIN_MERMAID_LANGUAGE = "mermaid";
 
-/** Only actual exclusive presentation claims: not every backend/internal tool.
- * A function avoids eager access across the existing artifact/chat module cycle. */
+/** Solo las reclamaciones reales de presentación exclusiva: no toda herramienta de backend/interna.
+ * Una función evita el acceso anticipado a través del ciclo de módulos artifact/chat existente. */
 export function reservedToolRendererNames(): string[] {
 	return [...new Set([...Object.keys(artifactRenderers), ...QUESTION_TOOLS, "plan_init"])];
 }
@@ -49,8 +49,8 @@ export function PluginCodeBlock({ language, source, meta, incomplete, fallback }
 	return <RendererMount registration={registration} mount={mount} label={`Plugin code block (${language})`} fallback={fallback} />;
 }
 
-/** Preserve native text (and an honest image attachment note) when no details
- * payload exists. Never serialize image bytes/base64 into the transcript. */
+/** Conserva el texto nativo (y una nota honesta de imagen adjunta) cuando no hay
+ * carga de details. Nunca serialices los bytes/base64 de una imagen en la transcripción. */
 export function nativeToolResultText(result: PluginToolRenderProps["result"]): string | undefined {
 	if (!result) return;
 	return result.content.map(block => block.type === "text" ? block.text : `[Image attached to the model: ${block.mimeType}]`).join("\n");
@@ -63,9 +63,10 @@ export function toolFallbackPart(part: LhViewPart): ArtifactPartProps["part"] {
 	};
 }
 
-/** Ordinary tools retain the expandable trace; accepted background calls use
- * the native dispatch/status card. Custom renderers replace either default body.
- * Disabled, failed, or uninstalled renderers never make native results vanish. */
+/** Las herramientas normales conservan la traza desplegable; las llamadas en segundo plano
+ * aceptadas usan la tarjeta nativa de despacho/estado. Los renderizadores propios sustituyen
+ * cualquiera de los dos cuerpos por defecto. Los renderizadores desactivados, fallidos o
+ * desinstalados nunca hacen desaparecer los resultados nativos. */
 export function PluginToolRenderer({ part, fallback: suppliedFallback }: { part: LhViewPart; fallback?: ReactNode }) {
 	const { snapshot } = usePlugins();
 	const jobs = useContext(JobsContext);
@@ -83,8 +84,8 @@ export function PluginToolRenderer({ part, fallback: suppliedFallback }: { part:
 			...(pluginId !== undefined && taskId !== undefined && status !== undefined ? { background: { pluginId, taskId, status } } : {}), signal,
 		});
 	}, [registration, toolName, part.toolCallId, part.input, part.state, part.output, part.errorText, content, details, isError, pluginId, taskId, status]);
-	// Native ACK details identify dispatch even before the jobs feed catches up.
-	// A later synthetic result must not turn back into its original dispatch.
+	// Los details del ACK nativo identifican el despacho incluso antes de que el feed de tareas se ponga al día.
+	// Un resultado sintético posterior no debe volver a convertirse en su despacho original.
 	const ack = details as { jobId?: unknown; dispatched?: unknown } | null | undefined;
 	const dispatched = !background && part.state === "output-available" && !isError && (
 		jobs.some(job => job.kind === "plugin" && job.toolCallId === part.toolCallId) ||
@@ -102,12 +103,12 @@ function isToolState(state: unknown): state is PluginToolRenderProps["state"] {
 	return state === "input-streaming" || state === "input-available" || state === "output-available" || state === "output-error";
 }
 
-/** Called by chat's default tool branch AFTER its explicit question/dock
- * handling. Built-in cards and the hidden settled plan call remain exclusive;
- * only the generic fallback slot is extensible by plugins. */
+/** Lo llama la rama de herramientas por defecto del chat DESPUÉS de su tratamiento
+ * explícito de preguntas/dock. Las tarjetas integradas y la llamada oculta del plan
+ * asentado siguen siendo exclusivas; solo la ranura alternativa genérica es ampliable por los plugins. */
 export function ToolPartRenderer({ part }: { part: LhViewPart }) {
-	// Attempts/unreadable metadata must never fall through to raw payloads or
-	// validator error text, including when the renderer is missing.
+	// Los intentos/metadatos ilegibles nunca deben caer en las cargas en bruto ni en el
+	// texto de error del validador, tampoco cuando falta el renderizador.
 	if (part.pluginQuestion) return <p role="status" className="text-xs text-muted-foreground">Question unavailable</p>;
 	const toolName = part.type.slice("tool-".length);
 	const Builtin = Object.hasOwn(artifactRenderers, toolName) ? artifactRenderers[toolName] : undefined;

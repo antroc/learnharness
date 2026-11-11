@@ -16,7 +16,7 @@ import { claimPluginInputFocus } from "@/components/plugin-dictation";
 export type PickerCommand = { invoke(): void };
 type Extra = { onError?: (error: unknown) => void; commandRef?: RefObject<PickerCommand | null> };
 
-/** Dismissal is scoped to this menu, not every menu in the document. */
+/** El descarte tiene como ámbito este menú, no todos los menús del documento. */
 export function usePluginMenuDismiss(open: boolean, root: RefObject<HTMLElement | null>, close: () => void) {
 	const interactions = useInteractionLayers();
 	useEffect(() => {

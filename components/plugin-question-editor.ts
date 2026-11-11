@@ -10,7 +10,7 @@ export function controlledPluginAnswer(value: PluginQuestionAnswerState): Plugin
 	return value.status === "empty" ? Object.freeze({ status: "empty" }) : freezePluginQuestionValue({ status: value.status, value: clonePluginQuestionJson(value.value) });
 }
 type EditorHandle = Pick<PluginQuestionEditorHandle, "focus" | "dispose" | "handleKeyDown" | "appendTranscript"> & { update: unknown };
-/** Both question and practice editors use one generation/cleanup authority. */
+/** Los editores de preguntas y de práctica usan una única autoridad de generación/limpieza. */
 function createEditorLease<P, H extends EditorHandle>(options: {
 	props(signal: AbortSignal, onChange: (state: PluginQuestionAnswerState) => void): P;
 	update(handle: H, state: PluginQuestionAnswerState, active: boolean): void;
@@ -32,7 +32,7 @@ function createEditorLease<P, H extends EditorHandle>(options: {
 		if (!current) return;
 		current = false; controller.abort();
 		const old = handle; handle = null;
-		try { old?.dispose(); } catch { /* unavailable host fallback already owns the surface */ }
+		try { old?.dispose(); } catch { /* la alternativa del host no disponible ya es dueña de la superficie */ }
 		options.changed();
 	}
 	return {

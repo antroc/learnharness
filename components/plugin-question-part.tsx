@@ -6,7 +6,7 @@ import { usePlugins } from "./plugins";
 import { SubmittedImages } from "./submitted-images";
 import { PluginQuestionAnswered } from "./plugin-question-slots";
 
-/** Visibility boundary precedes all generic tool/input/error rendering. */
+/** El límite de visibilidad va antes de todo render genérico de herramienta/entrada/error. */
 export function PluginQuestionPart({ part, chatId }: { part: LhViewPart; chatId: string }) {
 	const { snapshot: plugins } = usePlugins();
 	const annotation = part.pluginQuestion;

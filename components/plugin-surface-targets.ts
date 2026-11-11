@@ -1,7 +1,7 @@
 import type { PluginSurfaceTarget } from "@/src/core";
 import type { InteractionLayersController } from "./interaction-layers";
 
-/** Private, live view-instance registry. Tokens carry no serializable routing data. */
+/** Registro privado y vivo de instancias de vista. Los tokens no llevan datos de enrutado serializables. */
 export interface SurfaceBoundary {
 	target: PluginSurfaceTarget;
 	body: HTMLElement;
@@ -15,9 +15,9 @@ const currentPages = new WeakMap<Document, SurfaceBoundary>();
 
 export function registerSurfaceBoundary(body: HTMLElement, signal: AbortSignal, controller: InteractionLayersController): SurfaceBoundary {
 	const target = Object.freeze({}) as PluginSurfaceTarget;
-	// Child DOM is committed before page layout effects, while a view's mount
-	// callback may run before SurfaceRegion's target-driven follow-up effect.
-	// Bind only this body's already-mounted direct region and its mount slot.
+	// El DOM hijo se confirma antes de los efectos de layout de la página, mientras que el
+	// callback de montaje de una vista puede ejecutarse antes del efecto de seguimiento de SurfaceRegion guiado por el destino.
+	// Vincula solo la región directa ya montada de este cuerpo y su ranura de montaje.
 	const HtmlElement = body.ownerDocument.defaultView?.HTMLElement;
 	const stack = Array.from(body.children).find((child): child is HTMLElement =>
 		!!HtmlElement && child instanceof HtmlElement && child.isConnected && child.hasAttribute("data-session-surface-region") &&
@@ -39,7 +39,7 @@ export function findSurfaceBoundary(target: PluginSurfaceTarget | undefined): Su
 	return boundary && !boundary.signal.aborted && boundary.body.isConnected ? boundary : undefined;
 }
 
-/** Capture the active page once; never fall back to an older retained page. */
+/** Captura la página activa una vez; nunca recurras a una página retenida más antigua. */
 export function findCurrentSurfaceBoundary(document: Document): SurfaceBoundary | undefined {
 	return findSurfaceBoundary(currentPages.get(document)?.target);
 }

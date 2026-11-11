@@ -45,7 +45,7 @@ interface Lifecycle {
 	revision: string;
 	controller: AbortController;
 	cleanups: Set<PluginCleanup>;
-	/** Activation and every cooperative mount/cleanup must settle before reuse. */
+	/** La activación y cada montaje/limpieza cooperativos deben asentarse antes de reutilizar. */
 	activation: Promise<void>;
 	tasks: Set<Promise<void>>;
 	teardown?: Promise<void>;
@@ -67,7 +67,7 @@ interface Lifecycle {
 	error?: string;
 }
 export interface PluginHost {
-	/** Exclusive claims supplied by the actual host UI, not backend tool lists. */
+	/** Reclamaciones exclusivas aportadas por la interfaz real del host, no por listas de herramientas del backend. */
 	reservedCodeBlockLanguages?: readonly string[];
 	reservedToolNames?: readonly string[];
 	fetch: typeof fetch;
@@ -114,9 +114,9 @@ function validateSettingsSchema(value: unknown): asserts value is import("@/src/
 	}
 }
 
-/** Pure per-window lifecycle owner. No React, polling, or additional SSE source.
- * A lifecycle object IS its activation generation: every async continuation must
- * still own that exact object before registering or publishing anything. */
+/** Responsable puro del ciclo de vida por ventana. Sin React, sondeo periódico ni otra fuente SSE.
+ * Un objeto de ciclo de vida ES su generación de activación: toda continuación asíncrona debe
+ * seguir siendo dueña de ese objeto exacto antes de registrar o publicar nada. */
 export class PluginFrontendManager {
 	private infos: PluginInfo[] = [];
 	private lives = new Map<string, Lifecycle>();
@@ -171,8 +171,8 @@ export class PluginFrontendManager {
 	}
 	private disposeCallback(life: Lifecycle, cleanup: PluginCleanup) {
 		const failed = (error: unknown) => {
-			// Teardown errors remain visible while a replacement is waiting,
-			// but an old orphan must not overwrite a newer active generation.
+			// Los errores de desmontaje siguen visibles mientras espera un sustituto,
+			// pero un huérfano antiguo no debe sobrescribir una generación activa más reciente.
 			const current = this.lives.get(life.id);
 			if (this.disposed || (current && current !== life && current.phase !== "loading")) return;
 			this.cleanupErrors.set(life.id, message(error)); this.publish();
@@ -196,8 +196,8 @@ export class PluginFrontendManager {
 		};
 	}
 	private stop(life: Lifecycle) {
-		// Invalidate synchronously BEFORE abort dispatches plugin listeners.
-		// An inert activation-error placeholder may be stopped a second time.
+		// Invalida de forma síncrona ANTES de que abort despache los listeners del plugin.
+		// Un provisional inerte de error de activación puede detenerse una segunda vez.
 		if (this.lives.get(life.id) === life) this.lives.delete(life.id);
 		if (life.teardown) return life.teardown;
 		life.controller.abort();
@@ -207,9 +207,9 @@ export class PluginFrontendManager {
 		const cleanups = [...life.cleanups].reverse();
 		life.cleanups.clear();
 		for (const cleanup of cleanups) this.disposeCallback(life, cleanup);
-		// Activation may still RETURN a cleanup after abort, and mounts may
-		// likewise finish late. Their continuations immediately dispose orphan
-		// callbacks and add those promises to this generation's task set.
+		// La activación aún puede DEVOLVER una limpieza tras el abort, y los montajes
+		// también pueden acabar tarde. Sus continuaciones desechan de inmediato los
+		// callbacks huérfanos y añaden esas promesas al conjunto de tareas de esta generación.
 		const teardown = (async () => {
 			await life.activation;
 			while (life.tasks.size) await Promise.all([...life.tasks]);
@@ -239,7 +239,7 @@ export class PluginFrontendManager {
 			if (generation === this.requestGeneration) this.publish({ loading: false, error: message(error) });
 		}
 	}
-	/** Also the test seam for server-truth lifecycle transitions. */
+	/** También es la frontera de pruebas para las transiciones de ciclo de vida según la verdad del servidor. */
 	reconcile(infos: PluginInfo[]) {
 		if (this.disposed) return;
 		this.infos = infos;
@@ -258,8 +258,8 @@ export class PluginFrontendManager {
 			this.cleanupErrors.delete(info.id);
 			this.lives.set(info.id, life);
 			const previousTeardown = this.teardowns.get(info.id);
-			// Store the task before executing ANY plugin code (even styles can
-			// throw). Serialization is per package, never a window-wide queue.
+			// Guarda la tarea antes de ejecutar CUALQUIER código del plugin (hasta los estilos
+			// pueden lanzar). La serialización es por paquete, nunca una cola de toda la ventana.
 			life.activation = Promise.resolve().then(async () => {
 				await previousTeardown;
 				if (!this.current(life)) return;
@@ -309,7 +309,7 @@ export class PluginFrontendManager {
 			if (reserved?.includes(key)) rejectRenderer(`Plugin renderer ${kind} is reserved by the host: ${key}`);
 			const existing = kind === "language" ? this.getCodeBlock(key) : this.getToolRenderer(key);
 			if (existing) rejectRenderer(`Duplicate plugin renderer ${kind}: ${key}`);
-			// Snapshot the key/callback without losing class-method receivers.
+			// Instantánea de la clave/callback sin perder los receptores de los métodos de clase.
 			const presentation = kind === "toolName" ? (renderer as PluginToolRenderer).backgroundPresentation : undefined;
 			if (presentation !== undefined && !["collapsed", "card", "plain"].includes(presentation)) rejectRenderer("Invalid plugin worker result presentation");
 			const ownedRenderer = Object.freeze({ [kind]: key, mount: renderer.mount.bind(renderer), ...(presentation ? { backgroundPresentation: presentation } : {}) }) as unknown as T;
@@ -483,8 +483,8 @@ export class PluginFrontendManager {
 			life.phase = "active"; this.publish();
 		} catch (error) {
 			if (!this.current(life)) return;
-			// A failed activation is not retried on every SSE/refetch. Keep an
-			// inert error generation until explicitly disabled or revised.
+			// Una activación fallida no se reintenta en cada SSE/nueva petición. Mantén una
+			// generación de error inerte hasta que se desactive o se revise explícitamente.
 			this.stop(life);
 			life.phase = "error"; life.error = message(error);
 			this.lives.set(life.id, life); this.publish();
@@ -527,8 +527,8 @@ export class PluginFrontendManager {
 		if (life) this.deliver(life, life.notifications, event);
 	}
 	appEvent(event: ServerEvent) {
-		// Plugin messages have their own scoped channel, not a second delivery
-		// through onAppEvent (nor a cross-plugin notification leak).
+		// Los mensajes de plugin tienen su propio canal con ámbito, no una segunda entrega
+		// a través de onAppEvent (ni una fuga de notificaciones entre plugins).
 		if (event.type === "plugin-message") return;
 		for (const life of this.lives.values()) this.deliver(life, life.events, event);
 	}
@@ -542,7 +542,7 @@ export class PluginFrontendManager {
 			}
 		}
 	}
-	/** Route-keyed readers cannot expose retained/hidden pages or stale cleanup. */
+	/** Los lectores con clave de ruta no pueden exponer páginas retenidas/ocultas ni limpiezas obsoletas. */
 	registerShortcutPage(pathname: string, read: () => PluginPageActionContext | undefined) {
 		const entry = { read };
 		this.shortcutPages.set(pathname, entry);
@@ -552,14 +552,14 @@ export class PluginFrontendManager {
 		if (this.disposed) return;
 		const pathname = this.host.pathname(), page = this.shortcutPages.get(pathname);
 		if (page) return page.read();
-		// A session/plugin page must supply its actual context, never a guessed one.
+		// Una página de sesión/plugin debe aportar su contexto real, nunca uno supuesto.
 		if (/^\/(chat|plugins)\//.test(pathname) && pathname !== "/chat/new") return;
 		return { surface: "app", pathname };
 	}
 	async runAction(id: string, action: PluginAction, context: PluginActionContext | (() => PluginActionContext | undefined)) {
 		await this.startAction(id, action, context);
 	}
-	/** Synchronous admission lets the keyboard claim only an invoked action. */
+	/** La admisión síncrona deja que el teclado reclame solo una acción invocada. */
 	tryRunAction(id: string, action: PluginAction, context: () => PluginActionContext | undefined): boolean {
 		return this.startAction(id, action, context) !== undefined;
 	}
@@ -586,8 +586,8 @@ export class PluginFrontendManager {
 		for (const owner of this.captureSubmissionInterceptors()) {
 			try { if (owner.interceptor.hasPendingInput?.(frozen) === true) pending = true; this.submissionPredicateErrors.delete(owner); }
 			catch (error) {
-				// Readiness is queried during render. Report after render, and do
-				// not make one consistently failing predicate a render loop.
+				// La disponibilidad se consulta durante el render. Informa tras el render, y no
+				// conviertas un predicado que falla siempre en un bucle de render.
 				if (this.submissionPredicateErrors.get(owner) !== message(error)) {
 					this.submissionPredicateErrors.set(owner, message(error));
 					queueMicrotask(() => { if (owner.isCurrent()) owner.report(error); });
@@ -608,8 +608,8 @@ export class PluginFrontendManager {
 			if (this.current(life) && registration) return registration;
 		}
 	}
-	/** Bind a renderer mount to the registration as well as its activation.
-	 * Unregistering aborts these mounts immediately, not just after React renders. */
+	/** Vincula un montaje del renderizador tanto al registro como a su activación.
+	 * Dar de baja aborta estos montajes de inmediato, no solo tras el render de React. */
 	mountRenderer(registration: CodeBlockRegistration | ToolRendererRegistration, mount: PluginMount, container: HTMLElement, onError: (error: string) => void): () => void {
 		const isRegistered = () => "language" in registration.renderer
 			? this.getCodeBlock(registration.renderer.language) === registration
@@ -623,8 +623,8 @@ export class PluginFrontendManager {
 		mounts.add(release);
 		return release;
 	}
-	/** Each mount gets a private child. A late cleanup can never erase a new
-	 * view's DOM, including when navigating away and immediately back. */
+	/** Cada montaje recibe un hijo privado. Una limpieza tardía nunca puede borrar el DOM
+	 * de una vista nueva, tampoco al salir de la página y volver de inmediato. */
 	mount(id: string, mount: PluginMount, container: HTMLElement, onError: (error: string) => void): () => void {
 		const life = this.lives.get(id);
 		if (!life || !this.current(life)) return () => {};
@@ -638,7 +638,7 @@ export class PluginFrontendManager {
 			alive = false; controller.abort(); child.remove();
 			if (returned) { const cleanup = returned; returned = undefined; this.disposeCallback(life, cleanup); }
 		});
-		// Deferring to a microtask makes StrictMode's probe an inert mount.
+		// Diferirlo a una microtarea convierte el sondeo de StrictMode en un montaje inerte.
 		this.track(life, Promise.resolve().then(async () => {
 			if (!alive || !this.current(life)) return;
 			try {
@@ -653,7 +653,7 @@ export class PluginFrontendManager {
 		}));
 		return off;
 	}
-	/** Invalidation is immediate; callers may also await cooperative teardown. */
+	/** La invalidación es inmediata; quien llama también puede esperar el desmontaje cooperativo. */
 	dispose(): Promise<void> {
 		if (!this.disposed) {
 			this.disposed = true; this.requestGeneration++;

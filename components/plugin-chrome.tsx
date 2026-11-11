@@ -17,7 +17,7 @@ export interface PlacedPluginAction {
 	busy: boolean;
 }
 
-/** Registration is not placement. View targets always belong to the placing plugin. */
+/** Registrar no es colocar. Los destinos de vista siempre pertenecen al plugin que coloca. */
 export function placedPluginActions(plugins: readonly FrontendPlugin[], context: PluginActionContext): PlacedPluginAction[] {
 	return plugins.flatMap(plugin => {
 		if (!plugin.info.enabled || plugin.phase !== "active") return [];
@@ -35,7 +35,7 @@ export function placedPluginActions(plugins: readonly FrontendPlugin[], context:
 }
 
 export function pluginActionDisabled(action: PluginAction, context: PluginActionContext): boolean {
-	// Plugin callbacks are trusted, but a broken predicate must not break host chrome.
+	// Los callbacks de los plugins son de confianza, pero un predicado roto no debe romper el cromo del host.
 	try { return typeof action.disabled === "function" ? action.disabled(context) : action.disabled === true; }
 	catch { return true; }
 }
@@ -72,7 +72,7 @@ const GRAPH_CONTEXT = { placement: "graph", surface: "graph" } as const;
 const SIDEBAR_BUTTON = "flex min-w-0 w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
 const TOP_BUTTON = "flex h-9 min-w-0 max-w-48 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
 
-/** Core teaching/practice children lead the same row-major grid as placed actions. */
+/** Los hijos de enseñanza/práctica del núcleo encabezan la misma rejilla por filas que las acciones colocadas. */
 export function PluginSidebarActions({ children }: { children: ReactNode }) {
 	const { snapshot } = usePlugins();
 	const actions = placedPluginActions(snapshot.plugins, SIDEBAR_CONTEXT);
@@ -88,8 +88,8 @@ export function PluginGraphActions() {
 	const { open } = useSidebar();
 	const actions = placedPluginActions(snapshot.plugins, GRAPH_CONTEXT);
 	if (!actions.length) return null;
-	// Only buttons intercept canvas input. Wheel events over a button still
-	// bubble to this scroll container; transparent gaps target the canvas.
+	// Solo los botones interceptan la entrada del lienzo. Los eventos de rueda sobre un botón
+	// siguen subiendo a este contenedor de scroll; los huecos transparentes apuntan al lienzo.
 	return <div data-testid="plugin-graph-actions" aria-label="Plugin graph actions"
 		className={`lh-plugin-scroll lh-no-drag pointer-events-none absolute bottom-0 left-0 z-10 flex w-[3.25rem] flex-col gap-2 overflow-y-auto p-2 ${open ? "top-0" : "lh-plugin-graph-closed top-11"}`}>
 		{actions.map(item => <ActionButton key={item.key} item={item} context={GRAPH_CONTEXT} iconOnly
@@ -97,7 +97,7 @@ export function PluginGraphActions() {
 	</div>;
 }
 
-/** Count whole buttons only; reserve the overflow trigger whenever any do not fit. */
+/** Cuenta solo botones enteros; reserva el disparador de desbordamiento siempre que alguno no quepa. */
 export function fitPluginTopBarActions(widths: readonly number[], available: number, gap = 4, trigger = 36): number {
 	const all = widths.reduce((sum, width) => sum + width, 0) + Math.max(0, widths.length - 1) * gap;
 	if (all <= available) return widths.length;
@@ -140,7 +140,7 @@ export function PluginTopBarActions({ context, captureContext }: { context: Extr
 				const width = Number(css.flexGrow) > 0 ? parseFloat(css.minWidth) || 0 : sibling.getBoundingClientRect().width;
 				available -= width + (parseFloat(css.marginLeft) || 0) + (parseFloat(css.marginRight) || 0);
 			}
-			// Long titles may truncate, but never take the only overflow trigger's slot.
+			// Los títulos largos pueden truncarse, pero nunca ocupar la ranura del único disparador de desbordamiento.
 			if (title) available -= Math.min(title.scrollWidth, Math.max(0, available - 36));
 			const widths = Array.from(probes.current!.children).map(child => child.getBoundingClientRect().width);
 			setVisible(fitPluginTopBarActions(widths, Math.max(36, available)));
@@ -172,7 +172,7 @@ export function PluginTopBarActions({ context, captureContext }: { context: Extr
 
 	if (!actions.length) return null;
 	return <div ref={root} data-testid="plugin-top-bar-actions" className="lh-no-drag relative flex shrink-0 items-center gap-1">
-		{/* Off-flow intrinsic probes never create focus targets or drag-mask holes. */}
+		{/* Los sondeos intrínsecos fuera del flujo nunca crean destinos de foco ni agujeros en la máscara de arrastre. */}
 		<div ref={probes} aria-hidden="true" className="pointer-events-none invisible fixed left-0 top-0 flex w-max gap-1">
 			{actions.map(item => <span key={item.key} className={TOP_BUTTON}><ActionIcon action={item.action} /><span className="min-w-0 truncate">{item.action.name}</span></span>)}
 		</div>

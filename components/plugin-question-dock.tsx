@@ -33,7 +33,7 @@ export function PluginQuestionDock(props: PluginQuestionDockProps) {
 	return <PluginQuestionDockContent {...props} registration={registration} />;
 }
 
-/** Host-only component seam for deterministic DOM/capture fixtures, not SDK. */
+/** Frontera de componente solo del host para fixtures deterministas de DOM/captura, no del SDK. */
 export function PluginQuestionDockContent({ viewReader, snapshot, chatId, draft, expanded, reveal, onExpand, ready, reconciliation, available, readingRef, onMicAvailable, send, dismiss, registration, prepareSubmission }: PluginQuestionDockProps & { registration?: QuestionRendererRegistration }) {
 	const controller = useOptionalInteractionLayers();
 	const root = useRef<HTMLDivElement>(null);
@@ -57,9 +57,9 @@ export function PluginQuestionDockContent({ viewReader, snapshot, chatId, draft,
 	useLayoutEffect(() => { viewReader?.changed?.(); }, [viewReader, draft.answer, draft.thinking, draft.readingThinking, failed, available, registration]);
 	const key = pluginQuestionOccurrenceKey(snapshot.occurrence);
 	const canonicalReady = reconciliation === "ready";
-	// Unknown availability during reconciliation is not revocation. Retain
-	// only an already-admitted generation with the same live registration;
-	// new generations still require confirmed authority and interaction readiness.
+	// Una disponibilidad desconocida durante la reconciliación no es una revocación. Conserva
+	// solo una generación ya admitida con el mismo registro vivo; las generaciones
+	// nuevas siguen necesitando autoridad confirmada y disponibilidad para interactuar.
 	const sameLease = !!lease.current && !!registration && leaseRegistration.current === registration && leaseKey.current === key;
 	const mountRegistration = !reveal && ((canonicalReady && ready && available) || (sameLease && (!canonicalReady || available))) ? registration : undefined;
 	useEffect(() => {
@@ -103,7 +103,7 @@ export function PluginQuestionDockContent({ viewReader, snapshot, chatId, draft,
 			};
 			if (prepareSubmission) await prepareSubmission(capture, valid);
 			else { await finishDictation(); if (valid()) await send(capture()); }
-		} catch { /* Failed transcript delivery must never submit a stale answer. */ }
+		} catch { /* Una entrega fallida a la transcripción nunca debe enviar una respuesta obsoleta. */ }
 		finally { latch.current = false; setSubmitting(false); }
 	}, [controller, send, prepareSubmission]);
 	const latestSubmit = useRef(submit); latestSubmit.current = submit;
@@ -123,8 +123,8 @@ export function PluginQuestionDockContent({ viewReader, snapshot, chatId, draft,
 				...(current.current.snapshot.showThinking && thinking.current ? [{ contains: () => thinking.current === active || !!thinking.current?.contains(active), focus: () => thinking.current?.focus() }] : []),
 			];
 			if (!chain.length) return;
-			// Escape leaves the focused editor on this event. A one-field
-			// chain must blur instead of wrapping straight back into the editor.
+			// Escape abandona el editor enfocado en este evento. Una cadena de un
+			// solo campo debe quitar el foco en lugar de dar la vuelta directamente al editor.
 			if (key === "Escape" && chain.length === 1) { if (active instanceof HTMLElement) active.blur(); return; }
 			const index = chain.findIndex(field => field.contains()); chain[(index + 1) % chain.length]!.focus();
 		},
@@ -133,9 +133,9 @@ export function PluginQuestionDockContent({ viewReader, snapshot, chatId, draft,
 	const speechLease = snapshot.showThinking ? null : lease.current;
 	const append = useCallback(async (text: string) => {
 		const now = current.current;
-		if (now.reveal || keyOf(now.snapshot) !== key) return; // Reading owns the unrevealed phase.
-		// Host thinking is a draft channel, not plugin execution authority:
-		// an already-captured final must survive reconciliation or compaction.
+		if (now.reveal || keyOf(now.snapshot) !== key) return; // La lectura es dueña de la fase sin revelar.
+		// El thinking del host es un canal del borrador, no autoridad de ejecución del plugin:
+		// un final ya capturado debe sobrevivir a la reconciliación o la compactación.
 		if (snapshot.showThinking) { draft.thinking = joinDictation(draft.thinking, text); render(); }
 		else if (!failed && speechLease === lease.current && now.registration && leaseRegistration.current === now.registration && now.available) await speechLease?.append(text);
 	}, [key, snapshot.showThinking, speechLease, reveal, failed, draft]);
@@ -154,7 +154,7 @@ export function PluginQuestionDockContent({ viewReader, snapshot, chatId, draft,
 				{unavailable && <p role="status" className="text-sm text-muted-foreground">Question unavailable</p>}
 				<div ref={editor} className={unavailable || failed ? "hidden" : "min-w-0"} />
 			</div>
-			{/* Plugin DOM is intentionally outside the footer's native form. */}
+			{/* El DOM del plugin queda a propósito fuera del formulario nativo del pie. */}
 			<form onSubmit={event => { event.preventDefault(); void submit(); }} className="border-t border-border/60 p-1.5">
 				<div data-testid={snapshot.showThinking ? "thinking-field" : undefined}
 					className={snapshot.showThinking ? "rounded-[10px] border border-border/70 bg-background/60 transition-colors focus-within:border-primary/50" : undefined}>

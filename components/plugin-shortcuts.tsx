@@ -45,15 +45,15 @@ export function pluginShortcutScopeLabel(candidate: PluginShortcutCandidate): st
 	return scope === "app" ? "App-wide" : [...(scope.sessions ?? []).map(kind => kind === "teaching" ? "Teaching" : "Practice"), ...(scope.views?.length ? [`Views: ${scope.views.join(", ")}`] : [])].join(" · ");
 }
 
-/** Window-bubble fallback only; never an independent low-level plugin listener. */
+/** Solo alternativa por burbujeo hasta la ventana; nunca un listener de plugin independiente de bajo nivel. */
 export function dispatchPluginActionShortcut(event: KeyboardEvent, manager: PluginFrontendManager | null, controller: InteractionLayersController | null): boolean {
 	if (!manager || !controller || event.defaultPrevented || event.repeat || event.isComposing || event.keyCode === 229 || event.getModifierState?.("AltGraph")) return false;
 	if (isTypingSurface(event) && !(event.metaKey || event.ctrlKey || event.altKey)) return false;
 	const binding = eventBinding(event), snapshot = manager.getSnapshot();
 	const rows = resolvePluginShortcuts(pluginShortcutCandidates(snapshot.plugins), loadOverrides(), coreShortcutBindings()).filter(row => row.binding === binding && row.status === "active");
 	if (!rows.length) return false;
-	// The event's original foreground and current foreground must agree. A leaf
-	// closing/opening UI cannot make this same physical key reach another owner.
+	// El primer plano original del evento y el actual deben coincidir. Una hoja que
+	// cierra/abre interfaz no puede hacer que esta misma tecla física llegue a otro responsable.
 	const original = controller.getEventOwner(event), foreground = controller.getTopLayer();
 	if (original !== foreground) return false;
 	let page: PluginPageActionContext | undefined;

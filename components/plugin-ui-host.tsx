@@ -85,7 +85,7 @@ function validateSurfaceBackground({ background }: PluginSurfaceProps) {
 	}
 }
 
-/** Imperative plugin calls become portals in the host tree, never isolated React roots. */
+/** Las llamadas imperativas de los plugins se convierten en portales en el árbol del host, nunca en raíces de React aisladas. */
 export function createPluginUiStore() {
 	let serial = 0;
 	let snapshot: readonly WidgetEntry[] = [];
@@ -100,13 +100,13 @@ export function createPluginUiStore() {
 				try { if (onError) onError(error); else console.error("Plugin UI failed", error); }
 				catch (reportError) { console.error("Plugin UI error reporter failed", reportError); }
 			};
-			// Identity is this UI owner's exact element, not a plugin id or selector.
+			// La identidad es el elemento exacto de este responsable de interfaz, no un id de plugin ni un selector.
 			const menus = new WeakMap<HTMLElement, { close(): boolean }>();
 			function mount<Props>(container: HTMLElement, props: Props, options: PluginWidgetOptions, render: (props: Props, runtime: Runtime) => ReactNode, nativeSignal?: AbortSignal, surface = false, validate?: (props: Props) => void, contentRecords: readonly string[] = [], onMount?: (runtime: Runtime, current: () => Props) => void): PluginWidgetHandle<Props> {
 				const scope = new AbortController();
 				const target = container.ownerDocument.createElement("div");
 				target.dataset.pluginUiWidget = "";
-				// Surface portal wrappers are transparent to the shared local paint stack.
+				// Los envoltorios de portal de las superficies son transparentes para la pila de pintado local compartida.
 				if (surface) target.style.display = "contents";
 				let current = props;
 				let disposed = false;
@@ -123,8 +123,8 @@ export function createPluginUiStore() {
 					publish();
 				};
 				const runtime: Runtime = { signal: scope.signal, report, dispose };
-				// Resolve callbacks from the latest controlled props, even when update()
-				// happens inside an async transcript callback before React's next render.
+				// Resuelve los callbacks a partir de las últimas props controladas, incluso cuando update()
+				// ocurre dentro de un callback asíncrono de la transcripción antes del siguiente render de React.
 				type CallbackPathPart = string | number | { key: string };
 				function protect(value: unknown, path: CallbackPathPart[] = []): unknown {
 					if (typeof value === "function" && String(path.at(-1)).startsWith("on")) {
@@ -144,15 +144,15 @@ export function createPluginUiStore() {
 						};
 					}
 					if (Array.isArray(value)) return value.map((child: unknown, index) => {
-						// Rendered rows/menu items retain their identity across synchronous
-						// reorders. A removed item's old control must never invoke its successor.
+						// Las filas/elementos de menú renderizados conservan su identidad entre reordenaciones
+						// síncronas. El control antiguo de un elemento eliminado nunca debe invocar a su sucesor.
 						const identity = child !== null && typeof child === "object" && "key" in child && typeof child.key === "string"
 							? { key: child.key } : index;
 						return protect(child, [...path, identity]);
 					});
 					if (value && typeof value === "object" && Object.getPrototypeOf(value) === Object.prototype) {
-						// Content dictionaries have arbitrary author-defined keys. An
-						// "on..." cell is a mount function, not an event callback.
+						// Los diccionarios de contenido tienen claves arbitrarias definidas por el autor. Una
+						// celda "on..." es una función de montaje, no un callback de evento.
 						return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, contentRecords.includes(key) ? child : protect(child, [...path, key])]));
 					}
 					return value;
@@ -212,8 +212,8 @@ export function createPluginUiStore() {
 					{props.content && <PluginContent content={props.content} runtime={runtime} />}
 				</PluginWorkerResultSurface>),
 				openMenu: (anchor, props, options) => {
-					// A menu is an anchored interactive child, not another visual stack
-					// sibling. It cannot outlive its surface and reportal to the body.
+					// Un menú es un hijo interactivo anclado, no otro hermano de la pila visual.
+					// No puede sobrevivir a su superficie ni volver a ir en portal al body.
 					if (lifetime.aborted || options.signal.aborted || !anchor.isConnected) return { update() {}, dispose() {} };
 					const existing = menus.get(anchor);
 					if (existing) { existing.close(); return { update() {}, dispose() {} }; }
@@ -225,15 +225,15 @@ export function createPluginUiStore() {
 						const menu = { close() {
 							if (closing || runtime.signal.aborted) return false;
 							closing = true;
-							// Release before callbacks: reentrant opens own a fresh entry, and
-							// disposing this old widget must not erase their registration.
+							// Libera antes de los callbacks: las aperturas reentrantes son dueñas de una entrada nueva,
+							// y desechar este widget antiguo no debe borrar su registro.
 							forget();
 							invoke(current().onClose, runtime.report);
 							runtime.dispose();
 							return true;
 						} };
 						closeMenu = menu.close;
-						menus.set(anchor, menu); // Before publish, including synchronous subscribers.
+						menus.set(anchor, menu); // Antes de publicar, incluidos los suscriptores síncronos.
 						runtime.signal.addEventListener("abort", forget, { once: true });
 					});
 				},
@@ -243,7 +243,7 @@ export function createPluginUiStore() {
 				},
 				openSurface: (targetOrProps: PluginSurfaceTarget | PluginSurfaceProps, propsOrOptions: PluginSurfaceProps | PluginWidgetOptions, explicitOptions?: PluginWidgetOptions) => {
 					const options = explicitOptions ?? propsOrOptions as PluginWidgetOptions;
-					// Abort wins over page capture and validation, matching existing inert handles.
+					// El abort gana a la captura de página y a la validación, igual que los manejadores inertes existentes.
 					if (lifetime.aborted || options.signal.aborted) return { update() {}, dispose() {} };
 					const props = (explicitOptions ? propsOrOptions : targetOrProps) as PluginSurfaceProps;
 					const boundary = requireSurfaceBoundary(explicitOptions ? targetOrProps as PluginSurfaceTarget : findCurrentSurfaceBoundary(document)?.target);

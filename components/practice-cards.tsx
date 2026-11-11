@@ -5,19 +5,22 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import type { ArtifactPartProps } from "@/src/core";
 
 /**
- * The practice transcript cards (practice sessions, owner design
- * 2026-10-04): three quiet records in the stream —
+ * Las tarjetas de práctica de la transcripción (sesiones de práctica, diseño
+ * del responsable 2026-10-04): tres registros tranquilos en el flujo —
  *
- * - ProblemCard — a posed problem: the statement, compact-expandable
- *   (like every card here; the dock is the working surface, this is the
- *   record). The commitment NEVER renders — only the call's statement.
- * - ConcludeCard — the conclusion: outcome badge + verdict + the reveal
- *   (the committed solution, shown when the problem ended). A dismissal
- *   synthesis (outcome:"dismissed") renders as one muted line.
- * - ThinkingCard — the learner's own submission, user-side: the register
- *   is the two buttons' (Nudge = working trace, Commit = answer). The
- *   UNIFIED ThinkingBlock (owner round 2026-10-05): the quiz quote-block
- *   language in a faint user-side shell, never collapsible.
+ * - ProblemCard — un problema planteado: el enunciado, compacto y
+ *   desplegable (como todas las tarjetas de aquí; el dock es la superficie de
+ *   trabajo, esto es el registro). El compromiso NUNCA se renderiza — solo
+ *   el enunciado de la llamada.
+ * - ConcludeCard — la conclusión: insignia de resultado + veredicto + la
+ *   revelación (la solución comprometida, mostrada cuando acaba el problema).
+ *   Una síntesis de descarte (outcome:"dismissed") se renderiza como una
+ *   única línea atenuada.
+ * - ThinkingCard — el envío propio del alumno, del lado del usuario: el
+ *   registro es el de los dos botones (Nudge = traza de trabajo, Commit =
+ *   respuesta). El ThinkingBlock UNIFICADO (ronda del responsable
+ *   2026-10-05): el lenguaje de bloque de cita del quiz en un armazón leve
+ *   del lado del usuario, nunca plegable.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -28,12 +31,13 @@ import { usePopoverDismiss } from "@/components/popover-dismiss";
 import { INTERACTION_LAYER_Z_BASE } from "@/components/host-dialog";
 import { useInteractionLayers } from "@/components/interaction-layers";
 
-/* TARGET NAMES (owner round 17, 2026-10-06): targets are normalized to
- * opaque node ids at the record seam (owner round 9 — the mastery trace
- * groups on them), so the drawer resolves names at render time. One
- * lazy module-cached fetch of the graph view (the id → name map is a
- * few KB); failures degrade to raw ids — observability never breaks the
- * card. */
+/* NOMBRES DE LOS OBJETIVOS (ronda 17 del responsable, 2026-10-06): los
+ * objetivos se normalizan a ids de nodo opacos en la frontera del registro
+ * (ronda 9 del responsable — la traza de dominio agrupa por ellos), así que
+ * el cajón resuelve los nombres al renderizar. Una petición perezosa y en
+ * caché de módulo de la vista del grafo (el mapa id → nombre ocupa unos
+ * pocos KB); los fallos degradan a ids en bruto — la observabilidad nunca
+ * rompe la tarjeta. */
 let nodeNameMapPromise: Promise<Record<string, string>> | null = null;
 function nodeNameMap(): Promise<Record<string, string>> {
 	nodeNameMapPromise ??= fetch("/api/graph")
@@ -49,20 +53,20 @@ function nodeNameMap(): Promise<Record<string, string>> {
 	return nodeNameMapPromise;
 }
 
-/** The practice-thinking marker's details (native-messages.ts). */
+/** Los details del marcador de thinking de práctica (native-messages.ts). */
 export interface PracticeThinkingData {
 	problemCallId: string;
-	/** Legacy records (pre 2026-10-05) carry the old two-lane flag; ignored. */
+	/** Los registros heredados (anteriores al 2026-10-05) llevan el antiguo indicador de dos carriles; se ignora. */
 	commit?: boolean;
 	text: string;
 	images?: readonly Readonly<import("@earendil-works/pi-ai").ImageContent>[];
 }
 
 export function ProblemCard({ part }: ArtifactPartProps) {
-	// Always open, no chevron (owner round, 2026-10-05): the record IS the
-	// statement — same container + eyebrow discipline as the answered card
-	// and the dock (which mirrors this in Slice D). The commitment never
-	// renders — only the call's statement.
+	// Siempre abierta, sin chevron (ronda del responsable, 2026-10-05): el registro ES
+	// el enunciado — la misma disciplina de contenedor + antetítulo que la tarjeta
+	// respondida y el dock (que refleja esto en el Slice D). El compromiso nunca
+	// se renderiza — solo el enunciado de la llamada.
 	const input = (part.input ?? {}) as { statement?: string };
 	const statement = typeof input.statement === "string" ? input.statement : "";
 	return (
@@ -83,11 +87,12 @@ const OUTCOME_LABEL: Record<string, string> = {
 	dismissed: "Dismissed",
 };
 
-/* The outcome chips (owner round 3, 2026-10-05): the EXACT register of the
- * quiz cards' correct/incorrect bubbles. Colors per outcome — solved reads
- * green (the "correct" twin), solved-with-hints amber (succeeded with
- * cost), surrendered red (the problem beat the learner), moved on muted
- * (the agent's call, not a verdict against him). */
+/* Los chips de resultado (ronda 3 del responsable, 2026-10-05): el registro
+ * EXACTO de las burbujas de correcto/incorrecto de las tarjetas del quiz.
+ * Colores por resultado — resuelto en verde (el gemelo de "correcto"),
+ * resuelto con pistas en ámbar (éxito con coste), rendido en rojo (el
+ * problema pudo con el alumno), pasado a otro atenuado (decisión del agente,
+ * no un veredicto en su contra). */
 const OUTCOME_COLOR: Record<string, string | undefined> = {
 	solved: "var(--lh-success)",
 	solvedWithHints: "var(--lh-warning)",
@@ -95,20 +100,20 @@ const OUTCOME_COLOR: Record<string, string | undefined> = {
 };
 
 export function ConcludeCard({ part }: ArtifactPartProps) {
-	// The conclusion redesigned (owner round, 2026-10-05): the SOLUTION is
-	// the hero — the modelSolution committed at pose time (part.reveal, the
-	// view-seam join), shown verbatim, never re-authored. The verdict sits
-	// below in the quiz-explanation register (small, muted, low-key).
-	// Nothing collapsible. Legacy inputs (pre-slim records) that carry
-	// their own solutionReveal fall back to it.
+	// La conclusión rediseñada (ronda del responsable, 2026-10-05): la SOLUCIÓN es
+	// la protagonista — la modelSolution comprometida al plantear (part.reveal, el
+	// join de la frontera de la vista), mostrada al pie de la letra, nunca reescrita.
+	// El veredicto va debajo en el registro de explicación del quiz (pequeño, atenuado, discreto).
+	// Nada plegable. Las entradas heredadas (registros anteriores al adelgazamiento) que
+	// llevan su propio solutionReveal recurren a él.
 	const input = (part.input ?? {}) as { outcome?: string; verdict?: string; solutionReveal?: string };
 	const outcome = typeof input.outcome === "string" ? input.outcome : "";
 	const verdict = typeof input.verdict === "string" ? input.verdict : "";
 	const reveal =
 		typeof part.reveal === "string" ? part.reveal : typeof input.solutionReveal === "string" ? input.solutionReveal : "";
 
-	// The dismissal synthesis: no verdict, no reveal — one muted line (the
-	// learner clicked; the record needs only the fact).
+	// La síntesis de descarte: sin veredicto, sin revelación — una línea atenuada (el
+	// alumno hizo clic; el registro solo necesita el hecho).
 	if (outcome === "dismissed") {
 		return (
 			<div data-testid="conclude-card" className="my-1 px-1 text-sm text-muted-foreground/70">
@@ -119,24 +124,24 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 
 	return (
 		<div data-testid="conclude-card" className="lh-card-enter relative my-1 rounded-xl border bg-card p-4">
-			{/* The heading row (owner round 3, 2026-10-05): plain 'Concluded'
-			    eyebrow + the outcome in the quiz cards' EXACT chip register —
-			    no more two same-weight headings stacked. */}
+			{/* La fila de cabecera (ronda 3 del responsable, 2026-10-05): antetítulo
+			'Concluded' sencillo + el resultado en el registro EXACTO de chip de las
+			tarjetas del quiz — se acabaron dos encabezados del mismo peso apilados. */}
 			<div className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
 				Concluded
 				{(OUTCOME_LABEL[outcome] ?? "") !== "" && outcome !== "dismissed" && (
 					<StatusBadge text={OUTCOME_LABEL[outcome] ?? ""} color={OUTCOME_COLOR[outcome]} />
 				)}
 			</div>
-			{/* The verdict — plain prose under the heading, no 'Verdict:' label
-			    (owner round 3): the same quiet 50% register as quiz explanations. */}
+			{/* El veredicto — prosa sencilla bajo la cabecera, sin etiqueta 'Verdict:'
+			(ronda 3 del responsable): el mismo registro tranquilo al 50% que las explicaciones del quiz. */}
 			{verdict.length > 0 && (
 				<div className="text-sm text-foreground/50">
 					<ToolContentResponse>{verdict}</ToolContentResponse>
 				</div>
 			)}
-			{/* Then the divider, then the labeled model solution (Slice G: the
-			    hero is the pose's commitment, verbatim). */}
+			{/* Luego el divisor y luego la solución modelo etiquetada (Slice G: la
+			protagonista es el compromiso del planteamiento, al pie de la letra). */}
 			{reveal.length > 0 && (
 				<>
 					<div className="my-3 border-t" />
@@ -156,19 +161,21 @@ export function ConcludeCard({ part }: ArtifactPartProps) {
 	);
 }
 
-/* THE METADATA POPOVER (owner round 17 refinement, 2026-10-06 — full
- * transparency): a quiet METADATA trigger at the very bottom of the
- * conclude card (no divider — it just sits there); click opens the
- * info-box register of the graph-view node cards (rounded-xl border
- * bg-card p-4 shadow-lg, opening BELOW the trigger — always); any scroll or
- * click outside closes it (plus Esc, claimed from the layered chain
- * per the popover law). Shows every field the agent filled in both the
- * problem call (mode, targets — names resolved lazily) and the
- * conclude call (outcome, rung, miss class, retest). Statement and
- * modelSolution stay out — they are the visible card. The data keeps
- * the original SMALL register (text-xs rows, mono values — owner
- * correction: the 15px pass was way too large); the trigger matches
- * the eyebrow size; the box opens BELOW the trigger, always. */
+/* EL POPOVER DE METADATOS (refinamiento de la ronda 17 del responsable,
+ * 2026-10-06 — transparencia total): un disparador METADATA discreto al
+ * final de la tarjeta de conclusión (sin divisor — simplemente está ahí);
+ * el clic abre el registro de recuadro informativo de las tarjetas de nodo
+ * de la vista del grafo (rounded-xl border bg-card p-4 shadow-lg, abriéndose
+ * DEBAJO del disparador — siempre); cualquier scroll o clic fuera lo cierra
+ * (además de Esc, reclamado de la cadena por capas según la ley de los
+ * popovers). Muestra todos los campos que el agente rellenó tanto en la
+ * llamada del problema (modo, objetivos — nombres resueltos de forma
+ * perezosa) como en la de conclusión (resultado, peldaño, clase de fallo,
+ * reevaluación). El enunciado y la modelSolution quedan fuera — son la
+ * tarjeta visible. Los datos conservan el registro PEQUEÑO original (filas
+ * text-xs, valores monoespaciados — corrección del responsable: la pasada a
+ * 15px era demasiado grande); el disparador iguala el tamaño del antetítulo;
+ * la caja se abre DEBAJO del disparador, siempre. */
 function MetadataPopover({
 	concludeInput,
 	problemInput,
@@ -181,15 +188,15 @@ function MetadataPopover({
 	const rootRef = useRef<HTMLDivElement | null>(null);
 	const panelRef = useRef<HTMLDivElement | null>(null);
 	const interactions = useInteractionLayers();
-	// The portal's anchor (owner fix, 2026-10-06): the box is placed from
-	// the trigger's viewport rect AT OPEN TIME — any scroll closes the
-	// box, so there is nothing to track.
+	// El ancla del portal (arreglo del responsable, 2026-10-06): la caja se coloca a
+	// partir del rect del disparador en el viewport EN EL MOMENTO DE ABRIR — cualquier
+	// scroll cierra la caja, así que no hay nada que seguir.
 	const [anchor, setAnchor] = useState<{ top: number; left: number } | null>(null);
 	const [names, setNames] = useState<Record<string, string> | null>(null);
 	const targets = Array.isArray(problemInput.target)
 		? problemInput.target.filter((t): t is string => typeof t === "string")
 		: [];
-	// Resolve names only when there is something to resolve.
+	// Resuelve nombres solo cuando hay algo que resolver.
 	useEffect(() => {
 		if (!open || targets.length === 0 || names) return;
 		let alive = true;
@@ -202,8 +209,8 @@ function MetadataPopover({
 	}, [open, targets.length, names]);
 
 	const popupLayer = usePopoverDismiss(rootRef, open, () => setOpen(false), { layerRootRef: panelRef });
-	// ANY scroll closes it (owner law): capture-phase, so every scroller
-	// in the tree counts — the transcript's own scroll included.
+	// CUALQUIER scroll lo cierra (ley del responsable): en fase de captura, para que cuente
+	// todo elemento con scroll del árbol — incluido el propio scroll de la transcripción.
 	useEffect(() => {
 		if (!open) return;
 		const close = () => { if (interactions.isElementEligible(panelRef.current)) setOpen(false); };
@@ -229,8 +236,8 @@ function MetadataPopover({
 						if (v) return false;
 						const r = triggerRef.current?.getBoundingClientRect();
 						if (r) {
-							// Below the trigger, always; clamped so the 320px box
-							// never leaves the viewport's right edge.
+							// Debajo del disparador, siempre; acotada para que la caja de 320px
+							// nunca salga por el borde derecho del viewport.
 							const left = Math.max(8, Math.min(r.left, window.innerWidth - 328));
 							setAnchor({ top: r.bottom + 8, left });
 						}
@@ -248,12 +255,12 @@ function MetadataPopover({
 					<div
 						ref={panelRef}
 						data-testid="metadata-box"
-						// PORTALED TO BODY (owner fix, 2026-10-06): the transcript's
-						// MessageContent boxes carry overflow-hidden — an absolutely
-						// positioned child clips at its own message block's edge (the
-						// cut-off bug). A fixed-position portal sits on top of
-						// EVERYTHING, the dialogs' law. Node-card info-box register;
-						// opening BELOW the trigger — always.
+						// EN PORTAL AL BODY (arreglo del responsable, 2026-10-06): las cajas
+						// MessageContent de la transcripción llevan overflow-hidden — un hijo con
+						// posición absoluta se recorta en el borde de su propio bloque de mensaje (el
+						// fallo del corte). Un portal en posición fija queda encima de
+						// TODO, la ley de los diálogos. Registro de recuadro informativo de las tarjetas de nodo;
+						// se abre DEBAJO del disparador — siempre.
 						style={{ position: "fixed", top: anchor.top, left: anchor.left, zIndex: INTERACTION_LAYER_Z_BASE + popupLayer.order }}
 						className="w-80 max-w-[calc(100vw-1rem)] rounded-xl border bg-card p-4 text-left shadow-lg"
 					>
@@ -292,9 +299,9 @@ function MetadataPopover({
 }
 
 export function ThinkingCard({ data }: { data: PracticeThinkingData }) {
-	// The unified row (owner rounds, 2026-10-05): one style, one label —
-	// 50%-italic quote block on expand. Legacy records' commit flag is
-	// deliberately unread (one lane now). A TRANSCRIPT row (owner round,
-	// 2026-10-07): full-width band + rail, arriving expanded.
+	// La fila unificada (rondas del responsable, 2026-10-05): un estilo, una etiqueta —
+	// bloque de cita en cursiva al 50% al desplegar. El indicador commit de los registros
+	// heredados no se lee a propósito (ahora hay un solo carril). Una fila de TRANSCRIPCIÓN
+	// (ronda del responsable, 2026-10-07): franja a todo el ancho + raíl, llegando desplegada.
 	return <ThinkingBlock testId="thinking-card" label="YOUR THINKING" text={data.text} images={data.images} defaultOpen />;
 }

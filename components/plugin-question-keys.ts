@@ -1,6 +1,6 @@
 import type { PluginQuestionEditorKey } from "../src/core/index.ts";
 
-// Private host seam, deliberately not a public keyboard/field-scope SDK.
+// Frontera privada del host, a propósito no un SDK público de teclado/ámbito de campos.
 const claimed = new WeakSet<object>();
 const composing = new WeakSet<object>();
 interface EditorKeyOwner {
@@ -23,13 +23,13 @@ export function composingQuestionKey(event: { isComposing?: boolean; keyCode?: n
 	const native = event.nativeEvent ?? event;
 	return native.isComposing === true || native.keyCode === 229;
 }
-/** Called after Escape ownership is snapshotted, before native Tab prevention. */
+/** Se llama después de tomar la instantánea de la responsabilidad de Escape, antes de impedir el Tab nativo. */
 export function capturePluginQuestionKey(event: KeyboardEvent): void {
 	if (composingQuestionKey(event)) { composing.add(event); return; }
 	const current = owner;
 	if (!current?.eligible(event.key)) return;
 	const claim = () => { claimed.add(event); event.preventDefault(); };
-	// Reserved host submit works even in an arbitrary plugin editor subtree.
+	// El envío reservado del host funciona incluso en un subárbol arbitrario de editor de plugin.
 	if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && !event.altKey) { claim(); current.submit(); return; }
 	if (!current.contains(event.target)) {
 		if (event.key === "Tab" && !event.shiftKey && !event.metaKey && !event.ctrlKey && !event.altKey) { claim(); current.cycle("Tab"); }
@@ -40,8 +40,8 @@ export function capturePluginQuestionKey(event: KeyboardEvent): void {
 	if (key !== "Tab" && key !== "Enter" && key !== "Shift+Enter" && key !== "Escape") return;
 	if (current.key(key) === "handled") { claim(); return; }
 	if (key === "Tab" || key === "Escape") { claim(); current.cycle(key); }
-	// A missing hook or "pass" delegates to native host defaults: Enter
-	// submits, Shift+Enter keeps native editing without a second host submit.
+	// Un hook ausente o "pass" delega en los valores por defecto nativos del host: Enter
+	// envía, Shift+Enter mantiene la edición nativa sin un segundo envío del host.
 	if (key === "Enter") { claim(); current.submit(); }
 	if (key === "Shift+Enter") claimed.add(event);
 }

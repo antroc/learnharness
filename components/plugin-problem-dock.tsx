@@ -32,7 +32,7 @@ export function PluginProblemDock(props: PluginProblemDockProps) {
   const registration = snapshot.problemRenderers?.find(entry => entry.pluginId === props.snapshot.pluginId && entry.renderer.id === props.snapshot.typeId && entry.renderer.supportedContractVersions.includes(props.snapshot.contractVersion));
   return <PluginProblemDockContent {...props} registration={registration} />;
 }
-/** Native practice chrome with one alternative editor; no second problem lifecycle. */
+/** Cromo de práctica nativo con un editor alternativo; sin un segundo ciclo de vida de problemas. */
 export function PluginProblemDockContent(props: PluginProblemDockProps & { registration?: ProblemRendererRegistration }) {
   const { snapshot, occurrence, chatId, draft, expanded, ready, available, reconciliation, registration } = props;
   const controller = useOptionalInteractionLayers();
@@ -79,8 +79,8 @@ export function PluginProblemDockContent(props: PluginProblemDockProps & { regis
         now.ready && now.available && now.reconciliation === "ready" && now.expanded && !now.compactionRunning && !!now.registration && !failed &&
         now.draft.submission.status === "ready" && isInteractionScopeEligible(root.current, controller);
     };
-    // Preparation blocks admission, not the attempt that just reserved it.
-    // The shared runner sets props.preparing before asynchronous capture resumes.
+    // La preparación bloquea la admisión, no el intento que acaba de reservarla.
+    // El ejecutor compartido fija props.preparing antes de que se reanude la captura asíncrona.
     if (latch.current || before.preparing || !valid()) return;
     latch.current = true; setSubmitting(true);
     let captured = "", revision = 0;
@@ -98,7 +98,7 @@ export function PluginProblemDockContent(props: PluginProblemDockProps & { regis
     try {
       if (before.prepareSubmission) await before.prepareSubmission(capture, valid, accepted);
       else { await finishDictation(); if (valid() && await before.send(capture())) accepted(); }
-    } catch { /* Invalid/cancelled preparation preserves every draft channel. */ }
+    } catch { /* Una preparación no válida/cancelada conserva todos los canales del borrador. */ }
     finally { latch.current = false; setSubmitting(false); }
   }, [controller, failed]);
   const latestSubmit = useRef(submit); latestSubmit.current = submit;

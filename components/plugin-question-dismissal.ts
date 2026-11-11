@@ -1,6 +1,6 @@
 import { pendingPluginQuestionOf, pluginQuestionCallsOf, samePluginQuestionOccurrence, type PluginQuestionOccurrence, type LhMessage } from "@/src/core";
 
-/** Private confirmation identity, captured when the existing dialog opens. */
+/** Identidad privada de la confirmación, capturada cuando se abre el diálogo existente. */
 export interface PluginQuestionDismissalTarget {
 	readonly occurrence: PluginQuestionOccurrence;
 	readonly questionId?: string;
@@ -15,9 +15,10 @@ export function capturePluginQuestionDismissal(messages: readonly LhMessage[]): 
 	return Object.freeze({ occurrence: Object.freeze({ ...occurrence }), ...(questionId === undefined ? {} : { questionId }) });
 }
 
-/** Same canonical question only. Detach the old local submission before the
- * silent route parks+stops its server owner; its late refusal must not repaint
- * an error. No new abort request, answer, draft mutation or teacher wake. */
+/** Solo la misma pregunta canónica. Desengancha el envío local antiguo antes de que
+ * la ruta silenciosa aparque y detenga a su responsable en el servidor; su rechazo
+ * tardío no debe volver a pintar un error. Sin nueva petición de abort, respuesta,
+ * cambio del borrador ni despertar del profesor. */
 export function confirmPluginQuestionDismissal(target: PluginQuestionDismissalTarget, current: {
 	canonicalMessages: readonly LhMessage[];
 	reconciliation: "ready" | "syncing" | "failed";

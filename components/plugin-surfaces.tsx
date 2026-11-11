@@ -5,7 +5,7 @@ import type { PluginSurfaceTarget } from "@/src/core";
 import { useInteractionLayers } from "./interaction-layers";
 import { findSurfaceBoundary, registerSurfaceBoundary } from "./plugin-surface-targets";
 
-/** A re-entered (even hide-retained) view always receives a fresh target. */
+/** Una vista en la que se vuelve a entrar (aunque se haya retenido oculta) siempre recibe un destino nuevo. */
 export function usePageSurfaceBoundary({ active, viewKey, bodyRef }: {
 	active: boolean;
 	viewKey: string;
@@ -23,8 +23,8 @@ export function usePageSurfaceBoundary({ active, viewKey, bodyRef }: {
 	return active && current?.viewKey === viewKey && findSurfaceBoundary(current.target) ? current.target : undefined;
 }
 
-/** Floating page chrome shares only its own plugin surfaces' integer rank.
- * Callers render it after the body; newer pane pickers keep their higher rank. */
+/** El cromo flotante de la página solo comparte el rango entero de las superficies de su propio plugin.
+ * Quien llama lo renderiza después del cuerpo; los selectores de panel más nuevos conservan su rango superior. */
 export function useSurfaceChromeStyle(target: PluginSurfaceTarget | undefined): CSSProperties | undefined {
 	const controller = useInteractionLayers();
 	const layers = useSyncExternalStore(controller.subscribe, controller.getSnapshot, controller.getServerSnapshot);
@@ -37,9 +37,9 @@ export function useSurfaceChromeStyle(target: PluginSurfaceTarget | undefined): 
 	return order ? { zIndex: 100 + order } : undefined;
 }
 
-/** Geometry and coverage for page views, without a separate stacking context.
- * Frames share the host main pane's isolated paint stratum with pane pickers;
- * global body dialogs remain above it even when a view opens asynchronously. */
+/** Geometría y cobertura para las vistas de página, sin un contexto de apilamiento aparte.
+ * Los marcos comparten con los selectores de panel el estrato de pintado aislado del panel
+ * principal del host; los diálogos globales del body quedan por encima aunque una vista se abra de forma asíncrona. */
 export function SurfaceRegion({ target, children }: { target: PluginSurfaceTarget | undefined; children?: ReactNode }) {
 	const controller = useInteractionLayers();
 	const [stack, setStack] = useState<HTMLDivElement | null>(null);

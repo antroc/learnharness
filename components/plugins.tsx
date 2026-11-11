@@ -13,8 +13,8 @@ const emptySubscribe = () => () => {};
 const emptySnapshot = () => EMPTY;
 const PluginsContext = createContext<{ manager: PluginFrontendManager | null; snapshot: PluginSnapshot; uiStore: ReturnType<typeof createPluginUiStore> | null }>({ manager: null, snapshot: EMPTY, uiStore: null });
 
-/** A deferred last-release makes React StrictMode's setup/cleanup/setup one
- * activation lifetime, while a genuine provider teardown still disposes. */
+/** Una última liberación diferida hace que el montaje/limpieza/montaje de StrictMode de React
+ * sea una única vida de activación, mientras que un desmontaje real del proveedor sigue desechando. */
 export function createPluginWindowOwner(host: PluginHost) {
 	const uiStore = createPluginUiStore();
 	const manager = new PluginFrontendManager({ ...host, createUi: host.createUi ?? uiStore.createUi });
@@ -47,9 +47,9 @@ declare global {
 	}
 }
 
-/** The external module must be imported by the BROWSER, not rewritten into a
- * Next/Webpack chunk. This public module installs the native import wrapper;
- * await its load event before ever asking it to import a package asset. */
+/** El módulo externo debe importarlo el NAVEGADOR, no reescribirse en un fragmento de
+ * Next/Webpack. Este módulo público instala el envoltorio de import nativo; espera a
+ * su evento load antes de pedirle nunca que importe un recurso de un paquete. */
 export async function importPluginModule(url: string): Promise<PluginFrontendModule> {
 	if (!window.__lhImportPlugin) {
 		window.__lhPluginLoader ??= new Promise<void>((resolve, reject) => {
@@ -110,18 +110,18 @@ export function PluginsProvider({ children }: { children: ReactNode }) {
 	return <PluginsContext.Provider value={{ manager, snapshot, uiStore }}>{children}</PluginsContext.Provider>;
 }
 
-/** Missing-provider fallback is intentional: existing sidebar render tests and
- * independent shells don't need plugin infrastructure to render. */
+/** La alternativa sin proveedor es intencionada: las pruebas de render existentes de la
+ * barra lateral y los armazones independientes no necesitan la infraestructura de plugins para renderizar. */
 export function usePlugins() { return useContext(PluginsContext); }
 
-/** Render inside SettingsDialogProvider: host widgets keep the real app contexts. */
+/** Renderiza dentro de SettingsDialogProvider: los widgets del host conservan los contextos reales de la app. */
 export function PluginWidgets() {
 	const { uiStore } = usePlugins();
 	return uiStore ? <PluginUiHost store={uiStore} /> : null;
 }
 
-/** Plugins own this DOM subtree (including their own bundled React root if
- * desired). React owns only the outer frame and its inline error surface. */
+/** Los plugins son dueños de este subárbol del DOM (incluida su propia raíz de React
+ * empaquetada, si quieren). React solo es dueño del marco exterior y de su superficie de error en línea. */
 export function PluginMountPoint({ pluginId, mount, label }: { pluginId: string; mount: PluginMount; label: string }) {
 	const { manager } = usePlugins();
 	const container = useRef<HTMLDivElement>(null);
