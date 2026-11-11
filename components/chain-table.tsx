@@ -1,57 +1,64 @@
 "use client";
 
 /**
- * THE CHAIN TABLE (chains overlay; owner refinements round 2, 2026-09-29):
- * every reasoning chain of the graph in one FULL-BLEED surface — the blur
- * + translucent background IS the surface, no inner card. The top bar is
- * THE shared TopBar (standardization ruling: one element, every surface —
- * h-15, lh-drag with carve-outs, select-none, sidebar reopen, traffic-
- * light gutter; born from this overlay's hand-rolled bar breaking every
- * rule at once). The overlay (z-40) covers home's floating header while
- * open, so the TopBar's own SidebarToggle is the reopen path.
+ * LA TABLA DE CADENAS (overlay de cadenas; segunda ronda de ajustes del
+ * responsable, 2026-09-29): todas las cadenas de razonamiento del grafo en
+ * una única superficie A SANGRE — el desenfoque + el fondo translúcido SON
+ * la superficie, sin tarjeta interior. La barra superior es LA TopBar
+ * compartida (decisión de estandarización: un elemento, todas las
+ * superficies — h-15, lh-drag con recortes, select-none, reapertura de la
+ * barra lateral, margen para los semáforos; nació de que la barra hecha a
+ * mano de este overlay rompía todas las reglas a la vez). El overlay (z-40)
+ * tapa la cabecera flotante de Inicio mientras está abierto, así que el
+ * propio SidebarToggle de la TopBar es la vía de reapertura.
  *
- * HIERARCHY (three levels, one click each): CLUSTER (the birth session —
- * a chat or a notes file; a chain lives where its CONCLUSION was born,
- * owner ruling) → REASONING CHAIN → PROPOSITION STATEMENTS. Expanding a
- * chain reveals its members' statement text directly — names live in the
- * chain line, never twice; a singleton reveals its one statement in one
- * click. Everything starts collapsed. PROMINENT indentation carries the
- * structure (owner ruling: chains deep under folders, statements deeper)
- * — the ONLY lines are the horizontal separators between cluster groups
- * (vertical column hairlines removed with them, owner ruling: "anything
- * else is better without them").
+ * JERARQUÍA (tres niveles, un clic cada uno): GRUPO (la sesión de
+ * nacimiento — un chat o un fichero de notas; una cadena vive donde nació
+ * su CONCLUSIÓN, decisión del responsable) → CADENA DE RAZONAMIENTO →
+ * ENUNCIADOS DE LAS PROPOSICIONES. Desplegar una cadena muestra
+ * directamente el texto de los enunciados de sus miembros — los nombres
+ * viven en la línea de la cadena, nunca dos veces; una cadena de un solo
+ * miembro muestra su único enunciado con un clic. Todo empieza plegado. Una
+ * sangría MARCADA lleva la estructura (decisión del responsable: cadenas
+ * bien metidas bajo las carpetas, enunciados aún más) — las ÚNICAS líneas
+ * son los separadores horizontales entre grupos (con ellos se quitaron las
+ * líneas finas verticales de las columnas, decisión del responsable: «todo
+ * lo demás queda mejor sin ellas»).
  *
- * THE CHAIN LINE: every proposition name is a faint-outlined CHIP
- * with the LOGIC as the connectives (owner rulings, 2026-09-30):
- * premises join with the LaTeX LAND (∧) and the conclusion separates
- * by the LaTeX IMPLICATION (⟹) — `A ∧ B ⟹ C`, never the misleading
- * `A → B → C`. The glyphs are REAL KaTeX renders (components/
- * latex-glyph.tsx — the app's math engine, never SVGs), PROMINENT in
- * the theme foreground (white), not dim gray. A lonely chip (no
- * premises) carries no glyph — it reads as a standalone proposition;
- * "(no premises)" survives only as the row's aria-label.
+ * LA LÍNEA DE LA CADENA: cada nombre de proposición es un CHIP con un
+ * contorno tenue y la LÓGICA hace de conectiva (decisiones del responsable,
+ * 2026-09-30): las premisas se unen con el Y LÓGICO de LaTeX (∧) y la
+ * conclusión se separa con la IMPLICACIÓN de LaTeX (⟹) — `A ∧ B ⟹ C`,
+ * nunca el engañoso `A → B → C`. Los glifos son renders REALES de KaTeX
+ * (components/latex-glyph.tsx — el motor matemático de la app, nunca
+ * SVG), DESTACADOS en el color de primer plano del tema (blanco), no en
+ * gris apagado. Un chip solitario (sin premisas) no lleva glifo — se lee
+ * como una proposición independiente; "(no premises)" sobrevive solo como
+ * aria-label de la fila.
  *
- * SORTING: all three columns sortable (owner ruling — "consistency is
- * key"): Name (A→Z), Props (largest-first), Created (newest-first);
- * click toggles asc/desc; a SMALL chevron marks the active header. Sort
- * orders cluster rows AND chains within.
+ * ORDENACIÓN: las tres columnas se pueden ordenar (decisión del
+ * responsable — «la coherencia es clave»): Name (A→Z), Props (las mayores
+ * primero), Created (las más nuevas primero); el clic alterna asc/desc; un
+ * chevron PEQUEÑO marca la cabecera activa. El orden afecta a las filas de
+ * grupo Y a las cadenas que contienen.
  *
- * SELECTION never shifts layout (owner ruling): a floating bottom bar —
- * the Google-Photos pattern — appears only when something is selected,
- * showing the agents' ACTUAL input (chainsForSelection over the flat
- * node-id selection: a premise without its conclusion counts as the
- * singleton it becomes) + Clear. DELETE (owner,
- * 2026-09-29 night: "this is really the view deletion should be done
- * in") rides the same bar FENCED at the right end — divider + the
- * destructive red pair — and opens the SAME full-death confirm dialog
- * the canvas uses (multi-selections list their names + the unioned
- * impact); this ends the overlay's read-only stance: it is the graph's
- * MANAGEMENT surface now. The fuzzy
- * search (names, aliases, statements) filters chains grouped +
- * auto-expanded under their clusters (non-matching clusters hide; the
- * collapsed view returns on clear).
+ * La SELECCIÓN nunca desplaza el diseño (decisión del responsable): una
+ * barra flotante inferior — el patrón de Google Fotos — aparece solo
+ * cuando hay algo seleccionado y muestra la entrada REAL de los agentes
+ * (chainsForSelection sobre la selección plana de ids de nodo: una premisa
+ * sin su conclusión cuenta como la cadena de un solo miembro en que se
+ * convierte) + Clear. BORRAR (responsable, noche del 2026-09-29: «esta es
+ * de verdad la vista en la que debería hacerse el borrado») va en la misma
+ * barra, AISLADO en el extremo derecho — un divisor + el par destructivo
+ * en rojo — y abre el MISMO diálogo de confirmación de muerte completa que
+ * usa el lienzo (las selecciones múltiples listan sus nombres + el impacto
+ * unido); con esto el overlay deja de ser de solo lectura: ahora es la
+ * superficie de GESTIÓN del grafo. La búsqueda difusa (nombres, alias,
+ * enunciados) filtra las cadenas agrupadas y desplegadas automáticamente
+ * bajo sus grupos (los grupos sin coincidencias se ocultan; la vista
+ * plegada vuelve al borrar la búsqueda).
  *
- * Read-only toward the graph.
+ * De solo lectura respecto al grafo.
  */
 
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -77,16 +84,17 @@ import { DeleteSourceDialog } from "@/components/delete-source-dialog";
 import { LatexGlyph } from "@/components/latex-glyph";
 import { TreeCell, TreeCheckbox, TreeDisclosure, TreeGuide, TreeHeader, TreeSelectionSpacer, TreeSeparator, treeBranchLayout, treeColumnLayout, treeRowLayout } from "./tree-presentation";
 
-/** The sortable columns (owner ruling: all three — consistency). */
+/** Las columnas ordenables (decisión del responsable: las tres — coherencia). */
 export type ChainSortCol = "name" | "props" | "created";
 export interface ChainSort {
 	col: ChainSortCol;
-	/** 1 = ascending (A→Z, oldest-first, smallest-first), -1 = descending. */
+	/** 1 = ascendente (A→Z, las más antiguas primero, las menores primero), -1 = descendente. */
 	dir: 1 | -1;
 }
 
-/** A cluster's chains share the conclusion's birth (owner ruling). This
- *  record is assembled per render from the visible chains. */
+/** Las cadenas de un grupo comparten el nacimiento de su conclusión (decisión
+ *  del responsable). Este registro se monta en cada render a partir de las
+ *  cadenas visibles. */
 interface ClusterGroup {
 	key: string;
 	birth: string | null;
@@ -97,9 +105,10 @@ interface ClusterGroup {
 	newestCreatedAt: string;
 }
 
-/** The table's pure body — exported for SSR pins (the render-suite
- *  discipline). All state (query, sort, selection, expansion) arrives
- *  via props; the overlay wrapper below owns it. */
+/** El cuerpo puro de la tabla — exportado para las fijaciones SSR (la
+ *  disciplina de la batería de render). Todo el estado (consulta, orden,
+ *  selección, despliegue) llega por props; el envoltorio del overlay de más
+ *  abajo es su responsable. */
 export function ChainTableBody({
 	nodes,
 	chains: storedChains,
@@ -152,16 +161,16 @@ export function ChainTableBody({
 	expandedChains: ReadonlySet<string>;
 	onToggleCluster: (key: string) => void;
 	onToggleChain: (id: string) => void;
-	/** Selection is ALWAYS a flat node-id set — cluster, chain, and single
-	 *  proposition checks all reduce to this. */
+	/** La selección es SIEMPRE un conjunto plano de ids de nodo — las casillas de
+	 *  grupo, de cadena y de proposición suelta se reducen todas a esto. */
 	onToggleNodes: (ids: string[], next: boolean) => void;
 	onClear: () => void;
-	/** Opens the full-death confirm dialog (owner, 2026-09-29 night). */
+	/** Abre el diálogo de confirmación de muerte completa (responsable, noche del 2026-09-29). */
 	onDelete: () => void;
 	onClose: () => void;
-	/** PRACTICE SELECT (2026-10-04): the floating bar's confirm becomes
-	 *  "Practice these" — no delete fence; the caller owns what the
-	 *  selection becomes. */
+	/** SELECCIÓN PARA PRÁCTICA (2026-10-04): la confirmación de la barra flotante
+	 *  pasa a ser "Practice these" — sin la zona aislada de borrado; quien llama
+	 *  decide en qué se convierte la selección. */
 	selectMode?: boolean;
 	onSelect?: () => void;
 }) {
@@ -169,8 +178,8 @@ export function ChainTableBody({
 	const tableRef = useRef<HTMLDivElement>(null);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const navigation = useChainNavigation(tableRef, searchRef, keyboardActive);
-	// Searches still expand sources/folders by default, but explicit keyboard
-	// or pointer collapses remain effective until the search changes.
+	// Las búsquedas siguen desplegando por defecto orígenes/carpetas, pero los plegados
+	// explícitos con teclado o puntero siguen vigentes hasta que cambie la búsqueda.
 	const [searchFolds, setSearchFolds] = useState({ query, ids: new Set<string>() });
 	useEffect(() => { setSearchFolds({ query, ids: new Set() }); }, [query]);
 	const foldedClusters = searchFolds.query === query ? searchFolds.ids : new Set<string>();
@@ -190,8 +199,8 @@ export function ChainTableBody({
 		sourceRecords.get(birth)?.label ?? sessions[birth] ?? (fileSources[birth] === undefined ? null : sourceFileLabel(fileSources[birth])), query),
 	[directory, sourceRecords, sessions, fileSources, query]);
 	const chains = useMemo(() => chainsForSelection(nodes, storedChains), [nodes, storedChains]);
-	// Filter source groups, not global nodes: shared premises remain visible
-	// in teaching/notes groups. Keep the graph-wide header and pick set intact.
+	// Filtra los grupos de origen, no los nodos globales: las premisas compartidas siguen
+	// visibles en los grupos de enseñanza/notas. Conserva intactos la cabecera del grafo y el conjunto elegido.
 	const sourceChains = useMemo(() => chains.filter((chain) =>
 		!hiddenSourceIds.has(byId.get(chain.conclusion)?.provenance[0]?.chatId ?? "")), [chains, byId, hiddenSourceIds]);
 	const searching = query.trim() !== "";
@@ -207,8 +216,8 @@ export function ChainTableBody({
 		return membership;
 	}, [sourceChains, byId]);
 
-	// The fuzzy filter: a chain is visible when ANY member matches on
-	// name, aliases, or statement; chains rank by best member score.
+	// El filtro difuso: una cadena es visible cuando CUALQUIER miembro coincide por
+	// nombre, alias o enunciado; las cadenas se ordenan por la mejor puntuación de sus miembros.
 	const visibleChains = useMemo(() => {
 		if (!searching) return sourceChains;
 		const scored = sourceChains
@@ -230,11 +239,11 @@ export function ChainTableBody({
 			.map(({ chain }) => chain);
 	}, [sourceChains, byId, query, searching, matchesSource]);
 
-	// Group the visible chains by their CONCLUSION's birth (owner ruling).
-	// Unlabeled births (provenance gone / never named) form one honest
-	// muted group, sorted last under name-sort.
+	// Agrupa las cadenas visibles por el nacimiento de su CONCLUSIÓN (decisión del responsable).
+	// Los nacimientos sin etiqueta (procedencia perdida / nunca nombrada) forman un único grupo
+	// honesto y atenuado, que va el último al ordenar por nombre.
 	const groups = useMemo(() => {
-		// Session kinds must arrive before provenance-only source rows can render.
+		// Los tipos de sesión deben llegar antes de que puedan pintarse las filas de origen que solo tienen procedencia.
 		if (sourceInventoryPending) return [];
 		const map = new Map<string, ClusterGroup>();
 		for (const source of directory?.sources ?? []) {
@@ -263,13 +272,13 @@ export function ChainTableBody({
 		}
 		const collator = new Intl.Collator(undefined, { sensitivity: "base", numeric: true });
 		const list = [...map.values()];
-		// Existing graph groups retain their newest-member date. Inventory-only
-		// rows fall back to record dates; a re-import must not redraft old dates.
+		// Los grupos que ya existen en el grafo conservan la fecha de su miembro más nuevo. Las filas que
+		// solo están en el inventario recurren a las fechas del registro; una reimportación no debe rehacer fechas antiguas.
 		for (const group of list) if (!group.newestCreatedAt && group.birth) group.newestCreatedAt = sourceRecords.get(group.birth)?.createdAt ?? "";
-		// Sort law (owner ruling: all three columns sortable — consistency):
-		// the active column orders BOTH cluster rows and chains within; name
-		// is the universal tiebreak (asc). Unlabeled clusters sort last under
-		// name-sort (￿ sentinel).
+		// Ley de ordenación (decisión del responsable: las tres columnas ordenables — coherencia):
+		// la columna activa ordena TANTO las filas de grupo como las cadenas que contienen; el nombre
+		// es el desempate universal (asc). Los grupos sin etiqueta van los últimos al ordenar
+		// por nombre (centinela ￿).
 		const nameKey = (g: ClusterGroup) => g.label ?? "\uffff";
 		const cmpName = (a: ClusterGroup, b: ClusterGroup) => collator.compare(nameKey(a), nameKey(b)) * (sort.col === "name" ? sort.dir : 1);
 		const cmpProps = (a: ClusterGroup, b: ClusterGroup) =>
@@ -295,7 +304,7 @@ export function ChainTableBody({
 		return list;
 	}, [visibleChains, byId, sessions, fileSources, sort, directory, sourceRecords, searching, matchesSource, sourceInventoryPending]);
 
-	// The derived shape under the floating bar (the agents' ACTUAL input).
+	// La forma derivada bajo la barra flotante (la entrada REAL de los agentes).
 	const derived = useMemo(() => {
 		const selectedNodes = [...selection].map((id) => byId.get(id)).filter((n): n is GraphNode => n !== undefined);
 		return chainsForSelection(selectedNodes, storedChains);
@@ -309,13 +318,13 @@ export function ChainTableBody({
 
 	return (
 		<div ref={tableRef} tabIndex={-1} data-testid="chain-table" className="relative flex h-full min-h-0 flex-col outline-none [&_[data-chain-nav-active=true]]:bg-accent/50 [&_[data-chain-nav-row]]:outline-none [&_[data-chain-nav-row]]:scroll-mt-8 [&_[data-chain-nav-row]]:scroll-mb-16">
-			{/* THE shared top bar (standardization ruling): drag mechanics,
-			    sidebar reopen, traffic-light gutter — the same element as every
-			    chat surface. NO TITLE (owner round 11, 2026-10-05): the serif
-			    title register is RESERVED — it always names a session; the
-			    chain table names nothing, so its bar carries counts + search +
-			    close only. Search + close carve out with lh-no-drag (the mask
-			    law: later in the DOM). */}
+			{/* LA barra superior compartida (decisión de estandarización): mecánica de
+			arrastre, reapertura de la barra lateral, margen para los semáforos — el mismo
+			elemento que en todas las superficies de chat. SIN TÍTULO (ronda 11 del
+			responsable, 2026-10-05): el registro de título con serifa está RESERVADO —
+			siempre nombra una sesión; la tabla de cadenas no nombra nada, así que su
+			barra lleva solo recuentos + búsqueda + cerrar. Búsqueda y cerrar se recortan
+			con lh-no-drag (la ley de la máscara: más tarde en el DOM). */}
 			<TopBar sidebarToggle={!pickerChrome}>
 				<span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
 					{chains.length} {chains.length === 1 ? "chain" : "chains"} · {nodes.length} {nodes.length === 1 ? "node" : "nodes"}
@@ -346,15 +355,15 @@ export function ChainTableBody({
 				</button>
 			</TopBar>
 
-			{/* The list: NO per-row lines (owner ruling) — the ONLY horizontal
-			    separators sit between cluster groups; the ALIGNMENT STAIRCASE
-			    carries the hierarchy (owner round 4, "double the indentation":
-			    two-column steps — chains pl-12 aligned with the folder icon,
-			    statements pl-21 where a chain icon would sit).
-			    All three columns sort, small chevron on active. */}
+			{/* La lista: SIN líneas por fila (decisión del responsable) — los ÚNICOS
+			separadores horizontales están entre grupos; la ESCALERA DE ALINEACIÓN
+			lleva la jerarquía (ronda 4 del responsable, «duplica la sangría»):
+			escalones de dos columnas — cadenas en pl-12 alineadas con el icono de
+			carpeta, enunciados en pl-21, donde iría el icono de una cadena).
+			Las tres columnas se ordenan, con un chevron pequeño en la activa. */}
 			<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-				{/* The TOP rule (owner round 5: the table is framed — a line under
-			    the header, a line under the last group, lines between groups). */}
+				{/* La regla SUPERIOR (ronda 5 del responsable: la tabla va enmarcada — una
+			línea bajo la cabecera, otra bajo el último grupo y líneas entre grupos). */}
 				<TreeHeader sticky>
 					<button
 						type="button"
@@ -410,22 +419,22 @@ export function ChainTableBody({
 						<div
 							key={group.key}
 							data-testid={`cluster-group-${group.key}`}
-							// The horizontal rules (owner rulings, rounds 2 + 5): between
-							// cluster groups AND under the last one — the table is framed
-							// top (header) and bottom. Never on individual rows.
+							// Las reglas horizontales (decisiones del responsable, rondas 2 y 5): entre
+							// grupos Y bajo el último — la tabla queda enmarcada arriba (cabecera) y
+							// abajo. Nunca en filas sueltas.
 							{...treeBranchLayout({ depth, className: "border-b border-transparent", style: { marginLeft: depth * 36 } })}
 						>
-							{/* The TREE THREAD (owner rounds 5–6): a vertical guide at the
-							    expander arrow's column (center 37px: pl-3 + checkbox 14 +
-							    gap 4 + half the 14px expander), BRACKETED by checkbox
-							    bottom edges — it starts at the cluster row's own checkbox
-							    bottom (top-[23px], leaving the arrow's stroke a visible
-							    gap, live-measured) and terminates exactly at the LAST
-							    checkbox bottom (bottom-[8px] = 9px from the border box minus the 1px group rule, measured). */}
+							{/* EL HILO DEL ÁRBOL (rondas 5–6 del responsable): una guía vertical en la
+							columna de la flecha desplegable (centro a 37px: pl-3 + casilla 14 +
+							hueco 4 + la mitad del desplegable de 14px), ACOTADA por los bordes
+							inferiores de las casillas — empieza en el borde inferior de la casilla
+							de la propia fila de grupo (top-[23px], que deja un hueco visible al trazo
+							de la flecha, medido en vivo) y termina justo en el borde inferior de la
+							ÚLTIMA casilla (bottom-[8px] = 9px desde la caja de borde menos la regla de 1px del grupo, medido). */}
 							{open && group.chains.length > 0 && (
 								<TreeGuide selectionColumn depth={0} data-testid={`cluster-thread-${group.key}`} />
 							)}
-							{/* The cluster row: birth-session group header. */}
+							{/* La fila de grupo: cabecera del grupo de la sesión de nacimiento. */}
 							<SourceDragRow {...chainRow(["source", group.key], depth, open)} kind="source" id={group.key} name={group.label ?? "unlabeled"} enabled={Boolean(onOrganizationChange && group.birth)} {...treeRowLayout()}>
 								<RowCheckbox
 									disabled={selectMode ? group.nodeIds.length === 0 : !directory?.sources.some((s) => s.id === group.birth)}
@@ -452,9 +461,9 @@ export function ChainTableBody({
 								</TreeCell>
 							</SourceDragRow>
 
-							{/* The chain rows — clearly indented under the folder
-							    (owner ruling); visible only when the cluster is open
-							    (searching auto-expands). */}
+							{/* Las filas de cadena — claramente sangradas bajo la carpeta
+							(decisión del responsable); visibles solo cuando el grupo está abierto
+							(la búsqueda despliega automáticamente). */}
 							{open &&
 								group.chains.map((chain) => {
 									const memberIds = [...chain.premises, chain.conclusion];
@@ -462,11 +471,11 @@ export function ChainTableBody({
 									const selectedInChain = memberIds.filter((id) => selection.has(id)).length;
 									return (
 										<div key={chain.id} data-testid={`chain-block-${chain.id}`} {...treeBranchLayout()}>
-												{/* The chain's own thread (owner rounds 5–6): the same
-												    bracket law one level down — at the chain arrow's column
-												    (center 73px), from the chain row's checkbox bottom
-												    (top-[22px]) to the LAST statement row's checkbox bottom
-												    (bottom-[8px]) — live-measured anchors. */}
+												{/* El hilo propio de la cadena (rondas 5–6 del responsable): la misma
+												ley de acotación un nivel más abajo — en la columna de la flecha de la
+												cadena (centro a 73px), desde el borde inferior de la casilla de la fila
+												de cadena (top-[22px]) hasta el de la ÚLTIMA fila de enunciado
+												(bottom-[8px]) — anclas medidas en vivo. */}
 												{chainOpen && memberIds.length > 0 && (
 													<TreeGuide selectionColumn depth={1} variant="compact" data-testid={`chain-thread-${chain.id}`} />
 												)}
@@ -484,16 +493,16 @@ export function ChainTableBody({
 													label={`Select chain ${nameOf(chain.conclusion)}`}
 												/> : <TreeSelectionSpacer />}
 												<Expander open={chainOpen} onClick={() => onToggleChain(chain.id)} testid={`chain-toggle-${chain.id}`} label={`Expand chain ${nameOf(chain.conclusion)}`} />
-												{/* The chain line: proposition names as faint-outlined
-												    chips. THE LOGIC IS THE PAYLOAD (owner rulings,
-												    2026-09-30): premises join with the LaTeX LAND (∧),
-												    the conclusion separates by the LaTeX IMPLICATION
-												    (⟹) — `A ∧ B ⟹ C`, never the misleading `A → B →
-												    C` — the glyphs render through KaTeX (the app's
-												    math engine), PROMINENT in the theme foreground
-												    (white), not the old dim gray. A lonely chip reads
-												    as a standalone proposition (no glyphs at all);
-												    the row's aria-label keeps the plain-text form. */}
+												{/* La línea de la cadena: los nombres de las proposiciones como
+												chips de contorno tenue. LA LÓGICA ES LA CARGA ÚTIL (decisiones del
+												responsable, 2026-09-30): las premisas se unen con el Y LÓGICO de
+												LaTeX (∧) y la conclusión se separa con la IMPLICACIÓN de LaTeX
+												(⟹) — `A ∧ B ⟹ C`, nunca el engañoso `A → B → C` —; los glifos
+												se renderizan con KaTeX (el motor matemático de la app),
+												DESTACADOS en el color de primer plano del tema (blanco), no en
+												el antiguo gris apagado. Un chip solitario se lee como una
+												proposición independiente (sin ningún glifo); el aria-label de
+												la fila conserva la forma en texto plano. */}
 												<span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-0.5 gap-y-1 text-[13px] leading-tight">
 													{memberIds.map((id, i) => {
 														const isConclusion = i === memberIds.length - 1;
@@ -530,11 +539,12 @@ export function ChainTableBody({
 												</TreeCell>
 											</div>
 
-											{/* The propositions — their STATEMENT text directly (owner
-											    ruling: names live in the line; a singleton reveals its
-											    one statement in one click). PLAIN rows: the derivation
-											    is already encoded in the chain line — no conclusion
-											    marker down here. Deepest indent. */}
+											{/* Las proposiciones — directamente el texto de su ENUNCIADO
+											(decisión del responsable: los nombres viven en la línea; una
+											cadena de un solo miembro muestra su enunciado con un clic). Filas
+											SENCILLAS: la derivación ya está codificada en la línea de la
+											cadena — aquí abajo no hay marcador de conclusión. La sangría más
+											profunda. */}
 											{chainOpen &&
 												memberIds.map((id) => {
 													const node = byId.get(id);
@@ -569,9 +579,9 @@ export function ChainTableBody({
 				}} />
 			</div>
 
-			{/* The floating selection bar (owner ruling: never shifts layout —
-			    the Google-Photos pattern). Appears only when something is
-			    selected; floats over the table's bottom edge. */}
+			{/* La barra flotante de selección (decisión del responsable: nunca
+			desplaza el diseño — el patrón de Google Fotos). Aparece solo cuando
+			hay algo seleccionado; flota sobre el borde inferior de la tabla. */}
 			{(selectMode ? selection.size > 0 : selectedSources.size > 0 || fullySelectedFolders.size > 0) && (
 				<div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center pb-4">
 					<div
@@ -602,10 +612,11 @@ export function ChainTableBody({
 							</button>
 						) : (
 							<>
-							{/* The danger fence (owner ruling): a divider quarantines
-								    the destructive action at the bar's right end — the
-								    safe actions and the kill switch never blend. The
-								    full-death confirm dialog catches the misclick. */}
+							{/* La zona aislada de peligro (decisión del responsable): un
+								divisor pone en cuarentena la acción destructiva en el extremo
+								derecho de la barra — las acciones seguras y el interruptor de
+								destrucción nunca se mezclan. El diálogo de confirmación de
+								muerte completa recoge el clic por error. */}
 							<span data-testid="chain-danger-divider" aria-hidden="true" className="h-4 w-px bg-border/70" />
 							<button
 								type="button"
@@ -626,14 +637,15 @@ export function ChainTableBody({
 	);
 }
 
-/** The rotating chevron — collapsed points right, expanded rotates down
- *  (owner ruling: the affordance must read on every expandable row). */
+/** El chevron giratorio — plegado apunta a la derecha, desplegado gira hacia
+ *  abajo (decisión del responsable: la indicación debe leerse en todas las
+ *  filas desplegables). */
 function Expander({ open, onClick, testid, label }: { open: boolean; onClick: () => void; testid: string; label: string }) {
 	return <TreeDisclosure open={open} onClick={onClick} data-testid={testid} aria-label={label} />;
 }
 
-/** The checkbox — checked/indeterminate (partial chains/clusters); DOM
- *  property set via ref (React does not expose `indeterminate`). */
+/** La casilla — marcada/indeterminada (cadenas/grupos parciales); la propiedad
+ *  del DOM se fija mediante ref (React no expone `indeterminate`). */
 function RowCheckbox({
 	checked,
 	disabled = false,
@@ -655,11 +667,12 @@ function RowCheckbox({
 	);
 }
 
-/** The graph view's overlay wrapper: owns query + sort + selection +
- *  expansion; mounts ABSOLUTE INSIDE the
- *  graph area, full-bleed (owner ruling: the translucent blurred surface
- *  IS the overlay — no inner card). Esc + the top-bar X dismiss (there
- *  is no backdrop margin to click anymore). Read-only toward the graph. */
+/** El envoltorio del overlay de la vista de grafo: es responsable de la
+ *  consulta, el orden, la selección y el despliegue; se monta en posición
+ *  ABSOLUTA DENTRO del área del grafo, a sangre (decisión del responsable:
+ *  la superficie translúcida desenfocada ES el overlay — sin tarjeta
+ *  interior). Esc y la X de la barra superior lo cierran (ya no queda un
+ *  margen de fondo en el que hacer clic). De solo lectura respecto al grafo. */
 export function ChainTableOverlay({
 	open,
 	nodes,
@@ -667,12 +680,12 @@ export function ChainTableOverlay({
 	sessions,
 	fileSources,
 	onClose,
-	/** PRACTICE SELECT (owner vision, 2026-10-04): the selection is
-	 *  PERSISTENT and caller-owned — when these props are present the
-	 *  table is CONTROLLED (every check/clear/delete-prune reports up
-	 *  immediately; the composer-side chip reflects it live). selectMode
-	 *  only changes the floating bar: Done instead of the delete fence
-	 *  (deleting while picking is a footgun). */
+	/** SELECCIÓN PARA PRÁCTICA (visión del responsable, 2026-10-04): la selección
+	 *  es PERSISTENTE y pertenece a quien llama — cuando están estas props, la
+	 *  tabla es CONTROLADA (cada marcar/limpiar/poda por borrado se comunica
+	 *  hacia arriba de inmediato; el chip del lado del compositor lo refleja en
+	 *  vivo). selectMode solo cambia la barra flotante: Done en lugar de la zona
+	 *  aislada de borrado (borrar mientras se elige es pegarse un tiro en el pie). */
 	selectMode,
 	controlledSelection,
 	onSelectionChange,
@@ -681,11 +694,11 @@ export function ChainTableOverlay({
 	pickerChrome = false,
 }: {
 	open: boolean;
-	/** Host knowledge picker has clearance, but no sidebar-reopen action. */
+	/** El selector de conocimiento del host tiene margen libre, pero no tiene acción de reabrir la barra lateral. */
 	pickerChrome?: boolean;
-	/** A host knowledge picker registers once through its pane or modal shell. */
+	/** Un selector de conocimiento del host se registra una vez a través de su panel o de su envoltorio modal. */
 	registerInteraction?: boolean;
-	/** Internal host ownership; ordinary practice keeps the existing default. */
+	/** Propiedad interna del host; la práctica normal conserva el valor por defecto existente. */
 	keyboardActive?: boolean;
 	nodes: GraphNode[];
 	chains: GraphChain[];
@@ -739,7 +752,7 @@ export function ChainTableOverlay({
 			directoryOpening.current++;
 			directoryRequest.current?.abort();
 			directoryRequest.current = null;
-			// Keep cached organization, but require fresh source kinds on EACH opening.
+			// Conserva la organización en caché, pero exige tipos de origen nuevos en CADA apertura.
 			setDirectoryPending(true);
 		};
 	}, [open, readDirectory]);
@@ -748,7 +761,7 @@ export function ChainTableOverlay({
 	useServerResync(() => { if (open) void readDirectory(); });
 	const changeOrganization: OrganizationChange = (action) => {
 		const opening = directoryOpening.current;
-		// Serialize this page's edits, and invalidate older notify-then-fetch reads.
+		// Serializa las ediciones de esta página e invalida las lecturas notificar-y-luego-leer más antiguas.
 		const operation = mutationTail.current.catch(() => {}).then(async () => {
 			try {
 				const response = await fetch("/api/graph/sources", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(action) });
@@ -775,8 +788,8 @@ export function ChainTableOverlay({
 		if (visibleDirectory) setEntrySelection((previous) => toggleSourceEntries(visibleDirectory, previous, kind, id, checked));
 	};
 
-	// Controlled when the caller lifts the selection (the practice pick
-	// set); internal (uncontrolled) otherwise — the delete flow's own.
+	// Controlada cuando quien llama eleva la selección (el conjunto elegido de la
+	// práctica); interna (no controlada) en otro caso — la del propio flujo de borrado.
 	const selection = controlledSelection ?? internalSelection;
 	const applySelection = (next: ReadonlySet<string>) => {
 		if (onSelectionChange) onSelectionChange(next);
@@ -875,8 +888,8 @@ export function ChainTableOverlay({
 							}
 							setEntrySelection({ sources: new Set(), folders: new Set() });
 						} finally {
-							// A failed response can still follow partial disk writes.
-							// Refresh graph content as well as the directory, in both home modes.
+							// Una respuesta fallida puede venir después de escrituras parciales en disco.
+							// Refresca el contenido del grafo además del directorio, en los dos modos de Inicio.
 							void readDirectory();
 							window.dispatchEvent(new CustomEvent("lh:graph-revision", { detail: { graphRevision } }));
 						}
