@@ -1,6 +1,6 @@
 import type { Api, Model } from "@earendil-works/pi-ai";
 
-/** Native SDK IDs stay distinct from the app's persisted connection routes. */
+/** Los ID nativos del SDK se mantienen distintos de las rutas de conexión persistidas de la app. */
 export type NativeSubscriptionProviderId = "github-copilot" | "xai";
 export type NativeSubscriptionLogicalId = "github-copilot-subscription" | "xai-subscription";
 
@@ -17,7 +17,7 @@ export interface SubscriptionPrompt {
 	options?: readonly { id: string; label: string; description?: string }[];
 }
 
-/** Only public device user codes, never the private device_code or tokens. */
+/** Solo los códigos de usuario de dispositivo públicos, nunca el device_code privado ni los tokens. */
 export interface SubscriptionInteraction {
 	attemptId: string;
 	prompt?: SubscriptionPrompt;
@@ -41,7 +41,7 @@ export interface NativeSubscriptionStatus {
 	interaction?: SubscriptionInteraction;
 }
 
-/** Private inherited IPC also carries safe, SDK-supported catalog metadata. */
+/** El IPC privado heredado también lleva metadatos de catálogo seguros y soportados por el SDK. */
 export interface NativeSubscriptionSnapshot {
 	statuses: NativeSubscriptionStatus[];
 	models: Partial<Record<NativeSubscriptionProviderId, Model<Api>[]>>;

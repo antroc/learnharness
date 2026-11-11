@@ -1,24 +1,24 @@
 /**
- * Sub-agent job contracts — the async ack-and-steer protocol
+ * Contratos de las tareas de subagentes: el protocolo asíncrono de acuse y reorientación
  *
- * Part of the domain-split contracts (src/core/contracts/): each domain file
- * is owned outright by its stream — cross-domain schema changes go through
- * master. Pure types + protocol docs + tiny pure helpers; type-only imports
- * of "ai" (safe everywhere: server, client, tests). See docs/archive/vision.md.
+ * Parte de los contratos divididos por dominio (src/core/contracts/): cada fichero de dominio
+ * pertenece por completo a su línea de trabajo; los cambios de esquema entre dominios pasan por
+ * master. Tipos puros + documentación del protocolo + pequeños helpers puros; importaciones solo de tipos
+ * de "ai" (seguras en todas partes: servidor, cliente, pruebas). Ver docs/archive/vision.md.
  */
 import type { CallUsage } from "./chat.ts";
 import type { PluginBackgroundResult } from "../plugin-workers.ts";
 import type { LhMessage, LhMarkerMessage } from "../native-messages.ts";
 import { newHandoffMessage } from "../native-messages.ts";
 
-// ─── Async sub-agent jobs (docs/archive/vision.md §2.5; docs/archive/plan.md Wave 0 protocol) ────────────
+// ─── Tareas asíncronas de subagentes (docs/archive/vision.md §2.5; protocolo de la Oleada 0 de docs/archive/plan.md) ─
 
 export type BuiltinJobKind = "research" | "demo" | "visual" | "pdf";
 export type JobKind = BuiltinJobKind | "plugin";
 export function isBuiltinJobKind(kind: JobKind): kind is BuiltinJobKind {
 	return kind !== "plugin";
 }
-/** Host-owned durable linkage. Never contains filesystem paths. */
+/** Vínculo duradero propiedad del host. Nunca contiene rutas del sistema de ficheros. */
 export interface PluginJobMetadata {
 	pluginId: string;
 	toolName: string;
@@ -35,58 +35,58 @@ export interface JobRecord {
 	id: string;
 	kind: JobKind;
 	chatId: string;
-	/** The tool part this job fulfills. */
+	/** La parte de herramienta que cumple esta tarea. */
 	toolCallId: string;
-	/** Dispatch-time arguments, saved before spawn. Older jobs resolve from history. */
+	/** Argumentos del momento del despacho, guardados antes del lanzamiento. Las tareas antiguas se resuelven a partir del historial. */
 	input?: unknown;
-	/** Session-owned delivery, independent of the worker's terminal outcome.
-	 * A failure notice uses error text, never an invented result or learner abort.
-	 * Absent on legacy records: old terminal jobs must never be replayed. */
+	/** Entrega propiedad de la sesión, independiente del resultado final del worker.
+	 * Un aviso de fallo usa texto de error, nunca un resultado inventado ni un aborto del alumno.
+	 * Ausente en los registros heredados: las tareas terminadas antiguas nunca deben reproducirse. */
 	delivery?: { kind: "result" | "abort" | "failure"; status: "pending" | "delivered" };
-	/** Worker computation only; a pending delivery does not keep it running. */
+	/** Solo el cálculo del worker; una entrega pendiente no lo mantiene en ejecución. */
 	status: JobStatus;
-	/** Latest human-readable activity line, e.g. `web_search: "sigma.js v3"`. */
+	/** La última línea de actividad legible, p. ej. `web_search: "sigma.js v3"`. */
 	activity: string;
 	createdAt: string;
 	updatedAt: string;
-	/** The sub-agent's result (steer-artifact payload). */
+	/** El resultado del subagente (carga útil del artefacto de reorientación). */
 	result?: unknown;
 	error?: string;
-	/** Money channel (observability, 2026-09): accumulated token usage of
-	 * the sub-agent's run, written by the runner as steps complete. Cost is
-	 * inferred at read time (core/prices.ts). Absent on pre-2026-09 jobs and
-	 * until the runner's capture lands — renderers show "—", never zero. */
+	/** Canal del dinero (observabilidad, 2026-09): uso de tokens acumulado de
+	 * la ejecución del subagente, escrito por el ejecutor a medida que se completan los pasos. El coste se
+	 * infiere al leer (core/prices.ts). Ausente en las tareas anteriores a 2026-09 y
+	 * hasta que llegue la captura del ejecutor: los renderizadores muestran "—", nunca cero. */
 	usage?: JobUsage;
 	plugin?: PluginJobMetadata;
 }
 
-/** Accumulated model usage for one worker run: token totals plus a call
- * count, with optional per-call accounting. As with CallUsage, a token field
- * no call reported remains undefined; missing usage must not imply zero cost. */
+/** Uso de modelo acumulado de una ejecución de worker: totales de tokens más un recuento
+ * de llamadas, con contabilidad opcional por llamada. Como en CallUsage, un campo de tokens
+ * del que no informó ninguna llamada sigue siendo undefined; la falta de uso no debe implicar coste cero. */
 export interface JobUsage {
-	/** Provider-qualified model identity (provider:id) for catalog lookup. */
+	/** Identidad de modelo calificada por proveedor (provider:id) para buscar en el catálogo. */
 	model: string;
-	/** Running totals summed over the run's model calls so far. */
+	/** Totales acumulados sumados sobre las llamadas al modelo de la ejecución hasta ahora. */
 	inputTokens: number | undefined;
 	outputTokens: number | undefined;
 	cacheReadTokens: number | undefined;
 	cacheWriteTokens: number | undefined;
 	reasoningTokens: number | undefined;
 	cacheWrite1hTokens?: number;
-	/** Individual calls for current-catalog per-call tier pricing. Absent on
-	 * older jobs; never backfill them from cumulative totals. */
+	/** Llamadas individuales para la tarificación por tramos por llamada del catálogo actual. Ausente en
+	 * las tareas antiguas; nunca se rellenan a partir de los totales acumulados. */
 	calls?: CallUsage[];
-	/** How many model calls the run has made (each bills separately). */
+	/** Cuántas llamadas al modelo ha hecho la ejecución (cada una se factura por separado). */
 	steps: number;
-	/** Most recent completed model call's accounting, used for current context
-	 * usage rather than cumulative totals. Absent until a call completes;
-	 * unreported provider fields remain undefined. */
+	/** Contabilidad de la llamada al modelo completada más reciente, usada para el uso de
+	 * contexto actual en lugar de los totales acumulados. Ausente hasta que se completa una llamada;
+	 * los campos de los que no informa el proveedor siguen siendo undefined. */
 	lastStep?: CallUsage;
 }
 
-/** The per-model-call usage shape we fold into JobUsage — the SDK's
- * LanguageModelUsage narrowed structurally (no runtime "ai" import: any
- * object with these fields folds, including the real thing and test fakes). */
+/** La forma de uso por llamada al modelo que plegamos en JobUsage: el LanguageModelUsage
+ * del SDK estrechado estructuralmente (sin importar "ai" en tiempo de ejecución: cualquier
+ * objeto con estos campos se pliega, incluidos el real y los falsos de las pruebas). */
 export interface UsageStepLike {
 	inputTokens?: number | undefined;
 	inputTokenDetails?: { cacheReadTokens?: number; cacheWriteTokens?: number; cacheWrite1hTokens?: number } | undefined;
@@ -94,9 +94,9 @@ export interface UsageStepLike {
 	outputTokenDetails?: { reasoningTokens?: number } | undefined;
 }
 
-/** pi-ai's Usage shape (input/output/cacheRead/cacheWrite/reasoning?) →
- * UsageStepLike. Structural — no pi import here; the engine band maps at
- * its boundaries. */
+/** La forma Usage de pi-ai (input/output/cacheRead/cacheWrite/reasoning?) →
+ * UsageStepLike. Estructural: sin importar pi aquí; la banda del motor hace la conversión en
+ * sus límites. */
 export function piUsageToStep(usage: {
 	input: number;
 	output: number;
@@ -113,10 +113,10 @@ export function piUsageToStep(usage: {
 	};
 }
 
-/** Fold one model call's usage into the run's running total (pure). A
- * field neither the total nor the step reported stays undefined; once
- * reported, later unreported calls contribute 0. The `steps` counter is
- * the billing count: one per model call, reported or not. */
+/** Pliega el uso de una llamada al modelo en el total acumulado de la ejecución (puro). Un
+ * campo del que no informaron ni el total ni el paso se queda undefined; una vez
+ * informado, las llamadas posteriores sin dato aportan 0. El contador `steps` es
+ * el recuento de facturación: uno por llamada al modelo, informe o no. */
 export function accumulateJobUsage(
 	total: JobUsage | undefined,
 	model: string,
@@ -149,70 +149,70 @@ export function accumulateJobUsage(
 }
 
 /**
- * THE ASYNC PROTOCOL — "ack now, steer later" (the pi sub-agents model,
- * vision §2.5):
+ * EL PROTOCOLO ASÍNCRONO: «acusar ahora, reorientar después» (el modelo de subagentes de pi,
+ * visión §2.5):
  *
- *  1. Job tools (research / demo / visual / pdf) are SERVER-EXECUTED. The model
- *     calls one MID-TURN; execute creates the job record, fires the
- *     background runner, and resolves IMMEDIATELY with an acknowledgement
- *     ("dispatched — continue your turn"). The teacher's turn does NOT end
- *     at the call: it keeps teaching, may dispatch other independent jobs
- *     (full parallelism), and ends whenever it ends. The tool part's output
- *     is the ack, forever.
+ *  1. Las herramientas de tareas (research / demo / visual / pdf) se EJECUTAN EN EL SERVIDOR. El modelo
+ *     llama a una A MITAD DE TURNO; execute crea el registro de la tarea, lanza el
+ *     ejecutor en segundo plano y se resuelve INMEDIATAMENTE con un acuse
+ *     ("dispatched — continue your turn"). El turno del profesor NO termina
+ *     en la llamada: sigue enseñando, puede despachar otras tareas independientes
+ *     (paralelismo completo) y termina cuando termine. La salida de la parte de herramienta
+ *     es el acuse, para siempre.
  *
- *  2. The background runner (src/agent/subagents/runner.ts) runs the kind's
- *     sub-agent loop — isolated context, modelFor(role), the
- *     verify-never-one-shot doctrine (headless-tested demos, looked-at SVGs,
- *     sourced briefs) — tracking a live activity line in the job record.
- *     ONE central client poll of GET /api/jobs?chatId=… (in Chat) drives every
- *     job surface: the transcript dispatch cards (live activity by
- *     toolCallId, quiet one-liner after worker completion), the sub-agents sidebar
- *     panel, and the single re-sync when a job settles.
+ *  2. El ejecutor en segundo plano (src/agent/subagents/runner.ts) ejecuta el bucle de subagente
+ *     del tipo: contexto aislado, modelFor(role), la
+ *     doctrina de verificar y nunca hacerlo a la primera (demos probadas sin interfaz, SVG mirados,
+ *     informes con fuentes), siguiendo una línea de actividad en vivo en el registro de la tarea.
+ *     UN sondeo central del cliente a GET /api/jobs?chatId=… (en Chat) alimenta todas las
+ *     superficies de tareas: las tarjetas de despacho del transcript (actividad en vivo por
+ *     toolCallId, una línea discreta tras completarse el worker), el panel lateral de
+ *     subagentes y la única resincronización cuando una tarea se asienta.
  *
- *  3. Dispatch saves input on the job before spawn. On completion the
- *     runner saves result + terminal worker status + pending delivery in
- *     one job update, then queues buildSubagentSteer WITHOUT waiting for
- *     delivery. The native custom marker's content is model-facing text;
- *     details carry the full artifact payload for the UI. Worker resources
- *     are released even if a question keeps the result pending indefinitely.
- *     Only computing workers appear in Background agents or accept abort.
+ *  3. El despacho guarda la entrada en la tarea antes del lanzamiento. Al completarse, el
+ *     ejecutor guarda el resultado + el estado final del worker + la entrega pendiente en
+ *     una sola actualización de la tarea, y después pone en cola buildSubagentSteer SIN esperar a la
+ *     entrega. El contenido del marcador personalizado nativo es texto de cara al modelo;
+ *     details lleva la carga útil completa del artefacto para la interfaz. Los recursos del worker
+ *     se liberan aunque una pregunta mantenga el resultado pendiente indefinidamente.
+ *     Solo los workers en cálculo aparecen en Agentes en segundo plano o aceptan el aborto.
  *
- *  4. Session delivery owns one registry entry per deterministic steer ID,
- *     including while a wake is in flight or a 409/403 returns its cargo.
- *     A live agent takes it via pi steering; registration restores saved
- *     pending jobs before the answer run's first poll. Otherwise the idle
- *     wake uses the normal turn composition and respects pending questions,
- *     dismissal, and background consent. A saved transcript marker completes
- *     delivery; HTTP 200 or streamed visibility alone does not.
+ *  4. La entrega de la sesión mantiene una entrada de registro por ID de reorientación determinista,
+ *     también mientras un despertar está en curso o un 409/403 devuelve su carga.
+ *     Un agente vivo la recoge mediante la reorientación de pi; el registro restaura las tareas
+ *     pendientes guardadas antes del primer sondeo de la ejecución de respuesta. Si no, el
+ *     despertar en reposo usa la composición de turno normal y respeta las preguntas pendientes,
+ *     el descarte y el consentimiento en segundo plano. Un marcador guardado en el transcript completa
+ *     la entrega; un HTTP 200 o la visibilidad en streaming por sí solos no.
  *
- *     Failed starts remain quietly pending until a learner run or restart
- *     recovery, without new timers, visible delivery errors, or worker-status
- *     changes. Existing 409 backoff and consent deferral remain. Accepted
- *     turns are never automatically replayed. Legacy running records with a
- *     result become finished/pending; legacy terminal records with no
- *     delivery metadata remain untouched. Session deletion discards pending
- *     deliveries rather than treating them as running work.
+ *     Los arranques fallidos siguen pendientes en silencio hasta una ejecución del alumno o una
+ *     recuperación tras reinicio, sin temporizadores nuevos, errores de entrega visibles ni cambios
+ *     de estado del worker. Se mantienen la espera progresiva existente ante 409 y el aplazamiento por consentimiento. Los turnos
+ *     aceptados nunca se reproducen automáticamente. Los registros heredados en ejecución con
+ *     resultado pasan a finished/pending; los registros heredados terminados sin
+ *     metadatos de entrega quedan intactos. Borrar la sesión descarta las entregas
+ *     pendientes en lugar de tratarlas como trabajo en ejecución.
  *
- *  5. No pending job parts ever exist, so the composer never gates on jobs
- *     (the learner can interject mid-job; the steer queues behind their
- *     turn) and job tool outputs never trigger the client-side
- *     sendAutomatically continuation — that mechanism stays quiz/ask-only.
+ *  5. Nunca existen partes de tarea pendientes, así que el compositor nunca se bloquea por tareas
+ *     (el alumno puede intervenir a mitad de una tarea; la reorientación se encola tras su
+ *     turno) y las salidas de las herramientas de tareas nunca disparan la continuación
+ *     sendAutomatically del lado del cliente: ese mecanismo sigue siendo solo de quiz/ask.
  */
 
 export interface ResearchToolInput {
 	question: string;
-	/** What the teacher needs it for — focuses the research brief. */
+	/** Para qué lo necesita el profesor: centra el informe de investigación. */
 	context?: string;
 }
 
 export interface ResearchResult {
 	brief: string;
-	/** Rendered as links, so only http(s) URLs belong here (isWebSourceUrl).
-	 *  Records saved before that rule may still hold other schemes. */
+	/** Se renderizan como enlaces, así que aquí solo caben URL http(s) (isWebSourceUrl).
+	 *  Los registros guardados antes de esa regla pueden contener aún otros esquemas. */
 	sources: { title: string; url: string }[];
 }
 
-/** True for http(s) URLs: the only research sources that become links. */
+/** True para URL http(s): las únicas fuentes de investigación que se convierten en enlaces. */
 export function isWebSourceUrl(url: string): boolean {
 	try {
 		const { protocol } = new URL(url);
@@ -224,112 +224,112 @@ export function isWebSourceUrl(url: string): boolean {
 
 export interface DemoToolInput {
 	title: string;
-	/** Precise brief: concept, parameters/interactions, visual style. */
+	/** Encargo preciso: concepto, parámetros/interacciones, estilo visual. */
 	brief: string;
 }
 
 export interface DemoResult {
 	title: string;
-	/** Self-contained single-file HTML/JS document (sandboxed-iframe ready). */
+	/** Documento HTML/JS autocontenido de un solo fichero (listo para un iframe aislado). */
 	html: string;
-	/** The builder sub-agent headlessly executed the demo before delivery. */
+	/** El subagente constructor ejecutó la demo sin interfaz antes de entregarla. */
 	tested: true;
 	notes?: string;
 }
 
 export interface VisualToolInput {
-	/** Precise brief for ONE visual (what it must show, exactly). */
+	/** Encargo preciso para UN visual (lo que debe mostrar, exactamente). */
 	brief: string;
-	/** A learner image file to annotate (issue #363): the maker draws its
-	 *  marks on top of it instead of authoring a figure from scratch. */
+	/** Un fichero de imagen del alumno que anotar (issue #363): el creador dibuja sus
+	 *  marcas encima en lugar de crear una figura desde cero. */
 	image?: string;
 }
 
 export interface VisualResult {
-	/** Complete SVG markup (verified by the maker looking at the render).
-	 *  Annotation SVGs retain a learner-image placeholder; image identifies the session snapshot. */
+	/** Marcado SVG completo (verificado por el creador mirando el render).
+	 *  Los SVG de anotación conservan un marcador de posición de la imagen del alumno; image identifica la instantánea de la sesión. */
 	svg: string;
 	notes?: string;
-	/** Present when the figure annotates a learner image: its absolute
-	 *  path. Photos never invert, so the card hides the switch. */
+	/** Presente cuando la figura anota una imagen del alumno: su ruta
+	 *  absoluta. Las fotos nunca se invierten, así que la tarjeta oculta el interruptor. */
 	image?: { path: string; snapshotId: string };
 }
 
-/** The pdf-reader (sources v0, 2026-09): reads a learner-provided PDF on
- *  the teacher's behalf — triage, targeted extraction, look-at-the-page
- *  renders inside its own loop — and returns a text brief with page
- *  citations (user-decided: rendered images never leave the sub-agent's
- *  context; the teacher gets text). */
+/** El pdf-reader (sources v0, 2026-09): lee un PDF aportado por el alumno en
+ *  nombre del profesor (triaje, extracción dirigida, renders para mirar la página
+ *  dentro de su propio bucle) y devuelve un informe de texto con citas
+ *  de página (decidido por el usuario: las imágenes renderizadas nunca salen del contexto
+ *  del subagente; el profesor recibe texto). */
 export interface PdfToolInput {
-	/** Path to the learner's PDF (relative or absolute). */
+	/** Ruta al PDF del alumno (relativa o absoluta). */
 	path: string;
-	/** What the teacher needs from the document — focuses the brief. */
+	/** Qué necesita el profesor del documento: centra el informe. */
 	question: string;
 }
 
 export interface PdfResult {
 	path: string;
 	question: string;
-	/** The distilled brief. Page citations inside the text point at
-	 *  pagesConsulted. Failure shape: /^PDF failed:/i (mirrors research). */
+	/** El informe destilado. Las citas de página dentro del texto apuntan a
+	 *  pagesConsulted. Forma del fallo: /^PDF failed:/i (igual que research). */
 	brief: string;
-	/** Pages the reader actually READ — extract or render output entered the
-	 *  loop (the honest count for the UI badge; search-hit snippets don't
-	 *  count — sources v1 split, 2026-09-19, after the "78 pages consulted"
-	 *  overstatement on a long-book search-first read). */
+	/** Páginas que el lector LEYÓ de verdad: la salida de extracción o de render entró en el
+	 *  bucle (el recuento honesto para la insignia de la interfaz; los fragmentos de resultados de búsqueda no
+	 *  cuentan: división de sources v1, 2026-09-19, tras la exageración de «78 páginas consultadas»
+	 *  en una lectura de un libro largo empezando por la búsqueda). */
 	pagesRead: number[];
-	/** Every page whose content entered the loop, search-hit context lines
-	 *  included — the full audit set (the brief's citations may point here). */
+	/** Cada página cuyo contenido entró en el bucle, incluidas las líneas de contexto de los resultados
+	 *  de búsqueda: el conjunto completo de auditoría (las citas del informe pueden apuntar aquí). */
 	pagesConsulted: number[];
 }
 
-// ─── Sub-agent steer messages (THE ASYNC PROTOCOL §3–4) ─────────────────────
+// ─── Mensajes de reorientación de subagentes (EL PROTOCOLO ASÍNCRONO §3–4) ─────────
 //
-// Wave B (owner-approved 2026-09-26): steers are NATIVE record messages —
-// LhMarkerMessage customs (role "custom"), the custom-message taxonomy's
-// wake members. The model-facing text rides `content` (single-sourced
-// below); the UI payload (the artifact, the abort badge) rides `details`
-// and never reaches the model (toLlmMessages maps the marker to a user
-// message carrying `content` only). The deterministic id (`steer_<jobId>`)
-// IS the idempotency key — steerDelivered matches on it.
+// Oleada B (aprobada por el responsable el 2026-09-26): las reorientaciones son mensajes NATIVOS del registro:
+// customs LhMarkerMessage (rol "custom"), los miembros de despertar de la taxonomía
+// de mensajes personalizados. El texto de cara al modelo va en `content` (de fuente única
+// más abajo); la carga útil de la interfaz (el artefacto, la insignia de aborto) va en `details`
+// y nunca llega al modelo (toLlmMessages convierte el marcador en un mensaje de usuario
+// que solo lleva `content`). El id determinista (`steer_<jobId>`)
+// ES la clave de idempotencia: steerDelivered compara con él.
 
-/** Message metadata marking a sub-agent steer (contracts.ts §3). */
+/** Metadatos de mensaje que marcan una reorientación de subagente (contracts.ts §3). */
 export interface SubagentResultMeta {
 	jobId: string;
 	kind: JobKind;
 	toolCallId: string;
-	/** Present only on an abort steer (2026-09 abort semantics): the
-	 * learner aborted the job (it lands as error "Aborted by learner");
-	 * the teacher is told so its promise of a result doesn't hang
-	 * silently in the lesson. */
+	/** Presente solo en una reorientación de aborto (semántica de aborto de 2026-09): el
+	 * alumno abortó la tarea (llega como error "Aborted by learner");
+	 * se le dice al profesor para que su promesa de un resultado no quede colgada
+	 * en silencio en la lección. */
 	aborted?: true;
-	/** Delivery/recovery failure, not a learner abort or fabricated task outcome. */
+	/** Fallo de entrega/recuperación, no un aborto del alumno ni un resultado de tarea fabricado. */
 	failure?: string;
 }
 
-/** The data-subagent-artifact part payload: what the UI renders. */
+/** La carga útil de la parte data-subagent-artifact: lo que renderiza la interfaz. */
 export interface SubagentArtifactData {
 	kind: JobKind;
 	result: JobResult;
-	/** The learner's pinned UI state (invert switch) riding the record. */
+	/** El estado de interfaz fijado por el alumno (interruptor de inversión) que va en el registro. */
 	ui?: { inverted?: boolean };
 }
 
-/** A result steer's marker details: the UI's meta + artifact in one
- *  payload (the projection splits it into metadata + data part). */
+/** Los details del marcador de una reorientación de resultado: los metadatos de la interfaz + el artefacto en una
+ *  sola carga útil (la proyección lo divide en metadatos + parte de datos). */
 export interface SteerDetails extends SubagentResultMeta {
 	result: JobResult;
-	/** LEARNER UI state pinned onto the artifact (owner, 2026-10-07): the
-	 *  invert switch's position, persisted so navigating away and back (or
-	 *  restarting) keeps it. A VIEW preference — never enters the teacher's
-	 *  context, never exports (the markdown engine reads `result` only). */
+	/** Estado de interfaz del ALUMNO fijado sobre el artefacto (responsable, 2026-10-07): la
+	 *  posición del interruptor de inversión, persistida para que al salir y volver (o
+	 *  reiniciar) se mantenga. Una preferencia de VISTA: nunca entra en el contexto del
+	 *  profesor ni se exporta (el motor de markdown solo lee `result`). */
 	ui?: { inverted?: boolean };
 }
 
-/** Set a steer message's ui.inverted (pure): returns a NEW message array
- *  with the target's details updated — no-op (same array) when the message
- *  is missing or not an invertible artifact steer. The silent route's
- *  whole body. */
+/** Fija ui.inverted de un mensaje de reorientación (puro): devuelve un array de mensajes NUEVO
+ *  con los details del destino actualizados; no hace nada (el mismo array) cuando el mensaje
+ *  no existe o no es una reorientación de artefacto invertible. Todo el cuerpo
+ *  de la ruta silenciosa. */
 export function setSteerUiInverted(
 	messages: readonly LhMessage[],
 	messageId: string,
@@ -343,10 +343,10 @@ export function setSteerUiInverted(
 	});
 }
 
-/** Anything the wake pipeline may queue and deliver — a native marker. */
+/** Cualquier cosa que la canalización de despertares pueda encolar y entregar: un marcador nativo. */
 export type SteerMessage = LhMarkerMessage;
 
-/** Whether a result is the failure shape (html/svg empty, failure brief). */
+/** Si un resultado tiene la forma de fallo (html/svg vacío, informe de fallo). */
 export function isSubagentFailure(
 	kind: JobKind,
 	result: JobResult,
@@ -368,7 +368,7 @@ export function isSubagentFailure(
 	return typeof r.svg !== "string" || r.svg.length === 0;
 }
 
-/** The model-facing text of a steer: what the result IS, what to do with it. */
+/** El texto de cara al modelo de una reorientación: qué ES el resultado y qué hacer con él. */
 function steerText(kind: JobKind, result: JobResult): string {
 	if (kind === "plugin") return (result as PluginBackgroundResult).text;
 	if (isSubagentFailure(kind, result)) {
@@ -400,9 +400,9 @@ function steerText(kind: JobKind, result: JobResult): string {
 }
 
 /**
- * Build the steer message for a finished job (pure — shared by the runner,
- * the wake pipeline, and tests). Deterministic id per job makes re-delivery
- * idempotent.
+ * Construye el mensaje de reorientación de una tarea terminada (puro: lo comparten el ejecutor,
+ * la canalización de despertares y las pruebas). El id determinista por tarea hace que la reentrega
+ * sea idempotente.
  */
 export function buildSubagentSteer(
 	job: Pick<JobRecord, "id" | "kind" | "toolCallId">,
@@ -424,9 +424,9 @@ export function buildSubagentSteer(
 	};
 }
 
-/** Build the abort steer for an aborted job (pure — shared by the
- * abort path in src/server/jobs.ts and tests). Same id space as the result
- * steer (same id space — exactly one delivers). */
+/** Construye la reorientación de aborto de una tarea abortada (puro: la comparten el
+ * camino de aborto de src/server/jobs.ts y las pruebas). Mismo espacio de ids que la reorientación
+ * de resultado (mismo espacio de ids: solo se entrega exactamente una). */
 export function buildAbortSteer(
 	job: Pick<JobRecord, "id" | "kind" | "toolCallId">,
 ): SteerMessage {
@@ -442,7 +442,7 @@ export function buildAbortSteer(
 	};
 }
 
-/** Honest pipeline failure: same deterministic marker id, no invented task result. */
+/** Fallo honesto de la canalización: el mismo id de marcador determinista, sin resultado de tarea inventado. */
 export function buildJobFailureSteer(
 	job: Pick<JobRecord, "id" | "kind" | "toolCallId">,
 	failure: string,
@@ -455,8 +455,8 @@ export function buildJobFailureSteer(
 	};
 }
 
-/** What the teacher reads: one line telling it the result is not coming,
- * how to acknowledge, and that re-dispatching is allowed. */
+/** Lo que lee el profesor: una línea que le dice que el resultado no va a llegar,
+ * cómo darse por enterado y que se permite volver a despachar. */
 function abortText(kind: JobKind): string {
 	if (kind === "plugin") return "The learner aborted the background job before computation completed. Acknowledge it briefly and continue without waiting for a result.";
 	if (kind === "research")
@@ -468,23 +468,23 @@ function abortText(kind: JobKind): string {
 	return "The figure job was aborted by the learner — no figure is coming. Acknowledge it in one line and teach without it (a re-dispatch is fine if the learner wants it).";
 }
 
-// ─── the probe handoff steer (the probe→teach split, docs/archive/probe-teach-split.md §2) ──
+// ─── la reorientación de traspaso del sondeo (la división sondeo→enseñanza, docs/archive/probe-teach-split.md §2) ─
 //
-// probe_done's execute queues this through the same wake pipeline; the
-// pump fires it once the prober's turn ends (gates + grace). It carries no
-// artifact — the assessment it references is durable in the transcript as
-// the probe_done tool result. Deterministic id per chat: exactly one
-// handoff, idempotent re-delivery. The marker's content is HANDOFF_TEXT
-// (core/contracts/chat.ts — single source); the UI renders the quiet
-// system line off the customType. Nothing human-looking is persisted, ever.
+// El execute de probe_done la encola por la misma canalización de despertares; la
+// bomba la dispara cuando termina el turno del sondeador (barreras + margen). No lleva
+// artefacto: la evaluación a la que hace referencia es duradera en el transcript como
+// el resultado de la herramienta probe_done. Id determinista por chat: exactamente un
+// traspaso, reentrega idempotente. El contenido del marcador es HANDOFF_TEXT
+// (core/contracts/chat.ts, fuente única); la interfaz renderiza la línea discreta
+// del sistema a partir del customType. Nunca se persiste nada que parezca humano.
 
 export function buildProbeHandoffSteer(chatId: string): SteerMessage {
 	return newHandoffMessage(chatId);
 }
 
-/** True when the transcript already carries this steer — idempotent
- *  delivery for ANY steer kind: every steer id is deterministic per its
- *  event (steer_<jobId> for jobs, steer_probe_<chatId> for the handoff). */
+/** True cuando el transcript ya lleva esta reorientación: entrega idempotente
+ *  para CUALQUIER tipo de reorientación: cada id de reorientación es determinista según su
+ *  evento (steer_<jobId> para las tareas, steer_probe_<chatId> para el traspaso). */
 export function steerDelivered(messages: LhMessage[], steerId: string): boolean {
 	return messages.some((m) => m.id === steerId);
 }

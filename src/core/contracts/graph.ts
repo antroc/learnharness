@@ -1,354 +1,354 @@
 /**
- * Knowledge-graph contracts — nodes, ledgers, extraction findings
+ * Contratos del grafo de conocimiento: nodos, registros, hallazgos de extracción
  *
- * The minimal implementation of the graph vision (docs/archive/vision.md §1, the
- * 2026-09-02 redesign): every node is a TRUE proposition; edges are follows
- * (derivable) and supports (grounds without entailing); provenance is
- * message-granular; extraction is free-form and post-hoc, fully decoupled
- * from the session's plan tree. The graph is an extraction of the reasoning
- * chains from all teaching sessions (and imported notes) — NOTHING else:
- * no quiz outcomes, no understanding assessments (2026-09-27 cleanup).
- * Anything not
- * yet decided (the state model, strength derivation, selection strategies) is deliberately NOT here — transitional
- * stubs carry the renderer until those land.
+ * La implementación mínima de la visión del grafo (docs/archive/vision.md §1, el
+ * rediseño del 2026-09-02): todo nodo es una proposición VERDADERA; las aristas son follows
+ * (derivable) y supports (fundamenta sin implicar); la procedencia tiene
+ * granularidad de mensaje; la extracción es de forma libre y a posteriori, totalmente desacoplada
+ * del árbol del plan de la sesión. El grafo es una extracción de las cadenas de
+ * razonamiento de todas las sesiones de enseñanza (y de las notas importadas), NADA más:
+ * ni resultados de quiz ni evaluaciones de comprensión (limpieza del 2026-09-27).
+ * Todo lo que aún no
+ * está decidido (el modelo de estados, la derivación de la fuerza, las estrategias de selección) NO está aquí a propósito: unos
+ * esbozos transitorios sostienen el renderizador hasta que lleguen.
  *
- * Part of the domain-split contracts (src/core/contracts/): each domain file
- * is owned outright by its stream — cross-domain schema changes go through
- * master. Pure types + protocol docs + tiny pure helpers. See docs/archive/vision.md.
+ * Parte de los contratos divididos por dominio (src/core/contracts/): cada fichero de dominio
+ * pertenece por completo a su línea de trabajo; los cambios de esquema entre dominios pasan por
+ * master. Tipos puros + documentación del protocolo + pequeños helpers puros. Ver docs/archive/vision.md.
  */
-// ─── Knowledge graph (vision §1 — global, cross-session) ────────────────────
+// ─── Grafo de conocimiento (visión §1: global, entre sesiones) ───────────────────
 
 import type { CallUsage, ExtractionRunUsage } from "./chat.ts";
 
-/** Directed relation derived from stored reasoning chains, not an independent
- * ledger record. Canvas edges connect a single premise directly to its
- * conclusion, or multiple premises through a derived implication node.
- * Logical edges connect proposition premises directly to conclusions. */
+/** Relación dirigida derivada de las cadenas de razonamiento guardadas, no un registro
+ * independiente. Las aristas del lienzo conectan una premisa única directamente con su
+ * conclusión, o varias premisas a través de un nodo de implicación derivado.
+ * Las aristas lógicas conectan las premisas proposicionales directamente con las conclusiones. */
 export interface GraphEdge {
 	from: string;
 	to: string;
 }
 
-/** Stored argument whose premises jointly entail its conclusion. Independent
- * arguments remain separate chains even when their conclusion is shared.
- * Multi-premise chains produce a derived implication node with the chain's
- * arg_ ID; single-premise chains render as direct arrows. Removing a
- * proposition cascades to chains referencing it. */
+/** Argumento guardado cuyas premisas implican conjuntamente su conclusión. Los argumentos
+ * independientes siguen siendo cadenas separadas aunque compartan conclusión.
+ * Las cadenas de varias premisas producen un nodo de implicación derivado con el ID arg_
+ * de la cadena; las de una sola premisa se renderizan como flechas directas. Eliminar una
+ * proposición elimina en cascada las cadenas que la referencian. */
 export interface GraphChain {
-	/** "arg_" + nanoid-like (store-assigned, the node-minting pattern). */
+	/** "arg_" + algo tipo nanoid (asignado por el store, el patrón de acuñación de nodos). */
 	id: string;
-	/** Node ids of the argument's premises — at least one, jointly
-	 *  sufficient. Extractor-local at the wire; node ids after resolution. */
+	/** Ids de nodo de las premisas del argumento: al menos una, conjuntamente
+	 *  suficientes. Locales del extractor en la red; ids de nodo tras la resolución. */
 	premises: string[];
-	/** The node id the premises jointly imply. */
+	/** El id de nodo que las premisas implican conjuntamente. */
 	conclusion: string;
-	/** Every (chat, message) point where this argument was asserted —
-	 *  unioned across assertion lines at read time. */
+	/** Cada punto (chat, mensaje) donde se afirmó este argumento,
+	 *  unidos entre las líneas de afirmación al leer. */
 	provenance: ProvenancePoint[];
 	createdAt: string;
 }
 
-/** Counts merged into graph ledgers by one extraction run, also saved with
- * extraction usage. Older usage records may omit chains and carry edge counts
- * instead; current merges write chain counts. */
+/** Recuentos fusionados en los registros del grafo por una ejecución de extracción, guardados también con
+ * el uso de la extracción. Los registros de uso antiguos pueden omitir las cadenas y llevar en su lugar
+ * recuentos de aristas; las fusiones actuales escriben recuentos de cadenas. */
 export interface EmissionStats {
-	/** New graph nodes appended. */
+	/** Nodos nuevos del grafo anexados. */
 	nodes: number;
-	/** New reasoning chains appended. */
+	/** Cadenas de razonamiento nuevas anexadas. */
 	chains?: number;
-	/** Chains removed by simplification during this merge, separate from new
-	 * appends counted in chains. Omitted when none are removed; records without
-	 * this field contribute zero removals. */
+	/** Cadenas eliminadas por simplificación durante esta fusión, aparte de los
+	 * anexados nuevos contados en chains. Se omite cuando no se elimina ninguna; los registros sin
+	 * este campo aportan cero eliminaciones. */
 	droppedChains?: number;
 }
 
-/** Source location for a proposition or reasoning-chain assertion. A message
- * ID anchors to a native transcript passage; chat-level and imported-file
- * provenance can omit that anchor by using an empty messageId. */
+/** Ubicación de origen de una afirmación de proposición o de cadena de razonamiento. Un ID de
+ * mensaje la ancla a un pasaje del transcript nativo; la procedencia a nivel de chat y la de
+ * ficheros importados pueden omitir ese ancla usando un messageId vacío. */
 export interface ProvenancePoint {
-	/** The chat this point anchors to — or a notes source id ("src_…"):
-	 *  imports carry no message anchors (provenance is the file itself,
-	 *  recorded through the mapping line + the source record). */
+	/** El chat al que se ancla este punto, o un id de fuente de notas ("src_…"):
+	 *  las importaciones no llevan anclas de mensaje (la procedencia es el propio fichero,
+	 *  registrada mediante la línea de correspondencia + el registro de la fuente). */
 	chatId: string;
 	messageId: string;
 }
 
-/** Imported notes source processed by the extractor → auditor → merger pipeline.
- * Provenance identifies the file rather than a chat message, and the source
- * owns its extraction usage log. IDs are src_ plus a deterministic file-path
- * hash, so re-importing the same path uses the same source identity. */
+/** Fuente de notas importada procesada por la canalización extractor → auditor → fusionador.
+ * La procedencia identifica el fichero en lugar de un mensaje de chat, y la fuente
+ * es dueña de su registro de uso de extracción. Los ID son src_ más un hash determinista de la
+ * ruta del fichero, así que reimportar la misma ruta usa la misma identidad de fuente. */
 export interface NotesSource {
 	id: string;
 	filePath: string;
-	/** ISO — when this file was imported (the checkpoint's foldedAt). */
+	/** ISO: cuándo se importó este fichero (el foldedAt del punto de control). */
 	importedAt: string;
-	/** Legacy content fingerprint. Accepted when reading old records, but
-	 * ignored: every explicit notes import processes the whole file. New
-	 * imports do not compute or write this field. No migration is needed. */
+	/** Huella de contenido heredada. Se acepta al leer registros antiguos, pero
+	 * se ignora: toda importación explícita de notas procesa el fichero entero. Las importaciones
+	 * nuevas no calculan ni escriben este campo. No hace falta migración. */
 	contentFp?: string;
-	/** The run's usage log — same append-only discipline as
-	 *  ChatRecord.extractions, idempotent per startedAt. */
+	/** El registro de uso de la ejecución: la misma disciplina de solo anexado que
+	 *  ChatRecord.extractions, idempotente por startedAt. */
 	extractions?: ExtractionRunUsage[];
 }
 
-/** What one cluster-naming refresh did — the namer's ClusterRefreshStats,
- *  contract-shaped so the agent layer needs no contracts import.
- *  Structural twins stay interchangeable. */
+/** Lo que hizo un refresco de nombres de clústeres: el ClusterRefreshStats del nombrador,
+ *  con forma de contrato para que la capa del agente no necesite importar los contratos.
+ *  Los gemelos estructurales siguen siendo intercambiables. */
 export interface NamingRunStats {
-	/** Communities the current graph divides into (all sizes). */
+	/** Comunidades en las que se divide el grafo actual (de todos los tamaños). */
 	detected: number;
-	/** Communities that kept a label via core-survival. */
+	/** Comunidades que conservaron una etiqueta por supervivencia del núcleo. */
 	claimed: number;
-	/** Communities sent to the namer (unnamed, size >= MIN_CLUSTER_SIZE). */
+	/** Comunidades enviadas al nombrador (sin nombre, tamaño >= MIN_CLUSTER_SIZE). */
 	named: number;
-	/** Labeling records actually appended (idempotent dedupe may shrink). */
+	/** Registros de etiquetado realmente anexados (la deduplicación idempotente puede reducirlos). */
 	appended: number;
 }
 
-/** The graph-family format version this build writes and understands
- *  (the format.json sidecar — src/store/graph-format.ts). */
+/** La versión de formato de la familia del grafo que este build escribe y entiende
+ *  (el fichero auxiliar format.json: src/store/graph-format.ts). */
 export const CURRENT_GRAPH_FORMAT_VERSION = 1;
 
 
 export interface GraphNode {
-	/** Opaque stable id, store-assigned: "n_" + nanoid-like. */
+	/** Id opaco y estable, asignado por el store: "n_" + algo tipo nanoid. */
 	id: string;
-	/** A very short label for the node — a compact handle like a glossary
-	 *  headword ("Will to power", "Divine command theory"): what the graph
-	 *  shows at a glance. Presentational only — not unique, not an identity
-	 *  key, never precise: the statement carries the precision. Set at
-	 *  creation (first line defines); a link-append never changes it. */
+	/** Una etiqueta muy corta para el nodo: un asa compacta como la entrada de un
+	 *  glosario ("Voluntad de poder", "Teoría del mandato divino"): lo que el grafo
+	 *  muestra de un vistazo. Solo de presentación: no es única, no es clave de
+	 *  identidad, nunca es precisa: la precisión la lleva el enunciado. Se fija al
+	 *  crear (la primera línea la define); un anexado de enlace nunca la cambia. */
 	name: string;
-	/** The minimal proposition — one true, self-contained statement, at
-	 *  full precision. The IDENTITY ANCHOR: the auditor recognizes a
-	 *  re-encounter by judgment against this (link-or-create), not by
-	 *  string matching. Shown in the detail card; the canvas label is the
-	 *  name. */
+	/** La proposición mínima: un enunciado verdadero y autocontenido, con
+	 *  precisión plena. El ANCLA DE IDENTIDAD: el auditor reconoce un
+	 *  reencuentro juzgando contra esto (enlazar o crear), no por
+	 *  coincidencia de strings. Se muestra en la tarjeta de detalle; la etiqueta del lienzo es el
+	 *  nombre. */
 	statement: string;
-	/** Verbatim phrasings sessions used for this proposition (the identity
-	 *  audit trail — how the world said what the node says). */
+	/** Formulaciones literales que usaron las sesiones para esta proposición (el rastro de
+	 *  auditoría de identidad: cómo dijo el mundo lo que dice el nodo). */
 	aliases: string[];
 	createdAt: string;
-	/** Every (chat, message) point where this proposition came up. */
+	/** Cada punto (chat, mensaje) donde apareció esta proposición. */
 	provenance: ProvenancePoint[];
 }
 
-/** sessions.jsonl line — the emission checkpoint for one chat (which chats
- *  have been folded, and through which updatedAt — never fold twice). */
+/** Línea de sessions.jsonl: el punto de control de emisión de un chat (qué chats
+ *  se han plegado, y hasta qué updatedAt; nunca plegar dos veces). */
 export interface SessionCheckpoint {
 	chatId: string;
-	/** The chat record's `updatedAt` at the time of the fold. */
+	/** El `updatedAt` del registro del chat en el momento del pliegue. */
 	foldedAt: string;
 }
 
-/** coverage.jsonl entry marking one extracted message by its extraction-view
- * fingerprint. Uncovered content is derived by comparing current fingerprints;
- * an answer changing a question's view reopens only that message. Chat
- * extraction records message coverage; notes imports use source checkpoints. */
+/** Entrada de coverage.jsonl que marca un mensaje extraído por la huella de su vista de
+ * extracción. El contenido sin cubrir se deriva comparando las huellas actuales;
+ * una respuesta que cambia la vista de una pregunta solo reabre ese mensaje. La extracción
+ * de chats registra la cobertura de mensajes; las importaciones de notas usan puntos de control de la fuente. */
 export interface CoverageEntry {
 	chatId: string;
-	/** sha256 of the message's view lines — "covered" means exactly this. */
+	/** sha256 de las líneas de la vista del mensaje: «cubierto» significa exactamente esto. */
 	fp: string;
-	/** chars/4 estimate of the message's view — display + budgeting. */
+	/** Estimación caracteres/4 de la vista del mensaje: visualización + presupuesto. */
 	tokens: number;
-	/** ISO — when this message's last extraction run merged. */
+	/** ISO: cuándo se fusionó la última ejecución de extracción de este mensaje. */
 	foldedAt: string;
 }
 
 /**
- * Store format (src/store/graph.ts): JSONL ledgers at config.LEDGER_FILES
- * (nodes/chains/sessions), all append-only. Edges are NEVER stored — the
- * derived view (implication nodes + untyped arrows) is rebuilt from chains
- * on every read (chains-primary, owner 2026-09-30).
+ * Formato del store (src/store/graph.ts): registros JSONL en config.LEDGER_FILES
+ * (nodes/chains/sessions), todos de solo anexado. Las aristas NUNCA se guardan: la
+ * vista derivada (nodos de implicación + flechas sin tipo) se reconstruye a partir de las cadenas
+ * en cada lectura (las cadenas como fuente primaria, responsable 2026-09-30).
  *
- *   nodes.jsonl    one line per node — the FIRST line for an id defines
- *                  name/statement/createdAt; later lines for the
- *                  same id are link-appends (a session's re-encounter):
- *                  their statements/aliases join `aliases`, their
- *                  provenance unions; the name stays the first line's.
- *                  getGraph merges by id.
- *   chains.jsonl   one line per chain ASSERTION; readers merge by
- *                  (premises, conclusion), unioning provenance — the
- *                  first line's arg_ id is the chain's identity.
+ *   nodes.jsonl    una línea por nodo: la PRIMERA línea de un id define
+ *                  name/statement/createdAt; las líneas posteriores del
+ *                  mismo id son anexados de enlace (el reencuentro de una sesión):
+ *                  sus enunciados/alias se suman a `aliases`, sus
+ *                  procedencias se unen; el nombre sigue siendo el de la primera línea.
+ *                  getGraph fusiona por id.
+ *   chains.jsonl   una línea por AFIRMACIÓN de cadena; los lectores fusionan por
+ *                  (premisas, conclusión), uniendo la procedencia: el
+ *                  id arg_ de la primera línea es la identidad de la cadena.
  *
- * The derived graph is rebuilt by reading the ledgers — store events,
- * derive state. sessions.jsonl is the extraction checkpoint: which chats
- * the extraction pipeline has processed, and through which updatedAt
- * (never extract the same turns twice).
+ * El grafo derivado se reconstruye leyendo los registros: se guardan eventos, se
+ * deriva el estado. sessions.jsonl es el punto de control de la extracción: qué chats
+ * ha procesado la canalización de extracción, y hasta qué updatedAt
+ * (nunca extraer dos veces los mismos turnos).
  *
- * The EXTRACTION PIPELINE is the sole graph writer (extractor → auditor →
- * merger), tree-blind and post-hoc (2026-09-27 cleanup — clear separation
- * of work): the extractor is the ONLY stage that sees the raw source
- * (whole session as readable markdown, or raw notes) and extracts the
- * reasoning chains — propositions (lonely relevant ones included) plus
- * follows/supports edges; the auditor NEVER sees
- * the source — its job is preparing the merge: identity verdicts
- * (link-or-create, merging equivalent forms of the same proposition) via
- * graph-exploration tools (find / list_sessions / list_propositions), and
- * it may draw BRIDGING edges from existing graph nodes to the new
- * propositions; the merger (core/graph.ts, deterministic) applies the
- * verdicts and appends. Quiz events and understanding observations are
- * GONE — the pipeline is the only session→graph bridge, and it carries
- * propositions + edges, nothing else.
+ * La CANALIZACIÓN DE EXTRACCIÓN es el único escritor del grafo (extractor → auditor →
+ * fusionador), ciega al árbol y a posteriori (limpieza del 2026-09-27: separación clara
+ * del trabajo): el extractor es la ÚNICA etapa que ve la fuente cruda
+ * (la sesión entera como markdown legible, o las notas crudas) y extrae las
+ * cadenas de razonamiento: proposiciones (incluidas las relevantes aisladas) más
+ * aristas follows/supports; el auditor NUNCA ve
+ * la fuente: su trabajo es preparar la fusión: veredictos de identidad
+ * (enlazar o crear, fusionando formas equivalentes de la misma proposición) mediante
+ * herramientas de exploración del grafo (find / list_sessions / list_propositions), y
+ * puede trazar aristas PUENTE desde nodos existentes del grafo hacia las nuevas
+ * proposiciones; el fusionador (core/graph.ts, determinista) aplica los
+ * veredictos y anexa. Los eventos de quiz y las observaciones de comprensión HAN
+ * DESAPARECIDO: la canalización es el único puente sesión→grafo, y lleva
+ * proposiciones + aristas, nada más.
  */
 
-// ─── Extraction findings (extractor output → audit → merger input) ───────────
+// ─── Hallazgos de extracción (salida del extractor → auditoría → entrada del fusionador) ─
 
-/** One proposed proposition — a node candidate (or a re-encounter of one). */
+/** Una proposición propuesta: un candidato a nodo (o un reencuentro con uno). */
 export interface ExtractedProposition {
-	/** Extractor-local id ("p1", …) referenced by edges. */
+	/** Id local del extractor ("p1", …) al que hacen referencia las aristas. */
 	id: string;
-	/** A very short label — a few words, a compact handle like a glossary
-	 *  headword. Not a sentence, needn't be unique or self-contained: the
-	 *  statement carries the precision. Becomes the node's name on create;
-	 *  on link, the existing node keeps its name. */
+	/** Una etiqueta muy corta: unas pocas palabras, un asa compacta como la entrada de un
+	 *  glosario. No es una frase, no tiene por qué ser única ni autocontenida: la
+	 *  precisión la lleva el enunciado. Pasa a ser el nombre del nodo al crearlo;
+	 *  al enlazar, el nodo existente conserva su nombre. */
 	name: string;
-	/** The minimal proposition — a true, self-contained, world-facing
-	 *  statement, at full precision. No learner / teacher / session
-	 *  references: misconceptions are stated as the true correction, and
-	 *  wrongness is never recorded in the graph (2026-09-27: the event
-	 *  ledger is gone). */
+	/** La proposición mínima: un enunciado verdadero, autocontenido y referido al mundo,
+	 *  con precisión plena. Sin referencias al alumno / profesor / sesión:
+	 *  los errores conceptuales se enuncian como la corrección verdadera, y
+	 *  el error nunca se registra en el grafo (2026-09-27: el registro de
+	 *  eventos ha desaparecido). */
 	statement: string;
-	/** Verbatim phrasings the session used. */
+	/** Formulaciones literales que usó la sesión. */
 	aliases: string[];
-	/* Submit-schema slim (owner, 2026-09-28): `messages` and `evidence`
-	 * are GONE. The verbatim-quote fields were never persisted and weak
-	 * models burned their retries on them ("propositions.0: must be
-	 * object" — the stringified-payload collapse). The extractor reports
-	 * propositions + structure, nothing else. */
-	/** OPTIONAL, SESSION PATH ONLY (owner, 2026-10-13): the message id of
-	 *  the ONE teacher passage this proposition came from — the extractor
-	 *  copies it from the view's "TEACHER [id]" label (core/coverage.ts
-	 *  messageViewLines) and the submit seam validates it against the
-	 *  CURRENT batch. The merger stamps it into the node's provenance
-	 *  point {chatId, messageId} (new nodes AND link-appends); chains
-	 *  stay chat-level. Notes imports and legacy/core callers have none:
-	 *  undefined → messageId "" (chat-level), so NO persisted shape or
-	 *  format version changes (GraphNode / ProvenancePoint untouched). */
+	/* Esquema de envío adelgazado (responsable, 2026-09-28): `messages` y `evidence`
+	 * HAN DESAPARECIDO. Los campos de citas literales nunca se persistían y los modelos
+	 * débiles gastaban en ellos sus reintentos ("propositions.0: must be
+	 * object": el colapso de la carga útil convertida en string). El extractor informa de
+	 * proposiciones + estructura, nada más. */
+	/** OPCIONAL, SOLO EN EL CAMINO DE SESIÓN (responsable, 2026-10-13): el id del mensaje del
+	 *  ÚNICO pasaje del profesor del que salió esta proposición: el extractor
+	 *  lo copia de la etiqueta "TEACHER [id]" de la vista (messageViewLines de
+	 *  core/coverage.ts) y la frontera de envío lo valida contra el lote
+	 *  ACTUAL. El fusionador lo estampa en el punto de procedencia del nodo
+	 *  {chatId, messageId} (nodos nuevos Y anexados de enlace); las cadenas
+	 *  se quedan a nivel de chat. Las importaciones de notas y los llamadores heredados/de core no lo tienen:
+	 *  undefined → messageId "" (nivel de chat), así que NO cambia ninguna forma persistida ni
+	 *  versión de formato (GraphNode / ProvenancePoint intactos). */
 	messageId?: string;
 }
 
-/** One proposed argument (extractor redesign, 2026-09-30). Endpoints are
- *  extractor-local proposition ids ("p1", …) — the extractor is the ONLY
- *  stage that ever proposes chains; the merger resolves them to node ids. */
+/** Un argumento propuesto (rediseño del extractor, 2026-09-30). Los extremos son
+ *  ids de proposición locales del extractor ("p1", …): el extractor es la ÚNICA
+ *  etapa que propone cadenas; el fusionador las resuelve a ids de nodo. */
 export interface ExtractedChain {
-	/** Proposition ids that JOINTLY entail the conclusion. */
+	/** Ids de proposición que implican CONJUNTAMENTE la conclusión. */
 	premises: string[];
-	/** The proposition id the premises jointly imply. */
+	/** El id de proposición que las premisas implican conjuntamente. */
 	conclusion: string;
 }
 
-/** The extractor's output shape: the raw reasoning chains. */
+/** La forma de salida del extractor: las cadenas de razonamiento crudas. */
 export interface SessionFindings {
 	propositions: ExtractedProposition[];
 	chains: ExtractedChain[];
 }
 
-/** One identity verdict: the extractor's local proposition id → the
- *  EXISTING graph node that proposition IS. On link, the session's
- *  phrasings (statement, aliases) join the node's aliases and the
- *  provenance unions. EQUIVALENCE BIAS (2026-09-27): paraphrases,
- *  rewordings, and compressions of the same claim MERGE — do not create
- *  a duplicate because the wording differs. Only genuinely distinct
- *  propositions stay apart. */
+/** Un veredicto de identidad: el id de proposición local del extractor → el nodo
+ *  EXISTENTE del grafo que ES esa proposición. Al enlazar, las
+ *  formulaciones de la sesión (statement, aliases) se suman a los alias del nodo y la
+ *  procedencia se une. SESGO DE EQUIVALENCIA (2026-09-27): las paráfrasis,
+ *  reformulaciones y compresiones de la misma afirmación se FUSIONAN: no crees
+ *  un duplicado porque cambie la redacción. Solo las proposiciones realmente
+ *  distintas se mantienen separadas. */
 export interface IdentityLink {
 	id: string;
 	linkTo: string;
 }
 
-/** The auditor's output — VERDICTS ONLY (owner, 2026-09-28): the auditor
- *  never alters the extractor's findings, so it does not restate them;
- *  the deterministic merger joins findings + verdicts. `links` = the
- *  identity verdicts (local id ⇄ existing node) — the auditor's ENTIRE
- *  deliverable (owner, 2026-09-28 evening: the edges argument is GONE —
- *  the auditor never mints edges; the graph connects across sources
- *  solely through identified equivalences). No drop channel — the
- *  auditor never rejects; the extractor is fully trusted (2026-09-27). */
+/** La salida del auditor: SOLO VEREDICTOS (responsable, 2026-09-28): el auditor
+ *  nunca altera los hallazgos del extractor, así que no los repite;
+ *  el fusionador determinista une hallazgos + veredictos. `links` = los
+ *  veredictos de identidad (id local ⇄ nodo existente): TODO lo que
+ *  entrega el auditor (responsable, 2026-09-28 por la tarde: el argumento de aristas HA DESAPARECIDO:
+ *  el auditor nunca acuña aristas; el grafo se conecta entre fuentes
+ *  únicamente a través de equivalencias identificadas). Sin canal de descarte: el
+ *  auditor nunca rechaza; se confía plenamente en el extractor (2026-09-27). */
 export interface AuditVerdicts {
 	links: IdentityLink[];
 }
 
-/** Rendered cluster in a graph snapshot. Members are proposition node IDs;
- * hull geometry is derived from their positions at render time. */
+/** Clúster renderizado en una instantánea del grafo. Los miembros son IDs de nodos de proposición;
+ * la geometría de la envolvente se deriva de sus posiciones al renderizar. */
 export interface Cluster {
-	/** The labeling record id when claimed; unlabeled clusters still
-	 * appear (hull, no name) with a member-hash id. */
+	/** El id del registro de etiquetado cuando se ha reclamado; los clústeres sin etiqueta siguen
+	 * apareciendo (envolvente, sin nombre) con un id hash de sus miembros. */
 	id: string;
-	/** null until the naming call has minted/claimed a labeling. */
+	/** null hasta que la llamada de nombrado ha acuñado/reclamado un etiquetado. */
 	label: string | null;
-	/** Node ids, sorted. Hull + centroid are renderer concerns. */
+	/** Ids de nodo, ordenados. La envolvente + el centroide son asunto del renderizador. */
 	members: string[];
 }
 
-/** Graph projection containing stored propositions/chains and derived rendering,
- * layout and provenance data. Derived arrows/junctions are not stored arguments. */
+/** Proyección del grafo que contiene las proposiciones/cadenas guardadas y los datos derivados de
+ * renderizado, disposición y procedencia. Las flechas/uniones derivadas no son argumentos guardados. */
 export interface GraphSnapshot {
-	/** Canvas nodes: propositions plus derived implication nodes for multi-premise
-	 * chains. Each implication node uses its chain's ID. */
+	/** Nodos del lienzo: proposiciones más nodos de implicación derivados para las cadenas de
+	 * varias premisas. Cada nodo de implicación usa el ID de su cadena. */
 	nodes: GraphNode[];
-	/** The STORED proposition nodes alone (no derived implication nodes)
-	 *  — the stored truth, like `chains`: consumers that read the world
-	 *  (the chain table) take this list, never the canvas image. */
+	/** Solo los nodos de proposición GUARDADOS (sin nodos de implicación derivados):
+	 *  la verdad guardada, como `chains`: los consumidores que leen el mundo
+	 *  (la tabla de cadenas) usan esta lista, nunca la imagen del lienzo. */
 	propositions: GraphNode[];
-	/** Derived canvas arrows: direct premise → conclusion for single-premise
-	 * chains, or premise → implication node → conclusion for multi-premise chains.
-	 * Rebuilt from chains, not stored separately. */
+	/** Flechas derivadas del lienzo: premisa → conclusión directa para las cadenas de una
+	 * sola premisa, o premisa → nodo de implicación → conclusión para las de varias premisas.
+	 * Se reconstruyen a partir de las cadenas, no se guardan por separado. */
 	edges: GraphEdge[];
-	/** Derived direct premise → conclusion arrows over proposition IDs only.
-	 * Depth calculations use these rather than implication-node geometry. */
+	/** Flechas directas premisa → conclusión derivadas, solo sobre IDs de proposición.
+	 * Los cálculos de profundidad usan estas en lugar de la geometría de los nodos de implicación. */
 	logicalEdges: GraphEdge[];
-	/** Derived junction linkage for each live multi-premise chain. Layout uses
-	 * premise/conclusion rows to position its implication node between them. */
+	/** Vínculo de unión derivado de cada cadena viva de varias premisas. La disposición usa
+	 * las filas de premisa/conclusión para colocar su nodo de implicación entre ellas. */
 	impLinks: Array<{ id: string; premises: string[]; conclusion: string }>;
-	/** The STORED reasoning chains (merged by (premises, conclusion) at
-	 *  read): the chain table's and the practice pipeline's input — they
-	 * read the truth, never the derived fan-out. */
+	/** Las cadenas de razonamiento GUARDADAS (fusionadas por (premisas, conclusión) al
+	 *  leer): la entrada de la tabla de cadenas y de la canalización de práctica: leen
+	 * la verdad, nunca el despliegue derivado. */
 	chains: GraphChain[];
-	/** chatId → title, for every chat that touched the graph. */
+	/** chatId → título, para cada chat que tocó el grafo. */
 	sessions: Record<string, string>;
-	/** srcId → file path, for every IMPORTED NOTES file that touched the
-	 *  graph (the format-agnostic front door): a static provenance entry —
-	 *  the detail card shows the path as plain text, not a link. */
+	/** srcId → ruta del fichero, para cada fichero de NOTAS IMPORTADAS que tocó el
+	 *  grafo (la puerta de entrada agnóstica al formato): una entrada de procedencia estática:
+	 *  la tarjeta de detalle muestra la ruta como texto plano, no como enlace. */
 	fileSources: Record<string, string>;
-	/** nodeId → chatIds that touched the node (click-through provenance). */
+	/** nodeId → chatIds que tocaron el nodo (procedencia navegable con clic). */
 	nodeSessions: Record<string, string[]>;
-	/** Birth-session communities (core/session-clusters.ts: each
-	 * proposition joins the cluster of the session that birthed it —
-	 * session provenance, no Louvain, no embeddings), MIN_CLUSTER_SIZE
-	 * ≥ 3 as the hull presentation rule. Propositions only — implication
-	 * nodes are never partitioned. Purely provenance-derived — never
-	 * depends on layout. */
+	/** Comunidades por sesión de nacimiento (core/session-clusters.ts: cada
+	 * proposición se une al clúster de la sesión que la hizo nacer:
+	 * procedencia de sesión, sin Louvain, sin embeddings), con MIN_CLUSTER_SIZE
+	 * ≥ 3 como regla de presentación de la envolvente. Solo proposiciones: los nodos
+	 * de implicación nunca se particionan. Derivadas puramente de la procedencia: nunca
+	 * dependen de la disposición. */
 	clusters: Cluster[];
-	/** Resting layout positions per node id, when a positions ledger
-	 *  exists (core/layout.ts settle writes it). Absent on a fresh graph —
-	 *  the view then falls back to its own one-shot forceAtlas2 pass. */
+	/** Posiciones de reposo de la disposición por id de nodo, cuando existe un registro
+	 *  de posiciones (lo escribe el settle de core/layout.ts). Ausente en un grafo nuevo:
+	 *  la vista recurre entonces a su propia pasada puntual de forceAtlas2. */
 	positions?: Record<string, Position>;
 }
 
-/** A node's resting position in layout space (the positions ledger). */
+/** La posición de reposo de un nodo en el espacio de la disposición (el registro de posiciones). */
 export interface Position {
 	x: number;
 	y: number;
 }
 
-/** The auto-title's character cap (owner, 2026-10-06): long enough to
- *  stay informative in the sidebar and the top bar, short enough that a
- *  first message never reads as a paragraph. Tunable — one number, one
- *  place. */
+/** El límite de caracteres del título automático (responsable, 2026-10-06): lo bastante largo para
+ *  seguir siendo informativo en la barra lateral y en la barra superior, lo bastante corto para que
+ *  un primer mensaje nunca se lea como un párrafo. Ajustable: un número, un
+ *  sitio. */
 export const TITLE_MAX_CHARS = 72;
 
-/** Derive a short chat title from the learner's first message (pure).
- *  Smart truncation (owner, 2026-10-06): the cut snaps to a word boundary
- *  AT OR UNDER the cap — a title never ends mid-word. The one exception
- *  is a single word longer than the cap (rare, but real: identifiers,
- *  URLs): it cuts at the cap, splitting the word. Whitespace collapses to
- *  single spaces first, so boundaries are always single-space boundaries.
- *  Used on chat creation; deterministic so tests can pin it. */
+/** Deriva un título corto de chat a partir del primer mensaje del alumno (puro).
+ *  Truncado inteligente (responsable, 2026-10-06): el corte se ajusta a un límite de palabra
+ *  IGUAL O POR DEBAJO del límite: un título nunca termina a mitad de palabra. La única excepción
+ *  es una sola palabra más larga que el límite (raro, pero real: identificadores,
+ *  URL): se corta en el límite, partiendo la palabra. Los espacios en blanco se colapsan primero
+ *  a espacios simples, así que los límites siempre son de un solo espacio.
+ *  Se usa al crear el chat; determinista para que las pruebas puedan fijarlo. */
 export function titleFromPrompt(prompt: string): string {
 	const oneLine = prompt.replace(/\s+/g, " ").trim();
 	if (oneLine.length <= TITLE_MAX_CHARS) return oneLine;
-	// Last space among the first TITLE_MAX_CHARS characters; the cut sits
-	// before it so no trailing space rides into the title.
+	// Último espacio entre los primeros TITLE_MAX_CHARS caracteres; el corte va
+	// antes de él para que no se cuele un espacio final en el título.
 	let cut = -1;
 	for (let i = TITLE_MAX_CHARS; i > 0; i--) {
 		if (oneLine[i - 1] === " ") {
@@ -356,9 +356,9 @@ export function titleFromPrompt(prompt: string): string {
 			break;
 		}
 	}
-	// One long word: no boundary exists under the cap — split it (owner's
-	// special case). This also lands correctly when the first word exactly
-	// fills the cap: cutting at the cap IS the boundary.
+	// Una palabra larga: no hay límite de palabra por debajo del tope; se parte (caso
+	// especial del responsable). Esto también funciona bien cuando la primera palabra llena
+	// exactamente el tope: cortar en el tope ES el límite.
 	if (cut < 0) cut = TITLE_MAX_CHARS;
 	return `${oneLine.slice(0, cut)}…`;
 }

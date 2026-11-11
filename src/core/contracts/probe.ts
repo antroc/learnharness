@@ -1,49 +1,49 @@
 /**
- * Probe-phase contracts (the probe→teach split, docs/archive/probe-teach-split.md).
+ * Contratos de la fase de sondeo (la división sondeo→enseñanza, docs/archive/probe-teach-split.md).
  *
- * The prober concludes its phase with `probe_done` — a server-side tool
- * whose INPUT is the learner assessment (authored by the model, streamed to
- * the learner live, durable in the transcript by the tool result itself).
- * The first `probe_done` in the transcript is the probe→planning seam: the
- * teacher agent is constructed from that point on, and the tool's execute
- * queues the handoff steer through the wake pipeline so the teacher starts
- * immediately after the prober's turn ends (auto-wake, user-decided).
+ * El sondeador concluye su fase con `probe_done`: una herramienta del lado del servidor
+ * cuya ENTRADA es la evaluación del alumno (redactada por el modelo, transmitida en streaming al
+ * alumno en vivo, duradera en el transcript gracias al propio resultado de la herramienta).
+ * El primer `probe_done` del transcript es la frontera sondeo→planificación: el
+ * agente profesor se construye a partir de ese punto, y el execute de la herramienta
+ * pone en cola la reorientación de traspaso por la canalización de despertares para que el profesor empiece
+ * justo después de que termine el turno del sondeador (despertar automático, decidido por el usuario).
  *
- * Assessment shape (v1 — refine later): the probe was a binary search per
- * dependency strand; the assessment formalizes exactly that. A list of the
- * strands the lesson will depend on, each with a free-form read of where
- * the learner's edge sits.
+ * Forma de la evaluación (v1, a refinar más adelante): el sondeo era una búsqueda binaria por
+ * hebra de dependencias; la evaluación formaliza exactamente eso. Una lista de las
+ * hebras de las que dependerá la lección, cada una con una lectura libre de dónde
+ * está el borde del alumno.
  */
 
 import { Type, type Static } from "typebox";
 
-/** One dependency strand the planned lesson will rest on. */
+/** Una hebra de dependencias en la que se apoyará la lección planificada. */
 export interface ProbeStrand {
-	/** Name/description of the strand (e.g. "the derivative as a limit"). */
+	/** Nombre/descripción de la hebra (p. ej. "la derivada como límite"). */
 	strand: string;
-	/** Free-form: where the learner's edge sits on this strand — floor,
-	 *  ceiling, misconceptions found, what to build from. */
+	/** Libre: dónde está el borde del alumno en esta hebra: suelo,
+	 *  techo, errores conceptuales encontrados, desde dónde construir. */
 	assessment: string;
 }
 
-/** The prober's read of the learner, carried by probe_done. */
+/** La lectura que hace el sondeador del alumno, transportada por probe_done. */
 export interface ProbeAssessment {
 	strands: ProbeStrand[];
-	/** Optional overall synthesis: the learner's apparent goal and edge. */
+	/** Síntesis general opcional: el objetivo aparente y el borde del alumno. */
 	summary?: string;
 }
 
-/** probe_done tool input (the assessment the prober authors). */
+/** Entrada de la herramienta probe_done (la evaluación que redacta el sondeador). */
 export interface ProbeDoneInput {
 	assessment: ProbeAssessment;
 }
 
-// The TypeBox schema of that input — SINGLE SOURCE OF TRUTH, lived by the
-// tool (src/agent/tools/probe.ts) and by the UI parse seam (src/core/tool-parts.ts):
-// the boundary validation and the consumer parse run literally the same
-// schema, so "schema-valid at the boundary" ⇔ "parseable by a consumer" is
-// structural, not a convention. (Live crash 2026-09-12: the model sent
-// `assessment` as a STRING; the card cast it and died on `.strands.map`.)
+// El esquema TypeBox de esa entrada: FUENTE ÚNICA DE VERDAD, usada por la
+// herramienta (src/agent/tools/probe.ts) y por la frontera de parseo de la interfaz (src/core/tool-parts.ts):
+// la validación en el límite y el parseo del consumidor ejecutan literalmente el mismo
+// esquema, así que «válido según el esquema en el límite» ⇔ «parseable por un consumidor» es
+// estructural, no una convención. (Fallo en vivo del 2026-09-12: el modelo envió
+// `assessment` como STRING; la tarjeta lo forzó de tipo y murió en `.strands.map`).
 export const probeDoneInputSchema = Type.Object({
 	assessment: Type.Object(
 		{
@@ -71,24 +71,24 @@ export const probeDoneInputSchema = Type.Object({
 	),
 });
 
-/** Schema ↔ interface lock (the old `satisfies z.ZodType` guarantee): the
- *  declaration and ProbeDoneInput can never drift apart — this only compiles
- *  when the schema's static shape IS the interface. */
+/** Cerrojo esquema ↔ interfaz (la antigua garantía de `satisfies z.ZodType`): la
+ *  declaración y ProbeDoneInput nunca pueden divergir: esto solo compila
+ *  cuando la forma estática del esquema ES la interfaz. */
 export const probeDoneSchemaLock = (v: Static<typeof probeDoneInputSchema>): ProbeDoneInput => v;
 
-/** probe_done tool output. */
+/** Salida de la herramienta probe_done. */
 export interface ProbeDoneResult {
 	ok: boolean;
-	/** Refusal reason when ok === false (open question, already concluded). */
+	/** Motivo del rechazo cuando ok === false (pregunta abierta, ya concluido). */
 	error?: string;
 }
 
-/** The probe_done ack's model-facing text (owner, context diet
- *  2026-10-09): the assessment is the CALL's arguments — durable in the
- *  transcript, streamed to the learner — so echoing it back in the
- *  result would duplicate the probe phase's largest payload in every
- *  future context. The agent sees this fixed line instead; `details`
- *  carries only {ok:true} for the record/UI. Same doctrine as
+/** El texto de cara al modelo del acuse de probe_done (responsable, dieta de contexto
+ *  2026-10-09): la evaluación son los argumentos de la LLAMADA, duraderos en el
+ *  transcript y transmitidos al alumno, así que repetirla en el
+ *  resultado duplicaría la mayor carga útil de la fase de sondeo en todo
+ *  contexto futuro. El agente ve en su lugar esta línea fija; `details`
+ *  solo lleva {ok:true} para el registro/la interfaz. La misma doctrina que
  *  CONCLUDE_ACK_TEXT. */
 export const PROBE_DONE_ACK_TEXT =
 	"Assessment recorded — it is shown to the learner now and the teacher plans from it. Say your closing sentence and end your turn; the teaching phase takes over from here.";

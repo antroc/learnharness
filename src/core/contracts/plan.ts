@@ -1,78 +1,78 @@
 /**
- * Plan-tree contracts — the session-scoped dependency tree
+ * Contratos del árbol del plan: el árbol de dependencias con ámbito de sesión
  *
- * Part of the domain-split contracts (src/core/contracts/): each domain file
- * is owned outright by its stream — cross-domain schema changes go through
- * master. Pure types + protocol docs + tiny pure helpers; type-only imports
- * of "ai" (safe everywhere: server, client, tests). See docs/archive/vision.md.
+ * Parte de los contratos divididos por dominio (src/core/contracts/): cada fichero de dominio
+ * pertenece por completo a su línea de trabajo; los cambios de esquema entre dominios pasan por
+ * master. Tipos puros + documentación del protocolo + pequeños helpers puros; importaciones solo de tipos
+ * de "ai" (seguras en todas partes: servidor, cliente, pruebas). Ver docs/archive/vision.md.
  */
-// ─── Plan tree (vision §2 "formal plan tree") ────────────────────────────────
-// A session-scoped dependency tree authored by the teacher via plan tools.
-// One substrate with the global graph: tree nodes fold into graph nodes.
+// ─── Árbol del plan (visión §2, «árbol formal del plan») ─────────────────────────
+// Un árbol de dependencias con ámbito de sesión redactado por el profesor con las herramientas de plan.
+// Un mismo sustrato con el grafo global: los nodos del árbol se pliegan en nodos del grafo.
 
 export interface PlanNode {
-	/** Opaque, agent-chosen slug, stable across edits: "chain-rule-intuition". */
+	/** Slug opaco elegido por el agente, estable entre ediciones: "chain-rule-intuition". */
 	id: string;
-	/** Short label for the tree panel. */
+	/** Etiqueta corta para el panel del árbol. */
 	title: string;
-	/** 1-2 sentences: what this node covers. */
+	/** 1-2 frases: qué cubre este nodo. */
 	summary?: string;
 }
 
 export interface PlanEdge {
-	/** Prerequisite node id. */
+	/** Id del nodo prerrequisito. */
 	from: string;
-	/** Node that depends on `from`. */
+	/** Nodo que depende de `from`. */
 	to: string;
 }
 
 export interface PlanTree {
 	nodes: PlanNode[];
 	edges: PlanEdge[];
-	/** Increments on every mutation — lets the UI animate/react to changes. */
+	/** Se incrementa en cada mutación: permite a la interfaz animar/reaccionar a los cambios. */
 	version: number;
 }
 
-// NOTE (2026-09-11 pivot, docs/archive/probe-teach-split.md): the tree once carried
-// `currentNodeId` / `doneNodeIds` — progress fields. They are GONE by
-// design: the tree carries structure ONLY; position and visited-ness derive
-// from the transcript at render time (derivePlanStatuses below). There is no
-// done ledger of any kind. No backwards compatibility for old records.
+// NOTA (giro del 2026-09-11, docs/archive/probe-teach-split.md): el árbol llevaba antes
+// `currentNodeId` / `doneNodeIds`, campos de progreso. HAN DESAPARECIDO por
+// diseño: el árbol SOLO lleva estructura; la posición y el haber sido visitado se derivan
+// del transcript al renderizar (derivePlanStatuses, más abajo). No hay
+// registro de «hecho» de ningún tipo. Sin compatibilidad hacia atrás con registros antiguos.
 
-/** Derived, never stored: status of a node for the panel (vision §2). */
+/** Derivado, nunca guardado: estado de un nodo para el panel (visión §2). */
 export type PlanNodeStatus = "current" | "visited" | "upcoming";
 
-// ─── derived statuses: position from CALLS, never from results ─────────────
+// ─── estados derivados: la posición sale de las LLAMADAS, nunca de los resultados ──
 //
-// (2026-09-11 pivot — docs/archive/probe-teach-split.md §3.) The teacher AUTHORS the
-// map (plan_init, mermaid — re-callable rewrite) and never tracks progress.
-// The quiz `nodeId` means "this question is ABOUT this node" — a position
-// signal, never a completion signal. Derivation reads CALLS only:
-//   current — the node of the most RECENT tagged quiz call (any state)
-//   visited — every node referenced by an EARLIER tagged call
-// Consequences: a node spans multiple turns/checks naturally (several
-// questions may tag the same node — the map holds still); moving to a new
-// node is the teacher's judgment the previous one is finished, regardless of
-// check outcomes (a failed check then a move-on is still visited); results
-// feed nothing; there is NO fallback current (before the first tagged check
-// nothing is current). Untagged checks no longer exist (nodeId is required
-// on the teach quiz, owner ruling 2026-09-26). NodeIds missing from the
-// current tree are ignored (a rewrite may have dropped the node).
+// (Giro del 2026-09-11, docs/archive/probe-teach-split.md §3). El profesor REDACTA el
+// mapa (plan_init, mermaid; reescritura que se puede volver a llamar) y nunca sigue el progreso.
+// El `nodeId` del quiz significa «esta pregunta TRATA DE este nodo»: una señal
+// de posición, nunca de finalización. La derivación solo lee LLAMADAS:
+//   current: el nodo de la llamada de quiz etiquetada más RECIENTE (en cualquier estado)
+//   visited: todo nodo referenciado por una llamada etiquetada ANTERIOR
+// Consecuencias: un nodo abarca de forma natural varios turnos/comprobaciones (varias
+// preguntas pueden etiquetar el mismo nodo: el mapa se queda quieto); pasar a un nodo
+// nuevo es el juicio del profesor de que el anterior está terminado, sean cuales sean
+// los resultados de las comprobaciones (una comprobación fallida seguida de un avance sigue contando como visitado); los resultados
+// no alimentan nada; NO hay current de respaldo (antes de la primera comprobación etiquetada
+// nada es current). Las comprobaciones sin etiqueta ya no existen (nodeId es obligatorio
+// en el quiz de enseñanza, decisión del responsable 2026-09-26). Los NodeIds que faltan en el
+// árbol actual se ignoran (una reescritura puede haber eliminado el nodo).
 
-/** Minimal structural message slice — anything with typed parts (mirrors
- * phases.ts: pure, no runtime deps, safe on server, client, and in tests). */
+/** Porción estructural mínima de un mensaje: cualquier cosa con partes tipadas (igual que
+ * phases.ts: puro, sin dependencias en tiempo de ejecución, seguro en servidor, cliente y pruebas). */
 interface PartsCarrier {
 	parts: Array<{ type: string; state?: string; input?: unknown; output?: unknown; pluginQuestion?: unknown }>;
 }
 
 export interface DerivedPlanStatuses {
-	/** The node the most recent tagged quiz call is about; null before any. */
+	/** El nodo del que trata la llamada de quiz etiquetada más reciente; null antes de ninguna. */
 	current: string | null;
-	/** Nodes referenced by earlier tagged calls — been there, monotonic. */
+	/** Nodos referenciados por llamadas etiquetadas anteriores: ya se pasó por ellos, monótono. */
 	visited: ReadonlySet<string>;
 }
 
-/** Statuses of a node: the derived view the plan panel should render. */
+/** Estados de un nodo: la vista derivada que debe renderizar el panel del plan. */
 export function derivedNodeStatus(statuses: DerivedPlanStatuses, nodeId: string): PlanNodeStatus {
 	if (statuses.current === nodeId) return "current";
 	if (statuses.visited.has(nodeId)) return "visited";
@@ -81,57 +81,57 @@ export function derivedNodeStatus(statuses: DerivedPlanStatuses, nodeId: string)
 
 export function derivePlanStatuses(tree: PlanTree, messages: readonly PartsCarrier[]): DerivedPlanStatuses {
 	const ids = new Set(tree.nodes.map((n) => n.id));
-	const runs: string[] = []; // distinct tagged nodes in call order, CONSECUTIVE
-	// duplicates collapsed (several checks on one node = one stay on it)
+	const runs: string[] = []; // nodos etiquetados distintos en orden de llamada, con los duplicados CONSECUTIVOS
+	// colapsados (varias comprobaciones sobre un nodo = una sola estancia en él)
 	for (const m of messages) {
 		for (const part of m.parts) {
-			// Either quizzing tool (quiz/explain) tags position — the mechanic
-			// is a settings switch; the fold recognizes both (owner 2026-09-27).
+			// Cualquiera de las dos herramientas de quiz (quiz/explain) marca la posición: la mecánica
+			// es un interruptor de ajustes; el pliegue reconoce ambas (responsable 2026-09-27).
 			const snapshot = posedPluginQuestionOfPart(part);
 			if (part.pluginQuestion !== undefined ? snapshot?.variant !== "teach" : part.type !== "tool-quiz" && part.type !== "tool-explain") continue;
 			const nodeId = ((snapshot?.input ?? part.input) as { nodeId?: unknown } | undefined)?.nodeId;
-			if (typeof nodeId !== "string" || !ids.has(nodeId)) continue; // untagged/unknown — moves nothing
+			if (typeof nodeId !== "string" || !ids.has(nodeId)) continue; // sin etiqueta/desconocido: no mueve nada
 			if (runs.at(-1) !== nodeId) runs.push(nodeId);
 		}
 	}
 	const current = runs.at(-1) ?? null;
-	// Visited = been there in an EARLIER stay: everything before the current
-	// run. A revisit (a→b→a) puts a in visited AND current — current wins at
-	// render (derivedNodeStatus), visited records it has been left before.
+	// Visited = se estuvo allí en una estancia ANTERIOR: todo lo anterior a la racha
+	// actual. Una revisita (a→b→a) pone a en visited Y en current: current gana al
+	// renderizar (derivedNodeStatus), visited registra que ya se abandonó antes.
 	const visited = new Set(runs.slice(0, -1));
 	return { current, visited };
 }
 
 /**
- * The plan tool result (author-once protocol, 2026-09-03): ONE server-side
- * tool, plan_init (tools/plan.ts) — a mermaid `graph TD` block canonicalized
- * into the structured tree, called once at the probe→teach seam and
- * re-callable to rewrite. The former mutation/tracking tools are gone:
- * statuses derive from check outcomes (derivePlanStatuses above), so the
- * tree carries structure, never progress. The tree panel still derives its
- * display from the LATEST plan tool output in the transcript — plus the
- * derived statuses — with no separate state channel.
+ * El resultado de la herramienta de plan (protocolo de autoría única, 2026-09-03): UNA herramienta
+ * del lado del servidor, plan_init (tools/plan.ts): un bloque mermaid `graph TD` canonizado
+ * en el árbol estructurado, llamado una vez en la frontera sondeo→enseñanza y
+ * que se puede volver a llamar para reescribir. Las antiguas herramientas de mutación/seguimiento han desaparecido:
+ * los estados se derivan de los resultados de las comprobaciones (derivePlanStatuses, arriba), así que el
+ * árbol lleva estructura, nunca progreso. El panel del árbol sigue derivando lo que
+ * muestra de la ÚLTIMA salida de la herramienta de plan en el transcript, más los
+ * estados derivados, sin un canal de estado aparte.
  */
 export interface PlanToolResult {
 	ok: boolean;
 	error?: string;
-	/** The saved tree — SUCCESS results only (owner, context diet
-	 *  2026-10-09): this is the record/UI-facing `details` value. The
-	 *  agent-facing content never carries it — content is the validated
-	 *  nodeIds + reminder; failures carry just the error. The plan
-	 *  popup's latestTree seam reads this field. */
+	/** El árbol guardado: SOLO en los resultados correctos (responsable, dieta de contexto
+	 *  2026-10-09): este es el valor `details` de cara al registro/la interfaz. El
+	 *  contenido de cara al agente nunca lo lleva: el contenido son los nodeIds
+	 *  validados + el recordatorio; los fallos solo llevan el error. La frontera
+	 *  latestTree del popup del plan lee este campo. */
 	tree?: PlanTree;
 }
 
 
-// ─── the native fold (Wave D: derivePlanStatuses over LhMessage[]) ───────────
+// ─── el pliegue nativo (Oleada D: derivePlanStatuses sobre LhMessage[]) ─────────
 
 import type { LhMessage } from "../native-messages.ts";
 import { posedPluginQuestionOfPart } from "../tool-parts.ts";
 import { readPluginQuestionMessageAnnotation } from "../plugin-questions.ts";
 
-/** The same derivation over the NATIVE record: quiz CALLS only (any state —
- *  a dangling call still moves position; results feed nothing). */
+/** La misma derivación sobre el registro NATIVO: solo LLAMADAS de quiz (en cualquier estado:
+ *  una llamada colgada también mueve la posición; los resultados no alimentan nada). */
 export function derivePlanStatusesLh(tree: PlanTree, messages: readonly LhMessage[]): DerivedPlanStatuses {
 	const ids = new Set(tree.nodes.map((n) => n.id));
 	const runs: string[] = [];
