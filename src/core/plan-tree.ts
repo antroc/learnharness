@@ -1,24 +1,28 @@
 import type { PlanEdge, PlanNode, PlanTree } from "./contracts.ts";
 
 /**
- * Pure, validated plan-tree operations (vision §2 "the formal plan tree").
+ * Operaciones puras y validadas sobre el árbol del plan (vision §2 "the
+ * formal plan tree").
  *
- * Every function takes a tree and returns a NEW tree — never mutates its
- * input. All validation throws PlanTreeError with a message written for the
- * agent (it flows straight back as a tool-result error), stating exactly what
- * is wrong and which id/edge is at fault.
+ * Cada función recibe un árbol y devuelve un árbol NUEVO — nunca muta su
+ * entrada. Toda validación lanza PlanTreeError con un mensaje escrito para el
+ * agente (vuelve directamente como error del resultado de la herramienta),
+ * que indica exactamente qué está mal y qué id/arista tiene la culpa.
  *
- * Invariants enforced everywhere:
- * - Node ids are unique and non-empty; every edge endpoint references an
- *   existing node.
- * - The structure is a DAG: no self-loops, no duplicate edges, no cycles.
- * - `version` increments on every successful STATE-CHANGING op. True no-ops
- *   (setCurrent to the already-current node, markDone of an already-done
- *   node) return the input tree unchanged — version drives UI re-animation,
- *   so a non-change must not tick it. createTree always starts at version 1.
+ * Invariantes que se imponen en todas partes:
+ * - Los ids de nodo son únicos y no vacíos; cada extremo de arista referencia
+ *   un nodo existente.
+ * - La estructura es un DAG: sin bucles sobre sí mismo, sin aristas
+ *   duplicadas, sin ciclos.
+ * - `version` se incrementa en cada operación correcta que CAMBIA EL ESTADO.
+ *   Las operaciones que de verdad no hacen nada (setCurrent al nodo que ya es
+ *   el actual, markDone de un nodo ya hecho) devuelven el árbol de entrada sin
+ *   cambios — la versión gobierna la reanimación de la interfaz, así que algo
+ *   que no cambia no debe incrementarla. createTree siempre empieza en la
+ *   versión 1.
  */
 
-/** Error thrown by every op on invalid input. Message is agent-readable. */
+/** Error que lanza cada operación ante una entrada no válida. El mensaje es legible por el agente. */
 export class PlanTreeError extends Error {
 	constructor(message: string) {
 		super(message);
@@ -26,12 +30,12 @@ export class PlanTreeError extends Error {
 	}
 }
 
-/** An empty, never-stored tree used as the seed before plan_init runs. */
+/** Un árbol vacío, nunca guardado, que se usa como semilla antes de que se ejecute plan_init. */
 export function emptyTree(): PlanTree {
 	return { nodes: [], edges: [], version: 0 };
 }
 
-// ─── validation helpers ──────────────────────────────────────────────────────
+// ─── auxiliares de validación ────────────────────────────────────────────────
 
 function assertValidNode(node: PlanNode): void {
 	if (!node || typeof node.id !== "string" || node.id.trim() === "") {
@@ -65,8 +69,9 @@ function edgeKey(from: string, to: string): string {
 }
 
 /**
- * Would adding edge from→to create a cycle? Walk forward from `to` along
- * existing edges; if we can reach `from`, the new edge closes a loop.
+ * ¿Crearía un ciclo añadir la arista from→to? Recorre hacia delante desde
+ * `to` por las aristas existentes; si se puede llegar a `from`, la arista
+ * nueva cierra un bucle.
  */
 function createsCycle(edges: PlanEdge[], from: string, to: string): boolean {
 	const adjacency = new Map<string, string[]>();
@@ -87,9 +92,9 @@ function createsCycle(edges: PlanEdge[], from: string, to: string): boolean {
 	return false;
 }
 
-/** Full edge validation against existing nodes/edges: endpoints exist, no self-loop, no duplicate, acyclic. */
+/** Validación completa de una arista contra los nodos/aristas existentes: los extremos existen, sin bucle sobre sí misma, sin duplicado, acíclica. */
 function assertValidEdge(from: string, to: string, nodes: PlanNode[], existingEdges: PlanEdge[]): void {
-	const map = nodeMap(nodes); // also re-validates nodes on createTree
+	const map = nodeMap(nodes); // también vuelve a validar los nodos en createTree
 	requireNode(map, from, "Edge `from`");
 	requireNode(map, to, "Edge `to`");
 	if (from === to) {
@@ -106,9 +111,9 @@ function assertValidEdge(from: string, to: string, nodes: PlanNode[], existingEd
 	}
 }
 
-// ─── ops ─────────────────────────────────────────────────────────────────────
+// ─── operaciones ─────────────────────────────────────────────────────────────
 
-/** Build a fresh tree (version 1) from node and edge lists, validating all invariants. */
+/** Construye un árbol nuevo (versión 1) a partir de listas de nodos y aristas, validando todos los invariantes. */
 export function createTree(nodes: PlanNode[], edges: PlanEdge[]): PlanTree {
 	const map = nodeMap(nodes);
 	for (const e of edges) {
@@ -117,16 +122,16 @@ export function createTree(nodes: PlanNode[], edges: PlanEdge[]): PlanTree {
 	}
 	const accepted: PlanEdge[] = [];
 	for (const e of edges) {
-		// Each edge is checked against the ones already accepted, so any
-		// violation names the culprit edge.
+		// Cada arista se comprueba contra las ya aceptadas, así que cualquier
+		// infracción nombra la arista culpable.
 		assertValidEdge(e.from, e.to, nodes, accepted);
 		accepted.push({ from: e.from, to: e.to });
 	}
 	return { nodes: nodes.map((n) => ({ ...n })), edges: accepted, version: 1 };
 }
 
-// The per-node mutation ops (addNode/updateNode/removeNode/addEdge/removeEdge/
-// setCurrent/markDone) were deleted with the author-once protocol
-// (2026-09-03) and their dead exports removed with the 2026-09-11 pivot: the
-// tree carries structure ONLY — no progress fields exist to mutate
-// (docs/archive/probe-teach-split.md §3). Restructuring is a plan_init rewrite.
+// Las operaciones de mutación por nodo (addNode/updateNode/removeNode/addEdge/
+// removeEdge/setCurrent/markDone) se eliminaron con el protocolo de redactar una vez
+// (2026-09-03) y sus exports muertos se quitaron con el giro del 2026-09-11: el
+// árbol SOLO lleva estructura — no existen campos de progreso que mutar
+// (docs/archive/probe-teach-split.md §3). Reestructurar es reescribir con plan_init.

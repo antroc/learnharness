@@ -1,34 +1,38 @@
 /**
- * Teaching-session phases derived sequentially from transcript events,
- * not from plan-tree occupancy or an explicit plan-acceptance flag:
+ * Fases de la sesión de enseñanza derivadas secuencialmente de los eventos de
+ * la transcripción, no de la ocupación del árbol del plan ni de una marca
+ * explícita de aceptación del plan:
  *
- * - probe: until probe_done has a successful tool result.
- * - plan: after probe completion, until a node-tagged teaching question call.
- * - teach: from that first call onward, without waiting for its answer.
+ * - probe: hasta que probe_done tiene un resultado de herramienta correcto.
+ * - plan: tras completar el sondeo, hasta una llamada de pregunta de
+ *   enseñanza etiquetada con un nodo.
+ * - teach: desde esa primera llamada en adelante, sin esperar a su respuesta.
  *
- * Native quiz/explain calls and supported plugin teaching-question annotations
- * supply the teaching boundary. Native-record summaries and projected-view
- * dividers use the same event boundaries; presenting a plan alone does not
- * advance the displayed phase to teach.
+ * Las llamadas nativas quiz/explain y las anotaciones admitidas de preguntas
+ * de enseñanza de plugins aportan el límite de la enseñanza. Los resúmenes
+ * del registro nativo y los separadores de la vista proyectada usan los
+ * mismos límites de eventos; presentar un plan por sí solo no hace avanzar a
+ * teach la fase mostrada.
  */
 
 import { posedPluginQuestionOfPart } from "./tool-parts.ts";
 import { readPluginQuestionMessageAnnotation } from "./plugin-questions.ts";
 
-/** The three phases of a session, as the picker / header / dividers see them. */
+/** Las tres fases de una sesión, tal como las ven el selector / la cabecera / los separadores. */
 export type Phase3 = "probe" | "plan" | "teach";
 
 /**
- * Minimal structural slice of a UI message for the phase scan: parts with
- * a state, an input (a tool call's parsed arguments), and (for concluded
- * calls) an output.
+ * Porción estructural mínima de un mensaje de interfaz para el recorrido de
+ * fases: partes con un estado, una entrada (los argumentos analizados de una
+ * llamada a herramienta) y (en las llamadas concluidas) una salida.
  */
 export interface PhaseMessage {
 	parts: ReadonlyArray<{ type: string; state?: string; input?: unknown; output?: unknown; pluginQuestion?: unknown }>;
 }
 
-/** A quiz call's part input carries `nodeId` iff it is tagged (teach-only —
- *  the probe quiz schema has no nodeId field). */
+/** La entrada de la parte de una llamada quiz lleva `nodeId` si y solo si
+ *  está etiquetada (solo enseñanza — el esquema del cuestionario de sondeo no
+ *  tiene campo nodeId). */
 function taggedNodeId(input: unknown): boolean {
 	return (
 		typeof input === "object" &&
@@ -46,7 +50,7 @@ function isTeachQuestionPart(part: PhaseMessage["parts"][number]): boolean {
 	return (part.type === "tool-quiz" || part.type === "tool-explain") && taggedNodeId(part.input);
 }
 
-/** The phase at `upToIndex` (inclusive; default: the last message). */
+/** La fase en `upToIndex` (inclusive; por defecto, el último mensaje). */
 export function phaseAt3(messages: readonly PhaseMessage[], upToIndex?: number): Phase3 {
 	let phase: Phase3 = "probe";
 	const last = Math.min(upToIndex ?? messages.length - 1, messages.length - 1);
@@ -56,25 +60,25 @@ export function phaseAt3(messages: readonly PhaseMessage[], upToIndex?: number):
 	return phase;
 }
 
-/** One message's advance of the phase (pure fold step). */
+/** El avance de fase de un mensaje (paso de plegado puro). */
 function advance(
 	phase: Phase3,
 	parts: PhaseMessage["parts"] | undefined,
 ): Phase3 {
 	if (!parts) return phase;
 	for (const part of parts) {
-		// STRICTLY SEQUENTIAL: probe → plan only via a concluded probe_done,
-		// plan → teach only via the first nodeId-tagged quiz CALL (the call,
-		// not its answer — an errored-and-retried call still proves teaching
-		// began, and the retry lands in the same group anyway).
+		// ESTRICTAMENTE SECUENCIAL: probe → plan solo mediante un probe_done concluido,
+		// plan → teach solo mediante la primera LLAMADA quiz etiquetada con nodeId (la llamada,
+		// no su respuesta — una llamada con error y reintentada demuestra igualmente que
+		// empezó la enseñanza, y de todos modos el reintento cae en el mismo grupo).
 		if (
 			phase === "probe" && part.type === "tool-probe_done" && part.state === "output-available" &&
 			(part.output as { ok?: unknown } | null | undefined)?.ok !== false
 		) {
 			phase = "plan";
 		}
-		// plan → teach via the first nodeId-tagged quizzing CALL — quiz OR
-		// explain, whichever mechanic the settings armed (both carry nodeId).
+		// plan → teach mediante la primera LLAMADA de cuestionario etiquetada con nodeId —
+		// quiz O explain, la mecánica que hayan activado los ajustes (ambas llevan nodeId).
 		if (
 			phase === "plan" && isTeachQuestionPart(part)
 		) {
@@ -85,23 +89,24 @@ function advance(
 }
 
 /**
- * WHERE inside the flipping message teaching begins (owner round 8,
- * 2026-10-05 — the stacked-dividers bug): plan→teach flips at the first
- * tagged quiz/explain CALL, but the plan PRESENTATION often lives in the
- * same assistant message — an earlier provider STEP than the quiz call.
- * A message-level seam therefore drew the Teaching divider before the
- * plan presentation too (Planning and Teaching stacked back-to-back).
- * This returns the part index of the STEP BOUNDARY governing the flip
- * call: -1 when the call sits in the message's FIRST step (the divider
- * belongs before the whole message), else the index of the step-start
- * part whose generation contains the call — the divider renders there,
- * between the plan presentation and the teaching block.
+ * DÓNDE empieza la enseñanza dentro del mensaje que cambia la fase (ronda 8
+ * del responsable, 2026-10-05 — el fallo de los separadores apilados):
+ * plan→teach cambia en la primera LLAMADA quiz/explain etiquetada, pero la
+ * PRESENTACIÓN del plan suele vivir en el mismo mensaje del asistente — un
+ * PASO del proveedor anterior a la llamada quiz. Por eso una frontera a nivel
+ * de mensaje dibujaba también el separador de Enseñanza antes de la
+ * presentación del plan (Planificación y Enseñanza apilados uno tras otro).
+ * Esto devuelve el índice de parte del LÍMITE DE PASO que gobierna la llamada
+ * que cambia la fase: -1 cuando la llamada está en el PRIMER paso del mensaje
+ * (el separador va antes de todo el mensaje); si no, el índice de la parte
+ * step-start cuya generación contiene la llamada — el separador se muestra
+ * ahí, entre la presentación del plan y el bloque de enseñanza.
  */
 export function teachStepIndex(
 	parts: PhaseMessage["parts"],
 ): number {
-	let stepStarts = 0; // how many step-start parts seen so far
-	let latest = -1; // index of the latest step-start
+	let stepStarts = 0; // cuántas partes step-start se han visto hasta ahora
+	let latest = -1; // índice del último step-start
 	for (let i = 0; i < parts.length; i++) {
 		const part = parts[i]!;
 		if (part.type === "step-start") {
@@ -110,10 +115,10 @@ export function teachStepIndex(
 			continue;
 		}
 		if (isTeachQuestionPart(part)) {
-			// The call's governing step: 0–1 step-starts seen = the message's
-			// FIRST step → -1 (the divider belongs before the whole message);
-			// a later step → that step-start's index (the divider renders at
-			// the boundary, replacing the plain hairline there).
+			// El paso que gobierna la llamada: 0–1 step-starts vistos = el PRIMER paso del
+			// mensaje → -1 (el separador va antes de todo el mensaje); un paso posterior → el
+			// índice de ese step-start (el separador se muestra en el límite, sustituyendo
+			// ahí la línea fina normal).
 			return stepStarts <= 1 ? -1 : latest;
 		}
 	}
@@ -121,10 +126,11 @@ export function teachStepIndex(
 }
 
 /**
- * The phase at EVERY message index, in one forward fold — the transcript
- * dividers render one per boundary, so phaseAt3(m, i) per index would rescan
- * 0..i each time (quadratic); this is the same derivation, linear.
- * out[i] === phaseAt3(messages, i) for every i.
+ * La fase en CADA índice de mensaje, en un único plegado hacia delante — los
+ * separadores de la transcripción se muestran uno por límite, así que llamar a
+ * phaseAt3(m, i) por cada índice volvería a recorrer 0..i cada vez
+ * (cuadrático); esta es la misma derivación, lineal.
+ * out[i] === phaseAt3(messages, i) para todo i.
  */
 export function phaseTimeline(messages: readonly PhaseMessage[]): Phase3[] {
 	const out: Phase3[] = [];
@@ -136,15 +142,15 @@ export function phaseTimeline(messages: readonly PhaseMessage[]): Phase3[] {
 	return out;
 }
 
-// ─── the native fold (Wave D: record-side phase over LhMessage[]) ───────────
+// ─── el plegado nativo (oleada D: fase del lado del registro sobre LhMessage[]) ─
 
 import { probeDoneResultIds, type LhMessage } from "./native-messages.ts";
 
-/** The phase at `upToIndex` (inclusive; default: the last message) of a
- *  NATIVE record. probe→plan advances at the probe_done call's clean
- *  toolResult; plan→teach at the assistant message carrying the first
- *  nodeId-tagged quiz CALL (mirrors the view fold — same seam, native
- *  shape). */
+/** La fase en `upToIndex` (inclusive; por defecto, el último mensaje) de un
+ *  registro NATIVO. probe→plan avanza con el toolResult limpio de la llamada
+ *  probe_done; plan→teach en el mensaje del asistente que lleva la primera
+ *  LLAMADA quiz etiquetada con nodeId (replica el plegado de la vista — misma
+ *  frontera, forma nativa). */
 export function phaseAt3Lh(messages: readonly LhMessage[], upToIndex?: number): Phase3 {
 	let phase: Phase3 = "probe";
 	const last = Math.min(upToIndex ?? messages.length - 1, messages.length - 1);

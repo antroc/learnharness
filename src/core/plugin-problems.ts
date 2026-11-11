@@ -1,4 +1,4 @@
-/** Plugin-defined practice problems share the native problem/conclude lifecycle. */
+/** Los problemas de práctica definidos por plugins comparten el ciclo de vida nativo de problema/conclusión. */
 import type { Static, TSchema } from "typebox";
 import type { PluginCleanup } from "./plugins.ts";
 import type { LhMessage } from "./native-messages.ts";
@@ -32,7 +32,7 @@ export interface PluginProblemProcessingContext<Q = JsonValue, S = JsonValue> ex
   readonly images?: PluginProblemSubmissionImages;
   readonly signal: AbortSignal;
 }
-/** Per-submission observations, never the model's final problem assessment. */
+/** Observaciones por envío, nunca la evaluación final del problema por parte del modelo. */
 export type PluginProblemProcessingOutcome = { result: JsonValue } | { error: string };
 export interface PluginProblemTypeDefinition<Q extends TSchema = TSchema, S extends TSchema = TSchema> {
   id: string;
@@ -71,11 +71,11 @@ export interface PluginProblemRenderer<Q = JsonValue, S = JsonValue> {
     readonly submission: S;
     readonly processing?: PluginProblemProcessingOutcome;
     readonly headerContainer?: HTMLElement;
-    /** Generation-owned block after host submission images/thinking. */
+    /** Bloque propiedad de la generación tras las imágenes/razonamiento del envío del host. */
     readonly footerContainer?: HTMLElement;
   }): void | PluginCleanup | Promise<void | PluginCleanup>;
 }
-/** The host persists this in the genuine pose acknowledgment, never model arguments. */
+/** El host persiste esto en el acuse genuino del planteamiento, nunca en los argumentos del modelo. */
 export interface PluginProblemSnapshot {
   protocolVersion: 1;
   problemId: string;
@@ -102,7 +102,7 @@ export interface PluginProblemSubmission {
   submittedAt: string;
 }
 
-/** Internal heterogeneous registry; public registration remains schema-generic. */
+/** Registro interno heterogéneo; el registro público sigue siendo genérico en el esquema. */
 export type NativePluginProblemDefinition = Omit<PluginProblemTypeDefinition, "validateProblem" | "validateSubmission" | "processSubmission"> & {
   validateProblem?: (context: PluginProblemValidationContext<any>) => undefined | string[];
   validateSubmission?: (context: PluginProblemSubmissionValidationContext<any, any>) => undefined | string[];
@@ -126,7 +126,7 @@ export function preparePluginProblemType<Q extends TSchema, S extends TSchema>(d
 }
 const parameters = new ImmutableReadCache<TSchema>();
 export function createPluginProblemParameters(definition: PluginProblemTypeDefinition): TSchema {
-  // Reuse the existing JSON-schema admission and local-reference rebasing.
+  // Reutiliza la admisión existente de JSON Schema y el reajuste de referencias locales.
   const base = createPluginQuestionParameters(questionAdapter(definition), "probe") as TSchema & { properties: Record<string, TSchema> };
   return parameters.read(base, undefined, () => buildProblemParameters(base));
 }
@@ -177,8 +177,8 @@ function readProblemSnapshot(value: unknown): PluginProblemSnapshot | null {
         ? preparePluginQuestionSchema(descriptor.value) : descriptor.value });
     }
     const copy = clonePluginQuestionJson(fields) as unknown as PluginProblemSnapshot;
-    // These fields were already detached, checked and frozen above. Preserve
-    // their prepared identity instead of compiling a second clone of each.
+    // Estos campos ya se desvincularon, comprobaron y congelaron arriba. Se conserva
+    // su identidad preparada en lugar de compilar un segundo clon de cada uno.
     copy.problemSchema = fields.problemSchema as TSchema;
     copy.submissionSchema = fields.submissionSchema as TSchema;
     if (!copy || copy.protocolVersion !== 1 || typeof copy.problemId !== "string" || !copy.problemId.trim() ||
@@ -236,8 +236,9 @@ export function pluginProblemById(messages: readonly LhMessage[], problemId: str
   return null;
 }
 
-/** Associate only the actual result batch belonging to this physical call occurrence.
- * Pose ACKs persist in practice, so no second annotation/stream-ledger protocol is needed.
+/** Asocia solo el lote de resultados real que pertenece a esta aparición
+ * física de la llamada. Los ACK de planteamiento persisten en la práctica, así
+ * que no hace falta un segundo protocolo de anotaciones/registro del stream.
  */
 export function pluginProblemForCall(messages: readonly LhMessage[], occurrence: PluginQuestionOccurrence): PluginProblemSnapshot | null {
   const mi = messages.findIndex(message => message.id === occurrence.messageId && message.role === "assistant");

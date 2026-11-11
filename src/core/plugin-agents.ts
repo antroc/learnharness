@@ -1,4 +1,4 @@
-/** Public managed-agent contract. Records belong to a plugin, never data/chats. */
+/** Contrato público de agentes gestionados. Los registros pertenecen a un plugin, nunca a data/chats. */
 import type { AgentMessage, AgentTool, AgentToolResult } from "@earendil-works/pi-agent-core";
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import type { TSchema } from "typebox";
@@ -15,7 +15,7 @@ export type PluginAgentTool = {
 	formatResult?: (value: unknown) => AgentToolResult<unknown>;
 } & (
 	| {
-		/** Declarative external input is persisted, never a suspended Promise. */
+		/** La entrada externa declarativa se persiste; nunca es una Promise suspendida. */
 		kind: "input";
 		execute?: never;
 		endRun?: never;
@@ -23,7 +23,7 @@ export type PluginAgentTool = {
 	| {
 		kind?: "server";
 		execute: AgentTool<any>["execute"];
-		/** A successful ordinary tool may return its result and pause the run. */
+		/** Una herramienta ordinaria que tiene éxito puede devolver su resultado y pausar la ejecución. */
 		endRun?: boolean;
 	}
 );
@@ -49,63 +49,81 @@ export interface PluginAgentRecord {
 	pending: PluginPendingInput[];
 	status: "idle" | "running" | "waiting" | "error" | "interrupted";
 	error?: string;
-	/** Accepted input identities prevent a retried submission running twice. */
+	/** Las identidades de entrada aceptadas evitan que un envío reintentado se ejecute dos veces. */
 	acceptedInputs: string[];
 }
 export interface PluginAgentSnapshot extends PluginAgentRecord {
-	/** Ephemeral response-so-far; never confused with committed history. */
+	/** Respuesta efímera hasta el momento; nunca se confunde con el historial confirmado. */
 	partial?: AssistantMessage;
 }
 export interface PluginAgentInputOptions {
-	/** Retry an accepted action with the same identity to avoid accepting it twice;
-	 * a new action needs a new ID. This does not guarantee exactly-once external effects. */
+	/** Reintenta una acción aceptada con la misma identidad para no aceptarla dos
+	 * veces; una acción nueva necesita un ID nuevo. Esto no garantiza efectos
+	 * externos exactamente una vez. */
 	requestId: string;
-	/** Initiation/consent classification, not view visibility. Defaults to user for
-	 * send/answer and background for run; classify automatic work explicitly. */
+	/** Clasificación de iniciación/consentimiento, no de visibilidad en la vista.
+	 * Por defecto es user para send/answer y background para run; clasifica de
+	 * forma explícita el trabajo automático. */
 	purpose?: PluginCallPurpose;
 }
-/** Plugin-owned persistent conversations, independent of frontend views. Model
- * execution can incur cost. Re-register compatible definitions after activation;
- * restart interrupts running work rather than replaying tools automatically. */
+/** Conversaciones persistentes propiedad del plugin, independientes de las
+ * vistas del frontend. Ejecutar el modelo puede tener coste. Vuelve a
+ * registrar definiciones compatibles tras la activación; un reinicio
+ * interrumpe el trabajo en curso en lugar de reproducir herramientas
+ * automáticamente. */
 export interface PluginAgentService {
-	/** Register instructions, model and tools for a definition ID. Invalid/duplicate
-	 * definitions throw. Returns an unregister function that cooperatively cancels
-	 * that definition's active runs without deleting saved conversations. */
+	/** Registra instrucciones, modelo y herramientas para un ID de definición.
+	 * Las definiciones no válidas o duplicadas lanzan. Devuelve una función para
+	 * darla de baja que cancela de forma cooperativa las ejecuciones activas de
+	 * esa definición sin borrar las conversaciones guardadas. */
 	register(definition: PluginAgentDefinition): () => void;
-	/** Persist an empty idle conversation and return its detached snapshot; no model
-	 * request starts. Throws if the definition is unavailable or persistence fails. */
+	/** Persiste una conversación vacía en reposo y devuelve su instantánea
+	 * desvinculada; no se inicia ninguna petición al modelo. Lanza si la
+	 * definición no está disponible o si falla la persistencia. */
 	create(definitionId: string): PluginAgentSnapshot;
-	/** Return detached snapshots of this plugin's conversations, including current
-	 * ephemeral partials. Does not run, resume or subscribe to any conversation. */
+	/** Devuelve instantáneas desvinculadas de las conversaciones de este plugin,
+	 * incluidos los parciales efímeros actuales. No ejecuta, reanuda ni se
+	 * suscribe a ninguna conversación. */
 	list(): PluginAgentSnapshot[];
-	/** Read one detached snapshot, including any current partial. Unknown IDs throw;
-	 * a returned partial is progress, not committed history. */
+	/** Lee una instantánea desvinculada, incluido cualquier parcial actual. Los
+	 * IDs desconocidos lanzan; un parcial devuelto es progreso, no historial
+	 * confirmado. */
 	get(id: string): PluginAgentSnapshot;
-	/** Persist explicit nonblank user text and launch execution. Resolves after
-	 * acceptance, not completion; observe later status/errors with get/subscribe.
-	 * An already accepted requestId returns current state without another input.
-	 * Rejects busy sessions, unresolved external inputs and acceptance/storage errors. */
+	/** Persiste texto de usuario explícito y no vacío y lanza la ejecución. Se
+	 * resuelve tras la aceptación, no al terminar; observa después el estado y
+	 * los errores con get/subscribe. Un requestId ya aceptado devuelve el estado
+	 * actual sin otra entrada. Rechaza las sesiones ocupadas, las entradas
+	 * externas sin resolver y los errores de aceptación/almacenamiento. */
 	send(id: string, text: string, options: PluginAgentInputOptions): Promise<PluginAgentSnapshot>;
-	/** Validate and persist one pending input-tool result. Invalid answers are not
-	 * saved; the final required answer launches continuation. Resolves to accepted
-	 * state, not model completion; accepted request IDs do not submit twice.
-	 * Missing inputs/definitions, busy sessions and validation/storage failures reject. */
+	/** Valida y persiste un resultado pendiente de herramienta de entrada. Las
+	 * respuestas no válidas no se guardan; la última respuesta obligatoria lanza
+	 * la continuación. Se resuelve al estado aceptado, no al terminar el modelo;
+	 * los IDs de petición aceptados no se envían dos veces. Rechaza si faltan
+	 * entradas/definiciones, si la sesión está ocupada y ante fallos de
+	 * validación/almacenamiento. */
 	answer(id: string, toolCallId: string, value: unknown, options: PluginAgentInputOptions): Promise<PluginAgentSnapshot>;
-	/** Resume existing runnable persisted input without appending a synthetic prompt.
-	 * Resolves after acceptance, not completion; accepted request IDs return current
-	 * state. Rejects pending external inputs, unsafe unresolved tool batches, busy
-	 * sessions or history with no runnable input; use send for a new explicit task. */
+	/** Reanuda una entrada persistida ejecutable existente sin añadir un prompt
+	 * sintético. Se resuelve tras la aceptación, no al terminar; los IDs de
+	 * petición aceptados devuelven el estado actual. Rechaza entradas externas
+	 * pendientes, lotes de herramientas sin resolver inseguros, sesiones
+	 * ocupadas o historiales sin entrada ejecutable; usa send para una tarea
+	 * explícita nueva. */
 	run(id: string, options: PluginAgentInputOptions): Promise<PluginAgentSnapshot>;
-	/** Request cooperative cancellation of an active run, retaining messages/pending
-	 * inputs. Idle runs are unchanged. Does not await uncooperative tool code or undo
-	 * external effects; unknown IDs and persistence failures throw. */
+	/** Solicita la cancelación cooperativa de una ejecución activa, conservando
+	 * los mensajes y las entradas pendientes. Las ejecuciones en reposo no
+	 * cambian. No espera al código de herramientas que no coopera ni deshace
+	 * efectos externos; los IDs desconocidos y los fallos de persistencia
+	 * lanzan. */
 	abort(id: string): void;
-	/** Deliver a detached snapshot synchronously, then live state/progress changes.
-	 * Returns an unsubscribe function; unsubscribing never cancels execution.
-	 * Unknown IDs throw; an initial listener throw removes the subscription. */
+	/** Entrega una instantánea desvinculada de forma síncrona y luego los cambios
+	 * de estado/progreso en vivo. Devuelve una función para darse de baja; darse
+	 * de baja nunca cancela la ejecución. Los IDs desconocidos lanzan; si el
+	 * listener lanza en la entrega inicial, se elimina la suscripción. */
 	subscribe(id: string, listener: (snapshot: PluginAgentSnapshot) => void): () => void;
-	/** Cooperatively cancel owned runs and release definitions/listeners, retaining
-	 * persisted records. Idempotent; does not wait for uncooperative plugin code.
-	 * Rejects on cancellation persistence failure. Host disable also disposes. */
+	/** Cancela de forma cooperativa las ejecuciones propias y libera las
+	 * definiciones/listeners, conservando los registros persistidos.
+	 * Idempotente; no espera al código del plugin que no coopera. Rechaza si
+	 * falla la persistencia de la cancelación. Desactivar en el host también
+	 * libera. */
 	dispose(): Promise<void>;
 }

@@ -1,4 +1,4 @@
-/** Bounded plugin-question contracts and browser-safe saved-authority helpers. */
+/** Contratos acotados de preguntas de plugins y auxiliares seguros para el navegador de la autoridad guardada. */
 import type { Static, TSchema } from "typebox";
 import type { PluginCleanup } from "./plugins.ts";
 import { checkPluginSchema, preparePluginSchema } from "./plugin-validation.ts";
@@ -52,17 +52,18 @@ export interface PluginQuestionMountContext<Q = JsonValue> {
 export interface PluginQuestionEditorProps<Q = JsonValue> extends PluginQuestionMountContext<Q> {
 	readonly active: boolean;
 	readonly answer: PluginQuestionAnswerState;
-	/** Synchronous publication; stale mount publications are ignored by the host. */
+	/** Publicación síncrona; el host ignora las publicaciones de montajes obsoletos. */
 	onChange(answer: PluginQuestionAnswerState): void;
 }
 export type PluginQuestionEditorKey = "Tab" | "Enter" | "Shift+Enter" | "Escape";
 export interface PluginQuestionEditorHandle {
 	update(props: { answer: PluginQuestionAnswerState; active: boolean }): void;
 	focus(): void;
-	/** Optional editing override. Omission or "pass" uses host defaults:
-	 * Enter submits, Shift+Enter keeps native newline editing, Tab cycles fields.
-	 * Unhandled Escape moves to the next host field, or blurs an editor-only chain.
-	 * Meta/Ctrl+Enter remains reserved host submission. */
+	/** Sustitución opcional de la edición. Omitirla o "pass" usa los valores
+	 * por defecto del host: Enter envía, Shift+Enter mantiene la edición nativa
+	 * de salto de línea, Tab recorre los campos. Un Escape no gestionado pasa al
+	 * siguiente campo del host o quita el foco de una cadena solo de editores.
+	 * Meta/Ctrl+Enter sigue reservado para el envío del host. */
 	handleKeyDown?(key: PluginQuestionEditorKey): "handled" | "pass";
 	appendTranscript?(text: string): void | Promise<void>;
 	dispose(): void;
@@ -80,10 +81,10 @@ export interface PluginQuestionOccurrence {
 	toolCallId: string;
 	toolName: string;
 }
-/** Visibility only: an unsuccessful attempt never grants pending authority. */
+/** Solo visibilidad: un intento fallido nunca otorga autoridad de pendiente. */
 export interface PluginQuestionAttempt {
 	protocolVersion: 1 | 2;
-	/** Protocol v2 freezes grading at pose time; historical v1 omits this field. */
+	/** El protocolo v2 congela la calificación al plantear; la v1 histórica omite este campo. */
 	requiresGrading?: true;
 	pluginId: string;
 	typeId: string;
@@ -114,20 +115,20 @@ export interface PluginQuestionAnswer {
 	images?: PluginSubmissionImages;
 	answeredAt: string;
 }
-/** Unreadable annotations remain classified as questions: never expose raw input. */
+/** Las anotaciones ilegibles siguen clasificadas como preguntas: nunca expongas la entrada en bruto. */
 export type PluginQuestionAnnotationRead =
 	| { status: "absent" }
 	| { status: "attempt"; attempt: PluginQuestionAttempt }
 	| { status: "posed"; snapshot: PluginQuestionSnapshot }
 	| { status: "unreadable";
 		identity?: { questionId: string; occurrence: PluginQuestionOccurrence; pluginId: string; typeId: string; contractVersion: number };
-		/** Only available after matching a supplied canonical native occurrence. */
+		/** Solo disponible tras emparejarse con una aparición nativa canónica aportada. */
 		binding?: { occurrence: PluginQuestionOccurrence; questionId?: string };
 	};
 export type PluginQuestionValidationResult<T> = { ok: true; value: T } | { ok: false; problems: string[] };
 export interface PluginQuestionCancellation {
 	kind: "plugin-question-cancelled";
-	/** Omitted only when the question is unreadable: explicit dismissal or protocol cancellation, with an exact occurrence binding. */
+	/** Se omite solo cuando la pregunta es ilegible: descarte explícito o cancelación del protocolo, con una vinculación exacta a la aparición. */
 	questionId?: string;
 	occurrence: PluginQuestionOccurrence;
 	reason: "dismissed" | "incompatible" | "unreadable-protocol";
@@ -154,8 +155,8 @@ export function readPluginQuestionAnnotation(value: unknown, expectedOccurrence?
 	try {
 		const cache = expectedOccurrence ? boundAnnotations : annotations;
 		const result = cache.read(value, expectedOccurrence ? pluginQuestionOccurrenceKey(expectedOccurrence) : undefined, () => readAnnotation(value, expectedOccurrence));
-		// A successfully hydrated, immutable snapshot is already canonical. Keep
-		// bound reads separate so a mismatched occurrence cannot poison this entry.
+		// Una instantánea inmutable hidratada correctamente ya es canónica. Se mantienen
+		// aparte las lecturas vinculadas para que una aparición que no coincida no envenene esta entrada.
 		if (result.status === "posed") annotations.seed(result.snapshot, undefined, result);
 		return result;
 	} catch { return { status: "unreadable" }; }
@@ -189,7 +190,7 @@ const text = (value: unknown): value is string => typeof value === "string" && v
 const version = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value > 0;
 const variantOf = (value: unknown): value is PluginQuestionVariant => value === "probe" || value === "teach";
 
-/** Copy only finite JSON, without invoking getters, toJSON, or coercion. */
+/** Copia solo JSON finito, sin invocar getters, toJSON ni conversiones. */
 export function clonePluginQuestionJson(value: unknown): JsonValue {
 	return cloneJson(value);
 }
@@ -216,8 +217,8 @@ function cloneJson(value: unknown, schemaNodes?: Set<object>): JsonValue {
 			const result: Record<string, JsonValue> = {};
 			for (const key of Reflect.ownKeys(descriptors)) {
 				const descriptor = descriptors[key as string]!;
-				// Installed TypeBox branding is descriptive, non-enumerable metadata,
-				// never a persisted validation rule. Only strip it at schema positions.
+				// La marca de TypeBox instalada son metadatos descriptivos no enumerables,
+				// nunca una regla de validación persistida. Solo se quita en posiciones de esquema.
 				if (schemaNodes?.has(item) && own(descriptor, "value") && !descriptor.enumerable &&
 					((key === "~kind" && typeof descriptor.value === "string") ||
 					((key === "~optional" || key === "~readonly") && typeof descriptor.value === "boolean") ||
@@ -233,10 +234,10 @@ function cloneJson(value: unknown, schemaNodes?: Set<object>): JsonValue {
 export function isPluginQuestionJson(value: unknown): value is JsonValue {
 	try { clonePluginQuestionJson(value); return true; } catch { return false; }
 }
-/** Freeze owned copies, never plugin-owned input objects. */
+/** Congela las copias propias, nunca los objetos de entrada propiedad del plugin. */
 export function freezePluginQuestionValue<T>(value: T): T {
-	// Contexts can contain runtime capabilities such as AbortSignal. Freeze only
-	// owned JSON containers and the plain context itself, never those capabilities.
+	// Los contextos pueden contener capacidades de ejecución como AbortSignal. Solo se
+	// congelan los contenedores JSON propios y el propio contexto plano, nunca esas capacidades.
 	if ((Array.isArray(value) || record(value)) && !Object.isFrozen(value)) {
 		for (const child of Object.values(value)) freezePluginQuestionValue(child);
 		Object.freeze(value);
@@ -258,7 +259,7 @@ const builtinFormats: Record<string, (value: string) => boolean> = {
 	time: Format.IsTime, "uri-reference": Format.IsUriReference, "uri-template": Format.IsUriTemplate,
 	uri: Format.IsUri, url: Format.IsUrl, uuid: Format.IsUuid,
 };
-/** Walk schema positions only; annotation/const/enum data is not a schema. */
+/** Recorre solo las posiciones de esquema; los datos de annotation/const/enum no son un esquema. */
 function walkSchema(value: unknown, visit: (node: Record<string, unknown>) => void, seen = new Set<object>()): void {
 	if (typeof value === "boolean") return;
 	if (!record(value)) throw new Error("Plugin question schema must be a JSON schema");
@@ -294,7 +295,7 @@ function pointerTarget(root: unknown, ref: unknown): unknown {
 	if (typeof current !== "boolean" && !record(current)) throw new Error("Plugin question schema reference must target a schema");
 	return current;
 }
-/** Compile the exact persistable representation, not the original runtime object. */
+/** Compila la representación exacta persistible, no el objeto original en tiempo de ejecución. */
 const schemas = new ImmutableReadCache<TSchema>();
 export function preparePluginQuestionSchema(schema: unknown): TSchema {
 	const prepared = schemas.read(schema, undefined, () => prepareSchema(schema));
@@ -388,7 +389,7 @@ function refinement(callback: ((context: never) => unknown) | undefined, context
 	try {
 		const result = callback(freezePluginQuestionValue(context) as never);
 		if (result === undefined) return [];
-		// A thenable list is still asynchronous and cannot grant acceptance.
+		// Una lista thenable sigue siendo asíncrona y no puede otorgar la aceptación.
 		if (result !== null && (typeof result === "object" || typeof result === "function") && typeof (result as { then?: unknown }).then === "function") {
 			if (result instanceof Promise) void result.catch(() => {});
 			return ["Plugin question validation must be synchronous."];
@@ -451,7 +452,7 @@ function readAnnotation(value: unknown, expected?: PluginQuestionOccurrence): Pl
 		if (!identity || typeof saved.showThinking !== "boolean" || typeof saved.requiresAnswerRefinement !== "boolean") return unreadable();
 		const questionSchema = preparePluginQuestionSchema(saved.questionSchema);
 		const answerSchema = preparePluginQuestionSchema(saved.answerSchema);
-		// Read historical schemas only; no current callbacks or tool-name lookup.
+		// Solo se leen esquemas históricos; sin callbacks actuales ni búsqueda por nombre de herramienta.
 		const historicalDefinition: PluginQuestionTypeDefinition = {
 			id: attempt.typeId, label: attempt.label, contractVersion: identity.contractVersion,
 			questionSchema, answerSchema, showThinking: saved.showThinking,
@@ -481,7 +482,7 @@ function readAnswer(value: unknown, snapshot?: PluginQuestionSnapshot): PluginQu
 		const images = own(saved, "images") ? validatePluginSubmissionImages(saved.images) : undefined;
 		const canonical = snapshot ? readPluginQuestionSnapshot(snapshot) : undefined;
 		if (snapshot && !canonical) return null;
-		// Historical answers stay ungraded in projections, without mutating saved data.
+		// Las respuestas históricas quedan sin calificar en las proyecciones, sin mutar los datos guardados.
 		if (canonical?.protocolVersion === 1) delete saved.grading;
 		else {
 			if (canonical?.requiresGrading && !own(saved, "grading")) return null;
