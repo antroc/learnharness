@@ -1,16 +1,18 @@
 /**
- * THE SESSION MODEL (Wave D): the chat session's state machine, extracted
- * PURE — no React, one injectable fetch — so the attach/replay/settle/
- * error/abort paths are testable in the repo's node:test world. The React
- * hook (components/session.ts) is a thin adapter: it re-renders on change
- * and projects the view (core/view.ts).
+ * EL MODELO DE SESIÓN (oleada D): la máquina de estados de la sesión del
+ * chat, extraída PURA — sin React, con un fetch inyectable — para que las
+ * rutas de enganche/repetición/asentamiento/error/abort se puedan probar en
+ * el mundo node:test del repo. El hook de React (components/session.ts) es
+ * un adaptador fino: re-renderiza al cambiar y proyecta la vista
+ * (core/view.ts).
  *
- * ONE VIEW PROTOCOL: every turn is a server-side background process (owner
- * ruling 2026-09-25); this model is a view. Sends POST one explicit input
- * event ({chatId, input}); the response and the reattach stream
- * (GET /api/chats/[id]/stream) are the SAME verbatim AgentEvent SSE,
- * applied by the same function. Status vocabulary (pre-Wave-D parity):
- * ready | submitted | streaming | error.
+ * UN SOLO PROTOCOLO DE VISTA: cada turno es un proceso en segundo plano en
+ * el servidor (decisión del responsable 2026-09-25); este modelo es una
+ * vista. Los envíos hacen POST de un evento de entrada explícito
+ * ({chatId, input}); la respuesta y el stream de reenganche
+ * (GET /api/chats/[id]/stream) son el MISMO SSE literal de AgentEvent,
+ * aplicado por la misma función. Vocabulario de estado (paridad previa a la
+ * oleada D): ready | submitted | streaming | error.
  */
 
 import type { AgentEvent } from "@earendil-works/pi-agent-core";
@@ -59,32 +61,32 @@ export interface SessionRecordSnapshot {
 export interface SessionRecordReadOptions {
 	adoption?: "replace" | "append" | "none";
 	signal?: AbortSignal;
-	/** Local React cancellation must be checked after the complete body read. */
+	/** La cancelación local de React debe comprobarse tras leer el cuerpo completo. */
 	isCurrent?: () => boolean;
-	/** Internal pre-replay/terminal reads may replace while status is busy. */
+	/** Las lecturas internas previas a la repetición/terminales pueden sustituir mientras el estado está ocupado. */
 	allowInFlight?: boolean;
 	recoveringDrop?: boolean;
-	/** Preserve reattach's existing non-OK-record replay fallback. */
+	/** Conserva la alternativa de repetición del reenganche existente ante registros no OK. */
 	tolerateHttpFailure?: boolean;
 }
 export interface PluginQuestionDraft { answer: PluginQuestionAnswerState; thinking: string; readingThinking: string }
 export type SessionStatus = "ready" | "submitted" | "streaming" | "error";
 
-/** How often to poll turnInFlight while a racing turn runs (409 retry). */
+/** Cada cuánto sondear turnInFlight mientras corre un turno en carrera (reintento de 409). */
 export const TURN_POLL_MS = 500;
-/** Give up waiting (a wake turn can run long) and surface the 409. */
+/** Deja de esperar (un turno de despertar puede durar mucho) y muestra el 409. */
 export const TURN_WAIT_MAX_MS = 30_000;
 
 export interface SessionModelDeps {
-	/** Injectable fetch (tests); defaults to the global. */
+	/** Fetch inyectable (pruebas); por defecto, el global. */
 	fetch?: typeof globalThis.fetch;
-	/** Injectable retry timing (tests). */
+	/** Tiempos de reintento inyectables (pruebas). */
 	pollMs?: number;
 	waitMaxMs?: number;
 }
 
-/** A local optimistic id (never a server stamp — absorption and the
- *  settle swap both key on this prefix). */
+/** Un id optimista local (nunca un sello del servidor — la absorción y el
+ *  intercambio al asentarse se basan ambos en este prefijo). */
 let localSeq = 0;
 function localId(): string {
 	return `c_${Date.now().toString(36)}_${(localSeq++).toString(36)}`;
@@ -110,20 +112,20 @@ async function turnInFlight(model: SessionModel): Promise<boolean | null> {
 		if (!res.ok) return null;
 		return ((await res.json()) as { turnInFlight?: boolean }).turnInFlight === true;
 	} catch {
-		return null; // network hiccup: keep waiting, the deadline bounds us
+		return null; // fallo pasajero de red: sigue esperando, el plazo nos acota
 	}
 }
 
 const STREAM_DROPPED = "The connection dropped before the turn completed.";
 
-/** Mark transport failures without confusing JSON/application bugs with drops. */
+/** Marca los fallos de transporte sin confundir errores de JSON/de la aplicación con cortes. */
 class StreamReadError extends Error {
 	constructor(cause: unknown) {
 		super(cause instanceof Error ? cause.message : String(cause), { cause });
 	}
 }
 
-/** Wire events; return true ONLY for the explicit completion marker. */
+/** Eventos del cable; devuelve true SOLO para el marcador explícito de finalización. */
 export async function* sseEvents(reader: ReadableStreamDefaultReader<Uint8Array>): AsyncGenerator<Record<string, unknown>, boolean> {
 	const decoder = new TextDecoder();
 	let buf = "";
@@ -148,10 +150,10 @@ export async function* sseEvents(reader: ReadableStreamDefaultReader<Uint8Array>
 	}
 }
 
-/** The dangling question call's tool name (the optimistic answer result's
- *  toolName — the server stamps the same from its own record scan). */
+/** El nombre de herramienta de la llamada de pregunta colgante (el toolName del
+ *  resultado optimista de la respuesta — el servidor sella el mismo a partir de su propio recorrido del registro). */
 export function pendingCallTool(messages: readonly LhMessage[], toolCallId: string): string | null {
-	// Match projection's newest-occurrence pairing for pre-uniquifier records.
+	// Iguala el emparejamiento por aparición más reciente de la proyección para los registros anteriores al desambiguador.
 	for (let mi = messages.length - 1; mi >= 0; mi--) {
 		const m = messages[mi]!;
 		if (m.role !== "assistant") continue;
@@ -164,11 +166,12 @@ export function pendingCallTool(messages: readonly LhMessage[], toolCallId: stri
 }
 
 /**
- * Has the record ABSORBED this optimistic tail entry? The write-ahead
- * normally persists content-identical copies with server-stamped ids — match
- * content, not the (local) id. Image normalization uses the separate temporary
- * POST adoption gate, never weaker byte matching. Only `c_` entries are ever
- * absorbed (live turn content is never dropped).
+ * ¿Ha ABSORBIDO el registro esta entrada optimista de la cola? La
+ * persistencia anticipada normalmente guarda copias de contenido idéntico con
+ * ids sellados por el servidor — compara el contenido, no el id (local). La
+ * normalización de imágenes usa la barrera aparte de adopción temporal del
+ * POST, nunca una comparación de bytes más débil. Solo se absorben entradas
+ * `c_` (el contenido del turno en vivo nunca se descarta).
  */
 export function absorbed(m: LhMessage, record: readonly LhMessage[]): boolean {
 	if (typeof m.id !== "string" || !m.id.startsWith("c_")) return false;
@@ -188,12 +191,12 @@ export function absorbed(m: LhMessage, record: readonly LhMessage[]): boolean {
 		);
 	}
 	if (role === "custom") {
-		// Markers (the thinking submission, 2026-10-05 — the doubled-card
-		// bug: the optimistic practice-thinking card was never absorbed, so
-		// the adoption window rendered it beside the write-ahead's server
-		// copy for the whole turn). TOTAL over roles by identity key — a
-		// marker is itself when its customType AND structured details match;
-		// types that never appear optimistically simply never reach here.
+		// Marcadores (el envío de thinking, 2026-10-05 — el fallo de la tarjeta
+		// duplicada: la tarjeta optimista de practice-thinking nunca se absorbía, así
+		// que la ventana de adopción la renderizaba junto a la copia del servidor de la
+		// persistencia anticipada durante todo el turno). TOTAL sobre los roles por clave de identidad — un
+		// marcador es él mismo cuando coinciden su customType Y sus details estructurados;
+		// los tipos que nunca aparecen de forma optimista simplemente nunca llegan aquí.
 		const marker = m as LhMarkerMessage;
 		return record.some(
 			(r) =>
@@ -205,8 +208,8 @@ export function absorbed(m: LhMessage, record: readonly LhMessage[]): boolean {
 	return false;
 }
 
-/** Structural deep-equal for marker details (JSON-stable payloads — the
- *  constructors mint plain data). */
+/** Igualdad estructural profunda para los details de los marcadores (cargas
+ *  JSON estables — los constructores generan datos simples). */
 function sameDetails(a: unknown, b: unknown): boolean {
 	return JSON.stringify(a) === JSON.stringify(b);
 }
@@ -216,33 +219,34 @@ export interface SessionState {
 	messages: LhViewMessage[];
 	nativeMessages: LhMessage[];
 	canonicalMessages: LhMessage[];
-	/** Server-read history only; optimistic bubbles are not delivery proof. */
+	/** Solo el historial leído del servidor; las burbujas optimistas no prueban la entrega. */
 	hasConfirmedConversation: boolean;
-	/** Completed conversation usage; null after compaction or before first usage. */
+	/** Uso de la conversación completada; null tras la compactación o antes del primer uso. */
 	contextTokens: number | null;
 	status: SessionStatus;
-	/** Local submission with optional grading/processing, awaiting its POST response. */
+	/** Envío local con corrección/procesamiento opcionales, a la espera de la respuesta de su POST. */
 	evaluating: boolean;
 	reconciliation: "ready" | "syncing" | "failed";
 	pluginQuestionAvailability?: PluginQuestionAvailability;
 	error: { message: string } | null;
-	/** Steers sent but not yet drained (composer steering, 2026-10-03):
-	 *  the queued indicator's truth. An entry dies when its id lands in
-	 *  the messages (the drain's verbatim events upsert the real card) —
-	 *  visibleQueuedSteers is the pure fold. */
+	/** Reorientaciones enviadas pero aún no vaciadas (reorientación desde el
+	 *  composer, 2026-10-03): la verdad del indicador de cola. Una entrada muere
+	 *  cuando su id llega a los mensajes (los eventos literales del vaciado
+	 *  insertan o actualizan la tarjeta real) — visibleQueuedSteers es el plegado puro. */
 	steerQueue: SteerQueueItem[];
 }
 
-/** One queued composer steer: the client-minted id (the upsert key) + text. */
+/** Una reorientación del composer en cola: el id generado en el cliente (la clave del upsert) + el texto. */
 export interface SteerQueueItem {
 	id: string;
 	text: string;
 }
 
-/** The indicator's fold (pure): a queued steer stays visible until its id
- *  lands in the message list — from the live stream's upsert, the settle
- *  sync, or a reload. A steer parked server-side (stranded behind a
- *  question) keeps its line: honest "waiting" until the next run drains it. */
+/** El plegado del indicador (puro): una reorientación en cola sigue visible
+ *  hasta que su id llega a la lista de mensajes — por el upsert del stream en
+ *  vivo, la sincronización al asentarse o una recarga. Una reorientación
+ *  aparcada en el servidor (varada tras una pregunta) conserva su línea: un
+ *  "esperando" honesto hasta que la siguiente ejecución la vacíe. */
 export function visibleQueuedSteers(
 	queue: readonly SteerQueueItem[],
 	messages: readonly LhMessage[],
@@ -254,30 +258,30 @@ export function visibleQueuedSteers(
 export interface SessionModelOptions extends SessionModelDeps {
 	chatId: string;
 	initialMessages: LhMessage[];
-	/** Retained, memory-only server failure when reopening a session. */
+	/** Fallo del servidor conservado, solo en memoria, al reabrir una sesión. */
 	initialError?: string;
-	/** Fires on every state change (the hook re-renders). */
+	/** Se dispara en cada cambio de estado (el hook re-renderiza). */
 	onChange?: () => void;
-	/** The reattach settled terminal (turn-settled): no turn running, the
-	 *  record is current — the caller refetches it. */
+	/** El terminal de asentamiento del reenganche (turn-settled): no hay ningún
+	 *  turno en marcha, el registro está al día — quien llama lo vuelve a pedir. */
 	onReattachSettled?: () => void;
 }
 
 export class SessionModel {
 	readonly chatId: string;
-	/** Injectable fetch (tests); defaults to the global. */
+	/** Fetch inyectable (pruebas); por defecto, el global. */
 	fetch: typeof globalThis.fetch;
-	/** Steers sent but not yet drained (the queued indicator's truth). */
+	/** Reorientaciones enviadas pero aún no vaciadas (la verdad del indicador de cola). */
 	private steerQueueValue: SteerQueueItem[] = [];
 	private readonly pollMs: number;
 	private readonly waitMaxMs: number;
 	private onReattachSettled?: () => void;
-	/** The hook's re-render trigger (set by the adapter). */
+	/** El disparador de re-render del hook (lo fija el adaptador). */
 	onChange?: () => void;
 
-	// THE STATE: the record (server canon) + the live tail (this client's
-	// optimistic appends and the streaming turn's messages). The tail dies
-	// at every full sync; the write-ahead absorbs the optimistic entries.
+	// EL ESTADO: el registro (canon del servidor) + la cola viva (los añadidos
+	// optimistas de este cliente y los mensajes del turno en streaming). La cola
+	// muere en cada sincronización completa; la persistencia anticipada absorbe las entradas optimistas.
 	private base: LhMessage[];
 	private tail: LhMessage[] = [];
 	private questionDrafts = new Map<string, QuestionDraft>();
@@ -288,45 +292,45 @@ export class SessionModel {
 	private pluginQuestionAvailability?: PluginQuestionAvailability;
 	private reconciliationTask: Promise<boolean> | null = null;
 	private reconciliationOwner: AbortController | null = null;
-	// Effect reconnections may have no stream owner on either side of stop().
-	// Their read tasks still belong to distinct connections, unlike data epochs
-	// whose invalidation can legitimately require a current terminal retry.
+	// Las reconexiones del efecto pueden no tener responsable del stream a ningún lado de stop().
+	// Sus tareas de lectura siguen perteneciendo a conexiones distintas, a diferencia de las épocas
+	// de datos, cuya invalidación sí puede exigir legítimamente un reintento terminal actual.
 	private connectionGeneration = 0;
 	private reconciliationConnectionGeneration = 0;
-	// Shared authority for EVERY canonical GET writer, including independent
-	// Chat refreshes. Issuing a read does not invalidate another response:
-	// only accepted canonical adoption or an action/stream epoch does.
+	// Autoridad compartida para TODO escritor GET canónico, incluidos los refrescos
+	// independientes de Chat. Emitir una lectura no invalida otra respuesta:
+	// solo lo hace una adopción canónica aceptada o una época de acción/stream.
 	private canonicalIssued = 0;
 	private canonicalAcknowledged = 0;
 	private canonicalEpoch = 0;
-	/** Normalized bytes cannot identify an optimistic image entry before its
-	 * POST resolves. Defer transcript adoption only for this live HTTP owner. */
+	/** Los bytes normalizados no pueden identificar una entrada de imagen optimista antes de
+	 * que se resuelva su POST. Difiere la adopción de la transcripción solo para este responsable HTTP vivo. */
 	private imagePostOwner: AbortController | null = null;
 	private imagePreview: { owner: AbortController; ids: ReadonlySet<string> } | null = null;
-	/** Only learner answers submitted through send(), never silent dismissals. */
+	/** Solo las respuestas del alumno enviadas con send(), nunca los descartes silenciosos. */
 	private unconfirmedAnswers = new Map<string, string>();
-	// The live turn's execution layer (view model mid-turn states):
+	// La capa de ejecución del turno en vivo (estados a mitad de turno del modelo de vista):
 	private executions = new Map<string, LiveExecution>();
 	private streamingIds = new Set<string>();
 	private incompleteUsageIds = new Set<string>();
-	/** The in-flight assistant message's client id (see applyWireEvent). */
+	/** El id de cliente del mensaje del asistente en curso (ver applyWireEvent). */
 	private streamingMessageId: string | null = null;
 	private statusValue: SessionStatus = "ready";
-	/** Presentation only; never changes admission, persistence or turn ownership. */
+	/** Solo de presentación; nunca cambia la admisión, la persistencia ni la propiedad del turno. */
 	private evaluationOwner: AbortController | null = null;
-	/** Request/loop failures are transient; provider failures derive from messages. */
+	/** Los fallos de la petición/del bucle son transitorios; los del proveedor se derivan de los mensajes. */
 	private errorValue: { message: string } | null = null;
-	/** Dismissing a banner must not authorize an automatic replacement turn. */
+	/** Descartar un banner no debe autorizar un turno sustituto automático. */
 	private automaticContinuationBlocked = false;
-	/** A completed failure from THIS consume, not the previous attempt's record. */
+	/** Un fallo completado de ESTE consumo, no el registro del intento anterior. */
 	private liveFailureId: string | null = null;
-	// The single live consume (POST response or reattach stream): a newer
-	// consume cancels the older — one reader at a time.
+	// El único consumo vivo (respuesta del POST o stream de reenganche): un consumo
+	// más reciente cancela el anterior — un lector cada vez.
 	private consumeAbort: AbortController | null = null;
-	/** Retain the latest request across stop(): an opening POST still owns
-	 * its refusal after view detachment, but never after a newer request. */
+	/** Conserva la última petición a través de stop(): un POST de apertura sigue siendo dueño
+	 * de su rechazo tras desenganchar la vista, pero nunca después de una petición más reciente. */
 	private latestRequest: AbortController | null = null;
-	/** Synchronous ready check for the gate (send/read mount logic). */
+	/** Comprobación síncrona de ready para la barrera (lógica de montaje de send/read). */
 	readyRef = true;
 
 	private history?: { base: LhMessage[]; tail: LhMessage[]; messages: LhMessage[] };
@@ -338,10 +342,10 @@ export class SessionModel {
 		if (pluginQuestionCallsOf(this.base).some(call => call.status === "answerable" || call.status === "unreadable")) { this.reconciliationValue = "syncing"; this.readyRef = false; }
 		this.errorValue = opts.initialError === undefined ? null : { message: opts.initialError };
 		this.automaticContinuationBlocked = opts.initialError !== undefined;
-		// BOUND: the browser's native fetch is a Window method — storing it
-		// unbound makes every call throw "Illegal invocation" in the browser
-		// (Node's undici doesn't care, so the tests never saw it). Always go
-		// through a receiver-preserving wrapper.
+		// VINCULADO: el fetch nativo del navegador es un método de Window — guardarlo
+		// sin vincular hace que cada llamada lance "Illegal invocation" en el navegador
+		// (a undici de Node le da igual, así que las pruebas nunca lo vieron). Pasa
+		// siempre por un envoltorio que conserve el receptor.
 		this.fetch = opts.fetch ?? ((...args) => globalThis.fetch(...args));
 		this.pollMs = opts.pollMs ?? TURN_POLL_MS;
 		this.waitMaxMs = opts.waitMaxMs ?? TURN_WAIT_MAX_MS;
@@ -349,13 +353,13 @@ export class SessionModel {
 		this.onReattachSettled = opts.onReattachSettled;
 	}
 
-	/** Injectable settle hook (the adapter wires its ref). */
+	/** Hook de asentamiento inyectable (el adaptador conecta su ref). */
 	setReattachSettled(fn: () => void): void {
 		this.onReattachSettled = fn;
 	}
 
-	/** Status/dock updates do not change native history. Immutable message
-	 * identities let all historical question readers share the same analysis. */
+	/** Las actualizaciones de estado/dock no cambian el historial nativo. Las identidades inmutables
+	 * de los mensajes permiten que todos los lectores de preguntas históricas compartan el mismo análisis. */
 	private nativeHistory(): LhMessage[] {
 		if (this.history?.base === this.base && this.history.tail === this.tail) return this.history.messages;
 		const messages = copyImmutableData([...this.base, ...this.tail]);
@@ -370,9 +374,9 @@ export class SessionModel {
 				: undefined;
 		const messages = this.nativeHistory();
 		const latest = failedResponseAtEnd(messages);
-		// Presentation/compaction markers do not resolve a failure. While
-		// trying again, hide the old banner from the first Thinking frame,
-		// but show a new completed failure from this consume immediately.
+		// Los marcadores de presentación/compactación no resuelven un fallo. Al
+		// reintentar, oculta el banner antiguo desde el primer fotograma de Thinking,
+		// pero muestra de inmediato un fallo completado nuevo de este consumo.
 		const providerError =
 			latest !== undefined &&
 			!this.incompleteUsageIds.has(latest.id) && (!live || latest.id === this.liveFailureId)
@@ -398,11 +402,11 @@ export class SessionModel {
 		return this.statusValue;
 	}
 
-	/** Mutate model state + notify (the hook re-renders). */
+	/** Modifica el estado del modelo + avisa (el hook re-renderiza). */
 	private mutate(fn: () => void): void {
 		fn();
-		// Streaming SDK partials and POST inputs remain caller-owned. Detach only
-		// new data, retaining already immutable settled messages and contracts.
+		// Los parciales del SDK en streaming y las entradas del POST siguen siendo de quien llama. Desengancha
+		// solo los datos nuevos, conservando los mensajes y contratos asentados que ya son inmutables.
 		this.base = copyImmutableData(this.base);
 		this.tail = copyImmutableData(this.tail);
 		this.onChange?.();
@@ -426,7 +430,7 @@ export class SessionModel {
 	private releaseImagePost(owner: AbortController | null): void {
 		if (owner && this.imagePostOwner === owner) {
 			this.imagePostOwner = null;
-			// A GET issued during the deferred interval must not land later.
+			// Un GET emitido durante el intervalo diferido no debe aterrizar más tarde.
 			this.invalidateCanonicalReads();
 		}
 	}
@@ -446,8 +450,8 @@ export class SessionModel {
 		this.invalidateCanonicalReads();
 	}
 
-	/** Shared canonical read/adoption seam. A stale or locally canceled read
-	 * returns undefined, never a snapshot callers may adopt independently. */
+	/** Frontera compartida de lectura/adopción canónica. Una lectura obsoleta o cancelada
+	 * localmente devuelve undefined, nunca una instantánea que quien llama pueda adoptar por su cuenta. */
 	async readRecord(options: SessionRecordReadOptions = {}): Promise<SessionRecordSnapshot | undefined> {
 		const ticket = ++this.canonicalIssued;
 		const epoch = this.canonicalEpoch;
@@ -464,8 +468,8 @@ export class SessionModel {
 		if (!Array.isArray(record.messages)) throw new Error("Could not sync the saved session.");
 		if (epoch !== this.canonicalEpoch || ticket < this.canonicalAcknowledged || options.signal?.aborted || options.isCurrent?.() === false) return undefined;
 		const mode = options.adoption ?? "replace";
-		// Returning undefined also prevents callers from certifying a deferred
-		// append/replace as applied canonical authority. No stale snapshot is queued.
+		// Devolver undefined también impide que quien llama certifique un append/replace
+		// diferido como autoridad canónica aplicada. No se encola ninguna instantánea obsoleta.
 		if (mode !== "none" && this.imagePostOwner) return undefined;
 		if (mode === "replace" && !options.allowInFlight && (this.statusValue === "submitted" || this.statusValue === "streaming")) return undefined;
 		if (mode === "append") {
@@ -478,7 +482,7 @@ export class SessionModel {
 		return record;
 	}
 
-	/** Read-only canonical adoption: never sends a replacement teacher turn. */
+	/** Adopción canónica de solo lectura: nunca envía un turno sustituto del profesor. */
 	async reconcile(): Promise<boolean> {
 		if (this.reconciliationTask && this.reconciliationOwner === this.consumeAbort && this.reconciliationConnectionGeneration === this.connectionGeneration) return this.reconciliationTask;
 		this.reconciliationValue = "syncing";
@@ -497,8 +501,8 @@ export class SessionModel {
 				const record = await this.readRecord({ allowInFlight: true, isCurrent });
 				if (!isCurrent()) return false;
 				if (this.canonicalEpoch !== epoch) throw new Error("Canonical read was invalidated.");
-				// A newer successfully adopted GET is authority too; a merely
-				// issued/pending read cannot suppress this terminal response.
+				// Un GET más reciente adoptado con éxito también es autoridad; una lectura
+				// solo emitida/pendiente no puede suprimir esta respuesta terminal.
 				if (!record && this.canonicalAcknowledged < requiredTicket) return false;
 				this.reconciliationValue = "ready";
 				this.readyRef = this.statusValue === "ready";
@@ -550,11 +554,12 @@ export class SessionModel {
 		finally { this.setStatus("ready"); }
 	}
 
-	/** The 409 identity-retry fetch (the Wave B contract): the event was
-	 *  never persisted (write-ahead happens only on acceptance), so the
-	 *  retry waits out the running turn and re-POSTs the SAME body. Plugin
-	 *  question answers are excluded: a busy refusal needs explicit retry,
-	 *  never an automatic second grading attempt. */
+	/** El fetch de reintento por identidad ante 409 (el contrato de la oleada
+	 *  B): el evento nunca se persistió (la persistencia anticipada solo ocurre
+	 *  al aceptarse), así que el reintento espera a que acabe el turno en marcha
+	 *  y vuelve a hacer POST del MISMO cuerpo. Las respuestas a preguntas de
+	 *  plugins quedan excluidas: un rechazo por ocupado necesita un reintento
+	 *  explícito, nunca un segundo intento automático de corrección. */
 	async postInputEvent(input: ChatInput, signal?: AbortSignal, onPostPending?: (pending: boolean) => void): Promise<Response> {
 		const body = JSON.stringify({ chatId: this.chatId, input });
 		const init: RequestInit = {
@@ -578,32 +583,33 @@ export class SessionModel {
 			waited += this.pollMs;
 			if (signal?.aborted) return response;
 			if ((await turnInFlight(this)) !== false) continue;
-			response = await post(); // may 409 again → loop
+			response = await post(); // puede dar 409 otra vez → bucle
 		}
 		return response;
 	}
 
 	/**
-	 * ONE event application for both the POST stream and the reattach
-	 * replay (pi's events carry the FULL partial message — a view REPLACES,
-	 * never assembles deltas). Returns whether the event did VIEW WORK:
-	 * the consume flips submitted→streaming on the first ACTED event, not
-	 * the first wire byte — agent_start/turn_start release nothing, so
-	 * the Thinking… placeholder (gated on submitted) covers the whole
-	 * provider-connect gap (owner, optimistic round 3, 2026-10-02).
+	 * UNA aplicación de eventos para el stream del POST y para la repetición
+	 * del reenganche (los eventos de pi llevan el mensaje parcial COMPLETO —
+	 * una vista SUSTITUYE, nunca ensambla deltas). Devuelve si el evento hizo
+	 * TRABAJO DE VISTA: el consumo pasa de submitted a streaming en el primer
+	 * evento que ACTÚA, no en el primer byte del cable — agent_start/turn_start
+	 * no liberan nada, así que el provisional Thinking… (condicionado a
+	 * submitted) cubre todo el hueco de conexión con el proveedor (responsable,
+	 * ronda optimista 3, 2026-10-02).
 	 */
 	applyWireEvent(event: Record<string, unknown>): boolean {
 		if (event.type === "error") {
-			// Loop-level failure (agent.continue threw outside the stream) —
-			// raw text (owner ruling, Wave D): the banner shows exactly this.
+			// Fallo a nivel de bucle (agent.continue lanzó fuera del stream) —
+			// texto en bruto (decisión del responsable, oleada D): el banner muestra exactamente esto.
 			this.setError(String(event.errorText ?? "An error occurred."));
 			return false;
 		}
 		const agent = event as unknown as AgentEvent;
 		switch (agent.type) {
 			case "agent_start":
-				// Positive evidence of a new/replayed server-owned turn. Any
-				// later failure in that replay blocks continuation again.
+				// Prueba positiva de un turno nuevo/repetido propiedad del servidor. Cualquier
+				// fallo posterior en esa repetición vuelve a bloquear la continuación.
 				this.automaticContinuationBlocked = false;
 				if (this.errorValue !== null) this.setError(null);
 				return false;
@@ -615,17 +621,17 @@ export class SessionModel {
 					id?: string;
 				};
 				if ((message as { role?: string }).role !== "assistant") {
-					// Wave C: markers injected mid-run (pi's follow-up delivery)
-					// arrive as custom-role message_start/message_end events -
-					// UPSERT by id (markers always carry steer_<id> ids; id-less
-					// non-assistant events never occur - injected messages emit
-					// start+end only, no streaming partials). Without this the
-					// live stream dropped the marker until the settle sync.
+					// Oleada C: los marcadores inyectados a mitad de ejecución (la entrega de
+					// seguimiento de pi) llegan como eventos message_start/message_end de rol custom -
+					// UPSERT por id (los marcadores siempre llevan ids steer_<id>; nunca hay eventos
+					// sin id que no sean del asistente - los mensajes inyectados emiten solo
+					// start+end, sin parciales de streaming). Sin esto el stream en vivo
+					// perdía el marcador hasta la sincronización al asentarse.
 					const mid = message.id;
 					if (mid === undefined) return false;
-					// Adoption/refetch may already carry this durable message before
-					// its start/end is replayed. The record owns that identity;
-					// adding it to the tail would duplicate it until the next sync.
+					// La adopción/nueva petición puede traer ya este mensaje duradero antes de
+					// que se repitan su start/end. El registro es dueño de esa identidad;
+					// añadirlo a la cola lo duplicaría hasta la siguiente sincronización.
 					if (this.base.some((m) => m.id === mid)) return false;
 					this.mutate(() => {
 						const idx = this.tail.findIndex((m) => m.id === mid);
@@ -634,26 +640,26 @@ export class SessionModel {
 					});
 					return true;
 				}
-				// pi streams AssistantMessages with NO id — the id exists only
-				// once the server's persistTurn stamps the record (the live
-				// streaming bug, 2026-09-26: minting a fresh id per event made
-				// every message_update APPEND a full copy — a divider + thinking
-				// block per chunk, cleaned up only by the settle sync). The
-				// in-flight message is tracked by SLOT instead: message_start
-				// mints and remembers the id; updates and the end REPLACE that
-				// same tail entry. Exactly one assistant message streams at a
-				// time (pi's strict start → updates → end ordering per step; the
-				// reattach replay replays the same sequence), so the slot is
-				// unambiguous. An explicit message.id (if one ever appears on
-				// the wire) still wins.
+				// pi emite los AssistantMessage en streaming SIN id — el id solo existe
+				// cuando persistTurn del servidor sella el registro (el fallo del streaming
+				// en vivo, 2026-09-26: generar un id nuevo por evento hacía que cada
+				// message_update AÑADIERA una copia completa — un divisor + bloque de thinking
+				// por fragmento, que solo limpiaba la sincronización al asentarse). El
+				// mensaje en curso se sigue en cambio por RANURA: message_start
+				// genera y recuerda el id; las actualizaciones y el end SUSTITUYEN esa
+				// misma entrada de la cola. Exactamente un mensaje del asistente se emite a
+				// la vez (el orden estricto start → updates → end de pi en cada paso; la
+				// repetición del reenganche reproduce la misma secuencia), así que la ranura
+				// no es ambigua. Un message.id explícito (si alguna vez aparece en
+				// el cable) sigue ganando.
 				const id = message.id ?? this.streamingMessageId ?? localId();
 				const withId = { ...message, id } as LhMessage;
 				if (agent.type === "message_end") {
 					this.incompleteUsageIds.delete(id);
 					if (message.role === "assistant" && message.stopReason === "error") {
 						this.liveFailureId = id;
-						// A newer provider failure replaces an earlier connection/loop
-						// error, just as the live message_end did before restoration.
+						// Un fallo más reciente del proveedor sustituye a un error anterior de
+						// conexión/bucle, igual que hacía el message_end en vivo antes de la restauración.
 						this.errorValue = null;
 					}
 				} else this.incompleteUsageIds.add(id);
@@ -670,13 +676,13 @@ export class SessionModel {
 					});
 				}
 				if (agent.type === "message_end") {
-					this.streamingMessageId = null; // slot done — next start mints fresh
+					this.streamingMessageId = null; // ranura terminada — el siguiente start genera uno nuevo
 				}
-				return true; // a message event is view work, even empty content
+				return true; // un evento de mensaje es trabajo de vista, aunque el contenido esté vacío
 			}
 			case "tool_execution_end": {
-				// The execution layer: clean question placeholders are IGNORED
-				// downstream (view.ts fork 2); errors keep their validation text.
+				// La capa de ejecución: los provisionales limpios de pregunta se IGNORAN
+				// más adelante (view.ts, bifurcación 2); los errores conservan su texto de validación.
 				const result = agent.result as
 					| Pick<ToolResultMessage, "content" | "details">
 					| null;
@@ -689,11 +695,11 @@ export class SessionModel {
 						...(result ? { result: { content: result.content, details: result.details, isError: agent.isError } } : {}),
 					});
 				});
-				return true; // the execution layer updated the tool part's card
+				return true; // la capa de ejecución actualizó la tarjeta de la parte de herramienta
 			}
 			case "turn_end": {
-				// The results batch: append as native messages (client-stamped
-				// ids — the settle sync lands the server canon).
+				// El lote de resultados: se añade como mensajes nativos (ids sellados en el
+				// cliente — la sincronización al asentarse trae el canon del servidor).
 				this.mutate(() => {
 					this.tail = [
 						...this.tail,
@@ -705,12 +711,12 @@ export class SessionModel {
 				return true;
 			}
 			default:
-				return false; // agent_start/turn_start/tool_execution_start|update: no view work
+				return false; // agent_start/turn_start/tool_execution_start|update: sin trabajo de vista
 		}
 	}
 
-	/** Consume one SSE body to its [DONE] terminal. The turn-settled
-	 *  terminal (stream-route only) fires the settle hook and ends. */
+	/** Consume un cuerpo SSE hasta su terminal [DONE]. El terminal turn-settled
+	 *  (solo en la ruta de stream) dispara el hook de asentamiento y termina. */
 	async consumeStream(res: Response, controller = this.consumeAbort, allowRecovery = true): Promise<void> {
 		if (!res.body) throw new Error("The turn stream body is empty.");
 		const reader = res.body.getReader();
@@ -729,8 +735,8 @@ export class SessionModel {
 				if (next.done) { sawDone = next.value; break; }
 				const event = next.value;
 				if (event.type === "turn-settled") {
-					// The raced-settle terminal: no turn to attach to — the
-					// record is current; the settle hook refetches.
+					// El terminal de asentamiento en carrera: no hay turno al que engancharse — el
+					// registro está al día; el hook de asentamiento lo vuelve a pedir.
 					sawDone = true;
 					return;
 				}
@@ -743,13 +749,13 @@ export class SessionModel {
 		} finally {
 			await reader.cancel().catch(() => {});
 			reader.releaseLock();
-			// A cancelled consume may finish after its replacement has entered
-			// Thinking. Only the current owner can settle shared state.
+			// Un consumo cancelado puede terminar después de que su sustituto haya entrado
+			// en Thinking. Solo el responsable actual puede asentar el estado compartido.
 			if (this.consumeAbort === controller) {
 				this.streamingIds = new Set();
 				this.executions = new Map();
 				if (sawDone) {
-					// Do not expose live annotations as canonical editor authority.
+					// No expongas las anotaciones en vivo como autoridad canónica del editor.
 					await this.reconcile();
 					if (this.consumeAbort === controller && this.statusValue !== "error") this.setStatus("ready");
 					if (this.consumeAbort === controller && this.reconciliationValue === "ready") this.onReattachSettled?.();
@@ -758,8 +764,8 @@ export class SessionModel {
 		}
 		if (this.consumeAbort !== controller || sawDone) return;
 		if (!allowRecovery) throw new StreamReadError(new Error(STREAM_DROPPED));
-		// One read-only recovery: refresh the canonical base, then replay the
-		// SAME server-owned turn. Never resend the learner's input.
+		// Una recuperación de solo lectura: refresca la base canónica y luego repite el
+		// MISMO turno propiedad del servidor. Nunca vuelvas a enviar la entrada del alumno.
 		await this.resumeStream(true, false);
 	}
 
@@ -775,43 +781,45 @@ export class SessionModel {
 	}
 
 	/**
-	 * Reattach (the wake/handoff/mount path): a server-side turn with no
-	 * live view of ours. ATTACH-FIRST (owner, reattach round 2026-10-02):
-	 * a fresh-mount reattach passes refetchRecordFirst=false — the page
-	 * render just read the record, so the blocking record round-trip only
-	 * added handshake latency before the instant replay; the running
-	 * turn's partial lives solely in the server event log, and the replay
-	 * rebuilds it regardless of the refetch. Mid-session callers (the
-	 * handoff watch) keep the default: their base may trail the record,
-	 * and the refetch absorbs it (write-ahead adoption) before the replay
-	 * lands on top. The stream then replays the turn from its first event
-	 * through the SAME consume path.
+	 * Reenganche (la ruta de despertar/traspaso/montaje): un turno en el
+	 * servidor sin ninguna vista nuestra en vivo. PRIMERO ENGANCHAR (responsable,
+	 * ronda de reenganche 2026-10-02): un reenganche en un montaje nuevo pasa
+	 * refetchRecordFirst=false — el render de la página acaba de leer el
+	 * registro, así que el viaje de ida y vuelta bloqueante para pedirlo solo
+	 * añadía latencia de negociación antes de la repetición instantánea; el
+	 * parcial del turno en marcha vive únicamente en el registro de eventos del
+	 * servidor, y la repetición lo reconstruye se vuelva a pedir o no. Los
+	 * llamadores a mitad de sesión (la vigilancia del traspaso) mantienen el
+	 * valor por defecto: su base puede ir por detrás del registro, y la nueva
+	 * petición la absorbe (adopción de la persistencia anticipada) antes de que
+	 * la repetición caiga encima. El stream repite entonces el turno desde su
+	 * primer evento por la MISMA ruta de consumo.
 	 */
 	async resumeStream(refetchRecordFirst = true, allowRecovery = true): Promise<void> {
-		// External reattachment supersedes unresolved POST preview ownership.
-		// Normal post-ack reattach keeps its preview until the atomic record swap.
+		// Un reenganche externo deja sin efecto la propiedad de la vista previa de un POST sin resolver.
+		// El reenganche normal tras el acuse conserva su vista previa hasta el intercambio atómico del registro.
 		this.retireImagePreview(this.imagePostOwner);
 		this.releaseImagePost(this.imagePostOwner);
 		this.consumeAbort?.abort();
 		const controller = new AbortController();
 		this.consumeAbort = controller;
 		this.latestRequest = controller;
-		// REPLAY ONTO A CLEAN SLATE (owner, optimistic round 3, 2026-10-02):
-		// the reattach stream replays the turn from its FIRST event — an
-		// aborted earlier attempt (React StrictMode's simulated remount)
-		// must not leave partials the replay would DOUBLE onto. The old
-		// record refetch provided this reset accidentally; attach-first
-		// made it explicit.
+		// REPETIR SOBRE UNA PIZARRA LIMPIA (responsable, ronda optimista 3, 2026-10-02):
+		// el stream de reenganche repite el turno desde su PRIMER evento — un
+		// intento anterior abortado (el remontaje simulado de StrictMode de React)
+		// no debe dejar parciales que la repetición DUPLICARÍA. La antigua
+		// nueva petición del registro daba este reinicio por casualidad; primero
+		// enganchar lo hizo explícito.
 		//
-		// THE FLICKER FIX (owner, 2026-10-10 — connection-diet B follow-up):
-		// on the REFETCH path the clear must NOT precede the fetch — send()
-		// just landed the optimistic answer/note cards in the tail, and any
-		// refetch latency (dev-compile stalls measured at 1.7s) re-showed
-		// the answered-away question for the whole window: card vanished,
-		// dock returned, both snapped back only when the record landed.
-		// The refetch block below swaps base+tail ATOMICALLY when the record
-		// arrives (and clears on failure — the clean-slate guard holds on
-		// every path that actually replays onto a stale tail).
+		// EL ARREGLO DEL PARPADEO (responsable, 2026-10-10 — seguimiento de la dieta de conexiones B):
+		// en la ruta de NUEVA PETICIÓN el borrado NO debe preceder al fetch — send()
+		// acaba de colocar en la cola las tarjetas optimistas de respuesta/nota, y
+		// cualquier latencia de la nueva petición (se midieron parones de compilación
+		// en desarrollo de 1,7s) volvía a mostrar la pregunta ya respondida durante
+		// toda la ventana: la tarjeta desaparecía, el dock volvía y ambos solo se
+		// recolocaban al llegar el registro. El bloque de nueva petición de abajo
+		// intercambia base+cola de forma ATÓMICA cuando llega el registro (y borra si
+		// falla — la guarda de pizarra limpia se mantiene en toda ruta que de verdad repite sobre una cola obsoleta).
 		if (!refetchRecordFirst) {
 			this.mutate(() => {
 				this.incompleteUsageIds.clear();
@@ -825,8 +833,8 @@ export class SessionModel {
 				const record = await this.readRecord({ signal: controller.signal, allowInFlight: true, recoveringDrop: !allowRecovery, tolerateHttpFailure: true, isCurrent: () => this.consumeAbort === controller });
 				if (this.consumeAbort !== controller) return;
 				if (!record) {
-					// The record did not land — restore the clean-slate guard
-					// before the replay (no atomic swap is coming).
+					// El registro no ha llegado — restaura la guarda de pizarra limpia
+					// antes de la repetición (no va a haber intercambio atómico).
 					this.mutate(() => {
 						this.incompleteUsageIds.clear();
 						this.tail = [];
@@ -839,10 +847,10 @@ export class SessionModel {
 			if (!res.ok) throw new Error((await res.text()) || "Failed to attach to the running turn.");
 			await this.consumeStream(res, controller, allowRecovery);
 		} catch (err) {
-			if (this.consumeAbort !== controller || controller.signal.aborted) return; // intentionally cancelled
+			if (this.consumeAbort !== controller || controller.signal.aborted) return; // cancelado a propósito
 			this.retireImagePreview(this.imagePreview?.owner ?? null);
-			// A failed record read can leave the optimistic answer in the tail.
-			// Restore its Submit affordance; the next attempt reconciles first.
+			// Una lectura fallida del registro puede dejar la respuesta optimista en la cola.
+			// Restaura su indicación de Submit; el siguiente intento reconcilia primero.
 			this.mutate(() => {
 				this.tail = this.tail.filter(m => !this.unconfirmedAnswers.has(m.id));
 				this.unconfirmedAnswers.clear();
@@ -853,10 +861,11 @@ export class SessionModel {
 	}
 
 	/**
-	 * SEND: one explicit input event. Optimistic appends first (the instant
-	 * answer/note UX — the server's write-ahead persists the canon), then
-	 * POST + consume. Ready-gated: one turn per client at a time (the
-	 * server's 409 + identity retry covers the wake-race window).
+	 * SEND: un evento de entrada explícito. Primero los añadidos optimistas (la
+	 * experiencia instantánea de respuesta/nota — la persistencia anticipada del
+	 * servidor guarda el canon), luego POST + consumo. Condicionado a ready: un
+	 * turno por cliente a la vez (el 409 del servidor + el reintento por
+	 * identidad cubren la ventana de carrera del despertar).
 	 */
 	async send(input: ChatInput, onAccepted?: () => void, questionKey?: string, onDeliverySettled?: () => void): Promise<boolean> {
 		let deliverySettled = false;
@@ -877,8 +886,8 @@ export class SessionModel {
 		}
 		if (input.type === "thinking" && activeProblemOf(this.base)?.pluginProblem) return refused();
 		const subject = input.type === "answer" ? pendingQuestionOf(this.nativeHistory()) : null;
-		// A render-scoped answer must not move to another occurrence sharing
-		// its id. This identity is local only; the server's wire is unchanged.
+		// Una respuesta con ámbito de render no debe pasar a otra aparición que comparta
+		// su id. Esta identidad es solo local; el cable del servidor no cambia.
 		if (input.type === "answer" && questionKey !== undefined &&
 			(subject?.key !== questionKey || subject.toolCallId !== input.toolCallId)) return refused();
 		const expectedKey = questionKey ?? (input.type === "answer" && subject?.toolCallId === input.toolCallId ? subject.key : undefined);
@@ -899,8 +908,8 @@ export class SessionModel {
 			try {
 				const record = await this.readRecord({ signal: controller.signal, allowInFlight: true, isCurrent: () => this.consumeAbort === controller });
 				if (this.consumeAbort !== controller || !record) return refused();
-				// No verified record/liveness: retain the draft and never guess
-				// whether a lost acknowledgement meant the input was accepted.
+				// Sin registro/vida del turno verificados: conserva el borrador y nunca supongas
+				// si un acuse perdido significaba que la entrada se aceptó.
 				if (!Array.isArray(record.messages) || typeof record.turnInFlight !== "boolean") throw new Error("An error occurred.");
 				if (record.turnInFlight) {
 					settleDelivery();
@@ -909,8 +918,8 @@ export class SessionModel {
 				}
 				const current = pendingQuestionOf(record.messages);
 				if (current?.toolCallId !== input.toolCallId || (expectedKey !== undefined && current.key !== expectedKey)) {
-					// The call already resolved, or no longer owns the dock. Adopt
-					// truth, never POST that answer a second time.
+					// La llamada ya se resolvió, o ya no es dueña del dock. Adopta
+					// la verdad, nunca hagas POST de esa respuesta una segunda vez.
 					this.setStatus("ready");
 					return refused();
 				}
@@ -922,19 +931,19 @@ export class SessionModel {
 			}
 		}
 		if (input.type !== "continue") this.automaticContinuationBlocked = false;
-		// The optimistic appends — exactly the messages the server's
-		// write-ahead will persist (inputAppends), with LOCAL ids so
-		// adoption can tell them from the record's absorbed copies.
+		// Los añadidos optimistas — exactamente los mensajes que la persistencia
+		// anticipada del servidor guardará (inputAppends), con ids LOCALES para que
+		// la adopción pueda distinguirlos de las copias absorbidas del registro.
 		const optimistic: LhMessage[] = [];
 		if (input.type === "text") optimistic.push({ ...newUserMessage(input.text, input.images), id: localId() });
 		else if (input.type === "thinking") {
-			// The practice submissions (2026-10-04): the marker lands
-			// optimistically — the card renders from its details the
-			// moment the button fires.
+			// Los envíos de práctica (2026-10-04): el marcador llega
+			// de forma optimista — la tarjeta se renderiza a partir de sus details en
+			// el instante en que se pulsa el botón.
 			optimistic.push({ ...newThinkingMessage(input.problemCallId, input.text, input.images), id: localId() });
 		} else if (input.type === "next") {
-			// The move-on signal (owner round 16): the NEXT PROBLEM line
-			// renders the instant the chip/Enter fires.
+			// La señal de pasar a otro (ronda 16 del responsable): la línea NEXT PROBLEM
+			// se renderiza en el instante en que se pulsa el chip/Enter.
 			optimistic.push({ ...newNextMessage(), id: localId() });
 		} else if (input.type === "answer") {
 			const tool = pendingCallTool(this.nativeHistory(), input.toolCallId) ?? "quiz";
@@ -948,25 +957,25 @@ export class SessionModel {
 		if (imageBearing) this.imagePreview = { owner: controller, ids: new Set(optimistic.map(message => message.id)) };
 		let accepted = false;
 		try {
-			// SUBMITS ARE NOT ABORTABLE BY VIEW TEARDOWN (owner, 2026-10-10 —
-			// the dead-session-start postmortem): the POST must NOT ride
-			// consumeAbort. Diet A's abort-on-unmount (session.ts's stop())
-			// fires on React StrictMode's simulated remount in dev — it killed
-			// the ?prompt first send ~8ms in (POST aborted, never retried:
-			// the page's sentInitial guard had already flipped), leaving the
-			// session dead until a second message, which then persisted
-			// WITHOUT the first — the optimistic tail rode a record that never
-			// contained it. Usually the POST is a short Diet B ack. A graded
-			// plugin answer instead awaits grading and save (accepted connection
-			// contention), but still must not inherit view teardown. The
-			// STREAM consume stays on the controller — releasing that held
-			// connection is Diet A's whole job.
+			// LOS ENVÍOS NO SE PUEDEN ABORTAR AL DESMONTAR LA VISTA (responsable, 2026-10-10 —
+			// el análisis post mortem del inicio de sesión muerto): el POST NO debe ir con
+			// consumeAbort. El abort al desmontar de la dieta A (el stop() de session.ts)
+			// se dispara con el remontaje simulado de StrictMode de React en desarrollo — mataba
+			// el primer envío de ?prompt a los ~8ms (POST abortado, nunca reintentado:
+			// la guarda sentInitial de la página ya se había activado), dejando la
+			// sesión muerta hasta un segundo mensaje, que entonces se persistía
+			// SIN el primero — la cola optimista iba sobre un registro que nunca lo
+			// contuvo. Normalmente el POST es un acuse corto de la dieta B. Una respuesta de
+			// plugin con corrección espera en cambio la corrección y el guardado (contención de
+			// conexiones aceptada), pero aun así no debe heredar el desmontaje de la vista. El
+			// consumo del STREAM sigue en el controlador — liberar esa conexión
+			// retenida es todo el trabajo de la dieta A.
 			let res: Response;
 			try {
 				res = await this.postInputEvent(input, undefined, imageBearing ? pending => this.imagePostPending(controller, pending) : undefined);
 			} finally {
-				// The response follows optional processing and save. A detached or
-				// superseded request must never clear its successor's label.
+				// La respuesta llega tras el procesamiento y el guardado opcionales. Una petición
+				// desenganchada o superada nunca debe borrar la etiqueta de su sucesora.
 				if (this.evaluationOwner === controller) this.mutate(() => { this.evaluationOwner = null; });
 			}
 			if (res.status === 409) {
@@ -975,36 +984,36 @@ export class SessionModel {
 			}
 			if (!res.ok) {
 				settleDelivery();
-				// Keep model/key refusal envelopes verbatim: the page's refusal
-				// flow parses them. Retry's 400s are ordinary user-facing
-				// guidance, so show their error text without JSON syntax.
+				// Conserva literales los sobres de rechazo de modelo/clave: el flujo de rechazo
+				// de la página los analiza. Los 400 de Retry son indicaciones normales
+				// para el usuario, así que muestra su texto de error sin sintaxis JSON.
 				let message = (await res.text()) || `The send failed (${res.status}).`;
 				if ((input.type === "retry" || input.type === "retry-question") && res.status === 400) {
 					try {
 						const refusal = JSON.parse(message) as { error?: unknown } | null;
 						if (typeof refusal?.error === "string" && refusal.error.length > 0) message = refusal.error;
-					} catch { /* Non-envelope failures keep their original text. */ }
+					} catch { /* Los fallos sin sobre conservan su texto original. */ }
 				}
 				throw new Error(message);
 			}
 			accepted = true;
-			// Acceptance fences reads belonging to THIS action, but a delayed
-			// detached POST cannot invalidate a replacement stream's terminal GET.
+			// La aceptación acota las lecturas que pertenecen a ESTA acción, pero un POST
+			// desenganchado y retrasado no puede invalidar el GET terminal de un stream sustituto.
 			if (this.latestRequest === controller) this.invalidateCanonicalReads();
-			// Opening-message handover ends at acceptance, not stream completion.
+			// El traspaso del mensaje de apertura termina en la aceptación, no al completarse el stream.
 			onAccepted?.();
 			settleDelivery();
-			// CONNECTION DIET B (owner, 2026-10-10 — parallel-session freeze
-			// postmortem): the POST acknowledges and closes; there is no stream
-			// on this response to consume. Attach through the SAME reattach wire
-			// a returning visitor uses (refetch-first: the record refetch absorbs
-			// the server's write-ahead copy of our optimistic messages, then the
-			// replay lands on top). One live view connection per page, always —
-			// the browser's 6-per-origin pool is the scarce resource.
-			await res.text().catch(() => {}); // drain the tiny ack; release the socket
-			// A stop() or a newer send/consume won while the ack was in
-			// flight: the turn is live server-side either way — do not attach
-			// a stream from a view that is gone or superseded.
+			// DIETA DE CONEXIONES B (responsable, 2026-10-10 — análisis post mortem del
+			// bloqueo con sesiones en paralelo): el POST acusa recibo y cierra; no hay stream
+			// que consumir en esta respuesta. Engánchate por el MISMO cable de reenganche
+			// que usa quien vuelve a la sesión (primero la nueva petición: la nueva petición del registro absorbe
+			// la copia de la persistencia anticipada del servidor de nuestros mensajes optimistas, y luego la
+			// repetición cae encima). Una conexión de vista viva por página, siempre —
+			// el grupo de 6 por origen del navegador es el recurso escaso.
+			await res.text().catch(() => {}); // vacía el acuse diminuto; libera el socket
+			// Un stop() o un send/consumo más reciente ganó mientras el acuse estaba en
+			// vuelo: el turno sigue vivo en el servidor de todos modos — no enganches
+			// un stream desde una vista que ya no está o ha sido superada.
 			if (this.consumeAbort !== controller) return true;
 			await this.resumeStream(true);
 			return true;
@@ -1013,18 +1022,18 @@ export class SessionModel {
 			if (imageBearing && !accepted) this.retireImagePreview(controller);
 			const failedOpening = input.type === "text" && onAccepted !== undefined && !accepted;
 			if (failedOpening) {
-				// The POST outlives stop(), including StrictMode's cleanup. Remove
-				// only its own failed optimistic bubble even if a newer request
-				// won; never touch canonical messages or another attempt's tail.
+				// El POST sobrevive a stop(), incluida la limpieza de StrictMode. Quita
+				// solo su propia burbuja optimista fallida aunque haya ganado una petición
+				// más reciente; nunca toques los mensajes canónicos ni la cola de otro intento.
 				const ids = new Set(optimistic.map(m => m.id));
 				this.mutate(() => { this.tail = this.tail.filter(m => !ids.has(m.id)); });
 			}
 			const detachedOpening = failedOpening && this.consumeAbort === null && this.latestRequest === controller;
 			if ((this.consumeAbort !== controller || controller.signal.aborted) && !detachedOpening) return accepted;
-			// A detached opening refusal must still reach the replayed mount's
-			// existing setup recovery. A newer send/reattach ALWAYS owns errors
-			// and status instead, even if that request has since been stopped.
-			// Ordinary text and answer teardown behavior stays unchanged.
+			// Un rechazo de apertura desenganchado aún debe llegar a la recuperación de
+			// configuración existente del montaje repetido. Un send/reenganche más reciente SIEMPRE es
+			// dueño de los errores y del estado, aunque esa petición se haya detenido desde entonces.
+			// El comportamiento normal de desmontaje con texto y respuestas no cambia.
 			if (input.type === "answer") {
 				const ids = new Set(optimistic.map(m => m.id));
 				this.mutate(() => {
@@ -1035,28 +1044,29 @@ export class SessionModel {
 			this.setError((err as Error).message);
 			this.setStatus("error");
 			if (imageBearing && !accepted && this.latestRequest === controller) {
-				// Refusal and lost acknowledgment both reconcile read-only. Canonical
-				// truth is not an acceptance notification and never clears drafts.
+				// Tanto el rechazo como el acuse perdido se reconcilian en solo lectura. La verdad
+				// canónica no es una notificación de aceptación y nunca borra borradores.
 				await this.readRecord({ allowInFlight: true, isCurrent: () => this.latestRequest === controller && (this.consumeAbort === controller || detachedOpening) }).catch(() => {});
 			}
-			// true means we observed this POST's acknowledgment. false does
-			// NOT prove non-delivery: a network failure may hide acceptance.
-			// Opening-message callers restore a draft, never automatically retry.
+			// true significa que observamos el acuse de este POST. false NO
+			// prueba que no se entregara: un fallo de red puede ocultar la aceptación.
+			// Quien envía el mensaje de apertura restaura un borrador, nunca reintenta automáticamente.
 			return accepted;
 		}
 	}
 
 	/**
-	 *  STEER (composer steering, owner arc 2026-10-03): the learner's
-	 *  mid-turn message for the RUNNING turn. NOT a turn — no optimistic
-	 *  transcript card, no status flip: the message joins the queued
-	 *  indicator (the quiet line above the composer) and POSTs to the
-	 *  steer route, which hands it to the live agent's steering queue.
-	 *  When pi drains it at the next response boundary, the verbatim
-	 *  message events upsert the real card (the client-minted id is the
-	 *  key) and the indicator's fold drops the line. A 409 means the turn
-	 *  settled mid-send (the race): fall back to the plain text send —
-	 *  the entry is dropped and send() pushes its own optimistic card.
+	 *  STEER (reorientación desde el composer, arco del responsable 2026-10-03):
+	 *  el mensaje del alumno a mitad de turno para el turno EN MARCHA. NO es un
+	 *  turno — sin tarjeta optimista en la transcripción, sin cambio de estado:
+	 *  el mensaje se suma al indicador de cola (la línea discreta encima del
+	 *  composer) y hace POST a la ruta de reorientación, que lo entrega a la cola
+	 *  de reorientaciones del agente vivo. Cuando pi la vacía en el siguiente
+	 *  límite de respuesta, los eventos de mensaje literales insertan o
+	 *  actualizan la tarjeta real (la clave es el id generado en el cliente) y el
+	 *  plegado del indicador quita la línea. Un 409 significa que el turno se
+	 *  asentó a mitad del envío (la carrera): se recurre al envío de texto normal
+	 *  — la entrada se descarta y send() pone su propia tarjeta optimista.
 	 */
 	async steer(text: string, images?: import("../src/core/plugin-submissions.ts").PluginSubmissionContent["images"], onAccepted?: () => void, onDeliverySettled?: () => void): Promise<boolean> {
 		let deliverySettled = false;
@@ -1077,10 +1087,10 @@ export class SessionModel {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({ input: { type: "steer", id, text: t, ...(images?.length ? { images } : {}) } }),
 			});
-			if (res.ok) { this.invalidateCanonicalReads(); onAccepted?.(); settleDelivery(); await res.text().catch(() => {}); return true; } // parked or delivered — the stream lands the card
+			if (res.ok) { this.invalidateCanonicalReads(); onAccepted?.(); settleDelivery(); await res.text().catch(() => {}); return true; } // aparcada o entregada — el stream trae la tarjeta
 			if (res.status === 409) {
 				dropSteer();
-				return await this.send({ type: "text", text: t, ...(images?.length ? { images: images.map(image => ({ ...image })) } : {}) }, onAccepted, undefined, settleDelivery); // reuse the prepared payload
+				return await this.send({ type: "text", text: t, ...(images?.length ? { images: images.map(image => ({ ...image })) } : {}) }, onAccepted, undefined, settleDelivery); // reutiliza la carga ya preparada
 			}
 			dropSteer();
 			settleDelivery();
@@ -1092,19 +1102,20 @@ export class SessionModel {
 		return false;
 	}
 
-	/** The answer path (the dock): the answer IS the question call's tool
-	 *  result (fork 1), riding as its input event. */
+	/** La ruta de la respuesta (el dock): la respuesta ES el resultado de
+	 *  herramienta de la llamada de la pregunta (bifurcación 1), viajando como su evento de entrada. */
 	submitAnswer(tool: string, toolCallId: string, output: QuestionAnswerData, questionKey?: string): Promise<void> {
 		void tool;
 		return this.send({ type: "answer", toolCallId, answer: output }, undefined, questionKey).then(() => undefined);
 	}
 
-	/** The dismissal path (owner design 2026-10-03, "A2"): the skipped
-	 * toolResult lands optimistically, then the SILENT route persists it
-	 * — no turn, no stream, nothing wakes. The session pauses at the
-	 * user's choice; the next plain send is the wake. On failure the
-	 * durable record wins: the error surfaces, the record-changed sync
-	 * (or any later refetch) replaces the optimistic append with truth. */
+	/** La ruta del descarte (diseño del responsable 2026-10-03, "A2"): el
+	 * toolResult omitido llega de forma optimista y luego la ruta SILENCIOSA lo
+	 * persiste — sin turno, sin stream, no despierta nada. La sesión se pausa a
+	 * elección del usuario; el siguiente envío normal es el despertar. Si falla,
+	 * gana el registro duradero: el error aparece y la sincronización por cambio
+	 * del registro (o cualquier nueva petición posterior) sustituye el añadido
+	 * optimista por la verdad. */
 	async dismissQuestion(toolCallId: string, answer: QuestionAnswerData, questionKey?: string): Promise<void> {
 		if (!this.readyRef || pluginQuestionCallsOf(this.base).some(call => call.status === "answerable" || call.status === "unreadable")) return;
 		const subject = pendingQuestionOf(this.nativeHistory());
@@ -1127,10 +1138,11 @@ export class SessionModel {
 		}
 	}
 
-	/** The problem discard (practice sessions, owner 2026-10-04): the
-	 *  ask-style dismissal — the UI-only marker lands optimistically, then
-	 *  the SILENT route persists it (no turn, no wake). The composer
-	 *  returns; the conclude synthesis rides the user's next input. */
+	/** El descarte del problema (sesiones de práctica, responsable 2026-10-04):
+	 *  el descarte al estilo ask — el marcador solo de interfaz llega de forma
+	 *  optimista y luego la ruta SILENCIOSA lo persiste (sin turno, sin
+	 *  despertar). El composer vuelve; la síntesis de conclusión viaja con la
+	 *  siguiente entrada del usuario. */
 	async dismissProblem(problemCallId: string): Promise<void> {
 		if (!this.readyRef) return;
 		this.invalidateCanonicalReads();
@@ -1150,8 +1162,8 @@ export class SessionModel {
 		}
 	}
 
-	/** Local detach: cancel the consume, keep the partial tail. The page's
-	 *  settle watch adopts the record when the server turn finishes. */
+	/** Desenganche local: cancela el consumo y conserva la cola parcial. La
+	 *  vigilancia de asentamiento de la página adopta el registro cuando termina el turno del servidor. */
 	stop(): void {
 		this.connectionGeneration++;
 		this.retireImagePreview(this.imagePreview?.owner ?? null);
@@ -1165,7 +1177,7 @@ export class SessionModel {
 		this.setStatus("ready");
 	}
 
-	/** Submission snapshots outlive the dock, not the session mount. */
+	/** Las instantáneas de los envíos sobreviven al dock, no al montaje de la sesión. */
 	questionDraft(questionKey: string): QuestionDraft | undefined {
 		return this.questionDrafts.get(questionKey);
 	}
@@ -1184,7 +1196,7 @@ export class SessionModel {
 		}
 	}
 
-	/** Full snapshot swap (the idle settle sync — server canon). */
+	/** Intercambio completo de instantánea (la sincronización al asentarse en reposo — canon del servidor). */
 	setMessages(record: LhMessage[], turnError?: string, availability?: PluginQuestionAvailability, problemAvailability?: PluginProblemAvailability): void {
 		this.invalidateCanonicalReads();
 		this.replaceMessages(record, turnError, availability, problemAvailability);
@@ -1209,16 +1221,17 @@ export class SessionModel {
 			this.incompleteUsageIds.clear();
 			this.tail = [];
 			this.imagePreview = null;
-			this.streamingMessageId = null; // the tail (and its slot) is gone
+			this.streamingMessageId = null; // la cola (y su ranura) ya no existen
 		});
 	}
 
 	/**
-	 * Append-only adoption (the mid-turn steer/artifact ground rule): swap
-	 * in the record — every current base message must still be present
-	 * (the server appends only) — keeping the live tail, minus entries the
-	 * record already carries by id and optimistic entries it has absorbed
-	 * (their server-stamped copies just landed; without this messages double).
+	 * Adopción solo por añadido (la regla básica de reorientaciones/artefactos a
+	 * mitad de turno): mete el registro — todo mensaje actual de la base debe
+	 * seguir presente (el servidor solo añade) — conservando la cola viva, menos
+	 * las entradas que el registro ya lleva por id y las entradas optimistas que
+	 * ha absorbido (sus copias selladas por el servidor acaban de llegar; sin
+	 * esto los mensajes se duplican).
 	 */
 	adoptRecord(record: LhMessage[]): void {
 		this.invalidateCanonicalReads();
@@ -1230,7 +1243,7 @@ export class SessionModel {
 		record = copyImmutableData(record);
 		const recordIds = new Set(record.map((m) => (m as { id?: string }).id));
 		const baseAbsorbed = this.base.some((m) => !recordIds.has((m as { id?: string }).id));
-		if (baseAbsorbed) return false; // not a pure append — the idle full sync is the net
+		if (baseAbsorbed) return false; // no es un añadido puro — la sincronización completa en reposo es la red
 		this.mutate(() => {
 			this.base = record;
 			if (updateAvailability) { this.pluginQuestionAvailability = availability; this.pluginProblemAvailability = problemAvailability; }
@@ -1240,15 +1253,15 @@ export class SessionModel {
 		return true;
 	}
 
-	/** Automatic mount/sync continuation is never permission to retry a
-	 * failed turn. Read current model truth, not a stale React closure. */
+	/** La continuación automática al montar/sincronizar nunca da permiso para reintentar un
+	 * turno fallido. Lee la verdad actual del modelo, no un cierre obsoleto de React. */
 	async continueIfOwed(record: readonly LhMessage[]): Promise<void> {
 		if (this.readyRef && !this.automaticContinuationBlocked && this.getState().error === null && needsContinuation(record)) {
 			await this.send({ type: "continue" });
 		}
 	}
 
-	/** The mount/sync continuation fold (native-messages.ts). */
+	/** El plegado de continuación al montar/sincronizar (native-messages.ts). */
 	static needsContinuation = needsContinuation;
 
 	clearError(): void {
