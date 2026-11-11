@@ -1,293 +1,352 @@
-# Plugin host architecture — API v1
+# Arquitectura del host de plugins — API v1
 
-This is the host-maintainer map. Start with the [authoring guide](plugin-authoring.md)
-for plugin code and use feature contracts for normative public behavior. It describes
-the matching source/build's API v1.
+Este es el mapa para quien mantiene el host. Para el código de un plugin, empieza por la
+[guía de autoría](plugin-authoring.md) y usa los contratos de cada funcionalidad para el
+comportamiento público normativo. Describe la API v1 del código fuente y la build
+correspondientes.
 
-## Boundaries and ownership
+## Límites y responsabilidades
 
-Plugins are trusted local code. Backends execute cooperatively in the existing Node
-server; frontends execute in the application page, not an untrusted iframe. Electron
-renderer isolation and desktop HTTP credential boundaries remain in force, but the
-plugin API is not a filesystem/network sandbox or resource-isolation guarantee.
+Los plugins son código local de confianza. Los backends se ejecutan de forma cooperativa en
+el servidor Node existente; los frontends se ejecutan en la página de la aplicación, no en un
+iframe no fiable. El aislamiento del renderer de Electron y los límites de credenciales HTTP
+del escritorio siguen vigentes, pero la API de plugins no es un sandbox de sistema de
+ficheros o de red ni una garantía de aislamiento de recursos.
 
-The host owns package identity/compatibility, enable state, lifetimes, native session
-contracts, persistence/admission and credential transport. Plugins own feature data,
-prompts, tools, presentation, algorithms and product policy. Official and externally
-installed plugins use the same host/APIs. No special Flashcards, Coding Questions or
-Drawing Pad domain logic belongs in host infrastructure.
+El host es responsable de la identidad y compatibilidad de los paquetes, el estado de
+activación, los ciclos de vida, los contratos nativos de sesión, la persistencia y admisión y
+el transporte de credenciales. Los plugins son responsables de los datos de su
+funcionalidad, los prompts, las herramientas, la presentación, los algoritmos y la política
+de producto. Los plugins oficiales y los instalados externamente usan el mismo host y las
+mismas API. En la infraestructura del host no cabe lógica de dominio específica de
+Flashcards, Coding Questions o Drawing Pad.
 
-Backend learning APIs share native record interpretation and are read-only, not mandatory
-filesystem access control. Cross-file reads are not transactional. Native user-driven
-source management in the knowledge picker is not a programmable graph-write API.
+Las API de aprendizaje del backend comparten la interpretación nativa de los registros y son
+de solo lectura, no un control de acceso obligatorio al sistema de ficheros. Las lecturas que
+abarcan varios ficheros no son transaccionales. La gestión nativa de fuentes que hace el
+usuario en el selector de conocimiento no es una API programable de escritura en el grafo.
 
-## Source map
+## Mapa del código fuente
 
-| Boundary | Main implementation |
+| Límite | Implementación principal |
 | --- | --- |
-| Public browser-safe contracts | `src/core/plugins.ts`, `plugin-ui.ts`, `plugin-agents.ts`, `plugin-workers.ts`, `plugin-questions.ts`, `plugin-problems.ts`, `plugin-submissions.ts`, `plugin-view-context.ts`, `plugin-tree.ts` |
-| Server composition and runtime | `src/server/plugins.ts`, `plugin-host.ts` |
-| Native external backend loading | `scripts/plugin-loader.cjs` |
-| Browser module loading | `public/plugin-loader.js`, `components/plugin-manager.ts`, `plugins.tsx` |
-| Core selection/build staging | `core-plugins.json`, `scripts/build-core-plugins.mjs` |
-| Origin-aware writable data paths | `src/store/plugin-data-paths.ts` |
-| Data/model adapters | `src/server/plugin-learning.ts`, `plugin-inference.ts` |
-| Persistent conversations/tasks | `src/agent/plugin-agents.ts`, `plugin-workers.ts`; `src/store/plugin-agent-records.ts`, `plugin-task-records.ts` |
-| Background result delivery/activity | `src/server/plugin-background-tools.ts`, `plugin-worker-activity.ts` and existing host jobs/steers |
-| Agent tool contributions | Native agent composition plus `src/agent/plugin-question-tools.ts`, `plugin-problem-tools.ts` |
-| Canonical question/problem submission | `src/server/plugin-questions.ts`, `plugin-problems.ts` |
-| Frontend submission preparation | `components/plugin-submission-runner.ts`, `plugin-submission-adapters.ts` |
-| Chrome/controlled UI/settings | `components/plugin-chrome.tsx`, `plugin-ui-host.tsx`, `plugin-settings-rows.tsx` |
-| Surface identity and body coverage | `components/plugin-surface-targets.ts`, `plugin-surfaces.tsx`, `plugin-surface-shell.tsx` |
-| View-local snapshot readers | `components/chat.tsx`, `session-view-readers.ts`, native/custom dock owners |
-| Authoring payload/types | `scripts/build-server.mjs`, `build-plugin-types.mjs` |
+| Contratos públicos seguros para el navegador | `src/core/plugins.ts`, `plugin-ui.ts`, `plugin-agents.ts`, `plugin-workers.ts`, `plugin-questions.ts`, `plugin-problems.ts`, `plugin-submissions.ts`, `plugin-view-context.ts`, `plugin-tree.ts` |
+| Composición y runtime del servidor | `src/server/plugins.ts`, `plugin-host.ts` |
+| Carga nativa de backends externos | `scripts/plugin-loader.cjs` |
+| Carga de módulos en el navegador | `public/plugin-loader.js`, `components/plugin-manager.ts`, `plugins.tsx` |
+| Selección y preparación de la build del núcleo | `core-plugins.json`, `scripts/build-core-plugins.mjs` |
+| Rutas de datos escribibles según el origen | `src/store/plugin-data-paths.ts` |
+| Adaptadores de datos y modelos | `src/server/plugin-learning.ts`, `plugin-inference.ts` |
+| Conversaciones y tareas persistentes | `src/agent/plugin-agents.ts`, `plugin-workers.ts`; `src/store/plugin-agent-records.ts`, `plugin-task-records.ts` |
+| Entrega de resultados y actividad en segundo plano | `src/server/plugin-background-tools.ts`, `plugin-worker-activity.ts` y las tareas y reorientaciones existentes del host |
+| Contribuciones de herramientas al agente | Composición nativa del agente más `src/agent/plugin-question-tools.ts`, `plugin-problem-tools.ts` |
+| Envío canónico de preguntas y problemas | `src/server/plugin-questions.ts`, `plugin-problems.ts` |
+| Preparación de envíos en el frontend | `components/plugin-submission-runner.ts`, `plugin-submission-adapters.ts` |
+| Marco, interfaz controlada y ajustes | `components/plugin-chrome.tsx`, `plugin-ui-host.tsx`, `plugin-settings-rows.tsx` |
+| Identidad de superficies y cobertura del cuerpo | `components/plugin-surface-targets.ts`, `plugin-surfaces.tsx`, `plugin-surface-shell.tsx` |
+| Lectores de instantáneas locales a la vista | `components/chat.tsx`, `session-view-readers.ts`, propietarios de docks nativos y personalizados |
+| Carga útil y tipos para autoría | `scripts/build-server.mjs`, `build-plugin-types.mjs` |
 
-Bare filenames in a row share the preceding directory. These are implementation seams,
-not supported runtime imports for plugin code.
+Los nombres de fichero sueltos de una fila comparten el directorio anterior. Son costuras de
+la implementación, no importaciones de runtime admitidas para el código de los plugins.
 
-## Package discovery, installation and lifecycle
+## Descubrimiento, instalación y ciclo de vida de los paquetes
 
-Manifest API version is 1; app/package versions are numeric `x.y.z`. Validate identity,
-paths, compatibility and built entries before executing code. Disabled packages are
-inspected without evaluation. New core and community plugins default to disabled;
-explicit enable/disable choices share `plugins-state.json` and survive app updates.
+La versión de la API del manifiesto es 1; las versiones de la app y de los paquetes son
+numéricas `x.y.z`. Valida identidad, rutas, compatibilidad y entradas compiladas antes de
+ejecutar código. Los paquetes desactivados se inspeccionan sin evaluarlos. Los plugins nuevos
+del núcleo y de la comunidad están desactivados por defecto; las decisiones explícitas de
+activar o desactivar comparten `plugins-state.json` y sobreviven a las actualizaciones de la
+app.
 
-Code/data locations are explicit:
+Las ubicaciones de código y datos son explícitas:
 
-| Purpose | Location |
+| Propósito | Ubicación |
 | --- | --- |
-| Authoring projects | Repository `plugins/<id>/` with generated `dist/` |
-| Core code, app-owned/read-only | App `core-plugins/<id>/manifest.json` and flat built assets |
-| Core writable records | `<learning data>/core-plugin-data/<id>/` |
-| Community code | `<learning data>/plugins/<id>/dist/manifest.json` and built assets |
-| Community writable records | `<learning data>/plugins/<id>/data/` |
+| Proyectos de autoría | `plugins/<id>/` del repositorio, con `dist/` generado |
+| Código del núcleo, propiedad de la app y de solo lectura | `core-plugins/<id>/manifest.json` de la app y recursos compilados planos |
+| Registros escribibles del núcleo | `<learning data>/core-plugin-data/<id>/` |
+| Código de la comunidad | `<learning data>/plugins/<id>/dist/manifest.json` y recursos compilados |
+| Registros escribibles de la comunidad | `<learning data>/plugins/<id>/data/` |
 
-`core-plugins.json` selects Flashcards, Coding Questions, Drawing Pad and Rich Code Blocks.
-`plugins:build-core` builds/stages those packages, assets and licenses before supported
-web/desktop dev and production builds. UI Showcase stays a developer example. Staging
-validates before replacing old generated output; failed builds preserve the previous
-staged tree. `build-server.mjs` requires the exact catalog, copies built core packages
-and removes the exact traced standalone-root `plugins/` authoring tree. It never removes
-runtime modules using broad `plugins`/`dist` globs.
+`core-plugins.json` selecciona Flashcards, Coding Questions, Drawing Pad y Rich Code Blocks.
+`plugins:build-core` compila y prepara esos paquetes, recursos y licencias antes de las
+builds admitidas de desarrollo y producción, web y de escritorio. UI Showcase sigue siendo un
+ejemplo para desarrolladores. La preparación valida antes de sustituir la salida generada
+anterior; si una build falla, se conserva el árbol preparado previo. `build-server.mjs` exige
+el catálogo exacto, copia los paquetes del núcleo compilados y elimina el árbol de autoría
+`plugins/` exacto de la raíz standalone trazada. Nunca elimina módulos de runtime con globs
+amplios de `plugins`/`dist`.
 
-The host loads core code directly; there is no startup copying/install journal or data
-migration. Provenance is host-owned `PluginInfo.origin`, not manifest metadata. Core IDs
-remain reserved when a package is missing/corrupt; community collisions are skipped and
-reported separately without changing files or blocking the legitimate core package.
-Shared corrupt enable metadata is refused rather than overwritten.
+El host carga directamente el código del núcleo; no hay copia en el arranque, ni diario de
+instalación, ni migración de datos. La procedencia es `PluginInfo.origin`, propiedad del host,
+no metadatos del manifiesto. Los ID del núcleo siguen reservados cuando falta un paquete o
+está corrupto; las colisiones de la comunidad se omiten y se notifican aparte, sin modificar
+ficheros ni bloquear el paquete legítimo del núcleo. Los metadatos de activación compartidos
+corruptos se rechazan en lugar de sobrescribirse.
 
-Electron sets `LH_DATA_DIR` to `<Electron userData>/data`; on macOS this is
-`~/Library/Application Support/LearnHarness/data/`. Ordinary development defaults to
-repository `data/`. Backend activation and disabled-package task recovery use the same
-origin-aware writable path resolver; neither falls back to old community copies of core
-data. Recovery never executes plugin code or creates missing data directories.
+Electron fija `LH_DATA_DIR` en `<Electron userData>/data`; en macOS es
+`~/Library/Application Support/LearnHarness/data/`. El desarrollo ordinario usa por defecto
+`data/` del repositorio. La activación del backend y la recuperación de tareas de paquetes
+desactivados usan el mismo resolutor de rutas escribibles según el origen; ninguna recurre a
+copias antiguas de la comunidad de datos del núcleo. La recuperación nunca ejecuta código de
+plugins ni crea directorios de datos que falten.
 
-Refresh discovers manual folders/first builds; admitted code changes require a server
-restart. There is no hot replacement, separate development registration, runtime npm
-installation, root-manifest fallback or automatic community updater. Build cleanup must
-never reach sibling data or follow symlinked/misplaced data inside build output.
+Refrescar descubre carpetas manuales y primeras builds; los cambios en código ya admitido
+requieren reiniciar el servidor. No hay sustitución en caliente, ni registro aparte para
+desarrollo, ni instalación npm en tiempo de ejecución, ni recurso a un manifiesto en la raíz,
+ni actualizador automático de la comunidad. La limpieza de la build no debe alcanzar nunca
+los datos hermanos ni seguir datos enlazados simbólicamente o mal colocados dentro de la
+salida de la build.
 
-Backend activation is server-owned, frontend activation window-owned, view mounts
-independently scoped. Abort and returned/registered cleanup revoke owned registrations,
-widgets and cooperative work; async late results are fenced by instance/generation.
-Module caching lasts until restart, so top-level side effects are not lifecycle-owned.
-Navigation does not disable a plugin or stop its server-side tasks.
+La activación del backend pertenece al servidor; la del frontend, a la ventana; los montajes
+de vistas tienen su propio ámbito independiente. La cancelación y la limpieza devuelta o
+registrada revocan los registros, widgets y trabajo cooperativo propios; los resultados
+asíncronos tardíos quedan acotados por instancia y generación. La caché de módulos dura hasta
+el reinicio, así que los efectos secundarios de nivel superior no forman parte del ciclo de
+vida. La navegación no desactiva un plugin ni detiene sus tareas en el servidor.
 
-Only declared frontend/style entries and `assets/` are publicly served, never backend
-code or persistent data. The frontend JSON operation bridge routes to the owning
-backend's registered handlers; it is not an arbitrary router. Document conversion uses
-a separate bounded multipart path, not that JSON bridge.
+Solo se sirven públicamente las entradas de frontend y de estilos declaradas y `assets/`,
+nunca el código del backend ni los datos persistentes. El puente de operaciones JSON del
+frontend enruta hacia los manejadores registrados del backend propietario; no es un router
+arbitrario. La conversión de documentos usa una ruta multipart acotada aparte, no ese puente
+JSON.
 
-## Frontend presentation and interaction
+## Presentación e interacción en el frontend
 
-The host owns view shells, titles, top-bar overflow and settings gear. Views mount only
-feature bodies. Registering actions/views creates no implicit navigation: placements
-explicitly target sidebar, graph or selected session/plugin-view top bars. Async action
-busy/repeat/error handling is host-owned. Each enabled plugin has its own Settings page;
-package management is split between Settings → Core plugins and Community plugins.
-Core management omits installation/trust preambles, directory, refresh and routine
-versions; community management retains them and shows reserved-ID conflicts.
+El host es responsable de los marcos de las vistas, los títulos, el desbordamiento de la
+barra superior y el engranaje de ajustes. Las vistas solo montan el cuerpo de la
+funcionalidad. Registrar acciones o vistas no crea navegación implícita: las ubicaciones se
+dirigen explícitamente a la barra lateral, al grafo o a las barras superiores de la sesión o
+vista de plugin seleccionada. El host gestiona el estado ocupado, la repetición y los errores
+de las acciones asíncronas. Cada plugin activado tiene su propia página de Ajustes; la gestión
+de paquetes se divide entre Ajustes → Plugins del núcleo y Plugins de la comunidad. La gestión
+del núcleo omite los preámbulos de instalación y confianza, el directorio, el refresco y las
+versiones rutinarias; la de la comunidad los conserva y muestra los conflictos de ID
+reservados.
 
-`ctx.ui` exposes controlled helpers rather than React/private component access.
-Handles shallow-update props, dispose idempotently and follow their mount signals.
-Values/persistence remain plugin-owned; selectors never mutate core model defaults.
-Generic badges/colors do not interpret grades. `mountMarkdown` uses the actual host
-pipeline with built-ins only, without auxiliary controls or plugin fence dispatch.
-`mountTree` shares presentation/navigation primitives with Chains, not its domain
-controller; callers own hierarchy/selection, sufficient width and scrolling.
+`ctx.ui` expone helpers controlados en lugar de acceso a React o a componentes privados. Los
+handles actualizan las props de forma superficial, se liberan de forma idempotente y siguen
+sus señales de montaje. Los valores y la persistencia siguen siendo del plugin; los selectores
+nunca modifican los valores por defecto del modelo del núcleo. Las insignias y colores
+genéricos no interpretan calificaciones. `mountMarkdown` usa la canalización real del host
+solo con los elementos integrados, sin controles auxiliares ni despacho de bloques cercados de
+plugins. `mountTree` comparte las primitivas de presentación y navegación con Chains, no su
+controlador de dominio; quien lo llama es responsable de la jerarquía y la selección, de un
+ancho suficiente y del scroll.
 
-Dialogs, menus, pickers and page-body surfaces use the shared interaction controller;
-see [dialog/overlay rules](dialog-overlay-contract.md). One Escape has one owner,
-covered content cannot receive native submit/dictation actions, and eligible focus is
-restored without focusing detached/covered controls. Browser Tab navigation remains
-unchanged. Declarative action shortcuts use `src/core/plugin-shortcuts.ts` for validation,
-static scope-overlap/conflict resolution, and `components/plugin-shortcuts.tsx` for
-route-keyed page readers and eligible dispatch through the existing action runner.
-Shortcut metadata is captured at registration; dynamic disabled state stays live.
-The existing `lh:keymap` store, Keyboard Settings and cheat sheet include plugin actions.
-The interaction controller snapshots original foreground ownership at key capture;
-only the same owner's page-body surfaces allow a plugin action through. UI factories
-receive host-supplied plugin identity for this check, never author-supplied surface props.
-See [action shortcuts](plugin-authoring.md#action-shortcuts) for the public contract.
+Los diálogos, menús, selectores y superficies del cuerpo de página usan el controlador de
+interacción compartido; consulta las [reglas de diálogos y overlays](dialog-overlay-contract.md).
+Cada Escape tiene un único propietario, el contenido cubierto no puede recibir acciones
+nativas de envío o dictado, y el foco elegible se restaura sin enfocar controles separados o
+cubiertos. La navegación con Tab del navegador no cambia. Los atajos declarativos de acciones
+usan `src/core/plugin-shortcuts.ts` para la validación y la resolución estática de
+solapamientos y conflictos de ámbito, y `components/plugin-shortcuts.tsx` para los lectores
+de página indexados por ruta y el despacho elegible a través del ejecutor de acciones
+existente. Los metadatos del atajo se capturan al registrarlo; el estado desactivado dinámico
+se mantiene vivo. El almacén `lh:keymap` existente, los Ajustes de teclado y la chuleta
+incluyen las acciones de plugins. El controlador de interacción toma una instantánea del
+propietario original del primer plano al capturar la tecla; solo las superficies del cuerpo
+de página de ese mismo propietario dejan pasar una acción de plugin. Las factorías de
+interfaz reciben del host la identidad del plugin para esta comprobación, nunca props de
+superficie proporcionadas por el autor. Consulta [atajos de acciones](plugin-authoring.md#atajos-de-acciones)
+para el contrato público.
 
-Knowledge pickers capture opening origin. Page/surface origins use a main-pane view;
-modal/Settings origins use a full-viewport modal with the parent still painted/inert.
-Origin/widget lifetime and pending-load invalidation prevent stale graph loads from
-opening on a successor view. Existing user source organization stays host-owned.
+Los selectores de conocimiento capturan el origen desde el que se abren. Los orígenes de
+página o superficie usan una vista en el panel principal; los orígenes modales o de Ajustes
+usan un modal a pantalla completa con el padre aún pintado e inerte. El ciclo de vida del
+origen y del widget y la invalidación de cargas pendientes impiden que cargas obsoletas del
+grafo se abran en una vista sucesora. La organización de fuentes existente del usuario sigue
+siendo del host.
 
-Page-body surfaces capture one live boundary (targetless) or use an explicit opaque
-native target. Top bar/sidebar remain usable. Covered pages/surfaces remain mounted;
-ordinary stack siblings do not acquire each other's lifetimes. Navigation expires
-boundaries; tokens never revive on return. Dialogs/Settings remain in front regardless
-of opening order. Titles are accessible names, not forced visible headings. See the
-[surface contract](plugin-session-extension-contract.md#8-public-surface-contract).
+Las superficies del cuerpo de página capturan un límite vivo (sin destino) o usan un destino
+nativo opaco explícito. La barra superior y la lateral siguen utilizables. Las páginas y
+superficies cubiertas siguen montadas; los hermanos ordinarios de la pila no adquieren los
+ciclos de vida de los demás. La navegación hace caducar los límites; los tokens nunca reviven
+al volver. Los diálogos y Ajustes quedan delante sea cual sea el orden de apertura. Los
+títulos son nombres accesibles, no encabezados visibles obligatorios. Consulta el
+[contrato de superficies](plugin-session-extension-contract.md#8-contrato-público-de-superficies).
 
-## Agent contributions and native input authority
+## Contribuciones al agente y autoridad nativa sobre la entrada
 
-Native instructions/tools, question types and problem types are admitted once per turn
-as a package-atomic loadout. Core names remain reserved. Sorted package admission never
-overwrites collisions; a bad package contributes nothing for that turn and gets a
-visible warning without losing its unrelated backend/view. Captured tool executions
-are revocable; unregister affects future loadouts. Native calls/results use the existing
-runner/history, not a plugin-specific conversation framework.
+Las instrucciones y herramientas nativas, los tipos de pregunta y los tipos de problema se
+admiten una vez por turno como una dotación atómica por paquete. Los nombres del núcleo
+siguen reservados. La admisión ordenada de paquetes nunca sobrescribe colisiones; un paquete
+defectuoso no aporta nada en ese turno y recibe un aviso visible sin perder su backend o
+vista no relacionados. Las ejecuciones de herramientas capturadas son revocables; anular el
+registro afecta a las dotaciones futuras. Las llamadas y resultados nativos usan el ejecutor
+y el historial existentes, no un framework de conversación específico de plugins.
 
-Teaching questions and practice problems deliberately use different native authorities:
+Las preguntas de enseñanza y los problemas de práctica usan deliberadamente autoridades
+nativas distintas:
 
-- **Questions:** a frozen per-turn registry and pose ledger attest successful execution.
-  App-only `lhQuestions` metadata binds saved contracts to exact assistant occurrences;
-  raw tool names/arguments/results do not create pending authority. Temporary pose acks
-  are suppressed; canonical adoption gates actionable editors. Saved schemas/refinement/
-  grading requirements govern answers. Validate → optional grade → save → continue;
-  grading observations/errors do not fabricate native correctness. Required unavailable
-  implementations keep pending input unavailable. See the [question contract](plugin-question-contract.md).
-- **Practice:** accepted pose acknowledgement details contain `pluginProblem`; native
-  acknowledgements already persist, so no second question ledger is needed. Native and
-  plugin poses share one active-problem gate and the existing `conclude` assessment.
-  Each submission validates, optionally processes, saves observations and continues.
-  Missing/incompatible implementations leave the problem active but unavailable, with
-  native dismissal; no text-editor fallback. See the [problem contract](plugin-problem-contract.md).
+- **Preguntas:** un registro congelado por turno y un libro de planteamientos certifican la
+  ejecución correcta. Los metadatos `lhQuestions`, exclusivos de la app, vinculan los
+  contratos guardados a apariciones exactas del asistente; los nombres, argumentos y
+  resultados en bruto de las herramientas no crean autoridad pendiente. Los acuses temporales
+  de planteamiento se suprimen; la adopción canónica controla los editores accionables. Los
+  esquemas, el refinamiento y los requisitos de calificación guardados gobiernan las
+  respuestas. Validar → calificar (opcional) → guardar → continuar; las observaciones y
+  errores de calificación no fabrican una corrección nativa. Si faltan implementaciones
+  necesarias, la entrada pendiente sigue no disponible. Consulta el [contrato de preguntas](plugin-question-contract.md).
+- **Práctica:** los detalles del acuse de planteamiento aceptado contienen `pluginProblem`;
+  los acuses nativos ya persisten, así que no hace falta un segundo libro de preguntas. Los
+  planteamientos nativos y de plugins comparten una única barrera de problema activo y la
+  evaluación `conclude` existente. Cada envío valida, procesa opcionalmente, guarda
+  observaciones y continúa. Si faltan implementaciones o son incompatibles, el problema sigue
+  activo pero no disponible, con descarte nativo; no hay recurso a un editor de texto.
+  Consulta el [contrato de problemas](plugin-problem-contract.md).
 
-Grading/processing run inside the existing inline turn-preparation owner, not a new job,
-queue or model pass. Identity/registration checks after awaits prevent late saves.
-Explicit Stop/revocation aborts cooperatively and retains ownership until the callback
-settles. HTTP disconnect/navigation alone does not cancel admitted server work. Historical
-projection/retry/remount never recomputes saved grading/processing.
+La calificación y el procesamiento se ejecutan dentro del propietario existente de la
+preparación del turno en línea, no en una tarea, cola o pasada de modelo nueva. Las
+comprobaciones de identidad y registro tras cada `await` impiden guardados tardíos. Un Stop
+explícito o una revocación cancelan de forma cooperativa y conservan la propiedad hasta que
+la callback termina. Una desconexión HTTP o una navegación por sí solas no cancelan trabajo ya
+admitido en el servidor. La proyección histórica, los reintentos y los remontajes nunca
+recalculan la calificación o el procesamiento guardados.
 
-## Submission preparation, images and view snapshots
+## Preparación de envíos, imágenes e instantáneas de vista
 
-One frontend preparation runner captures target occurrence, ordered interceptors and
-original dictation destination before awaits. It freezes detached context/input,
-serially transforms learner values, rechecks ownership, then uses native POST/steer
-admission. Preparation cancellation/failure preserves drafts; accepted delivery clears
-only captured revisions. The lease ends at acknowledgment/refusal, not model-stream end,
-so ordinary busy steering remains possible.
+Un único ejecutor de preparación en el frontend captura la aparición de destino, los
+interceptores ordenados y el destino original del dictado antes de los `await`. Congela el
+contexto y la entrada separados, transforma en serie los valores del alumno, vuelve a
+comprobar la propiedad y después usa la admisión nativa por POST o reorientación. Cancelar o
+fallar la preparación conserva los borradores; una entrega aceptada solo borra las revisiones
+capturadas. La concesión termina con el acuse o el rechazo, no al final del stream del
+modelo, de modo que la reorientación ordinaria mientras está ocupado sigue siendo posible.
 
-Acceptance callbacks are live/best-effort, not durable transactions. Lost acknowledgments
-never authorize clearing plugin material. Model retries reuse saved transformed input;
-internal steer-to-send fallback does not intercept twice. Builtin derived answers are
-rebuilt by the host from captured native question data, not spread from plugin fields.
-Plugin JSON remains subject to canonical saved schemas. See [session extensions](plugin-session-extension-contract.md).
+Las callbacks de aceptación son en vivo y de mejor esfuerzo, no transacciones duraderas. Un
+acuse perdido nunca autoriza a borrar material del plugin. Los reintentos del modelo
+reutilizan la entrada transformada guardada; el recurso interno de reorientación a envío no
+intercepta dos veces. El host reconstruye las respuestas derivadas integradas a partir de los
+datos nativos capturados de la pregunta, no las copia de campos del plugin. El JSON del plugin
+sigue sujeto a los esquemas canónicos guardados. Consulta [extensiones de sesión](plugin-session-extension-contract.md).
 
-Explicit native image blocks travel through existing byte/MIME, effective-model capability
-and resize admission. Persisted normalized images reach both UI and model channels;
-paths are not implicitly read, and base64 is not inserted into JSON answer strings.
-Existing optimistic/canonical reconciliation prevents duplicate previews while preserving
-uncertain drafts. No image asset store or broad provider/model-switch redesign is added.
+Los bloques de imagen nativos explícitos pasan por la admisión existente de bytes/MIME,
+capacidad efectiva del modelo y redimensionado. Las imágenes normalizadas persistidas llegan
+tanto al canal de interfaz como al del modelo; las rutas no se leen implícitamente y el
+base64 no se inserta en cadenas de respuesta JSON. La conciliación optimista/canónica
+existente evita previsualizaciones duplicadas y conserva los borradores inciertos. No se
+añade un almacén de recursos de imagen ni un rediseño amplio de proveedores o cambio de
+modelo.
 
-Session top-bar `context.view` is a detached/frozen whole-session snapshot captured at
-invocation. It reuses current browser messages, projected transcript and view-local
-input readers; native/custom dock owners expose actual presentation/drafts without
-DOM inspection, another history parser or a global store. Reads never save, flush speech,
-reveal, process or submit. Data stays bound across awaits; opaque targets keep their live
-lifetimes. Disabled predicates use lazy render snapshots; clicks capture afresh through
-the action error boundary. See [view context](plugin-view-context.md).
+`context.view` de la barra superior de la sesión es una instantánea separada y congelada de
+toda la sesión, capturada al invocar. Reutiliza los mensajes actuales del navegador, la
+transcripción proyectada y los lectores de entrada locales a la vista; los propietarios de
+docks nativos y personalizados exponen la presentación y los borradores reales sin
+inspeccionar el DOM, sin otro parser de historial y sin un almacén global. Las lecturas nunca
+guardan, vacían el habla, revelan, procesan ni envían. Los datos se mantienen vinculados a
+través de los `await`; los destinos opacos conservan sus ciclos de vida vivos. Los predicados
+de desactivación usan instantáneas perezosas de render; los clics capturan de nuevo a través
+del límite de errores de la acción. Consulta [contexto de vista](plugin-view-context.md).
 
-## Inference, persistent work and recovery
+## Inferencia, trabajo persistente y recuperación
 
-`plugin-inference.ts` reuses host model/provider admission, consent, cancellation and
-usage attribution. Catalog selection and purpose are explicit; no credential DTO,
-custom transport or silent key fallback is exposed.
+`plugin-inference.ts` reutiliza la admisión de modelos y proveedores del host, el
+consentimiento, la cancelación y la atribución del uso. La selección del catálogo y el
+propósito son explícitos; no se expone ningún DTO de credenciales, transporte personalizado
+ni recurso silencioso a otra clave.
 
-Managed agents persist native interactive conversations and pending external inputs under
-plugin data. Definitions are reconstructed by activation, not serialized handlers.
-Request IDs distinguish retries from new actions. Restart recovers waiting input and
-marks in-flight runs interrupted; navigation merely detaches observers.
+Los agentes gestionados persisten conversaciones interactivas nativas y entradas externas
+pendientes en los datos del plugin. Las definiciones las reconstruye la activación, no se
+serializan los manejadores. Los ID de petición distinguen los reintentos de las acciones
+nuevas. El reinicio recupera la entrada en espera y marca como interrumpidas las ejecuciones
+en curso; la navegación solo desconecta a los observadores.
 
-Result workers persist accepted input/configuration, native progress and a terminal
-validated outcome under `data/tasks/`. First durable valid result wins, including falsy
-JSON; cancellation cannot replace it. Disable/restart interrupts all unfinished work,
-including queued tasks. Recovery never replays arbitrary tools.
+Los workers de resultados persisten la entrada y configuración aceptadas, el progreso nativo
+y un resultado terminal validado en `data/tasks/`. Gana el primer resultado válido duradero,
+incluido un JSON falsy; la cancelación no puede sustituirlo. Desactivar o reiniciar
+interrumpe todo el trabajo sin terminar, incluidas las tareas en cola. La recuperación nunca
+repite herramientas arbitrarias.
 
-`createBackgroundTool` returns a native dispatch ack and links a generic host job.
-Worker outcome and later delivery are separate durable facts: persist generic outcome
-before async formatting, use existing wake/steer gates and deterministic delivery IDs,
-and retain readable fallback when formatting/plugin availability fails. Restart re-delivers
-persisted results, not formatters/tools. A finished worker's pending delivery is not
-canceled by END. Plugin renderers replace only the result body, not host identity/status/errors.
+`createBackgroundTool` devuelve un acuse de despacho nativo y enlaza una tarea genérica del
+host. El resultado del worker y la entrega posterior son hechos duraderos distintos: persiste
+el resultado genérico antes del formateo asíncrono, usa las barreras existentes de despertar
+y reorientación y los ID de entrega deterministas, y conserva un recurso legible cuando falla
+el formateo o la disponibilidad del plugin. El reinicio vuelve a entregar resultados
+persistidos, no formateadores ni herramientas. END no cancela la entrega pendiente de un
+worker terminado. Los renderizadores de plugins solo sustituyen el cuerpo del resultado, no
+la identidad, el estado ni los errores del host.
 
-One process-global FIFO admission pool limits background **model streams**, releasing
-permits before tools/child waits. It covers native background workers and all detached
-plugin workers, not direct teaching/practice/compaction, interactive managed conversations
-or raw plugin inference. `agent.workerRequestConcurrency` defaults to 8, accepts positive
-safe integers and updates live. Purpose governs subscription consent, not pool membership.
-Standalone worker activity uses Background agents without duplicating linked-job rows.
+Un único pool de admisión FIFO global del proceso limita los **streams de modelo** en
+segundo plano y libera los permisos antes de herramientas o esperas de hijos. Cubre los
+workers nativos en segundo plano y todos los workers de plugins separados, no la enseñanza,
+la práctica o la compactación directas, las conversaciones gestionadas interactivas ni la
+inferencia en bruto de plugins. `agent.workerRequestConcurrency` vale 8 por defecto, acepta
+enteros seguros positivos y se actualiza en vivo. El propósito gobierna el consentimiento de
+suscripción, no la pertenencia al pool. La actividad de los workers independientes usa
+Agentes en segundo plano sin duplicar las filas de tareas enlazadas.
 
-The existing per-window app notification connection carries availability/app events and
-namespaced plugin messages. It is not a durable arbitrary-event log. Reconnect invokes
-resync callbacks; observers fetch current snapshots and release subscriptions on cleanup.
+La conexión de notificaciones de la app por ventana existente transporta eventos de
+disponibilidad y de la app y mensajes de plugins con espacio de nombres. No es un registro
+duradero de eventos arbitrarios. Al reconectar se invocan las callbacks de resincronización;
+los observadores obtienen instantáneas actuales y liberan las suscripciones en la limpieza.
 
-## Testing
+## Pruebas
 
-Maintain tests at each actual boundary:
+Mantén pruebas en cada límite real:
 
-- Manifest/path guards, disabled discovery, enable/disable cleanup and revocation.
-- Direct core loading, disabled defaults/persisted choices, reserved-ID collisions,
-  isolated writable data paths/recovery and complete source-free core payloads.
-- Native loadout collision atomicity, canonical pose authority, exact occurrences,
-  schema compatibility, mixed tool batches and stale submission rejection.
-- Inline grading/processing ownership, Stop/revocation, write-before-continuation,
-  compaction joins and no recomputation on replay.
-- Editor lease generations, async cleanup/StrictMode, draft retention, keyboard/IME,
-  dictation destination, missing-renderer fallback and image placement.
-- Submission interception/acknowledgment races and snapshot freshness/immutability,
-  including real input owners and inline/overflow top-bar actions.
-- Durable agent/task state, accepted-result preservation and fallback delivery recovery.
-- Portable SDK compilation and curated authoring docs/examples/type payload.
-- Complete generated API-reference coverage and canonical official-source export fidelity.
+- Guardas del manifiesto y las rutas, descubrimiento de desactivados, limpieza al activar y
+  desactivar y revocación.
+- Carga directa del núcleo, valores por defecto desactivados y decisiones persistidas,
+  colisiones de ID reservados, rutas de datos escribibles aisladas y recuperación, y cargas
+  útiles del núcleo completas sin código fuente.
+- Atomicidad de colisiones en la dotación nativa, autoridad canónica de planteamientos,
+  apariciones exactas, compatibilidad de esquemas, lotes mixtos de herramientas y rechazo de
+  envíos obsoletos.
+- Propiedad de la calificación y el procesamiento en línea, Stop y revocación, escritura
+  antes de continuar, uniones con la compactación y ausencia de recálculo al reproducir.
+- Generaciones de concesión de editores, limpieza asíncrona y StrictMode, conservación de
+  borradores, teclado e IME, destino del dictado, recurso cuando falta el renderizador y
+  colocación de imágenes.
+- Carreras entre intercepción de envíos y acuses, y frescura e inmutabilidad de las
+  instantáneas, incluidos los propietarios reales de la entrada y las acciones en línea y en
+  el desbordamiento de la barra superior.
+- Estado duradero de agentes y tareas, conservación de resultados aceptados y recuperación de
+  la entrega de recurso.
+- Compilación del SDK portable y carga útil seleccionada de docs, ejemplos y tipos de autoría.
+- Cobertura completa de la referencia de la API generada y fidelidad de la exportación
+  canónica del código fuente oficial.
 
-Run root tests/typecheck/lint and relevant plugin tests. Production checks additionally
-needs a clean-checkout build, curated standalone/privacy audit and isolated packaged
-runtime/browser checks; passing component fixtures is not packaged-app proof. Use
-throwaway learner/auth directories and loopback providers rather than live accounts or
-replacing the installed app. Relevant tools include `build-plugin-types.mjs`,
-`build-server.mjs`, `smoke-plugin-runtime.mjs`, `smoke-plugin-browser.mjs` and
-`smoke-server.mjs` under `scripts/`.
+Ejecuta las pruebas, la comprobación de tipos y el lint de la raíz y las pruebas de plugins
+relevantes. Las comprobaciones de producción necesitan además una build desde un checkout
+limpio, una auditoría seleccionada de standalone y privacidad, y comprobaciones aisladas de
+runtime y navegador empaquetados; que pasen los fixtures de componentes no demuestra que la
+app empaquetada funcione. Usa directorios desechables de alumno y autenticación y proveedores
+de loopback en lugar de cuentas reales o de sustituir la app instalada. Entre las
+herramientas relevantes están `build-plugin-types.mjs`, `build-server.mjs`,
+`smoke-plugin-runtime.mjs`, `smoke-plugin-browser.mjs` y `smoke-server.mjs` en `scripts/`.
 
-### Maintaining the authoring reference
+### Mantenimiento de la referencia de autoría
 
-The [API reference](plugin-api/README.md) is generated Markdown, not a second hand-written
-schema. Edit canonical public-contract JSDoc and behavioral guides, then regenerate from
-the matching declarations in a source checkout with its existing dependencies:
+La [referencia de la API](plugin-api/README.md) es Markdown generado, no un segundo esquema
+escrito a mano. Edita el JSDoc canónico del contrato público y las guías de comportamiento, y
+después regenera a partir de las declaraciones correspondientes en un checkout del código
+fuente con sus dependencias existentes:
 
 ```sh
 node scripts/build-plugin-types.mjs dist/plugin-sdk
 node scripts/build-plugin-api-reference.mjs dist/plugin-sdk docs/plugin-api
 ```
 
-`tests/plugin-api-reference.test.ts` independently inventories SDK exports and checks
-the committed reference against fresh generation, including overloads, nested methods
-and referenced local supporting types. Context methods are callable host capabilities;
-the type-only SDK does not expose the host's implementation helpers at runtime.
+`tests/plugin-api-reference.test.ts` inventaría de forma independiente las exportaciones del
+SDK y compara la referencia confirmada con una generación nueva, incluidas sobrecargas,
+métodos anidados y tipos locales de apoyo referenciados. Los métodos de contexto son
+capacidades del host invocables; el SDK, que solo contiene tipos, no expone en tiempo de
+ejecución los helpers de implementación del host.
 
-`npm run plugins:build-authoring` generates its reference directly from the staged SDK
-and exports the canonical official projects without their local builds/dependencies/data.
-Bundle tests check source-file identity, privacy/path admission, deterministic archives
-and self-contained links. Keep the API reference, [example map](plugin-examples.md) and
-project README instructions consistent when adding a capability or source example.
+`npm run plugins:build-authoring` genera su referencia directamente a partir del SDK preparado
+y exporta los proyectos oficiales canónicos sin sus builds, dependencias ni datos locales. Las
+pruebas del paquete comprueban la identidad de los ficheros fuente, la admisión de privacidad
+y rutas, los archivos deterministas y los enlaces autocontenidos. Mantén coherentes la
+referencia de la API, el [mapa de ejemplos](plugin-examples.md) y las instrucciones de los
+README de los proyectos cuando añadas una capacidad o un ejemplo de código.
 
-## Non-goals
+## Fuera del alcance
 
-No sandbox/per-plugin process, marketplace/community updater, hot replacement,
-programmable core-data writes, generic forms/UI or raw keyboard-event framework, persistent arbitrary
-editor drafts, or automatic replay/exactly-once external effects. Host infrastructure
-must not choose plugin product prompts, algorithms, defaults or deletion policy.
+Nada de sandbox ni proceso por plugin, marketplace ni actualizador de la comunidad,
+sustitución en caliente, escrituras programables en los datos del núcleo, formularios o
+interfaz genéricos ni framework de eventos de teclado en bruto, borradores persistentes de
+editores arbitrarios, ni repetición automática o efectos externos exactamente una vez. La
+infraestructura del host no debe elegir los prompts de producto, algoritmos, valores por
+defecto ni política de borrado de los plugins.

@@ -55,7 +55,7 @@ already the installed `dist/`; no copy step is needed. Find the directory in
 
 For an outside workspace, copy the skill's portable installer into the plugin project
 and wire `npm run install:local -- "<plugins-directory>"` as described in the
-[authoring guide](../../docs/plugin-authoring.md#develop-outside-the-plugins-directory).
+[authoring guide](../../docs/plugin-authoring.md#desarrollar-fuera-del-directorio-de-plugins).
 The command builds before replacing only installed `dist/`, preserving sibling `data/`.
 No destination autodiscovery, saved configuration, automatic enablement or restart.
 The included no-build examples can be copied directly; they do not need npm setup.

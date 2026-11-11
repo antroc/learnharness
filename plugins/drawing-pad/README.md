@@ -2,7 +2,7 @@
 
 A trusted-local Core LearnHarness plugin for drawing over read-only question references.
 Requires the public [session-view context](../../docs/plugin-view-context.md),
-[scoped action shortcuts](../../docs/plugin-authoring.md#action-shortcuts), surfaces
+[scoped action shortcuts](../../docs/plugin-authoring.md#atajos-de-acciones), surfaces
 and learner-submission interception APIs. A version number alone does not establish
 capabilities; use host documentation/types matching the target app.
 
