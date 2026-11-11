@@ -1,25 +1,28 @@
 /**
- * The layout engine — d3-force, everywhere (DECIDED 2026-09-13).
+ * El motor de disposición — d3-force en todas partes (DECIDIDO el 2026-09-13).
  *
- * One engine owns the equilibrium: the merge-time incremental settle AND
- * the live drag physics run the SAME force set (links as springs, charge
- * repulsion, weak gravity), so the positions ledger and the transient
- * simulation agree on what "resting" means. (FA2 was replaced after a
- * research round: it has no annealing/pinning/settle model and mixing it
- * with a different live engine visibly re-flows the graph on every drag.)
+ * Un solo motor es dueño del equilibrio: el asentamiento incremental al
+ * fusionar Y la física de arrastre en vivo ejecutan el MISMO conjunto de
+ * fuerzas (enlaces como muelles, repulsión de carga, gravedad débil), para
+ * que el registro de posiciones y la simulación transitoria coincidan en qué
+ * significa «en reposo». (FA2 se sustituyó tras una ronda de investigación:
+ * no tiene modelo de recocido/fijación/asentamiento, y mezclarlo con otro
+ * motor en vivo recoloca visiblemente el grafo en cada arrastre.)
  *
- * Layout EVOLVES instead of reshuffling (Option A): each settle warm-starts
- * from the positions ledger and spring-ties every previously-positioned
- * node toward its anchor (a per-node anchor force). New nodes seed near
- * their positioned neighbors; orphans seed on the rim OUTSIDE the core and
- * are anchored there, so they read as "not yet connected knowledge".
+ * La disposición EVOLUCIONA en lugar de barajarse (opción A): cada
+ * asentamiento arranca en caliente desde el registro de posiciones y ata con
+ * un muelle cada nodo ya posicionado a su ancla (una fuerza de anclaje por
+ * nodo). Los nodos nuevos se siembran cerca de sus vecinos posicionados; los
+ * huérfanos se siembran en el borde, FUERA del núcleo, y se anclan allí, de
+ * modo que se leen como «conocimiento aún sin conectar».
  *
- * Design constraints (kept deliberately, for live physics):
- *  - PURE: no fs, no server types — this module runs server-side (the
- *    merge settle) and in the browser (the live simulation, via the core
- *    barrel). A pinned node is just fx/fy; an anchored node is a spring.
- *  - DETERMINISTIC: seeds derive from node id; d3-force ticks are
- *    deterministic — same inputs, same layout.
+ * Restricciones de diseño (mantenidas a propósito, por la física en vivo):
+ *  - PURO: sin fs, sin tipos del servidor — este módulo se ejecuta en el
+ *    servidor (el asentamiento al fusionar) y en el navegador (la simulación
+ *    en vivo, a través del barrel del núcleo). Un nodo fijado es solo fx/fy;
+ *    un nodo anclado es un muelle.
+ *  - DETERMINISTA: las semillas se derivan del id del nodo; los ticks de
+ *    d3-force son deterministas — mismas entradas, misma disposición.
  */
 
 import {
@@ -35,44 +38,46 @@ import {
 import type { GraphEdge, GraphNode, Position } from "./contracts.ts";
 import { seededRandom } from "./question-core.ts";
 
-/** A node the d3 simulation mutates (x/y/vx/vy; fx/fy = pinned). */
+/** Un nodo que muta la simulación de d3 (x/y/vx/vy; fx/fy = fijado). */
 export interface LayoutNode extends SimulationNodeDatum {
 	id: string;
 }
 
-/** A link as d3 sees it (id strings resolve to node refs on init). */
+/** Un enlace tal como lo ve d3 (las cadenas de id se resuelven a referencias de nodo al iniciar). */
 type SimLink = SimulationLinkDatum<LayoutNode>;
 
-/** How the inference rank is expressed spatially (playground, 2026-09-13):
- *  the graph's `follows`/`supports` edges encode derivation (premise →
- *  conclusion), so depth-0 nodes (no incoming edges — the fundamentals)
- *  can anchor a shared baseline and every derivation level rises from it.
- *  `vertical`: levels are horizontal rows, arrows point up.
- *  `radial`: levels are concentric rings, foundations at the center, the
- *  outer boundary IS the edge of the user's knowledge.
- *  `off`: today's free layout. */
+/** Cómo se expresa espacialmente el rango de inferencia (playground,
+ *  2026-09-13): las aristas `follows`/`supports` del grafo codifican la
+ *  derivación (premisa → conclusión), así que los nodos de profundidad 0 (sin
+ *  aristas entrantes — los fundamentos) pueden anclar una línea base común y
+ *  cada nivel de derivación se eleva desde ella.
+ *  `vertical`: los niveles son filas horizontales y las flechas apuntan arriba.
+ *  `radial`: los niveles son anillos concéntricos, con los fundamentos en el
+ *  centro; el límite exterior ES el borde del conocimiento del usuario.
+ *  `off`: la disposición libre de hoy. */
 export type DepthAnchorMode = "off" | "vertical" | "radial";
 
 export interface DepthAnchor {
 	mode: DepthAnchorMode;
-	/** Anchor pull toward the level (same units as clusterPull). */
+	/** Atracción del ancla hacia el nivel (mismas unidades que clusterPull). */
 	strength: number;
-	/** Distance between consecutive inference levels (world units). */
+	/** Distancia entre niveles de inferencia consecutivos (unidades del mundo). */
 	spacing: number;
-	/** Baseline point: vertical mode uses .y as the depth-0 line; radial
-	 *  mode uses the full point as the ring center. Default (0,0). */
+	/** Punto base: el modo vertical usa .y como línea de profundidad 0; el
+	 *  modo radial usa el punto completo como centro de los anillos. Por defecto (0,0). */
 	center?: { x: number; y: number };
-	/** Inner ring radius (radial only; depth-0 nodes sit at this ring). */
+	/** Radio del anillo interior (solo radial; los nodos de profundidad 0 están en este anillo). */
 	baseRadius?: number;
 }
 
-/** Inference depth per node: the longest chain of directed edges from a
- * base node. CYCLE-SAFE (2026-09-13, user requirement — the DAG property
- * is typical, not guaranteed): Tarjan SCC condensation collapses each
- * strongly connected component to one super-node, ranks the (always
- * acyclic) condensation, and every cycle member shares its component's
- * depth — mutual support reads as equal footing. Iterative Tarjan (no
- * recursion depth limits), O(V+E), deterministic. */
+/** Profundidad de inferencia por nodo: la cadena más larga de aristas
+ * dirigidas desde un nodo base. SEGURO ANTE CICLOS (2026-09-13, requisito del
+ * usuario — la propiedad de DAG es lo típico, no algo garantizado): la
+ * condensación de CFC de Tarjan colapsa cada componente fuertemente conexa en
+ * un supernodo, ordena por rango la condensación (siempre acíclica), y cada
+ * miembro de un ciclo comparte la profundidad de su componente — el apoyo
+ * mutuo se lee como igualdad de condiciones. Tarjan iterativo (sin límites de
+ * profundidad de recursión), O(V+E), determinista. */
 export function inferenceDepths(
 	nodes: ReadonlyArray<Pick<GraphNode, "id">>,
 	edges: ReadonlyArray<LayoutEdge>,
@@ -86,7 +91,7 @@ export function inferenceDepths(
 		list.push(e.to);
 	}
 
-	// Iterative Tarjan SCC.
+	// CFC de Tarjan iterativo.
 	const num = new Map<string, number>();
 	const low = new Map<string, number>();
 	const onStack = new Set<string>();
@@ -139,8 +144,8 @@ export function inferenceDepths(
 		}
 	}
 
-	// Condensation predecessors, then longest path. Tarjan emits sinks
-	// first, so descending comp index = topological order (sources first).
+	// Predecesores de la condensación y luego el camino más largo. Tarjan emite primero
+	// los sumideros, así que el índice de componente descendente = orden topológico (fuentes primero).
 	const preds: Set<number>[] = Array.from({ length: compCount }, () => new Set<number>());
 	for (const e of edges) {
 		const a = comp.get(e.from);
@@ -160,108 +165,118 @@ export function inferenceDepths(
 }
 
 export interface SimOptions {
-	/** Link spring rest length (world units). */
+	/** Longitud de reposo del muelle de enlace (unidades del mundo). */
 	linkDistance?: number;
-	/** Link spring stiffness MULTIPLIER (1 = d3's default
-	 *  1/min(degree) stiffness). */
+	/** MULTIPLICADOR de rigidez del muelle de enlace (1 = la rigidez por
+	 *  defecto de d3, 1/min(grado)). */
 	linkStrength?: number;
-	/** Many-body repulsion strength (negative). */
+	/** Intensidad de la repulsión many-body (negativa). */
 	chargeStrength?: number;
-	/** Center-of-mass gravity: pulls loose components inward. Weak —
-	 *  anchors, not gravity, hold the evolved layout's frame. */
+	/** Gravedad del centro de masas: atrae hacia dentro los componentes sueltos.
+	 *  Débil — son las anclas, no la gravedad, las que sostienen el marco de la
+	 *  disposición evolucionada. */
 	gravity?: { x: number; y: number; strength: number };
-	/** Alpha decay per tick — higher = snappier settle. The merge settle
-	 *  uses d3's default 0.0228 (~300 ticks); the live sim passes ~0.05. */
+	/** Decaimiento de alpha por tick — más alto = asentamiento más rápido. El
+	 *  asentamiento al fusionar usa el 0.0228 por defecto de d3 (~300 ticks);
+	 *  la simulación en vivo pasa ~0.05. */
 	alphaDecay?: number;
-	/** Velocity damping per tick (d3 default 0.4). Higher = more friction. */
+	/** Amortiguación de la velocidad por tick (0.4 por defecto en d3). Más alto = más fricción. */
 	velocityDecay?: number;
-	/** Inference-depth anchoring (see DepthAnchor). Off by default. */
+	/** Anclaje por profundidad de inferencia (consulta DepthAnchor). Desactivado por defecto. */
 	depthAnchor?: DepthAnchor;
-	/** The LOGICAL edge list (proposition→conclusion, imp hops
-	 *  contracted) for the depth machinery — orphan detection AND the
-	 *  rank pass (owner, 2026-09-30). Absent = `edges` (legacy
-	 *  behavior). Springs ALWAYS run over `edges` — the drawn arrows. */
+	/** La lista LÓGICA de aristas (proposición→conclusión, con los saltos imp
+	 *  contraídos) para la maquinaria de profundidad — la detección de
+	 *  huérfanos Y la pasada de rango (responsable, 2026-09-30). Ausente =
+	 *  `edges` (comportamiento heredado). Los muelles SIEMPRE actúan sobre
+	 *  `edges` — las flechas dibujadas. */
 	logicalEdges?: ReadonlyArray<LayoutEdge>;
-	/** The derived imp nodes' chain linkage (id + members), straight
-	 *  from deriveView. Drives the IMP MIDPOINT ANCHOR (owner,
-	 *  2026-09-30): an implication node's depth is the average of the
-	 *  HIGHEST premise row and the conclusion's row — strictly above
-	 *  every premise, strictly below the conclusion, uniform in vertical
-	 *  (a row) and radial (a ring) modes. Absent = imp nodes keep the
-	 *  legacy orphan exemption (never depth-anchored). */
+	/** La conexión de cadena de los nodos imp derivados (id + miembros),
+	 *  directamente de deriveView. Gobierna el ANCLA DE PUNTO MEDIO IMP
+	 *  (responsable, 2026-09-30): la profundidad de un nodo de implicación es
+	 *  la media entre la fila de la premisa MÁS ALTA y la fila de la
+	 *  conclusión — estrictamente por encima de cada premisa, estrictamente
+	 *  por debajo de la conclusión, uniforme en los modos vertical (una fila) y
+	 *  radial (un anillo). Ausente = los nodos imp mantienen la exención
+	 *  heredada de huérfanos (nunca se anclan por profundidad). */
 	impLinks?: ReadonlyArray<ImpLink>;
-	/** Cluster centroid pull (the "virtual node" without the node):
-	 *  members of each cluster accelerate toward their own cluster's
-	 *  centroid. Two O(n) passes per tick — cheaper than a real virtual
-	 *  node (which would need one extra link spring per member plus a
-	 *  maintained position). Strength 0 or absent = force off.
-	 *  Callers supply the partition (Louvain output shape). */
+	/** Atracción al centroide del clúster (el «nodo virtual» sin el nodo): los
+	 *  miembros de cada clúster aceleran hacia el centroide de su propio
+	 *  clúster. Dos pasadas O(n) por tick — más barato que un nodo virtual
+	 *  real (que necesitaría un muelle de enlace extra por miembro más una
+	 *  posición mantenida). Intensidad 0 o ausente = fuerza desactivada.
+	 *  Quien llama aporta la partición (forma de la salida de Louvain). */
 	clusterPull?: {
 		clusters: ReadonlyArray<{ members: ReadonlyArray<string> }>;
 		strength: number;
 	};
 }
 
-/** Link input: edges are undirected for layout purposes. */
+/** Entrada de enlaces: a efectos de disposición las aristas no tienen dirección. */
 export interface LayoutEdge {
 	from: string;
 	to: string;
 }
 
-/** A derived implication node's chain linkage — what the depth pass needs
- *  to anchor the junction between its premises and their conclusion. */
+/** La conexión de cadena de un nodo de implicación derivado — lo que
+ *  necesita la pasada de profundidad para anclar el cruce entre sus premisas
+ *  y su conclusión. */
 export interface ImpLink {
-	/** The imp node's id (arg_-prefixed — the stored chain's id). */
+	/** El id del nodo imp (con prefijo arg_ — el id de la cadena guardada). */
 	id: string;
 	premises: ReadonlyArray<string>;
 	conclusion: string;
 }
 
 export const LINK_DISTANCE = 40;
-/** Implication-node id prefix (the mint law lives in core/graph.ts's
- *  newGraphChainId). Layout-side: links TOUCHING an imp node get HALF
- *  the base rest length — the argument's geometry (a converging point)
- *  sits tight against its premises/conclusion instead of spread like a
- *  real proposition citizen (owner ruling, rendering arc 2026-09-30). */
+/** Prefijo de id de los nodos de implicación (la ley de acuñación vive en
+ *  newGraphChainId de core/graph.ts). En la disposición: los enlaces que TOCAN
+ *  un nodo imp reciben la MITAD de la longitud de reposo base — la geometría
+ *  del argumento (un punto de convergencia) queda pegada a sus
+ *  premisas/conclusión en lugar de dispersarse como un ciudadano proposición
+ *  real (decisión del responsable, arco de renderizado 2026-09-30). */
 const IMP_ID_PREFIX = "arg_";
 const impLinkId = (v: string | number | { id: string }): string =>
 	typeof v === "object" ? v.id : String(v);
-export const CHARGE_STRENGTH = -240; // 2026-09-17: −120 → −240 (user: repulsion default too weak); the default is shared with render-settings (gm-centered in CHARGE_RANGE).
-/** Per-tick anchor re-blend: fraction of an anchored node's displacement
- *  from its previous position that SURVIVES each tick. 0.85 = gentle
- *  evolution where forces are strong, stillness where they are not —
- *  the exact FA2-era constant. Position-space (alpha-independent), so it
- *  cannot be overpowered by d3's long-range link springs the way a force-
- *  space anchor can (forceLink is a Hooke spring: strength*(d-L)*alpha). */
+export const CHARGE_STRENGTH = -240; // 2026-09-17: −120 → −240 (usuario: repulsión por defecto demasiado débil); el valor por defecto se comparte con render-settings (centrado gm en CHARGE_RANGE).
+/** Remezcla del ancla por tick: fracción del desplazamiento de un nodo
+ *  anclado respecto a su posición anterior que SOBREVIVE a cada tick. 0.85 =
+ *  evolución suave donde las fuerzas son fuertes, quietud donde no lo son —
+ *  la constante exacta de la época de FA2. En el espacio de posiciones
+ *  (independiente de alpha), así que los muelles de enlace de largo alcance
+ *  de d3 no pueden dominarla como sí ocurre con un ancla en el espacio de
+ *  fuerzas (forceLink es un muelle de Hooke: strength*(d-L)*alpha). */
 const ANCHOR_RETENTION = 0.85;
-/** Gravity strengths. d3 manyBody repulsion falls off as 1/d, so two
- *  20-node blobs at distance d push with ~n1*n2*|charge|/d; cluster
- *  spacing settles where that equals g*d*n/2 — g=0.03 lands clusters
- *  ~400 world units apart (the FA2-era density), and the anchor re-blend
- *  (position-space, alpha-independent) keeps gravity's transient sag
- *  from ever moving an anchored node at rest. */
+/** Intensidades de gravedad. La repulsión manyBody de d3 decae como 1/d, así
+ *  que dos manchas de 20 nodos a distancia d se empujan con
+ *  ~n1*n2*|charge|/d; la separación de los clústeres se asienta donde eso
+ *  iguala g*d*n/2 — g=0.03 deja los clústeres a ~400 unidades del mundo (la
+ *  densidad de la época de FA2), y la remezcla del ancla (en el espacio de
+ *  posiciones, independiente de alpha) impide que el hundimiento transitorio
+ *  de la gravedad mueva jamás un nodo anclado en reposo. */
 const BOOTSTRAP_GRAVITY = 0.2;
-/** Exported: the live sim reuses this so its rest state matches the
- *  server settle's equilibrium (one engine, one rest). */
+/** Exportado: la simulación en vivo lo reutiliza para que su estado de
+ *  reposo coincida con el equilibrio del asentamiento del servidor (un motor,
+ *  un reposo). */
 export const INCREMENTAL_GRAVITY = 0.12;
-/** Exported: default cluster-centroid pull strength (tuned by replay —
- *  compact enough to read as blobs, weak enough that cluster shape is
- *  still the edge network's). */
+/** Exportado: intensidad por defecto de la atracción al centroide del
+ *  clúster (ajustada por reproducción — lo bastante compacta para leerse
+ *  como manchas y lo bastante débil para que la forma del clúster siga siendo
+ *  la de la red de aristas). */
 export const CLUSTER_PULL_STRENGTH = 0.15;
 
 /**
- * The one force set. Returns a STOPPED simulation — callers drive it
- * manually (tick-per-frame live, or a bounded tick loop when settling).
- * Deterministic; mutates `nodes` in place (d3 semantics: impure by design,
- * zero per-tick allocation).
+ * El único conjunto de fuerzas. Devuelve una simulación PARADA — quien llama
+ * la gobierna a mano (un tick por fotograma en vivo, o un bucle de ticks
+ * acotado al asentar). Determinista; muta `nodes` in situ (semántica de d3:
+ * impuro por diseño, cero reservas de memoria por tick).
  */
 export function createGraphSimulation(
 	nodes: LayoutNode[],
 	edges: ReadonlyArray<LayoutEdge>,
 	options: SimOptions = {},
 ): Simulation<LayoutNode, SimLink> {
-	// Link stiffness: d3's default is 1/min(deg) (degree-scaled springs).
-	// linkStrength multiplies it, so 1 = unchanged default behavior.
+	// Rigidez de enlace: la de d3 por defecto es 1/min(grado) (muelles escalados por grado).
+	// linkStrength la multiplica, así que 1 = comportamiento por defecto sin cambios.
 	const degree = new Map<string, number>();
 	for (const e of edges) {
 		degree.set(e.from, (degree.get(e.from) ?? 0) + 1);
@@ -277,10 +292,10 @@ export function createGraphSimulation(
 				edges.map((e) => ({ source: e.from, target: e.to })),
 			)
 				.id((d) => d.id)
-				// Per-link rest length (rendering arc, owner 2026-09-30): a
-				// link touching an implication node (arg_-prefixed id — the
-				// string form pre-init, the node ref after) gets HALF the
-				// base distance, default or user-tuned alike.
+				// Longitud de reposo por enlace (arco de renderizado, responsable 2026-09-30): un
+				// enlace que toca un nodo de implicación (id con prefijo arg_ — en forma de cadena
+				// antes de iniciar y como referencia de nodo después) recibe la MITAD de la
+				// distancia base, sea la de por defecto o la ajustada por el usuario.
 				.distance(
 					(l) =>
 						impLinkId(l.source).startsWith(IMP_ID_PREFIX) || impLinkId(l.target).startsWith(IMP_ID_PREFIX)
@@ -298,24 +313,24 @@ export function createGraphSimulation(
 		.velocityDecay(options.velocityDecay ?? 0.4)
 		.stop();
 
-	// Gravity, mode-projected: in vertical mode the depth force OWNS the
-	// y axis, so gravity goes x-only (it would fight the level lines); in
-	// radial mode a center pull is purely radial and would fight the
-	// rings, so it is dropped entirely (rings already bound the radius).
-	// Depth mode projections (DECIDED 2026-09-13), with the ORPHAN RULE
-	// (user-decided, same day): a node with no edges at all has no
-	// dependency structure — depth is a property of inference chains, so
-	// stamping unconnected propositions onto the baseline / base ring
-	// assigns them meaning they don't have. Orphans are exempt from the
-	// depth force and keep the REGULAR view's forces instead (full center
-	// gravity + full cluster pull, unprojected). AMENDED (owner,
-	// 2026-09-30 physics follow-up): in VERTICAL mode the central pole is
-	// a HORIZONTAL force for everyone — structured and orphan/imp alike —
-	// y belongs to the depth rows and to nothing else; the full regular
-	// pull survives only in radial mode (where the rings own the radius).
+	// Gravedad proyectada según el modo: en modo vertical la fuerza de profundidad es
+	// DUEÑA del eje y, así que la gravedad actúa solo en x (lucharía con las líneas de
+	// nivel); en modo radial una atracción al centro es puramente radial y lucharía con
+	// los anillos, así que se elimina del todo (los anillos ya acotan el radio).
+	// Proyecciones del modo de profundidad (DECIDIDO el 2026-09-13), con la REGLA DE
+	// HUÉRFANOS (decidida por el usuario el mismo día): un nodo sin ninguna arista no
+	// tiene estructura de dependencias — la profundidad es propiedad de las cadenas de
+	// inferencia, así que estampar proposiciones sin conexión en la línea base / anillo
+	// base les asigna un significado que no tienen. Los huérfanos están exentos de la
+	// fuerza de profundidad y conservan en su lugar las fuerzas de la vista NORMAL
+	// (gravedad central completa + atracción completa al clúster, sin proyectar).
+	// CORREGIDO (responsable, seguimiento de física del 2026-09-30): en modo VERTICAL
+	// el polo central es una fuerza HORIZONTAL para todos — estructurados y huérfanos/imp
+	// por igual — y pertenece a las filas de profundidad y a nada más; la atracción
+	// normal completa solo sobrevive en modo radial (donde los anillos son dueños del radio).
 	const mode = options.depthAnchor?.mode ?? "off";
-	// The depth machinery reads the LOGICAL edge list when supplied —
-	// structure is inference over propositions, not the drawn geometry.
+	// La maquinaria de profundidad lee la lista LÓGICA de aristas si se aporta —
+	// la estructura es inferencia entre proposiciones, no la geometría dibujada.
 	const depthEdges = options.logicalEdges ?? edges;
 	let orphan: Uint8Array | null = null;
 	let depthsComputed: Map<string, number> | null = null;
@@ -323,19 +338,19 @@ export function createGraphSimulation(
 		const connected = new Set<string>();
 		const valid = new Set(nodes.map((n) => n.id));
 		for (const e of depthEdges) {
-			// Self-loops and dangling endpoints are not a structure (same
-			// guards as inferenceDepths).
+			// Los bucles sobre sí mismos y los extremos colgantes no son estructura (las mismas
+			// protecciones que inferenceDepths).
 			if (e.from === e.to || !valid.has(e.from) || !valid.has(e.to)) continue;
 			connected.add(e.from);
 			connected.add(e.to);
 		}
-		// Proposition ranks first; then the IMP MIDPOINT ANCHOR (owner,
-		// 2026-09-30): an implication node's depth = (highest premise row
-		// + conclusion row) / 2 — the junction sits strictly above every
-		// premise and strictly below the conclusion (a conclusion is
-		// always ≥ highest premise + 1), uniform in both modes: a row in
-		// vertical, a ring in radial. Imp ids WITHOUT a supplied link
-		// keep the legacy exemption.
+		// Primero los rangos de las proposiciones; luego el ANCLA DE PUNTO MEDIO IMP
+		// (responsable, 2026-09-30): la profundidad de un nodo de implicación = (fila de la
+		// premisa más alta + fila de la conclusión) / 2 — el cruce queda estrictamente por
+		// encima de cada premisa y estrictamente por debajo de la conclusión (una conclusión
+		// siempre es ≥ premisa más alta + 1), uniforme en ambos modos: una fila en
+		// vertical, un anillo en radial. Los ids imp SIN un enlace aportado
+		// mantienen la exención heredada.
 		depthsComputed = inferenceDepths(
 			nodes.filter((n) => !n.id.startsWith(IMP_ID_PREFIX)),
 			depthEdges,
@@ -362,8 +377,8 @@ export function createGraphSimulation(
 		}
 		orphan = new Uint8Array(nodes.length);
 		nodes.forEach((n, i) => {
-			// IMP nodes with a midpoint anchor are STRUCTURED (they sit on
-			// their half-row); unlinked arg_ ids keep the orphan exemption.
+			// Los nodos IMP con ancla de punto medio son ESTRUCTURADOS (se sitúan en su
+			// media fila); los ids arg_ sin enlace mantienen la exención de huérfanos.
 			if (!connected.has(n.id) && !(n.id.startsWith(IMP_ID_PREFIX) && anchored.has(n.id))) orphan![i] = 1;
 		});
 	}
@@ -372,13 +387,13 @@ export function createGraphSimulation(
 		sim.force("x", forceX<LayoutNode>(g.x).strength(g.strength));
 		sim.force("y", forceY<LayoutNode>(g.y).strength(g.strength));
 	} else if (g) {
-		// Mode-projected gravity, EXACTLY d3's forceX/forceY math (restoring
-		// force × strength × alpha). VERTICAL (owner, 2026-09-30 physics
-		// follow-up): the central pole is horizontal-ONLY for EVERY node —
-		// structured (the depth force owns y) and orphan/imp alike (an
-		// unstructured node has no row to sit on and no pole to sag
-		// toward; its y is free). RADIAL: orphans keep the full regular
-		// pull; structured nodes get nothing (the rings own the radius).
+		// Gravedad proyectada según el modo, EXACTAMENTE la matemática de forceX/forceY de d3
+		// (fuerza restauradora × intensidad × alpha). VERTICAL (responsable, seguimiento de
+		// física del 2026-09-30): el polo central es SOLO horizontal para TODOS los nodos —
+		// estructurados (la fuerza de profundidad es dueña de y) y huérfanos/imp por igual (un
+		// nodo sin estructura no tiene fila en la que situarse ni polo hacia el que hundirse;
+		// su y es libre). RADIAL: los huérfanos conservan la atracción normal completa; los
+		// estructurados no reciben nada (los anillos son dueños del radio).
 		const orphanMask = orphan!;
 		sim.force("gravity", (alpha: number) => {
 			for (let i = 0; i < nodes.length; i++) {
@@ -389,14 +404,14 @@ export function createGraphSimulation(
 					n.vx = (n.vx ?? 0) + (g.x - (n.x ?? 0)) * g.strength * alpha;
 					n.vy = (n.vy ?? 0) + (g.y - (n.y ?? 0)) * g.strength * alpha;
 				}
-				// radial + structured: nothing — the rings own the radius.
+				// radial + estructurado: nada — los anillos son dueños del radio.
 			}
 		});
 	}
 
-	// Cluster centroid pull: the membership index is resolved ONCE (nodes
-	// don't change clusters mid-sim); each tick is two allocation-free
-	// O(n) passes (sum, then pull). Singletons (<2 members) skip themselves.
+	// Atracción al centroide del clúster: el índice de pertenencia se resuelve UNA vez (los
+	// nodos no cambian de clúster a mitad de simulación); cada tick son dos pasadas O(n)
+	// sin reservas de memoria (suma y luego atracción). Los aislados (<2 miembros) se omiten.
 	const cp = options.clusterPull;
 	if (cp && cp.strength > 0 && cp.clusters.length > 0) {
 		const clusterIdx = new Map<string, number>();
@@ -409,11 +424,11 @@ export function createGraphSimulation(
 		const sumY = new Float64Array(k);
 		const cnt = new Float64Array(k);
 		const strength = cp.strength;
-		// The cluster centroid pull also respects the depth mode: vertical
-		// → x-only (the depth force owns y); radial → tangential only
-		// (the radial component would drag members off their rings; the
-		// tangential component still tightens each cluster's angular
-		// spread, which is all clustering needs to do there).
+		// La atracción al centroide del clúster también respeta el modo de profundidad:
+		// vertical → solo x (la fuerza de profundidad es dueña de y); radial → solo
+		// tangencial (la componente radial sacaría a los miembros de sus anillos; la
+		// componente tangencial sigue estrechando la dispersión angular de cada clúster,
+		// que es todo lo que el agrupamiento necesita hacer ahí).
 		const ringCx = options.depthAnchor?.center?.x ?? 0;
 		const ringCy = options.depthAnchor?.center?.y ?? 0;
 		sim.force("clusterPull", (alpha: number) => {
@@ -437,7 +452,7 @@ export function createGraphSimulation(
 				const ux = sumX[ci]! / cnt[ci]! - px;
 				const uy = sumY[ci]! / cnt[ci]! - py;
 				if (orphan && orphan[i]) {
-					// Orphans: full regular-view pull (see the ORPHAN RULE above).
+					// Huérfanos: atracción completa de la vista normal (consulta la REGLA DE HUÉRFANOS de arriba).
 					n.vx = (n.vx ?? 0) + ux * strength * alpha;
 					n.vy = (n.vy ?? 0) + uy * strength * alpha;
 				} else if (mode === "vertical") {
@@ -447,7 +462,7 @@ export function createGraphSimulation(
 					const ry = py - ringCy;
 					const r = Math.hypot(rx, ry);
 					if (r > 1e-9) {
-						// Tangential component: u − (u·r̂)r̂
+						// Componente tangencial: u − (u·r̂)r̂
 						const dot = (ux * rx + uy * ry) / (r * r);
 						n.vx = (n.vx ?? 0) + (ux - dot * rx) * strength * alpha;
 						n.vy = (n.vy ?? 0) + (uy - dot * ry) * strength * alpha;
@@ -460,20 +475,20 @@ export function createGraphSimulation(
 		});
 	}
 
-	// ── Inference-depth anchoring ────────────────────────────────────────
-	// The rank is COMPUTED (not simulated): per-node target scalar derived
-	// from inferenceDepths, then one O(n) pull pass per tick. Soft knob —
-	// high strength approaches pinned rows/rings while low strength leaves
-	// organic sag.
+	// ── Anclaje por profundidad de inferencia ────────────────────────────
+	// El rango se CALCULA (no se simula): escalar objetivo por nodo derivado de
+	// inferenceDepths, y luego una pasada de atracción O(n) por tick. Control suave —
+	// una intensidad alta se acerca a filas/anillos fijados y una baja deja un
+	// hundimiento orgánico.
 	const da = options.depthAnchor;
 	if (da && da.mode !== "off" && da.strength > 0) {
-		// The rank map (propositions + imp midpoint anchors) was computed
-		// with the orphan mask above — one pass, shared.
+		// El mapa de rangos (proposiciones + anclas de punto medio imp) se calculó con la
+		// máscara de huérfanos de arriba — una pasada, compartida.
 		const depths = depthsComputed!;
 		const strength = da.strength;
 		const spacing = da.spacing;
 		const c = da.center ?? { x: 0, y: 0 };
-		const orphanMask = orphan; // ORPHAN RULE: depth skips unstructured nodes
+		const orphanMask = orphan; // REGLA DE HUÉRFANOS: la profundidad omite los nodos sin estructura
 		if (da.mode === "vertical") {
 			const baseY = c.y;
 			sim.force("depth", (alpha: number) => {
@@ -494,8 +509,8 @@ export function createGraphSimulation(
 					const n = nodes[i]!;
 				const dx = (n.x ?? 0) - cx0;
 					const dy = (n.y ?? 0) - cy0;
-					// Degenerate direction at the exact ring center: nudge
-					// outward on a deterministic axis.
+					// Dirección degenerada justo en el centro del anillo: se empuja
+					// hacia fuera sobre un eje determinista.
 					const r = Math.hypot(dx, dy);
 					const ux = r > 1e-9 ? dx / r : 1;
 					const uy = r > 1e-9 ? dy / r : 0;
@@ -511,33 +526,34 @@ export function createGraphSimulation(
 }
 
 export interface IncrementalLayoutOptions {
-	/** Manual ticks for the settle (default 300 — d3's anneal to alphaMin). */
+	/** Ticks manuales del asentamiento (300 por defecto — el recocido de d3 hasta alphaMin). */
 	ticks?: number;
-	/** Per-tick anchor re-blend (default 0.85; 1 = fully pinned). */
+	/** Remezcla del ancla por tick (0.85 por defecto; 1 = totalmente fijado). */
 	anchorRetention?: number;
-	/** Center-of-mass gravity strength override (tuning/A-B experiments;
-	 *  defaults to the internal bootstrap/incremental constants). */
+	/** Sustitución de la intensidad de la gravedad del centro de masas
+	 *  (ajustes/experimentos A-B; por defecto, las constantes internas de
+	 *  arranque/incrementales). */
 	gravityStrength?: number;
-	/** Cluster partition (Louvain output shape). Supplied by callers so
-	 *  this module stays louvain-free (the browser bundle must not carry
-	 *  embedding ledger; absent = no cluster pull. */
+	/** Partición en clústeres (forma de la salida de Louvain). La aportan los
+	 *  llamadores para que este módulo no dependa de louvain (el bundle del
+	 *  navegador no debe llevar registro de embeddings; ausente = sin atracción al clúster. */
 	clusters?: ReadonlyArray<{ members: ReadonlyArray<string> }>;
-	/** Cluster centroid pull strength (default CLUSTER_PULL_STRENGTH). */
+	/** Intensidad de la atracción al centroide del clúster (por defecto CLUSTER_PULL_STRENGTH). */
 	clusterPullStrength?: number;
-	/** Inference-depth anchoring (see DepthAnchor). `center` defaults to
-	 *  the anchored core's centroid. */
+	/** Anclaje por profundidad de inferencia (consulta DepthAnchor). `center`
+	 *  es por defecto el centroide del núcleo anclado. */
 	depthAnchor?: DepthAnchor;
-	/** The LOGICAL edge list for the depth pass (see SimOptions). */
+	/** La lista LÓGICA de aristas para la pasada de profundidad (consulta SimOptions). */
 	logicalEdges?: ReadonlyArray<LayoutEdge>;
-	/** The imp chain linkage for the midpoint anchor (see SimOptions). */
+	/** La conexión de cadena imp para el ancla de punto medio (consulta SimOptions). */
 	impLinks?: ReadonlyArray<ImpLink>;
 }
 
 /**
- * One incremental settle. `nodes`/`edges` describe the CURRENT graph;
- * `previous` is the positions ledger (empty on the very first settle —
- * then this degrades to a seeded-scatter bootstrap). Returns positions
- * for EVERY node in `nodes`.
+ * Un asentamiento incremental. `nodes`/`edges` describen el grafo ACTUAL;
+ * `previous` es el registro de posiciones (vacío en el primerísimo
+ * asentamiento — entonces esto se degrada a un arranque de dispersión
+ * sembrada). Devuelve posiciones para TODOS los nodos de `nodes`.
  */
 export function incrementalLayout(
 	nodes: ReadonlyArray<Pick<GraphNode, "id">>,
@@ -548,14 +564,14 @@ export function incrementalLayout(
 	const ticks = options.ticks ?? 300;
 	const retention = options.anchorRetention ?? ANCHOR_RETENTION;
 
-	// Anchors: the warm-start set (the previous rest state).
+	// Anclas: el conjunto del arranque en caliente (el estado de reposo anterior).
 	const anchors = new Map<string, Position>();
 	for (const node of nodes) {
 		const prev = previous.get(node.id);
 		if (prev) anchors.set(node.id, { x: prev.x, y: prev.y });
 	}
 
-	// The anchored core's bounding box + centroid, for rim seeds.
+	// La caja envolvente + el centroide del núcleo anclado, para las semillas del borde.
 	let minX = Infinity;
 	let maxX = -Infinity;
 	let minY = Infinity;
@@ -577,7 +593,7 @@ export function incrementalLayout(
 	}
 	const coreRadius = hasCore ? Math.max(maxX - minX, maxY - minY) / 2 : 1;
 
-	// Adjacency for neighbor seeding (undirected: edges include assertions).
+	// Adyacencia para sembrar junto a los vecinos (sin dirección: las aristas incluyen afirmaciones).
 	const adjacency = new Map<string, string[]>();
 	const linkTo = (a: string, b: string): void => {
 		if (a === b) return;
@@ -590,11 +606,11 @@ export function incrementalLayout(
 		linkTo(e.to, e.from);
 	}
 
-	// The rim radius derives from the CONNECTED core's mean radius — orphans
-	// never inflate it (a max-span-based radius feeds back: each batch's
-	// rim pushes the next batch's rim farther out, and the layout runs
-	// away). 1.7x matches the density the FA2-era settle produced
-	// (orphan mean r ~338 vs connected ~194).
+	// El radio del borde se deriva del radio medio del núcleo CONECTADO — los huérfanos
+	// nunca lo inflan (un radio basado en la extensión máxima se retroalimenta: el borde
+	// de cada lote empuja más lejos el del siguiente, y la disposición se dispara).
+	// 1.7x reproduce la densidad que producía el asentamiento de la época de FA2
+	// (r medio de huérfanos ~338 frente a ~194 de los conectados).
 	let rimRadius = 0;
 	let connectedAnchored = 0;
 	for (const [id, a] of anchors) {
@@ -603,22 +619,22 @@ export function incrementalLayout(
 		rimRadius += Math.hypot(a.x - cx, a.y - cy);
 	}
 	if (connectedAnchored > 0) rimRadius = (rimRadius / connectedAnchored) * 1.7;
-	else if (hasCore) rimRadius = coreRadius * 1.15; // no connected anchors yet: bbox fallback
+	else if (hasCore) rimRadius = coreRadius * 1.15; // aún no hay anclas conectadas: se recurre a la caja envolvente
 	rimRadius += 4;
 
-	// Seed every node.
+	// Siembra cada nodo.
 	const simNodes: LayoutNode[] = nodes.map((node) => {
 		const rand = seededRandom(node.id);
 		const anchor = anchors.get(node.id);
 		let x: number;
 		let y: number;
 		if (anchor) {
-			// Warm start: resume from the previous rest position.
+			// Arranque en caliente: se reanuda desde la posición de reposo anterior.
 			x = anchor.x;
 			y = anchor.y;
 		} else {
-			// New node: seed near its positioned neighbors (the cluster it
-			// arrived with), else on the rim outside the core, else scatter.
+			// Nodo nuevo: se siembra cerca de sus vecinos posicionados (el clúster con el que
+			// llegó); si no, en el borde fuera del núcleo; si no, disperso.
 			let sx = 0;
 			let sy = 0;
 			let found = 0;
@@ -638,20 +654,20 @@ export function incrementalLayout(
 				const radius = rimRadius + rand() * 8;
 				x = cx + Math.cos(angle) * radius;
 				y = cy + Math.sin(angle) * radius;
-				// An orphan's intended rest spot IS the rim seed: anchor it
-				// there so gravity cannot sink it into the core. (A later
-				// batch linking it to the graph pulls it in naturally —
-				// but then it also has a previous position, and its anchor
-				// becomes that previous position, exactly like any node.)
+				// El lugar de reposo previsto de un huérfano ES la semilla del borde: se ancla
+				// ahí para que la gravedad no pueda hundirlo en el núcleo. (Un lote posterior que
+				// lo enlace al grafo lo atrae hacia dentro de forma natural — pero entonces
+				// también tiene una posición anterior, y su ancla pasa a ser esa posición
+				// anterior, exactamente como cualquier nodo.)
 				anchors.set(node.id, { x, y });
 			} else {
-				// Bootstrap: the classic seeded scatter.
+				// Arranque: la dispersión sembrada clásica.
 				x = (rand() - 0.5) * 100;
 				y = (rand() - 0.5) * 100;
 			}
 		}
-		// d3 is fine with coincident seeds (no division), but nudge exact
-		// overlaps of a brand-new node onto its only neighbor anyway.
+		// A d3 no le importan las semillas coincidentes (no hay división), pero aun así se
+		// separan los solapamientos exactos de un nodo recién llegado con su único vecino.
 		if (x === 0 && y === 0) x = 0.5;
 		return { id: node.id, x, y };
 	});
@@ -677,13 +693,13 @@ export function incrementalLayout(
 	const byId = new Map(simNodes.map((n) => [n.id, n]));
 	for (let i = 0; i < ticks; i++) {
 		sim.tick();
-		// Anchor re-blend (position space, alpha-independent — see the
-		// ANCHOR_RETENTION note). Pinned nodes (fx/fy) are left to d3.
-		// DEPTH-MODE PROJECTION: the re-blend preserves the user's
-		// arrangement in the FREE dimension only — x in vertical mode, the
-		// angle in radial mode — because the depth force owns the
-		// constrained dimension (a node's level/ring is meaning, not
-		// memory). Off-mode: full 2D blend as before.
+		// Remezcla del ancla (espacio de posiciones, independiente de alpha — consulta la
+		// nota de ANCHOR_RETENTION). Los nodos fijados (fx/fy) se dejan a d3.
+		// PROYECCIÓN DEL MODO DE PROFUNDIDAD: la remezcla conserva la disposición del
+		// usuario solo en la dimensión LIBRE — x en modo vertical, el ángulo en modo
+		// radial — porque la fuerza de profundidad es dueña de la dimensión restringida
+		// (el nivel/anillo de un nodo es significado, no memoria). Modo off: mezcla 2D
+		// completa como antes.
 		if (hasCore && retention < 1) {
 			for (const [id, a] of anchors) {
 				const n = byId.get(id);
