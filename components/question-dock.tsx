@@ -46,38 +46,42 @@ import type { PrepareBuiltinSubmission } from "./plugin-submission-adapters";
 import { CONFIDENCE_COLORS, confidenceRailStyle } from "@/components/confidence-rail";
 
 /**
- * The question dock — a pending quiz/ask REPLACES the chat composer: the
- * persistent bottom blob morphs into the question. Two voices meet here:
- * the teacher's (question, options, explanation) and the learner's —
- * "Your thinking", a labeled composer-twin field for dumping reasoning,
- * with Submit docked inside it exactly like the chat composer's send.
+ * El dock de preguntas — un quiz/ask pendiente SUSTITUYE al composer del
+ * chat: la burbuja persistente de abajo se transforma en la pregunta. Aquí se
+ * encuentran dos voces: la del profesor (pregunta, opciones, explicación) y
+ * la del alumno — "Your thinking", un campo etiquetado gemelo del composer
+ * para volcar el razonamiento, con Submit acoplado dentro exactamente como el
+ * envío del composer del chat.
  *
- * The thinking field is the transfer channel of the whole product (wave-2):
- * never called "optional", Enter makes a NEWLINE (it is for dumping — soon
- * dictated, not typed), submission is the button only, and its size scales
- * with the phase (probing stays quick; teaching invites depth). The
- * "Other…" option is an editable option ROW — circle + inline input,
- * styled like its siblings — so picking Other never displaces thinking.
+ * El campo de thinking es el canal de transferencia de todo el producto
+ * (oleada 2): nunca se le llama "opcional", Enter hace un SALTO DE LÍNEA
+ * (sirve para volcar — pronto dictado, no tecleado), el envío es solo el
+ * botón y su tamaño se escala con la fase (el sondeo se mantiene rápido; la
+ * enseñanza invita a profundizar). La opción "Other…" es una FILA de opción
+ * editable — círculo + input en línea, con el mismo estilo que sus hermanas
+ * — para que elegir Other nunca desplace el thinking.
  *
- * Collapse behavior (scroll-up → slim bar) is owned by the DockOverlay in the
- * chat view, which also owns the persistent shell and its height morph. This
- * component is content only. The expanded form stays MOUNTED while collapsed
- * (hidden, not unmounted) so a half-made selection survives scrolling.
+ * El comportamiento de plegado (scroll hacia arriba → barra fina) es cosa
+ * del DockOverlay de la vista del chat, que también es dueño del armazón
+ * persistente y de su transformación de altura. Este componente es solo
+ * contenido. El formulario desplegado sigue MONTADO mientras está plegado
+ * (oculto, no desmontado) para que una selección a medias sobreviva al scroll.
  */
 
 export interface QuestionDockProps {
-	/** Private click-time view read: no draft save or dictation flush. */
+	/** Lectura privada de la vista en el momento del clic: sin guardar el borrador ni volcar el dictado. */
 	viewReader?: ViewReaderRef<NativeQuestionViewState>;
 	toolName: "quiz" | "probe" | "ask_user_question" | "explain" | "recall";
 	toolCallId: string;
 	input: QuizToolInput | AskToolInput | ExplainToolInput;
-	/** Collapse state, owned by the DockOverlay (it drives the shell's height morph). */
+	/** Estado de plegado, propiedad del DockOverlay (gobierna la transformación de altura del armazón). */
 	expanded: boolean;
 	/**
-	 * Teach-phase check awaiting its reveal (vision §2, W5): while collapsed,
-	 * the bar is the "Check your understanding" invitation instead of the
-	 * scroll-collapse strip. Owned by the DockOverlay; false once the learner
-	 * has revealed (afterwards the normal collapse machine rules apply).
+	 * Comprobación de la fase de enseñanza a la espera de su revelación (visión
+	 * §2, W5): mientras está plegada, la barra es la invitación "Check your
+	 * understanding" en lugar de la tira del plegado por scroll. Propiedad del
+	 * DockOverlay; false una vez que el alumno la ha revelado (a partir de ahí
+	 * mandan las reglas normales de la máquina de plegado).
 	 */
 	reveal?: boolean;
 	onExpand: () => void;
@@ -85,30 +89,31 @@ export interface QuestionDockProps {
 	onPrepareSubmission?: PrepareBuiltinSubmission;
 	hasPendingInput?: (question: QuestionData) => boolean;
 	preparing?: boolean;
-	/** Restore only this call's unconfirmed submission after recovery. */
+	/** Restaura solo el envío sin confirmar de esta llamada tras la recuperación. */
 	initialDraft?: QuestionFormDraft;
 	onSaveDraft?: (draft: QuestionFormDraft) => void;
-	/** Escape in a question field stops dictation (STT wave) — threaded
-	 *  from the page that owns the dictation hook. */
+	/** Escape en un campo de pregunta detiene el dictado (oleada STT) — se pasa
+	 *  desde la página que es dueña del hook de dictado. */
 	onEscape?: () => void;
-	/** The learner's current unsubmitted working (thinking, or the typed
-	 *  answer in text mode), kept current for the side thread's nudges. */
+	/** El trabajo actual sin enviar del alumno (thinking, o la respuesta
+	 *  tecleada en modo texto), mantenido al día para los empujones del hilo lateral. */
 	workingRef?: { current: string };
-	/** The keyboard machine (wave B) is armed only while the dock is
-	 *  expanded — the collapsed bar keeps its native Enter-to-expand. */
+	/** La máquina del teclado (oleada B) solo está armada mientras el dock está
+	 *  desplegado — la barra plegada conserva su Enter nativo para desplegar. */
 	active?: boolean;
-	/** Session phase at the question — scales the thinking field: probing
-	 *  stays quick (one row), teaching invites dumping (three rows). */
+	/** Fase de la sesión en la pregunta — escala el campo de thinking: el
+	 *  sondeo se mantiene rápido (una fila), la enseñanza invita a volcar (tres filas). */
 	phase?: Phase3;
-	/** Dictation claim (owner 2026-10-03): false while a teach-phase check
-	 *  sits UNREVEALED — the reading-thinking field owns dictated speech
-	 *  during the reading; the dock reclaims on reveal. Default true (probe
-	 *  questions, predictions, old callers). */
+	/** Reclamación del dictado (responsable 2026-10-03): false mientras una
+	 *  comprobación de la fase de enseñanza sigue SIN REVELAR — el campo de
+	 *  reading-thinking es dueño del habla dictada durante la lectura; el dock
+	 *  lo recupera al revelar. Por defecto true (preguntas de sondeo,
+	 *  predicciones, llamadores antiguos). */
 	dictationClaim?: boolean;
-	/** Compaction is running for this chat (owner round 14): the answer
-	 *  POST would block on the server's compaction gate — disable submit
-	 *  and say so in the hint row. The server registry is the real gate;
-	 *  this is the affordance. */
+	/** Hay una compactación en marcha para este chat (ronda 14 del
+	 *  responsable): el POST de la respuesta se bloquearía en la barrera de
+	 *  compactación del servidor — desactiva el envío y dilo en la fila de
+	 *  pista. El registro del servidor es la barrera real; esto es la indicación. */
 	compactionRunning?: boolean;
 }
 
@@ -132,22 +137,22 @@ export function QuestionDock({
 	compactionRunning = false,
 	workingRef,
 }: QuestionDockProps) {
-	// The probe-phase names (owner, 2026-10-09) canonicalize onto their
-	// teach twins for every dock concern — parse dispatch, labels, kinds:
-	// the probe quiz ("probe") is quiz-shaped, the probe free-recall
-	// ("recall") is explain-shaped. Old records keep the teach names.
+	// Los nombres de la fase de sondeo (responsable, 2026-10-09) se canonizan a
+	// sus gemelos de enseñanza para todo lo que concierne al dock — despacho del
+	// análisis, etiquetas, tipos: el quiz de sondeo ("probe") tiene forma de quiz,
+	// el recuerdo libre de sondeo ("recall") tiene forma de explain. Los registros antiguos conservan los nombres de enseñanza.
 	const canonical =
 		toolName === "probe" ? "quiz" : toolName === "recall" ? "explain" : toolName;
-	// The chip's display name carries the tool's OWN name (owner
-	// 2026-10-09): probe-phase questions label Probe/Recall in the
-	// composer; teach tools keep the standing labels.
+	// El nombre visible del chip lleva el nombre PROPIO de la herramienta
+	// (responsable 2026-10-09): las preguntas de la fase de sondeo se etiquetan
+	// Probe/Recall en el composer; las herramientas de enseñanza conservan las etiquetas de siempre.
 	const toolLabel = toolName === "probe" ? "Probe" : toolName === "recall" ? "Recall" : undefined;
-	// Parse, don't cast (src/core/tool-parts.ts): the model authored this
-	// input, and only the schema the tool declared vouches for its shape.
-	// The dock mounts on input-available parts (already validated at the
-	// bridge), so this is pure defense in depth — but it is STRUCTURAL now:
-	// anything that slips through renders the quiet fallback, never a
-	// crash on `.map` over model-authored bytes.
+	// Analiza, no fuerces el tipo (src/core/tool-parts.ts): el modelo escribió
+	// esta entrada, y solo el esquema que declaró la herramienta responde de su
+	// forma. El dock se monta sobre partes input-available (ya validadas en el
+	// puente), así que esto es pura defensa en profundidad — pero ahora es
+	// ESTRUCTURAL: lo que se cuele renderiza la alternativa discreta, nunca un
+	// fallo por `.map` sobre bytes escritos por el modelo.
 	const parsed = useMemo(() =>
 		canonical === "quiz" ? parseQuizInput(input) : canonical === "explain" ? parseExplainInput(input) : parseAskInput(input), [canonical, input]);
 	if (!parsed) {
@@ -194,10 +199,10 @@ export function QuestionDock({
 	);
 }
 
-/** The collapsed strip. Two species (W5): "collapsed" is the scroll minimization
- *  (kind chip + one-liner + Answer ↓); "reveal" is the teach-check invitation —
- *  a distinct, more inviting affordance, because it asks the learner to start
- *  something, not to resume something. */
+/** La tira plegada. Dos especies (W5): "collapsed" es la minimización por scroll
+ *  (chip de tipo + una línea + Answer ↓); "reveal" es la invitación de la
+ *  comprobación de enseñanza — una indicación distinta y más atractiva, porque
+ *  pide al alumno que empiece algo, no que retome algo. */
 export function QuestionDockBar({
 	toolName,
 	question,
@@ -210,12 +215,13 @@ export function QuestionDockBar({
 	question: string;
 	onExpand: () => void;
 	variant?: "collapsed" | "reveal";
-	/** The kind chip's text (owner 2026-10-03): "Prediction" when a
-	 *  predict-type quiz minimizes by scroll — predictions never use the
-	 *  reveal variant, but the scroll-collapse strip can still hide them. */
+	/** El texto del chip de tipo (responsable 2026-10-03): "Prediction" cuando
+	 *  un quiz de tipo predict se minimiza por scroll — las predicciones nunca
+	 *  usan la variante reveal, pero la tira del plegado por scroll aún puede ocultarlas. */
 	label?: string;
-	/** The chip's TOOL display name (owner 2026-10-09): probe-phase calls
-	 *  label Probe/Recall — the phase boundary visible in the composer. */
+	/** El nombre visible de la HERRAMIENTA en el chip (responsable 2026-10-09):
+	 *  las llamadas de la fase de sondeo se etiquetan Probe/Recall — el límite de
+	 *  fase visible en el composer. */
 	toolLabel?: string;
 }) {
 	if (variant === "reveal") {
@@ -263,7 +269,7 @@ export function QuestionDockBar({
 	);
 }
 
-/** The expanded question: label, question, options, and the unified bottom row. */
+/** La pregunta desplegada: etiqueta, pregunta, opciones y la fila inferior unificada. */
 function QuestionDockForm({
 	viewReader,
 	toolName,
@@ -286,10 +292,10 @@ function QuestionDockForm({
 	const controller = useOptionalInteractionLayers();
 	const rootRef = useRef<HTMLDivElement>(null);
 
-	// Canonical QuestionData, built once per question. Quiz options are
-	// deterministically shuffled (seeded by toolCallId) so position never leaks
-	// correctness AND server/client render the same order (hydration-safe);
-	// the display order is snapshotted into the answer record at submit time.
+	// QuestionData canónico, construido una vez por pregunta. Las opciones del quiz
+	// se barajan de forma determinista (con semilla en toolCallId) para que la
+	// posición nunca delate cuál es correcta Y el servidor y el cliente rendericen el mismo orden (seguro para la
+	// hidratación); el orden mostrado se guarda como instantánea en el registro de la respuesta al enviar.
 	const qd = useMemo<QuestionData>(() => {
 		const quizInput = kind === "quiz" ? (input as QuizToolInput) : null;
 		const askInput = kind === "ask" ? (input as AskToolInput) : null;
@@ -312,8 +318,8 @@ function QuestionDockForm({
 		const q: QuestionData = {
 			id: toolCallId,
 			kind,
-			// The role (owner 2026-10-03): predict questions gate by it in the
-			// view (never collapsed) and the answered card tucks the explanation.
+			// El rol (responsable 2026-10-03): las preguntas predict condicionan por él
+			// la vista (nunca plegadas) y la tarjeta respondida recoge la explicación.
 			questionType: kind === "quiz" ? normalizeQuizType((input as { type?: unknown }).type) : undefined,
 			question: input.question,
 			context: input.details,
@@ -328,53 +334,53 @@ function QuestionDockForm({
 			q.explanation = quizInput.explanation;
 		}
 		if (explainInput) {
-			// The commitment rides the question data (never sent to the
-			// client before answering) and snapshots into the answer at submit.
-			// One field, reasoning included — no separate explanation
-			// (owner ruling 2026-09-27).
+			// El compromiso viaja en los datos de la pregunta (nunca se envía al
+			// cliente antes de responder) y se guarda como instantánea en la respuesta al enviar.
+			// Un solo campo, razonamiento incluido — sin explicación aparte
+			// (decisión del responsable 2026-09-27).
 			q.committedAnswer = explainInput.correctAnswer;
 		}
 		return q;
 	}, [toolCallId, kind, input]);
 
-	// The selection state machine lives in question-core (pure, tested):
-	// single-select displaces, multi-select coexists — picking the ask
-	// "Other…" row in a multi-select must never clear already-picked
-	// options, and picking an option must never clear a typed custom answer.
+	// La máquina de estados de la selección vive en question-core (pura, probada):
+	// la selección única desplaza, la múltiple convive — elegir la fila "Other…"
+	// de un ask en una selección múltiple nunca debe borrar las opciones ya
+	// elegidas, y elegir una opción nunca debe borrar una respuesta propia tecleada.
 	const [sel, setSel] = useState<DockSelection>(() => initialDraft?.selection ?? emptyDockSelection());
-	// The learner's transfer channel — thinking, never "a note".
+	// El canal de transferencia del alumno — thinking, nunca "una nota".
 	const [thinking, setThinking] = useState(initialDraft?.thinking ?? "");
 	const [other, setOther] = useState(initialDraft?.other ?? "");
 	const [text, setText] = useState(initialDraft?.text ?? "");
-	// Mirrors the working out for the side thread (nudges respond to it).
+	// Refleja el razonamiento para el hilo lateral (los empujones responden a él).
 	useEffect(() => {
 		if (workingRef) workingRef.current = (qd.mode === "text" ? text : thinking).trim();
 	}, [workingRef, qd.mode, text, thinking]);
 	useEffect(() => () => { if (workingRef) workingRef.current = ""; }, [workingRef]);
-	/* Refs MIRROR the two dictation-target fields ("nothing gets lost"
-	 * round, owner 2026-10-01): the run's flush lands via setState, which
-	 * a closure waiting through `await finishDictation()` cannot observe
-	 * in time — submit reads these, kept current at every write site. */
+	/* Las refs REFLEJAN los dos campos destino del dictado (ronda "no se pierde
+	 * nada", responsable 2026-10-01): el volcado de la ejecución llega mediante
+	 * setState, que un cierre que espera a `await finishDictation()` no puede
+	 * observar a tiempo — el envío lee estas, mantenidas al día en cada punto de escritura. */
 	const thinkingTextRef = useRef(initialDraft?.thinking ?? "");
 	const answerTextRef = useRef(initialDraft?.text ?? "");
-	// Confidence (owner, 2026-10-01): an index into CONFIDENCE_STOPS,
-	// resting at 50 — a real coin flip by definition, untouched or
-	// deliberate (the same number, the same meaning). The dock unmounts
-	// between questions, so each question starts fresh at 50.
+	// Confianza (responsable, 2026-10-01): un índice en CONFIDENCE_STOPS,
+	// en reposo en 50 — un auténtico cara o cruz por definición, se toque o no
+	// (el mismo número, el mismo significado). El dock se desmonta entre
+	// preguntas, así que cada pregunta empieza de nuevo en 50.
 	const [confIdx, setConfIdx] = useState<number>(initialDraft?.confidenceIndex ?? DEFAULT_CONFIDENCE_INDEX);
 	const selectMode: SelectMode = qd.mode === "multi-select" ? "multi-select" : "single-select";
 
-	// The PRIMARY dictation input (owner, STT round 1): while a question
-	// waits, dictated finals land HERE, never in the hidden composer — text
-	// mode owns "Your answer", select modes own "Your thinking". The claim
-	// is effect-scoped, so the question unmounting releases it and
-	// dictation falls back to the composer automatically.
+	// La entrada PRINCIPAL del dictado (responsable, ronda 1 de STT): mientras
+	// espera una pregunta, los finales dictados caen AQUÍ, nunca en el composer
+	// oculto — el modo texto es dueño de "Your answer", los modos de selección
+	// de "Your thinking". La reclamación tiene ámbito de efecto, así que al
+	// desmontarse la pregunta se libera y el dictado vuelve solo al composer.
 	useDictationTarget(
 		useCallback(
 			(t: string) => {
-				// Ref-first (see the refs block above): the join is computed from
-				// the mirror, then both mirrors agree with state — a submit
-				// resuming post-finish reads the tail, never a stale closure.
+				// Primero la ref (ver el bloque de refs de arriba): la unión se calcula a
+				// partir del espejo, y luego ambos espejos coinciden con el estado — un envío
+				// que se reanuda tras terminar lee la cola, nunca un cierre obsoleto.
 				if (qd.mode === "text") {
 					const v = joinDictation(answerTextRef.current, t);
 					answerTextRef.current = v;
@@ -387,8 +393,8 @@ function QuestionDockForm({
 			},
 			[qd.mode],
 		),
-		// Released while a teach check sits unrevealed (owner 2026-10-03):
-		// the reading-thinking field owns dictated speech during the reading.
+		// Se libera mientras una comprobación de enseñanza sigue sin revelar (responsable 2026-10-03):
+		// el campo de reading-thinking es dueño del habla dictada durante la lectura.
 		dictationClaim,
 	);
 
@@ -424,12 +430,13 @@ function QuestionDockForm({
 			onPrepareSubmission({ question: qd, isCurrent: () => mounted.current && currentQuestion.current === qd && isInteractionScopeEligible(rootRef.current, controller), capture: captureRequest });
 			return;
 		}
-		/* FINISH DICTATION FIRST (owner, 2026-10-01): Enter may arrive while
-		 * a run is live with reasoning still in Deepgram's hands. Stop the
-		 * run, let the last finals land in the target field, and only then
-		 * build the answer — the spoken reasoning is never lost to a
-		 * forgotten stop. The field values below come from the REF mirrors
-		 * because the flush lands via setState after an await. */
+		/* TERMINA EL DICTADO PRIMERO (responsable, 2026-10-01): Enter puede llegar
+		 * con una ejecución en vivo y el razonamiento aún en manos de Deepgram.
+		 * Detén la ejecución, deja que los últimos finales caigan en el campo
+		 * destino y solo entonces construye la respuesta — el razonamiento hablado
+		 * nunca se pierde por una parada olvidada. Los valores de los campos de
+		 * abajo salen de los espejos en REF porque el volcado llega mediante
+		 * setState tras un await. */
 		if (!isDictationActive()) {
 			doSubmit();
 			return;
@@ -444,12 +451,12 @@ function QuestionDockForm({
 			other: sel.otherSelected ? other : undefined,
 			text: qd.mode === "text" ? answerTextRef.current : undefined,
 			thinking: qd.mode !== "text" ? thinkingTextRef.current.trim() || undefined : undefined,
-			// Always sent on quiz answers (owner: 50 must mean 50, never
-			// "untouched"); buildAnswer drops it on "I don't know".
+			// Siempre se envía en las respuestas de quiz (responsable: 50 debe significar 50, nunca
+			// "sin tocar"); buildAnswer lo descarta con "I don't know".
 			confidence: kind === "quiz" ? CONFIDENCE_STOPS[confIdx] : undefined,
 		};
-		// Snapshot before optimistic submission unmounts the form. Ref values
-		// include the dictation finals that just landed, unlike stale closures.
+		// Instantánea antes de que el envío optimista desmonte el formulario. Los valores de las refs
+		// incluyen los finales del dictado que acaban de llegar, a diferencia de los cierres obsoletos.
 		onSaveDraft?.({
 			selection: { ...sel, selected: new Set(sel.selected) },
 			thinking: thinkingTextRef.current,
@@ -464,36 +471,38 @@ function QuestionDockForm({
 		onSubmit(buildAnswer(qd, captureRequest(), toolName));
 	};
 
-	/* ENTER SUBMITS FROM ANYWHERE (owner round 6, 2026-10-05): the same
-	 * law as the practice dock — dictated answers rarely focus the field.
-	 * Rides submit() so the dictation-flush law is shared, not forked. */
+	/* ENTER ENVÍA DESDE CUALQUIER SITIO (ronda 6 del responsable, 2026-10-05):
+	 * la misma ley que en el dock de práctica — las respuestas dictadas rara vez
+	 * enfocan el campo. Pasa por submit() para que la ley del volcado del
+	 * dictado se comparta, no se bifurque. */
 	useEnterSubmits(submit, rootRef);
 
-	// Selecting Other never clears the thinking field — two channels, the
-	// answer and the reasoning behind it, side by side.
+	// Seleccionar Other nunca borra el campo de thinking — dos canales, la
+	// respuesta y el razonamiento que la respalda, uno al lado del otro.
 	const selectOther = () => setSel(toggleOther(selectMode, sel));
 
-	/* ── The keyboard machine (shortcut wave B, owner rounds 2026-09-17) ──
-	   ↑/↓ walk EVERY answerable row in order — options first, then the
-	   quiz's "I don't know" or the ask's "Other…" (whichever exists) —
-	   CLAMPED at the ends, no wrap (owner: faster to navigate when the
-	   walk stops at the last row). Space acts on the walked row exactly
-	   like a click (multi toggles, single displaces; Other also focuses
-	   its input for typing), Enter submits once an answer exists.
-	   Tab toggles FOCUS between the thinking field and the answer rows
-	   (owner round 3) — nothing else; Shift+Tab is NOT ours (the global
-	   thinking-level cycle owns it). Two guards keep native behavior
-	   intact: keys from a TYPING SURFACE keep their meaning (arrows move
-	   the caret, space types), and modifier combos are never ours
-	   (Alt+arrows cycle sessions — they must not ALSO walk the rows).
-	   The listener is document-level and lives only while the dock is
-	   expanded — collapsed, the bar's native Enter expands it. */
+	/* ── La máquina del teclado (oleada de atajos B, rondas del responsable 2026-09-17) ──
+	↑/↓ recorren TODAS las filas respondibles en orden — primero las
+	opciones, luego el "I don't know" del quiz o el "Other…" del ask (la que
+	exista) — ACOTADAS en los extremos, sin vuelta (responsable: se navega más
+	rápido cuando el recorrido se para en la última fila). Espacio actúa sobre
+	la fila recorrida exactamente como un clic (la múltiple alterna, la única
+	desplaza; Other además enfoca su input para escribir), Enter envía en
+	cuanto hay respuesta. Tab alterna el FOCO entre el campo de thinking y las
+	filas de respuesta (ronda 3 del responsable) — nada más; Shift+Tab NO es
+	nuestro (es del ciclo global del nivel de thinking). Dos guardas mantienen
+	intacto el comportamiento nativo: las teclas desde una SUPERFICIE DE
+	ESCRITURA conservan su significado (las flechas mueven el cursor, espacio
+	escribe), y las combinaciones con modificadores nunca son nuestras
+	(Alt+flechas recorre las sesiones — no deben recorrer TAMBIÉN las filas).
+	El listener está a nivel de documento y solo vive mientras el dock está
+	desplegado — plegado, el Enter nativo de la barra lo despliega. */
 	const [kbdIdx, setKbdIdx] = useState<number | null>(null);
 	const otherInputRef = useRef<HTMLDivElement>(null);
 	const thinkingRef = useRef<HTMLDivElement>(null);
-	// One row past the options is the trailing row: quiz → don't-know,
-	// ask → Other (a question never has both). Text mode (ask/explain)
-	// has no rows — the composer IS the answer surface.
+	// Una fila más allá de las opciones es la fila final: quiz → no sé,
+	// ask → Other (una pregunta nunca tiene ambas). El modo texto (ask/explain)
+	// no tiene filas — el composer ES la superficie de respuesta.
 	const optionCount = qd.mode === "text" ? 0 : qd.options.length;
 	const rowCount = qd.mode === "text" ? 0 : optionCount + 1;
 
@@ -502,14 +511,14 @@ function QuestionDockForm({
 		else if (kind === "quiz")
 			setSel((prev) => ({ ...prev, selected: new Set(), otherSelected: false, dontKnow: !prev.dontKnow }));
 		else {
-			// Space on the ask's Other row (owner refinement round,
-			// 2026-09-24): SELECTING it focuses the input for typing, but
-			// the Space that DESELECTS an already-selected Other must never
-			// drop the user back into the typing field — the core's
-			// toggleOther has no single-select off-path (it displaces), so
-			// the off-path lives here: clear the pick, keep the typed text,
-			// focus stays where it is. Re-selecting is the way back into
-			// the field.
+			// Espacio en la fila Other del ask (ronda de refinamiento del responsable,
+			// 2026-09-24): SELECCIONARLA enfoca el input para escribir, pero el
+			// Espacio que DESELECCIONA un Other ya seleccionado nunca debe devolver al
+			// usuario al campo de escritura — el toggleOther del núcleo no tiene ruta
+			// de desactivación en selección única (desplaza), así que esa ruta vive
+			// aquí: borra la elección, conserva el texto tecleado y el foco se queda
+			// donde está. Volver a seleccionarla es el camino de vuelta al
+			// campo.
 			if (sel.otherSelected) setSel((prev) => ({ ...prev, otherSelected: false, dontKnow: false }));
 			else {
 				otherInputRef.current?.focus();
@@ -518,8 +527,8 @@ function QuestionDockForm({
 		}
 	};
 
-	// Focus the walked row's focusable element — the Other row is a div,
-	// so its inline input is the focus target there.
+	// Enfoca el elemento enfocable de la fila recorrida — la fila Other es un div,
+	// así que ahí el destino del foco es su input en línea.
 	const focusRow = (idx: number) => {
 		const row = rootRef.current?.querySelector(`[data-kbdrow="${idx}"]`) as HTMLElement | null;
 		if (!row) return;
@@ -530,27 +539,27 @@ function QuestionDockForm({
 	useEffect(() => {
 		if (!active || rowCount === 0) return;
 		const onKeyDown = (e: KeyboardEvent) => {
-			// Tab is already default-prevented by provider capture; do not
-			// treat that as a claim. Eligibility, not focus alone, owns rows.
+			// Tab ya llega con preventDefault por la captura del proveedor; no lo
+			// tomes como una reclamación. Las filas son de quien es elegible, no de quien solo tiene el foco.
 			if (!isInteractionScopeEligible(rootRef.current, controller)) return;
 			const t = e.target as HTMLElement | null;
-			// A TYPING field is where keys mean text (owner round 4): the
-			// thinking/answer fields, search boxes, renames — never a range
-			// input, whose focus after a click or drag must not kill the
-			// arrow cycling. Everywhere else the arrows act.
+			// Un campo de ESCRITURA es donde las teclas significan texto (ronda 4 del responsable):
+			// los campos de thinking/respuesta, cajas de búsqueda, renombrados — nunca un
+			// input range, cuyo foco tras un clic o arrastre no debe anular el recorrido
+			// con flechas. En todos los demás sitios actúan las flechas.
 			const typing =
 				!!t &&
 				((t.tagName === "INPUT" && (t as HTMLInputElement).type !== "range") ||
 					t.tagName === "TEXTAREA" ||
 					t.isContentEditable);
-			// Alt/Cmd/Ctrl combos are never ours (Alt+arrows cycle sessions
-			// globally — they must not ALSO walk the question rows).
+			// Las combinaciones con Alt/Cmd/Ctrl nunca son nuestras (Alt+flechas recorre las sesiones
+			// a nivel global — no deben recorrer TAMBIÉN las filas de la pregunta).
 			const modded = e.altKey || e.metaKey || e.ctrlKey;
-			// Plain Tab toggles focus: rows → thinking. The confidence
-			// slider takes NO focus at all (owner, UI round 2026-10-01) —
+			// Tab a secas alterna el foco: filas → thinking. El deslizador de
+			// confianza NO recibe foco en absoluto (responsable, ronda de interfaz 2026-10-01) —
 			// global ←/→ own its keyboard, so it never joins the chain.
-			// Shift+Tab falls through (the global thinking-level cycle owns
-			// it), so the shift check matters.
+			// Shift+Tab se deja pasar (es del ciclo global del nivel de thinking),
+			// así que la comprobación de shift importa.
 			if (e.key === "Tab" && !e.shiftKey && !modded) {
 				e.preventDefault();
 				e.stopPropagation();
@@ -562,15 +571,15 @@ function QuestionDockForm({
 				}
 				return;
 			}
-			// Keys from a typing surface keep their meaning (arrows move
-			// the caret, space types).
+			// Las teclas desde una superficie de escritura conservan su significado (las flechas mueven
+			// el cursor, espacio escribe).
 			if (typing || modded) return;
 			if (e.key === "ArrowDown") {
 				e.preventDefault();
 				const next = Math.min((kbdIdx ?? -1) + 1, rowCount - 1);
 				setKbdIdx(next);
-				// Focus follows the walk while the user is IN the rows (Tab
-				// put them there) so focused and walked never diverge.
+				// El foco sigue el recorrido mientras el usuario está EN las filas (Tab
+				// lo llevó ahí) para que enfocado y recorrido nunca diverjan.
 				if (t?.closest?.("[data-kbdrow]")) focusRow(next);
 			} else if (e.key === "ArrowUp") {
 				e.preventDefault();
@@ -579,9 +588,9 @@ function QuestionDockForm({
 				if (t?.closest?.("[data-kbdrow]")) focusRow(next);
 			} else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
 				// Global confidence cycling (owner, UI round 2026-10-01): the
-				// SAME pattern as ↑/↓ over the rows — works wherever focus
-				// sits, no click-in, no focus ring. Dead on "I don't know"
-				// (the slider grays out and nothing is sent).
+				// El MISMO patrón que ↑/↓ sobre las filas — funciona esté donde esté el
+				// foco, sin hacer clic, sin anillo de foco. Inactivo con "I don't know"
+				// (el deslizador se agrisa y no se envía nada).
 				if (kind !== "quiz" || sel.dontKnow) return;
 				e.preventDefault();
 				setConfIdx((i) =>
@@ -591,7 +600,7 @@ function QuestionDockForm({
 					),
 				);
 			} else if (e.key === " ") {
-				if (kbdIdx === null) return; // plain Space keeps scrolling the page
+				if (kbdIdx === null) return; // Espacio a secas sigue desplazando la página
 				e.preventDefault();
 				kbdAct(kbdIdx);
 			} else if (e.key === "Enter") {
@@ -604,7 +613,7 @@ function QuestionDockForm({
 		return () => document.removeEventListener("keydown", onKeyDown);
 	});
 
-	// Keep the walked row visible (the question area scrolls internally).
+	// Mantén visible la fila recorrida (el área de la pregunta tiene scroll interno).
 	useEffect(() => {
 		if (kbdIdx === null) return;
 		rootRef.current
@@ -614,9 +623,9 @@ function QuestionDockForm({
 
 	return (
 		<div ref={rootRef} data-testid="question-dock">
-			{/* Question area — scrolls internally if very tall; the bottom row stays put.
-			    Capped by the measured column (--dock-max-h; the old fixed 55dvh cut
-			    long questions short — owner round, 2026-10-05). */}
+			{/* Área de la pregunta — scroll interno si es muy alta; la fila inferior no se mueve.
+			Limitada por la columna medida (--dock-max-h; el antiguo 55dvh fijo cortaba
+			las preguntas largas — ronda del responsable, 2026-10-05). */}
 			<div data-dock-scroll-area="" data-session-find-root="" className="max-h-[var(--dock-max-h,55dvh)] overflow-y-auto px-4 pt-3">
 				<div className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
 					{toolName === "probe"
@@ -675,13 +684,13 @@ function QuestionDockForm({
 									<span>
 										<ToolContentResponse>{opt.label}</ToolContentResponse>
 										{kind !== "quiz" && opt.description && (
-											// Option subtext renders in Source Sans 3 (owner's mockup);
-											// the "I don't know" copy stays JetBrains Mono. QUIZ options render
-											// NO description (owner ruling 2026-09-26): the model used them to
-											// telegraph correctness — the schema dropped the field and old
-											// records must not leak either. Same MessageResponse path as the
-											// label (owner, 2026-10-12): descriptions are full markdown —
-											// LaTeX included — not plain text.
+											// El subtexto de las opciones se renderiza en Source Sans 3 (maqueta del responsable);
+											// el texto "I don't know" se queda en JetBrains Mono. Las opciones de QUIZ NO
+											// renderizan descripción (decisión del responsable 2026-09-26): el modelo las usaba para
+											// insinuar cuál era correcta — el esquema eliminó el campo y los registros antiguos
+											// tampoco deben filtrarla. La misma ruta MessageResponse que la
+											// etiqueta (responsable, 2026-10-12): las descripciones son Markdown completo —
+											// LaTeX incluido —, no texto plano.
 											<ToolContentResponse className="lh-prose block text-xs text-muted-foreground">
 												{opt.description}
 											</ToolContentResponse>
@@ -700,8 +709,8 @@ function QuestionDockForm({
 								data-kbdrow={optionCount}
 								aria-pressed={sel.dontKnow}
 								className={cn(
-									// Option-row layout + radio circle (owner); the dashed
-									// outline stays — this is the deliberate non-answer.
+									// Layout de fila de opción + círculo de radio (responsable); el contorno
+									// discontinuo se queda — esta es la no-respuesta deliberada.
 									"flex items-start gap-3 rounded-lg border border-dashed px-3 py-2 text-left text-sm outline-none transition-colors",
 									sel.dontKnow ? "border-primary text-foreground" : "text-muted-foreground",
 									kbdIdx === optionCount && !sel.dontKnow && "ring-1 ring-border bg-accent/40",
@@ -755,18 +764,18 @@ function QuestionDockForm({
 									value={other}
 									onValueChange={(value) => {
 										setOther(value);
-										// Typing selects the row — displacing in
-										// single-select, alongside the siblings in multi.
+										// Escribir selecciona la fila — desplazando en
+										// selección única, junto a las hermanas en la múltiple.
 										setSel((prev) => (prev.otherSelected ? prev : toggleOther(selectMode, prev)));
 									}}
 									onKeyDown={(e) => {
 										if (!isInteractionScopeEligible(e.currentTarget, controller)) return;
-										// Esc escapes the typing (owner refinement round,
-										// 2026-09-24): focus leaves the input, the row STAYS
-										// selected — deselection is the next Space's job, acting
-										// on the row — and the arrow walk resumes from this
-										// row (kbdIdx pins it). stopPropagation keeps the
-										// window chain from reading this Esc as abort-turn.
+										// Esc sale de la escritura (ronda de refinamiento del responsable,
+										// 2026-09-24): el foco deja el input, la fila SIGUE
+										// seleccionada — deseleccionar es tarea del siguiente Espacio, que actúa
+										// sobre la fila — y el recorrido con flechas se reanuda desde esta
+										// fila (kbdIdx la fija). stopPropagation impide que la cadena de la
+										// ventana lea este Esc como abortar el turno.
 										if (e.key === "Escape") {
 											controller?.claimEscape(e);
 											e.preventDefault();
@@ -774,13 +783,13 @@ function QuestionDockForm({
 											e.currentTarget.blur();
 											setKbdIdx(optionCount);
 										}
-											// Enter submits directly (owner, keyboard round 2026-10-06):
-											// the custom answer is a single-line input — no newline
-											// to protect, and typing has already selected the row, so
-											// the payload is ready. Every Enter (shift or not — nothing
-											// else could ever happen in a one-line field) rides the
-											// same submit seam as the button, dictation finish-first
-											// included.
+											// Enter envía directamente (responsable, ronda de teclado 2026-10-06):
+											// la respuesta propia es un input de una sola línea — no hay salto de línea
+											// que proteger, y escribir ya ha seleccionado la fila, así que
+											// la carga está lista. Todo Enter (con shift o sin él — en un campo de una
+											// línea no podría pasar nada más) pasa por la misma
+											// frontera de envío que el botón, incluido el dictado que primero
+											// termina.
 											if (e.key === "Enter") {
 												e.preventDefault();
 												submit();
@@ -796,19 +805,19 @@ function QuestionDockForm({
 				)}
 			</div>
 
-			{/* Confidence (owner, 2026-10-01; UI rounds same day): a snapped
-				slider below the options and above "Your thinking" — the
-				learner's stated probability that his selected answer is
-				correct. The thumb's POSITION is the raw fraction; the painted
-				RAIL overlays exactly the thumb-center range (inset half a disc
-				per side), so 0 and 100 rest flush against the rail's very
-				ends. Fill + handle wear the stop's ramp color; SOLID stop
-				ticks are background layers behind the fill (empty side only,
-				never over the color; 0/100 need no tick — the flush ends say
-				them). Keyboard: GLOBAL ←/→ (the ↑/↓ pattern; the ring is gone
-				app-wide). Clicking and dragging are native. "I don't know"
-				GRAYS it out — the layout holds, no value is sent, the IDK
-				signal stands alone. */}
+			{/* Confianza (responsable, 2026-10-01; rondas de interfaz del mismo día): un
+				deslizador con paradas bajo las opciones y encima de "Your thinking" — la
+				probabilidad declarada por el alumno de que la respuesta seleccionada sea
+				correcta. La POSICIÓN del tirador es la fracción en bruto; el RAÍL pintado
+				cubre exactamente el intervalo de los centros del tirador (con medio disco
+				de margen por lado), así que 0 y 100 quedan a ras de los extremos del raíl.
+				El relleno y el tirador llevan el color de la rampa de la parada; las
+				marcas SÓLIDAS de las paradas son capas de fondo tras el relleno (solo en
+				el lado vacío, nunca sobre el color; 0/100 no necesitan marca — los
+				extremos a ras ya lo dicen). Teclado: ←/→ GLOBALES (el patrón de ↑/↓; el
+				anillo ha desaparecido de toda la app). Hacer clic y arrastrar son nativos.
+				"I don't know" lo AGRISA — el layout se mantiene, no se envía ningún valor,
+				la señal de no sé queda sola. */}
 			{kind === "quiz" && (
 				<div className="border-t border-border/60 px-4 py-2.5">
 					<div className="flex items-center gap-3">
@@ -824,16 +833,16 @@ function QuestionDockForm({
 							className={cn("relative h-4 min-w-0 flex-1", sel.dontKnow && "opacity-40")}
 							data-testid="confidence-track"
 						>
-							{/* The RAIL is painted here, not on the input: this overlay spans
-								exactly the thumb-CENTER range (inset 8px = half the 16px disc,
-								left and right), so at 0 and 100 the disc sits flush against the
-								rail's very ends — no bare stub poking past it (owner round 4).
-								STACKING LAW (owner round 5): the input is absolute too — a
-								positioned overlay paints above an in-flow input no matter the
-								DOM order, which put the rail OVER the disc. Both positioned,
-								input later in DOM → the disc rides on top. The wrapper's height
-								is pinned (h-4) so the rail's top-1/2 and the disc's track share
-								one box — centered by construction, not by hope. */}
+							{/* El RAÍL se pinta aquí, no en el input: este overlay abarca
+								exactamente el intervalo de los CENTROS del tirador (margen de 8px = la mitad
+								del disco de 16px, a izquierda y derecha), así que en 0 y 100 el disco queda
+								a ras de los extremos del raíl — sin un muñón desnudo asomando (ronda 4 del
+								responsable). LEY DE APILAMIENTO (ronda 5 del responsable): el input también
+								es absoluto — un overlay posicionado se pinta por encima de un input en el
+								flujo sea cual sea el orden del DOM, lo que ponía el raíl ENCIMA del disco.
+								Ambos posicionados, input después en el DOM → el disco va encima. La altura
+								del envoltorio está fijada (h-4) para que el top-1/2 del raíl y la pista del
+								disco compartan una caja — centrados por construcción, no por suerte. */}
 							<div
 								aria-hidden
 								data-testid="confidence-rail"
@@ -852,11 +861,11 @@ function QuestionDockForm({
 								title="The probability your selected answer is correct — 50% is a coin flip. Adjust with ←/→."
 								data-testid="confidence-slider"
 								onChange={(e) => {
-									// Snap to the nearest stop; the rendered VALUE is the stop's own
-									// percent, so the thumb always rests at its true fraction (50 =
-									// halfway). Keyboard needs no handler here: the dock machine treats
-									// a focused range as non-typing (see the guard above) and its ←/→
-									// branch preventDefaults, which also cancels the native 1% step.
+									// Ajusta a la parada más cercana; el VALOR renderizado es el porcentaje de la
+									// propia parada, así que el tirador siempre reposa en su fracción real (50 =
+									// la mitad). El teclado no necesita manejador aquí: la máquina del dock trata
+									// un range enfocado como no escritura (ver la guarda de arriba) y su rama ←/→
+									// hace preventDefault, lo que también cancela el paso nativo del 1%.
 									const v = Number(e.target.value);
 									let best = 0;
 									for (let i = 1; i < CONFIDENCE_STOPS.length; i++) {
@@ -887,11 +896,11 @@ function QuestionDockForm({
 				</div>
 			)}
 
-			{/* The learner's half of the dock — a composer TWIN: a labeled, bordered
-			    field with Submit docked inside, exactly like the chat composer's
-			    send. Select modes get "Your thinking" (Enter makes a newline — it
-			    is for dumping, soon dictated; the button submits); text mode
-			    keeps "Your answer" with Enter-to-submit. */}
+			{/* La mitad del alumno en el dock — un GEMELO del composer: un campo con
+			etiqueta y borde con Submit acoplado dentro, exactamente como el envío del
+			composer del chat. Los modos de selección reciben "Your thinking" (Enter
+			hace un salto de línea — sirve para volcar, pronto dictado; envía el
+			botón); el modo texto mantiene "Your answer" con Enter para enviar. */}
 			<form
 				className="border-t border-border/60 p-1.5"
 				onSubmit={(e) => {
@@ -915,9 +924,9 @@ function QuestionDockForm({
 							}}
 							onKeyDown={(e) => {
 								if (!isInteractionScopeEligible(e.currentTarget, controller)) return;
-								// Esc ends dictation (the dictate decisions: click-again
-								// or Esc) — stopPropagation claims it (keyboard wave
-								// A) so the window chain doesn't also abort a turn.
+								// Esc termina el dictado (las decisiones del dictado: volver a hacer clic
+								// o Esc) — stopPropagation lo reclama (oleada de teclado
+								// A) para que la cadena de la ventana no aborte además un turno.
 								if (e.key === "Escape" && onEscape) {
 									e.preventDefault();
 									e.stopPropagation();
@@ -925,8 +934,8 @@ function QuestionDockForm({
 									onEscape();
 									return;
 								}
-								// Chat convention: Enter submits, Shift+Enter is a newline;
-								// ⌘/Ctrl+Enter also submits (universal across the app).
+								// Convención del chat: Enter envía, Shift+Enter es un salto de línea;
+								// ⌘/Ctrl+Enter también envía (universal en toda la app).
 								if (e.key === "Enter" && (e.metaKey || e.ctrlKey || !e.shiftKey)) {
 									e.preventDefault();
 									submit();
@@ -945,9 +954,9 @@ function QuestionDockForm({
 							}}
 							onKeyDown={(e) => {
 								if (!isInteractionScopeEligible(e.currentTarget, controller)) return;
-								// Esc ends dictation (the dictate decisions: click-again
-								// or Esc) — stopPropagation claims it (keyboard wave
-								// A) so the window chain doesn't also abort a turn.
+								// Esc termina el dictado (las decisiones del dictado: volver a hacer clic
+								// o Esc) — stopPropagation lo reclama (oleada de teclado
+								// A) para que la cadena de la ventana no aborte además un turno.
 								if (e.key === "Escape" && onEscape) {
 									e.preventDefault();
 									e.stopPropagation();
@@ -955,9 +964,9 @@ function QuestionDockForm({
 									onEscape();
 									return;
 								}
-								// THE STANDARD CHORD (owner round 5, 2026-10-05): Enter
-								// submits, Shift+Enter is a newline, ⌘/Ctrl+Enter works
-								// too — identical to the practice dock and the composer.
+								// EL ACORDE ESTÁNDAR (ronda 5 del responsable, 2026-10-05): Enter
+								// envía, Shift+Enter es un salto de línea, ⌘/Ctrl+Enter funciona
+								// también — idéntico al dock de práctica y al composer.
 								if (e.key === "Enter" && (!e.shiftKey || e.metaKey || e.ctrlKey)) {
 									e.preventDefault();
 									submit();
@@ -966,8 +975,8 @@ function QuestionDockForm({
 							placeholder="Why this answer? Whatever comes to mind."
 							className={cn(
 								"field-sizing-content lh-input max-h-48 w-full resize-none bg-transparent px-2.5 py-2 outline-none placeholder:text-muted-foreground/70",
-								// Phase-scaled prominence: teaching invites depth,
-								// probing stays quick.
+								// Protagonismo escalado por fase: la enseñanza invita a profundizar,
+								// el sondeo se mantiene rápido.
 								phase === "teach" ? "min-h-[4.5rem]" : "min-h-10",
 							)}
 						/>
