@@ -1,67 +1,69 @@
-# LearnHarness data: a field reference
+# Datos de LearnHarness: referencia de campo
 
-The files are the user's record, not an import format to rewrite. Work read-only.
-The bundled readers make common views convenient; they are not required for custom
-analysis. This reference describes native session/graph format **1**. An absent
-version stamp means v1. Older fields within that format are described below;
-pre-native `parts`/UIMessage transcripts are a different, unsupported dialect.
+Los ficheros son el registro del usuario, no un formato de importación que haya que
+reescribir. Trabaja en solo lectura. Los lectores incluidos facilitan las vistas habituales;
+no son necesarios para un análisis a medida. Esta referencia describe el formato nativo **1**
+de sesiones y grafo. Si falta la marca de versión, se trata de v1. Más abajo se describen
+los campos antiguos dentro de ese formato; las transcripciones previas al formato nativo con
+`parts`/UIMessage son un dialecto distinto que no se admite.
 
-## File map
+## Mapa de ficheros
 
-Paths below are relative to the selected **data** directory:
+Las rutas siguientes son relativas al directorio de **datos** seleccionado:
 
 ```text
-chats/<session-id>.json    Full session: messages, optional plan, usage metadata
-graph/nodes.jsonl          Proposition assertions; IDs can repeat
-graph/chains.jsonl         Reasoning-chain assertions; logical chains can repeat
-graph/sources.json        Imported-note source metadata, keyed by source ID
-graph/format.json         Graph-family format stamp: {"version": 1}
-graph/sessions.jsonl       Extraction checkpoints, NOT the session index
-graph/coverage.jsonl       Extraction fingerprints, NOT learner assessment
-graph/positions.json      Canvas layout, not semantic relationships
-graph/render-settings.json  Presentation preferences, not learning evidence
-jobs/<job-id>.json        Background work records; delivered artifacts also appear in sessions
+chats/<session-id>.json    Sesión completa: mensajes, plan opcional, metadatos de uso
+graph/nodes.jsonl          Afirmaciones de proposiciones; los ID pueden repetirse
+graph/chains.jsonl         Afirmaciones de cadenas de razonamiento; las cadenas lógicas pueden repetirse
+graph/sources.json        Metadatos de las fuentes de notas importadas, indexados por ID de fuente
+graph/format.json         Marca de formato de la familia del grafo: {"version": 1}
+graph/sessions.jsonl       Puntos de control de la extracción, NO el índice de sesiones
+graph/coverage.jsonl       Huellas de la extracción, NO una evaluación del alumno
+graph/positions.json      Disposición del lienzo, no relaciones semánticas
+graph/render-settings.json  Preferencias de presentación, no evidencia de aprendizaje
+jobs/<job-id>.json        Registros de trabajo en segundo plano; los artefactos entregados también aparecen en las sesiones
 ```
 
-`settings.json`, downloaded models, caches, and provider debug logs are not needed
-to interpret learning history. `auth.json` is normally one directory above data;
-do not read it. Imported-note paths, research URLs, and artifact references are not
-automatically followed by the readers.
+`settings.json`, los modelos descargados, las cachés y los registros de depuración de
+proveedores no hacen falta para interpretar el historial de aprendizaje. `auth.json` suele
+estar un directorio por encima de los datos; no lo leas. Los lectores no siguen
+automáticamente las rutas de notas importadas, las URL de investigación ni las referencias
+a artefactos.
 
-## A session record
+## Registro de una sesión
 
-Each `chats/*.json` file is an object with:
+Cada fichero `chats/*.json` es un objeto con:
 
-| Field | Meaning |
+| Campo | Significado |
 | --- | --- |
-| `id`, `title` | Stable session identity and user-visible name |
-| `createdAt`, `updatedAt` | ISO date strings for the session, not a date for every idea |
-| `kind` | `teach` or `practice`; absent means `teach` |
-| `version` | Format stamp; absent means v1 |
-| `messages` | Complete stored chronological history, including custom app markers |
-| `tree` | Optional session plan: nodes, prerequisite edges, revision number |
-| `turns`, `extractions` | Parallel usage/cost-observation logs, not learner answers |
-| `settings` | Per-session model/thinking overrides, not an understanding assessment |
+| `id`, `title` | Identidad estable de la sesión y nombre visible para el usuario |
+| `createdAt`, `updatedAt` | Fechas ISO de la sesión, no una fecha para cada idea |
+| `kind` | `teach` o `practice`; si falta, equivale a `teach` |
+| `version` | Marca de formato; si falta, equivale a v1 |
+| `messages` | Historial cronológico completo guardado, incluidas las marcas personalizadas de la app |
+| `tree` | Plan opcional de la sesión: nodos, aristas de prerrequisito, número de revisión |
+| `turns`, `extractions` | Registros paralelos de uso y observación de coste, no respuestas del alumno |
+| `settings` | Ajustes de modelo y razonamiento propios de la sesión, no una evaluación de la comprensión |
 
-The plan is session scaffolding, not the persistent knowledge graph. Its visited
-or current positions are not proof of mastery. Context compaction changes what the
-teaching model sees; it does **not** mean earlier messages were deleted from this
-stored history.
+El plan es un andamiaje de la sesión, no el grafo de conocimiento persistente. Sus
+posiciones visitadas o actuales no demuestran dominio. La compactación del contexto cambia lo
+que ve el modelo de enseñanza; **no** significa que se borraran los mensajes anteriores de
+este historial guardado.
 
-### Messages and content blocks
+### Mensajes y bloques de contenido
 
-Messages carry an application `id` and usually a millisecond Unix `timestamp`.
-Native roles are:
+Los mensajes llevan un `id` de la aplicación y normalmente un `timestamp` Unix en
+milisegundos. Los roles nativos son:
 
-- `user`: learner prose; `content` can be a string or text/image blocks.
-- `assistant`: `content` is an array of `text`, `thinking`, and `toolCall` blocks.
-  `thinking` here is **agent reasoning**, not learner thinking.
-- `toolResult`: result of a call, identified by `toolCallId` and `toolName`.
-  `content` is often only a compact model-facing summary; `details` can be richer.
-- `custom`: an application event identified by `customType`. Some contain
-  irreplaceable learner work or teaching artifacts, so do not discard this role.
+- `user`: prosa del alumno; `content` puede ser una cadena o bloques de texto e imagen.
+- `assistant`: `content` es un array de bloques `text`, `thinking` y `toolCall`.
+  Aquí `thinking` es **razonamiento del agente**, no razonamiento del alumno.
+- `toolResult`: resultado de una llamada, identificado por `toolCallId` y `toolName`.
+  `content` suele ser solo un resumen compacto dirigido al modelo; `details` puede ser más rico.
+- `custom`: un evento de la aplicación identificado por `customType`. Algunos contienen
+  trabajo del alumno o artefactos de enseñanza insustituibles, así que no descartes este rol.
 
-An assistant tool call has roughly this shape:
+Una llamada a herramienta del asistente tiene más o menos esta forma:
 
 ```json
 {
@@ -77,157 +79,170 @@ An assistant tool call has roughly this shape:
 }
 ```
 
-This is an illustrative fragment, not a valid complete question fixture. Tool
-arguments are authored by the teacher; correct answers, explanations, and practice
-solutions can already be stored before the learner answers. A call without a
-learner-result message may be pending or interrupted; never invent an answer.
-An `isError: true` result means the call failed, not that its contents were
-successfully posed or taught.
+Es un fragmento ilustrativo, no un fixture de pregunta completo y válido. Los argumentos de
+las herramientas los escribe el profesor; las respuestas correctas, las explicaciones y las
+soluciones de práctica pueden estar ya guardadas antes de que responda el alumno. Una llamada
+sin mensaje de resultado del alumno puede estar pendiente o interrumpida; no inventes nunca
+una respuesta. Un resultado con `isError: true` significa que la llamada falló, no que su
+contenido se planteara o enseñara con éxito.
 
-Some historical fields contain JSON encoded inside a string where an array/object
-was intended. If inspecting them, decode in memory only and keep the original
-record unchanged. Do not evaluate text as code. Historical LaTeX escaping mistakes
-can also be present in the source; a readable transcript is not a data-repair pass.
+Algunos campos históricos contienen JSON codificado dentro de una cadena donde debía haber un
+array u objeto. Si los inspeccionas, decodifícalos solo en memoria y deja el registro
+original sin cambios. No evalúes texto como código. En el origen también puede haber errores
+históricos de escapado de LaTeX; una transcripción legible no es una pasada de reparación de
+datos.
 
-### Questions and answers: where the evidence actually lives
+### Preguntas y respuestas: dónde está realmente la evidencia
 
-Question tools include `ask_user_question`, `probe`, `quiz`, `recall`, and `explain`.
-Probe/quiz are multiple-choice checks; recall/explain use a teacher-committed answer
-and the learner's own words. Ask questions clarify goals/preferences and are not
-graded quizzes. Older records can use older tool names or lack newer type fields.
+Las herramientas de preguntas incluyen `ask_user_question`, `probe`, `quiz`, `recall` y
+`explain`. Probe y quiz son comprobaciones de opción múltiple; recall y explain usan una
+respuesta comprometida por el profesor y las propias palabras del alumno. Las preguntas de
+tipo ask aclaran objetivos o preferencias y no son cuestionarios calificados. Los registros
+antiguos pueden usar nombres de herramienta antiguos o carecer de campos de tipo más nuevos.
 
-A question's learner response is a separate `toolResult` message. Prefer its
-**`details`** payload: `content[*].text` deliberately omits material already in
-the call, including some question/options/solution fields. The reader deduplicates
-that compact content only after verifying it adds nothing to the full snapshot.
-Extra or conflicting content is retained as a separately attributed source, not
-silently reconciled; `--include-operations` also restores verified duplicates.
+La respuesta del alumno a una pregunta es un mensaje `toolResult` aparte. Da preferencia a su
+contenido **`details`**: `content[*].text` omite a propósito material que ya está en la
+llamada, incluidos algunos campos de pregunta, opciones y solución. El lector elimina ese
+contenido compacto duplicado solo después de comprobar que no añade nada a la instantánea
+completa. El contenido adicional o contradictorio se conserva como una fuente atribuida por
+separado, sin conciliarlo en silencio; `--include-operations` también recupera los duplicados
+verificados.
 
-Important answer-detail fields:
+Campos importantes del detalle de la respuesta:
 
-| Field | Meaning |
+| Campo | Significado |
 | --- | --- |
-| `kind` | `quiz`, `ask`, or `explain` |
-| `tool`, `questionType` | Optional tool/role snapshots; a quiz can be `predict` or `check` |
-| `questionText`, `options` | Question and displayed-option snapshots |
-| `answers` | Selected `{label, value, index}` tuples; index is 1-based **display order** |
-| `text`, `other` | Free-text response or ask's Other answer |
-| `dontKnow`, `dismissed` | Explicit don't-know or skipped state |
-| `thinking` | Learner reasoning about the question |
-| `note` | Legacy name for that same channel; use `thinking ?? note` |
-| `readingThinking` | Separate learner thinking while reading the teaching |
-| `confidence` | Self-reported 0–100 probability that the selected quiz answer is correct |
-| `correct`, `correctIndices` | Mechanical quiz grading in displayed-option order |
-| `committed`, `explanation` | Teacher's committed answer / quiz explanation, not learner speech |
-| `answeredAt` | ISO answer timestamp |
+| `kind` | `quiz`, `ask` o `explain` |
+| `tool`, `questionType` | Instantáneas opcionales de la herramienta y el rol; un quiz puede ser `predict` o `check` |
+| `questionText`, `options` | Instantáneas de la pregunta y de las opciones mostradas |
+| `answers` | Tuplas `{label, value, index}` seleccionadas; el índice empieza en 1 y sigue el **orden de presentación** |
+| `text`, `other` | Respuesta de texto libre o respuesta «Otra» de una pregunta ask |
+| `dontKnow`, `dismissed` | Estado explícito de «no lo sé» u omitida |
+| `thinking` | Razonamiento del alumno sobre la pregunta |
+| `note` | Nombre heredado de ese mismo canal; usa `thinking ?? note` |
+| `readingThinking` | Razonamiento aparte del alumno mientras lee la explicación |
+| `confidence` | Probabilidad autodeclarada (0–100) de que la respuesta de quiz elegida sea correcta |
+| `correct`, `correctIndices` | Calificación mecánica del quiz en el orden de las opciones mostradas |
+| `committed`, `explanation` | Respuesta comprometida del profesor o explicación del quiz, no palabras del alumno |
+| `answeredAt` | Marca temporal ISO de la respuesta |
 
-**Options are shuffled.** Never apply a learner's display index to the raw call's
-authored option order. Use the answer snapshot and its label/value tuples. Missing
-confidence is not zero, and no confidence is sent for don't-know. The slider's 50%
-resting value is a real recorded 50%, but the record cannot tell whether it was
-left untouched or chosen deliberately.
+**Las opciones se barajan.** No apliques nunca el índice de presentación del alumno al orden
+original de las opciones en la llamada. Usa la instantánea de la respuesta y sus tuplas
+label/value. Una confianza ausente no es cero, y con «no lo sé» no se envía confianza. El
+50 % en que reposa el deslizador es un 50 % registrado de verdad, pero el registro no permite
+saber si se dejó sin tocar o se eligió deliberadamente.
 
-Retain incorrect responses, failed attempts, skipped questions, and don't-know;
-they are evidence, not noise to clean up. Do not invent a numeric grade for a
-recall/explain response: the teacher's subsequent prose is its interpretation.
+Conserva las respuestas incorrectas, los intentos fallidos, las preguntas omitidas y los «no
+lo sé»; son evidencia, no ruido que limpiar. No inventes una nota numérica para una respuesta
+de recall o explain: la prosa posterior del profesor es su interpretación.
 
-### Practice and custom markers
+### Práctica y marcas personalizadas
 
-| `customType` | Interpretation |
+| `customType` | Interpretación |
 | --- | --- |
-| `practice-thinking` | **Learner-authored work**, including intermediate attempts and claimed answers; raw text is `details.text`, associated through `details.problemCallId` |
-| `graph-context` | Picked propositions/chains supplied as session context; app-injected, not learner speech |
-| `plan-block` | Historical plan presentation snapshot in `details.block` |
-| `subagent-steer` | Delivered teaching artifact; `details.kind` and `details.result` identify the payload |
-| `subagent-abort` | Background work was aborted; no result should be invented |
-| `probe-handoff` | Probe-to-teach transition |
-| `practice-next` | Learner moved on to another problem |
-| `problem-dismissed` | Learner skipped a practice problem; points to its problem call |
-| `compaction` | Context-management bookkeeping, not a learner statement or replacement for history |
+| `practice-thinking` | **Trabajo escrito por el alumno**, incluidos intentos intermedios y respuestas que da por buenas; el texto en bruto está en `details.text` y se asocia mediante `details.problemCallId` |
+| `graph-context` | Proposiciones y cadenas elegidas que se aportan como contexto de la sesión; las inyecta la app, no son palabras del alumno |
+| `plan-block` | Instantánea histórica de la presentación del plan en `details.block` |
+| `subagent-steer` | Artefacto de enseñanza entregado; `details.kind` y `details.result` identifican el contenido |
+| `subagent-abort` | Se abortó un trabajo en segundo plano; no hay que inventar ningún resultado |
+| `probe-handoff` | Transición del sondeo a la enseñanza |
+| `practice-next` | El alumno pasó a otro problema |
+| `problem-dismissed` | El alumno omitió un problema de práctica; apunta a la llamada de su problema |
+| `compaction` | Contabilidad de la gestión del contexto, no una afirmación del alumno ni un sustituto del historial |
 
-The practice `problem` tool holds the statement, target proposition IDs, and
-precommitted `modelSolution`. There may be many `practice-thinking` submissions for
-one problem. `conclude` carries the teacher's outcome/verdict; a dismissal can be
-recorded before its synthetic conclude pair appears. Preserve the sequence rather
-than treating only the last submission as the learner's work.
+La herramienta de práctica `problem` contiene el enunciado, los ID de las proposiciones
+objetivo y la `modelSolution` comprometida de antemano. Puede haber muchos envíos
+`practice-thinking` para un mismo problema. `conclude` lleva el resultado o veredicto del
+profesor; un descarte puede registrarse antes de que aparezca su par sintético de conclude.
+Conserva la secuencia en lugar de tratar solo el último envío como el trabajo del alumno.
 
-Call IDs may repeat in older records. When joining, associate a result with the
-nearest matching **preceding** call; a whole-session last-wins map can attach it
-to a later call. Message IDs distinguish occurrences. Neither source order nor
-learner attribution should be reconstructed from model-compacted context.
+En los registros antiguos los ID de llamada pueden repetirse. Al unirlos, asocia cada
+resultado con la llamada coincidente **anterior** más cercana; un mapa de toda la sesión en
+el que gane la última puede asignarlo a una llamada posterior. Los ID de mensaje distinguen
+las apariciones. Ni el orden de las fuentes ni la atribución al alumno deben reconstruirse a
+partir del contexto compactado por el modelo.
 
-### Delivered artifacts
+### Artefactos entregados
 
-`subagent-steer.details.result` contains the stored artifact:
+`subagent-steer.details.result` contiene el artefacto guardado:
 
-- Research: `brief`, plus `sources` containing titles/URLs.
-- PDF reading: `path`, `question`, `brief`, `pagesRead`, `pagesConsulted`.
-  These page lists are citations/audit information, not the original document.
-- Demo: `title`, `notes`, and executable `html`.
-- Visual: `notes` and `svg` markup.
+- Investigación: `brief`, más `sources` con títulos y URL.
+- Lectura de PDF: `path`, `question`, `brief`, `pagesRead`, `pagesConsulted`.
+  Estas listas de páginas son citas e información de auditoría, no el documento original.
+- Demo: `title`, `notes` y `html` ejecutable.
+- Visual: `notes` y marcado `svg`.
 
-Readable briefs and notes belong to the learning record. Demo HTML and SVG are
-artifacts to describe, not commands to execute while reading. Binary/image blocks
-can be large; their existence should be noted without dumping encoded bytes. No
-reader needs to open the original PDF or notes file merely to read these records.
+Los informes y notas legibles forman parte del registro de aprendizaje. El HTML de las demos
+y el SVG son artefactos que hay que describir, no comandos que ejecutar al leer. Los bloques
+binarios o de imagen pueden ser grandes; hay que señalar que existen sin volcar los bytes
+codificados. Ningún lector necesita abrir el PDF o el fichero de notas original solo para leer
+estos registros.
 
-## The graph: assertions must be merged, not counted as unique lines
+## El grafo: las afirmaciones hay que fusionarlas, no contarlas como líneas únicas
 
-### Propositions (`nodes.jsonl`)
+### Proposiciones (`nodes.jsonl`)
 
-Each line contains `id`, `name`, `statement`, `aliases`, `createdAt`, and
-`provenance`—an array of `{chatId, messageId}` points.
+Cada línea contiene `id`, `name`, `statement`, `aliases`, `createdAt` y `provenance` (un
+array de puntos `{chatId, messageId}`).
 
-- A short `name` is a display label, **not** a unique identity or full claim.
-- The **first line for an ID** defines its name, statement, and creation date.
-- Later lines' nonempty statements and aliases join the aliases with exact-string
-  deduplication. Later names do not replace the name or become aliases.
-- Provenance unions by exact `(chatId, messageId)` pair, retaining encounter order.
-- Do not deduplicate different node IDs just because their labels look alike.
+- Un `name` corto es una etiqueta de presentación, **no** una identidad única ni la
+  afirmación completa.
+- La **primera línea de un ID** define su nombre, enunciado y fecha de creación.
+- Los enunciados y alias no vacíos de las líneas posteriores se añaden a los alias,
+  eliminando duplicados por cadena exacta. Los nombres posteriores no sustituyen al nombre
+  ni se convierten en alias.
+- La procedencia se une por el par exacto `(chatId, messageId)`, conservando el orden de
+  aparición.
+- No elimines como duplicados ID de nodo distintos solo porque sus etiquetas se parezcan.
 
-### Reasoning chains (`chains.jsonl`)
+### Cadenas de razonamiento (`chains.jsonl`)
 
-Each line contains `id`, `premises` (node IDs), `conclusion` (node ID), `createdAt`,
-and `provenance`. **All premises within a chain are used together.** Different
-chains with the same conclusion are separate arguments, not one pooled premise
-set. Merge repeated assertions by the sorted premise list plus conclusion, keeping
-the first assertion's ID, premise order, and date; union provenance.
+Cada línea contiene `id`, `premises` (ID de nodo), `conclusion` (ID de nodo), `createdAt` y
+`provenance`. **Todas las premisas de una cadena se usan juntas.** Cadenas distintas con la
+misma conclusión son argumentos separados, no un único conjunto de premisas combinado.
+Fusiona las afirmaciones repetidas por la lista ordenada de premisas más la conclusión,
+conservando el ID, el orden de premisas y la fecha de la primera afirmación; une la
+procedencia.
 
-The graph canvas derives arrows and implication junctions from these records.
-Those visual edges are not the stored truth and can lose the joint-premise
-structure. Read chains directly. Missing endpoints are reported as missing, not
-silently substituted or repaired.
+El lienzo del grafo deriva flechas y uniones de implicación a partir de estos registros. Esas
+aristas visuales no son la verdad guardada y pueden perder la estructura de premisas
+conjuntas. Lee las cadenas directamente. Los extremos que falten se informan como ausentes,
+sin sustituirlos ni repararlos en silencio.
 
-### Sources, birth sessions, and provenance
+### Fuentes, sesiones de nacimiento y procedencia
 
-A node's **birth source** is `provenance[0].chatId` after merging—the first surviving
-point, not the earliest timestamp and not every session that mentioned it.
-Graph session listings and `propositions --session` use this rule. A node with no
-provenance remains readable/searchable but belongs to no birth session.
+La **fuente de nacimiento** de un nodo es `provenance[0].chatId` tras la fusión: el primer
+punto superviviente, no la marca temporal más antigua ni todas las sesiones que lo
+mencionaron. Los listados de sesiones del grafo y `propositions --session` siguen esta regla.
+Un nodo sin procedencia sigue pudiendo leerse y buscarse, pero no pertenece a ninguna sesión
+de nacimiento.
 
-- `chat_…` IDs usually refer to session files. Use the matching `messageId` when
-  present to find the exact source message. Empty message IDs in older data are
-  chat-level attribution; they do not identify an exact message.
-- Imported notes use `src_…` source IDs. `sources.json` supplies `id`, `filePath`,
-  and `importedAt`; these source paths are references only.
-- Missing/deleted source metadata can leave a valid graph. The session index then
-  uses the source ID as its label and `file` as its fallback kind; this fallback
-  alone does not prove the source was an imported file.
-- Chat deletion and chain simplification can rewrite ledgers. They are normally
-  appended during extraction, but do not assume the files are immutable logs.
+- Los ID `chat_…` suelen referirse a ficheros de sesión. Usa el `messageId` correspondiente,
+  si existe, para encontrar el mensaje de origen exacto. Los ID de mensaje vacíos de los
+  datos antiguos son atribuciones a nivel de chat; no identifican un mensaje exacto.
+- Las notas importadas usan ID de fuente `src_…`. `sources.json` aporta `id`, `filePath` e
+  `importedAt`; estas rutas de origen son solo referencias.
+- Si faltan los metadatos de una fuente o se borraron, el grafo puede seguir siendo válido.
+  En ese caso el índice de sesiones usa el ID de la fuente como etiqueta y `file` como tipo
+  de respaldo; ese respaldo, por sí solo, no demuestra que la fuente fuera un fichero
+  importado.
+- Borrar un chat y simplificar cadenas puede reescribir los registros. Normalmente se añaden
+  durante la extracción, pero no supongas que los ficheros son registros inmutables.
 
-Graph `sessions.jsonl` records extraction checkpoints, and `coverage.jsonl` records
-fingerprints of extracted teacher text. Neither is a session catalog, quiz-event
-ledger, mastery scale, or record of every idea the learner personally endorsed.
-Practice does not itself write new propositions to the graph.
+El `sessions.jsonl` del grafo registra los puntos de control de la extracción, y
+`coverage.jsonl` registra huellas del texto del profesor ya extraído. Ninguno de los dos es un
+catálogo de sesiones, un registro de eventos de quiz, una escala de dominio ni un registro de
+todas las ideas que el alumno haya suscrito personalmente. La práctica no escribe por sí misma
+proposiciones nuevas en el grafo.
 
-## Reader limits
+## Límites de los lectores
 
-The readers intentionally stop short of analysis: no inferred mastery, scoring,
-semantic search, transitive traversal, or automatic report generation. Their JSON
-output can be processed further, or you can read the native files directly.
+Los lectores se detienen a propósito antes del análisis: no infieren dominio, no puntúan, no
+hacen búsqueda semántica, recorridos transitivos ni generación automática de informes. Su
+salida JSON puede procesarse después, o puedes leer directamente los ficheros nativos.
 
-Malformed/unsupported records must be identified, not silently counted as valid.
-The app may be writing while a reader runs, so a directory-wide read is not an
-atomic snapshot. Re-read or close the app for a stable comparison. Never introduce
-locks, migrations, cleanup, or source-file edits to make a read succeed.
+Los registros mal formados o no admitidos deben señalarse, no contarse en silencio como
+válidos. La app puede estar escribiendo mientras se ejecuta un lector, así que una lectura de
+todo el directorio no es una instantánea atómica. Vuelve a leer o cierra la app para hacer una
+comparación estable. No introduzcas nunca bloqueos, migraciones, limpiezas ni ediciones de los
+ficheros de origen para que una lectura funcione.
