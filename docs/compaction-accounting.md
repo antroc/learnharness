@@ -1,116 +1,122 @@
-# Context, caching, and costs
+# Contexto, caché y costes
 
-Click the context/cost row beneath the composer to open **Session stats**. The context measurement, cache-hit rate, and dollar estimate answer different questions; none is a provider invoice or a guarantee about the next request.
+Haz clic en la fila de contexto/coste que hay bajo el compositor para abrir **Estadísticas de la sesión**. La medida del contexto, la tasa de aciertos de caché y la estimación en dólares responden a preguntas distintas; ninguna es una factura del proveedor ni una garantía sobre la siguiente petición.
 
-## Conversation meter
+## Medidor de la conversación
 
-The numerator is the latest qualifying completed conversation response's native Pi **input + output + cache read + cache write** tokens. Reasoning is already included in output. Partial updates, errors, aborts, invalid counts, and all-zero usage do not replace the last measurement. Summarizer usage never supplies this meter.
+El numerador son los tokens nativos de Pi de **entrada + salida + lectura de caché + escritura en caché** de la última respuesta completada de la conversación que cumpla los requisitos. El razonamiento ya está incluido en la salida. Las actualizaciones parciales, los errores, las interrupciones, los recuentos no válidos y los usos con todo a cero no sustituyen a la última medida. El uso del resumidor nunca alimenta este medidor.
 
-The denominator follows the selected model's catalog limit. Custom models use their pinned/reported/fallback budget. Claude Code instead uses a valid CLI-reported effective budget for this session's matching model, which may be lower because of CLI auto-compaction. Missing limits remain unknown, not invented.
+El denominador sigue el límite del catálogo para el modelo seleccionado. Los modelos personalizados usan su presupuesto fijado/informado/de respaldo. Claude Code usa en cambio un presupuesto efectivo válido informado por la CLI para el modelo coincidente de esta sesión, que puede ser menor por la compactación automática de la CLI. Los límites que faltan se quedan como desconocidos, no se inventan.
 
-Changing models keeps the numerator but does not borrow another model's CLI budget. Successful compaction invalidates earlier measurements: `? / maximum` remains until a new qualifying response; CLI budget metadata is invalidated too.
+Cambiar de modelo mantiene el numerador, pero no toma prestado el presupuesto de la CLI de otro modelo. Una compactación correcta invalida las medidas anteriores: se muestra `? / máximo` hasta que llega una nueva respuesta que cumpla los requisitos; los metadatos del presupuesto de la CLI también se invalidan.
 
-### Observed cache-hit rate
+### Tasa de aciertos de caché observada
 
-Expanded Session stats shows **Cache hit rate** only after positive cache reads are recorded and inputs are valid. It is a session-wide, prompt-token-weighted ratio, not an average of per-call percentages:
+Las Estadísticas de la sesión expandidas muestran la **Tasa de aciertos de caché** solo cuando se han registrado lecturas de caché positivas y las entradas son válidas. Es una proporción de toda la sesión, ponderada por tokens del prompt, no una media de los porcentajes de cada llamada:
 
 ```text
 sum(cache read) / sum(fresh input + cache read + cache write)
 ```
 
-Output is excluded; one-hour writes are a subset of writes and are not counted twice. Missing cache counts mean no recorded reuse, not proven misses. This describes observed usage, not cache warmth, future hits, savings, or retention duration. See [`sessionCacheHitRate`](../src/core/prices.ts).
+La salida queda excluida; las escrituras de una hora son un subconjunto de las escrituras y no se cuentan dos veces. La falta de recuentos de caché significa que no se ha registrado reutilización, no que se hayan demostrado fallos. Esto describe el uso observado, no si la caché está caliente, ni aciertos futuros, ni ahorros, ni la duración de la retención. Consulta [`sessionCacheHitRate`](../src/core/prices.ts).
 
-## Prompt-cache retention
+## Retención de la caché de prompts
 
-Under **Settings → Agent → Models → Show advanced settings**, each Strong/Cheap/Vision slot has a **Cache** dropdown. Hiding advanced settings does not reset it.
+En **Ajustes → Agente → Modelos → Mostrar ajustes avanzados**, cada ranura Potente/Barato/Visión tiene un desplegable **Caché**. Ocultar los ajustes avanzados no lo restablece.
 
-| Choice | Request behavior |
+| Opción | Comportamiento de la petición |
 | --- | --- |
-| Pi default | Leave `cacheRetention` unset, preserving Pi behavior, including `PI_CACHE_RETENTION=long` where honored. |
-| Don’t request caching | Pass Pi's `none` preference; providers may still cache automatically. |
-| Short retention | Pass Pi's `short` preference. |
-| Long retention | Pass Pi's `long` preference; cache writes may cost more. |
+| Predeterminado de Pi | Deja `cacheRetention` sin definir y conserva el comportamiento de Pi, incluido `PI_CACHE_RETENTION=long` donde se respete. |
+| No solicitar caché | Pasa la preferencia `none` de Pi; los proveedores pueden seguir cacheando automáticamente. |
+| Retención corta | Pasa la preferencia `short` de Pi. |
+| Retención larga | Pasa la preferencia `long` de Pi; las escrituras en caché pueden costar más. |
 
-These are **provider-dependent preferences**, not fixed-duration or cache-hit promises. Some adapters ignore them, subscription transports may omit them, and custom endpoints may reject unsupported parameters. LearnHarness does not retry with a different preference.
+Son **preferencias que dependen del proveedor**, no promesas de una duración fija ni de aciertos de caché. Algunos adaptadores las ignoran, los transportes por suscripción pueden omitirlas y los endpoints personalizados pueden rechazar parámetros no admitidos. LearnHarness no reintenta con otra preferencia.
 
-Sessions inherit Strong's retention preference while keeping their own model choices. Background roles inherit their assigned slot's preference, even with a model override; summarization uses the conversation preference. Changes apply at the next model request, including an existing loop, without altering an in-flight call or issuing warm-up calls. Explicit choices override Pi's retention environment preference; Pi default removes the explicit choice.
+Las sesiones heredan la preferencia de retención de Potente y conservan sus propias elecciones de modelo. Los roles en segundo plano heredan la preferencia de la ranura que tengan asignada, incluso con un modelo personalizado; el resumen usa la preferencia de la conversación. Los cambios se aplican en la siguiente petición al modelo, también dentro de un bucle existente, sin alterar una llamada en curso ni lanzar llamadas de precalentamiento. Las elecciones explícitas prevalecen sobre la preferencia de retención del entorno de Pi; Predeterminado de Pi elimina la elección explícita.
 
-For supported Anthropic routes, Short/Long map to five minutes/one hour, with cache writes costing 1.25×/2× ordinary input; reads use discounted cache-read pricing. Longer retention can help across pauses but cost more for a single call or short job. Other providers differ. Consult [Anthropic caching](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) and [OpenAI caching](https://developers.openai.com/api/docs/guides/prompt-caching) for current mappings/prices.
+En las rutas de Anthropic compatibles, Corta/Larga equivalen a cinco minutos/una hora, y las escrituras en caché cuestan 1,25×/2× la entrada normal; las lecturas usan el precio rebajado de lectura de caché. Una retención más larga puede ayudar cuando hay pausas, pero cuesta más en una sola llamada o en una tarea corta. Otros proveedores funcionan de otra manera. Consulta la [caché de Anthropic](https://platform.claude.com/docs/en/build-with-claude/prompt-caching) y la [caché de OpenAI](https://developers.openai.com/api/docs/guides/prompt-caching) para ver las equivalencias y los precios actuales.
 
-## Spending
+## Gasto
 
-The server uses Pi AI's catalog and public `calculateCost`; the browser receives derived estimates, not a separate rate table. Catalog updates can reprice history without mutating saved usage.
+El servidor usa el catálogo de Pi AI y su `calculateCost` público; el navegador recibe estimaciones derivadas, no una tabla de tarifas aparte. Las actualizaciones del catálogo pueden recalcular el precio del historial sin modificar el uso guardado.
 
-| Route | Meaning |
+| Ruta | Significado |
 | --- | --- |
-| API providers | Dollar estimates when catalog model and required usage detail are available. |
-| Built-in subscription connections | Labelled plan usage through explicit logical provider IDs, not API dollars. |
-| [Claude Code](claude-code.md) | CLI tokens retained; dollar costs unpriced. CLI result-line dollar totals are not imported; routing/billing belongs to the CLI. |
-| [Custom/local endpoints](custom-providers.md) | Tokens retained; unknown/unpriced costs, not $0. No rate editor. |
+| Proveedores de API | Estimaciones en dólares cuando están disponibles el modelo del catálogo y el detalle de uso necesario. |
+| Conexiones por suscripción integradas | Uso del plan etiquetado mediante ID de proveedor lógicos explícitos, no dólares de API. |
+| [Claude Code](claude-code.md) | Se conservan los tokens de la CLI; los costes en dólares quedan sin precio. No se importan los totales en dólares de la línea de resultado de la CLI; el enrutamiento y la facturación son cosa de la CLI. |
+| [Endpoints personalizados/locales](custom-providers.md) | Se conservan los tokens; costes desconocidos/sin precio, no 0 $. No hay editor de tarifas. |
 
-Mixed sessions sum known API estimates and retain subscription/CLI labels. Unpriced turns remain unpriced, not free. Summarizer spending counts under the same rules but does not populate the conversation meter.
+Las sesiones mixtas suman las estimaciones de API conocidas y conservan las etiquetas de suscripción/CLI. Los turnos sin precio siguen sin precio, no son gratis. El gasto del resumidor se cuenta con las mismas reglas, pero no alimenta el medidor de la conversación.
 
-Saved input counts are Pi-normalized **fresh input**, disjoint from cache buckets; do not subtract cached reads again. Old records missing a cache-write retention split, or tier-priced multi-call jobs missing per-call detail, stay unpriced where that detail could change the result. They are not reconstructed from aggregates. Flat-rate historical jobs can remain priceable with sufficient counts.
+Los recuentos de entrada guardados son **entrada nueva** normalizada por Pi, separada de los apartados de caché; no restes otra vez las lecturas cacheadas. Los registros antiguos a los que les falta el desglose de retención de las escrituras en caché, o las tareas de varias llamadas con precio por tramos a las que les falta el detalle por llamada, siguen sin precio cuando ese detalle podría cambiar el resultado. No se reconstruyen a partir de agregados. Las tareas históricas con tarifa plana pueden seguir teniendo precio si los recuentos bastan.
 
-## Compaction and maintainer references
+## Compactación y referencias para mantenedores
 
-Compaction summarizes older context for future requests; original messages remain stored. The next-request estimate is separate from the displayed last-call measurement: it anchors on reported usage, estimates later messages, and falls back to active-transcript/system-prompt heuristics. The trigger is the smaller of the configured threshold and catalog window minus reserve. Unknown catalog windows use the configured threshold alone; CLI display metadata does not change that trigger.
+La compactación resume el contexto antiguo para las peticiones futuras; los mensajes originales siguen guardados. La estimación de la siguiente petición es independiente de la medida de la última llamada que se muestra: se ancla en el uso informado, estima los mensajes posteriores y recurre a heurísticas sobre la transcripción activa y el prompt del sistema. El disparador es el menor entre el umbral configurado y la ventana del catálogo menos la reserva. Si la ventana del catálogo es desconocida, se usa solo el umbral configurado; los metadatos de visualización de la CLI no cambian ese disparador.
 
-[`src/core/compaction.ts`](../src/core/compaction.ts) ports cutoff selection and default sizing heuristics from **@earendil-works/pi-coding-agent 1.4.0**, without a coding-agent dependency. It walks backward to an approximate **20,000-token retained tail**, selecting a valid user/assistant boundary and preserving preceding calls when trailing results require them. Text/thinking/tool names/arguments use characters ÷ 4; images get a fixed 1,200-token allowance. Whole messages can overshoot; this is not an exact size guarantee, and encrypted signatures are not measured or stripped.
+[`src/core/compaction.ts`](../src/core/compaction.ts) adapta la selección del punto de corte y las heurísticas de tamaño por defecto de **@earendil-works/pi-coding-agent 1.4.0**, sin depender del agente de programación. Recorre hacia atrás hasta una **cola conservada de unos 20.000 tokens**, eligiendo un límite válido entre usuario y asistente y conservando las llamadas anteriores cuando los resultados finales las necesitan. El texto, el razonamiento, los nombres de herramientas y los argumentos se miden como caracteres ÷ 4; las imágenes reciben una asignación fija de 1.200 tokens. Los mensajes completos pueden pasarse; no es una garantía de tamaño exacta, y las firmas cifradas no se miden ni se eliminan.
 
-LearnHarness retains its own educational summary prompt, plan continuity, scheduling, authorization, and persistence. A cut dropping no history does not summarize. Requests include the latest summary once, then the retained transcript; later summaries receive the prior summary once plus newly superseded material. Unresolved cutoffs retain the existing full-history fallback. Output-limit (`length`) summaries fail rather than checkpointing incomplete output.
+LearnHarness mantiene su propio prompt de resumen educativo, la continuidad del plan, la planificación de tareas, la autorización y la persistencia. Un corte que no descarta historial no genera resumen. Las peticiones incluyen una vez el último resumen y después la transcripción conservada; los resúmenes posteriores reciben una vez el resumen anterior más el material que acaba de quedar superado. Los puntos de corte sin resolver mantienen el respaldo existente con el historial completo. Los resúmenes que agotan el límite de salida (`length`) fallan en lugar de guardar como punto de control una salida incompleta.
 
-### Optional reasoning-aware estimates (OpenAI Responses only)
+### Estimaciones opcionales que tienen en cuenta el razonamiento (solo OpenAI Responses)
 
-Under **Settings → Agent → Context**, immediately below the compaction threshold,
-**Include reasoning in token estimates (OpenAI Responses only)** enables a
-reasoning-aware extension to the native heuristic. It defaults **off**, including
-for existing settings without `compaction.includeReasoning`. Changes apply to
-future compaction checks, not a compaction already in progress, and do not recut
-existing summaries.
+En **Ajustes → Agente → Contexto**, justo debajo del umbral de compactación,
+**Incluir el razonamiento en las estimaciones de tokens (solo OpenAI Responses)**
+activa una extensión de la heurística nativa que tiene en cuenta el razonamiento.
+Está **desactivada** por defecto, también en los ajustes existentes sin
+`compaction.includeReasoning`. Los cambios se aplican a las comprobaciones de
+compactación futuras, no a una compactación en curso, y no vuelven a cortar los
+resúmenes existentes.
 
-The readable-content heuristic can substantially undercount a retained tail
-containing opaque reasoning, even when provider usage correctly triggers
-compaction. With the option on, saved response-level output usage supplies a
-**floor** on the readable-content estimate for assistant responses that:
+La heurística de contenido legible puede quedarse muy corta con una cola
+conservada que contenga razonamiento opaco, aunque el uso del proveedor dispare
+correctamente la compactación. Con la opción activada, el uso de salida guardado
+a nivel de respuesta proporciona un **mínimo** para la estimación del contenido
+legible en las respuestas del asistente que:
 
-- use `openai-responses` and match the selected model's API, provider, and model ID;
-- contain at least one thinking block with a nonempty `thinkingSignature`, even
-  when readable thinking is empty;
-- have valid positive safe-integer output usage and are not errored or aborted.
+- usan `openai-responses` y coinciden con la API, el proveedor y el ID del modelo seleccionado;
+- contienen al menos un bloque de razonamiento con un `thinkingSignature` no
+  vacío, aunque el razonamiento legible esté vacío;
+- tienen un uso de salida válido, positivo y entero seguro, y no han terminado
+  con error ni se han interrumpido.
 
-Output usage already includes reasoning: it is charged **once per response**, not
-per thinking block, and is not added to the readable estimate. The estimator
-never converts ciphertext length to tokens or uses context-wide input/total
-usage as a per-message size. Other models, APIs (including OpenRouter's Chat
-Completions route), unsigned messages, and unusable output readings retain the
-original heuristic.
+El uso de salida ya incluye el razonamiento: se cuenta **una vez por respuesta**,
+no por bloque de razonamiento, y no se suma a la estimación legible. El estimador
+nunca convierte la longitud del texto cifrado en tokens ni usa la entrada o el
+total de todo el contexto como tamaño de un mensaje. Los demás modelos, las demás
+API (incluida la ruta Chat Completions de OpenRouter), los mensajes sin firma y
+las lecturas de salida inutilizables mantienen la heurística original.
 
-The option affects retained-tail cutoff selection and next-request estimates in
-both the turn-start gate and background settle check, including the fallback
-immediately after compaction invalidates the previous provider-usage anchor.
-Provider-reported usage anchors otherwise remain unchanged. Saved output usage
-is a replay-size proxy, not an exact measurement of the next request: neither
-mode guarantees a measured 20k tail. The threshold, recent-tail budget, and
-assistant/tool/question boundary rules are unchanged.
+La opción afecta a la selección del punto de corte de la cola conservada y a las
+estimaciones de la siguiente petición, tanto en la comprobación al inicio del
+turno como en la comprobación de cierre en segundo plano, incluido el respaldo
+justo después de que una compactación invalide el ancla anterior de uso del
+proveedor. Por lo demás, las anclas de uso informadas por el proveedor no cambian.
+El uso de salida guardado es una aproximación del tamaño al reproducir, no una
+medida exacta de la siguiente petición: ningún modo garantiza una cola medida de
+20k. El umbral, el presupuesto de la cola reciente y las reglas de límites entre
+asistente, herramienta y pregunta no cambian.
 
-This option does **not** add thinking text to the summarizer's input, strip
-signatures, rewrite saved history, or change the conversation meter. Regression
-coverage: [reasoning accounting](../tests/compaction-reasoning.test.ts),
-[both service entrypoints and an identical-snapshot on/off comparison](../tests/compaction-service.test.ts),
-[settings persistence/defaults](../tests/settings-store.test.ts), and
-[Settings toggle](../tests/render-settings.test.tsx). The comparison uses a fixed
-synthetic summary and saved usage; it does not measure real provider input.
+Esta opción **no** añade el texto del razonamiento a la entrada del resumidor, ni
+elimina firmas, ni reescribe el historial guardado, ni cambia el medidor de la
+conversación. Cobertura de regresión: [contabilidad del razonamiento](../tests/compaction-reasoning.test.ts),
+[ambos puntos de entrada del servicio y una comparación activada/desactivada sobre una instantánea idéntica](../tests/compaction-service.test.ts),
+[persistencia y valores por defecto de los ajustes](../tests/settings-store.test.ts) y
+[el interruptor de Ajustes](../tests/render-settings.test.tsx). La comparación usa
+un resumen sintético fijo y un uso guardado; no mide la entrada real del proveedor.
 
-### Implementation references
+### Referencias de implementación
 
-Implementation: [`server/compaction.ts`](../src/server/compaction.ts), [`context-usage.ts`](../src/core/context-usage.ts), [`server/pricing.ts`](../src/server/pricing.ts). Regressions: `compaction-native-parity`, `context-usage`, `pricing-native-parity`, `subscription-usage`, and `session-cache-hit-rate` under `tests/`, plus CLI/custom-provider suites.
+Implementación: [`server/compaction.ts`](../src/server/compaction.ts), [`context-usage.ts`](../src/core/context-usage.ts), [`server/pricing.ts`](../src/server/pricing.ts). Regresiones: `compaction-native-parity`, `context-usage`, `pricing-native-parity`, `subscription-usage` y `session-cache-hit-rate` en `tests/`, además de las suites de la CLI y de proveedores personalizados.
 
-## Upstream attribution
+## Atribución del código de origen
 
-The cutoff/estimator port adapts MIT-licensed code from
-`@earendil-works/pi-coding-agent` 1.4.0, author Mario Zechner (published package
-metadata). The inspected `dist/core/compaction/compaction.js` SHA-256 is
+La adaptación del punto de corte y del estimador parte de código con licencia MIT
+de `@earendil-works/pi-coding-agent` 1.4.0, cuyo autor es Mario Zechner (según los
+metadatos del paquete publicado). El SHA-256 del `dist/core/compaction/compaction.js`
+inspeccionado es
 `f51e78ef1da66b5803fc91e185f07b968f8f989ab9326b7744958416aad3f6f6`.
 
 MIT License

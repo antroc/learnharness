@@ -1,186 +1,212 @@
-# Dialog, popup, and interaction contract
+# Contrato de diálogos, popups e interacción
 
-Core UI and plugin UI share interaction ownership, keyboard routing, focus and dismissal
-rules. Plugins use public `ctx.ui` helpers; the implementation modules described below
-are private host infrastructure, not plugin imports.
+La interfaz principal y la de los plugins comparten la propiedad de la interacción, el
+enrutado del teclado y las reglas de foco y de cierre. Los plugins usan los helpers públicos
+de `ctx.ui`; los módulos de implementación descritos más abajo son infraestructura privada
+del host, no importaciones para plugins.
 
-## Plugin presentation
+## Presentación en los plugins
 
-Public plugin dialogs and page-body surfaces have no visible host title/header row.
-Their required title supplies the accessible name. A muted corner X floats above
-edge-aligned scrolling content; plugins own visible headings and bottom actions.
-Surfaces fill their page-body bounds. `background?: "dimmed" | "opaque"` controls the
-surface background; the default `"dimmed"` uses the Chains-like translucent/blurred paint.
+Los diálogos públicos de plugins y las superficies del cuerpo de página no tienen una fila
+de título/cabecera visible del host. Su título obligatorio proporciona el nombre accesible.
+Una X discreta en la esquina flota sobre el contenido desplazable alineado a los bordes; los
+plugins se encargan de los encabezados visibles y de las acciones inferiores. Las superficies
+ocupan los límites del cuerpo de la página. `background?: "dimmed" | "opaque"` controla el
+fondo de la superficie; el valor por defecto, `"dimmed"`, usa el pintado translúcido y
+difuminado al estilo de Cadenas.
 
-## Interaction ownership
+## Propiedad de la interacción
 
-### Escape: one event, one owner
+### Escape: un evento, un propietario
 
-Only the topmost active interaction responds to a physical Escape event. This includes
-a focused editor that owns Escape, a menu above a dialog, or a child dialog above its parent.
+Solo la interacción activa superior responde a un evento físico de Escape. Esto incluye un
+editor con el foco que gestiona Escape, un menú encima de un diálogo o un diálogo hijo
+encima de su padre.
 
-- Leaf handlers get their normal opportunity before a containing surface dismisses.
-- A handled Escape cannot also dismiss a parent, cancel dictation or abort a turn.
-- Ownership is captured at the start of the event. Closing one surface does not let
-  the newly exposed surface handle that same key.
-- A surface that refuses dismissal still consumes Escape.
-- Explicit editor cancellation, including source/folder/session renaming, retains its
-  own semantics. There is no generic search-clear-first rule: model/provider/font/language
-  menus close, while sidebar search retains its query and leaves the field.
+- Los manejadores hoja tienen su oportunidad normal antes de que se cierre la superficie que
+  los contiene.
+- Un Escape ya gestionado no puede además cerrar un padre, cancelar el dictado ni abortar un
+  turno.
+- La propiedad se captura al empezar el evento. Cerrar una superficie no permite que la
+  superficie que queda al descubierto gestione esa misma tecla.
+- Una superficie que se niega a cerrarse consume igualmente el Escape.
+- La cancelación explícita en un editor, incluido renombrar fuentes, carpetas o sesiones,
+  conserva su propia semántica. No hay una regla genérica de «borrar primero la búsqueda»:
+  los menús de modelo/proveedor/fuente tipográfica/idioma se cierran, mientras que la búsqueda
+  de la barra lateral conserva su consulta y sale del campo.
 
-### Passive tooltips
+### Tooltips pasivos
 
-Tooltips do not own interaction layers or intercept Escape. They remain associated with
-their owning modal so their paint, hover/focus behavior and accessibility relationships
-remain valid above its frame.
+Los tooltips no son dueños de capas de interacción ni interceptan Escape. Siguen asociados a
+su modal propietario para que su pintado, su comportamiento al pasar el puntero o al recibir
+el foco y sus relaciones de accesibilidad sigan siendo válidos por encima de su marco.
 
-### Tab: no native navigation
+### Tab: sin navegación nativa
 
-Native browser Tab and Shift+Tab navigation is disabled, including in dialogs and popups.
-Explicit application bindings still apply within their eligible scope:
+La navegación nativa del navegador con Tab y Shift+Tab está desactivada, también en
+diálogos y popups. Los atajos explícitos de la aplicación siguen aplicándose dentro de su
+ámbito:
 
-- Plain Tab invokes the configured forward field-cycle action or question-choice row/thinking action.
-- Shift+Tab invokes the thinking-level cycle.
-- Shortcut rebinding can record Tab as a binding candidate.
+- Tab sin modificadores invoca la acción configurada de recorrer campos hacia delante o la
+  acción de fila de opción/razonamiento de la pregunta.
+- Shift+Tab invoca el cambio de nivel de razonamiento.
+- La reasignación de atajos puede registrar Tab como candidato a atajo.
 
-Modal focus scopes do not add boundary looping. Covered fields and thinking controls
-cannot receive these actions. Native-default prevention does not suppress target handlers.
+Los ámbitos de foco modales no añaden un bucle en los bordes. Los campos y los controles de
+razonamiento tapados no pueden recibir estas acciones. Evitar el comportamiento nativo por
+defecto no suprime los manejadores del destino.
 
-### Settings fields: Escape retains and commits
+### Campos de Ajustes: Escape conserva y confirma
 
-Escape in a focused settings text/number field claims the event, leaves the field through
-its normal blur/save path, and saves a valid value using the domain's validation and
-normalization. It does not close Settings or discard the typed value.
+Escape en un campo de texto/número de Ajustes con el foco reclama el evento, sale del campo
+por su ruta normal de pérdida de foco/guardado y guarda un valor válido usando la validación
+y la normalización del dominio. No cierra Ajustes ni descarta el valor escrito.
 
-Invalid values are not persisted; unsuccessful drafts and validation errors remain.
-Accepted saves display acknowledged canonical values, including normalization/clamping.
-A later Escape outside the field can close Settings. Explicit rename/cancel workflows
-remain separate.
+Los valores no válidos no se guardan; los borradores fallidos y los errores de validación se
+mantienen. Los guardados aceptados muestran los valores canónicos confirmados, incluida la
+normalización o el ajuste a límites. Un Escape posterior fuera del campo sí puede cerrar
+Ajustes. Los flujos explícitos de renombrar/cancelar siguen siendo independientes.
 
-Credential/custom-provider editors retain explicit Save/Cancel actions. Escape folds
-the expanded editor without saving credentials or closing Settings, after a focused leaf
-or higher menu has its turn. Unsaved drafts survive folding and switching editors until
-Settings closes.
+Los editores de credenciales y de proveedores personalizados conservan las acciones
+explícitas Guardar/Cancelar. Escape pliega el editor expandido sin guardar las credenciales
+ni cerrar Ajustes, después de que una hoja con el foco o un menú superior hayan tenido su
+turno. Los borradores sin guardar sobreviven al plegado y al cambio de editor hasta que se
+cierra Ajustes.
 
-A response without a valid canonical saved-settings record displays “Could not confirm
-saved settings. Your input has been kept.” Other HTTP/network errors retain their own
-messages. Late older responses cannot replace a newer acknowledged snapshot or its
-appearance. A pending save finishing after Settings reopens updates the current instance;
-older Settings/startup reads cannot undo an acknowledged save.
+Una respuesta sin un registro canónico válido de ajustes guardados muestra «No se han podido
+confirmar los ajustes guardados. Se ha conservado lo que has escrito.» Los demás errores
+HTTP/de red conservan sus propios mensajes. Las respuestas antiguas que llegan tarde no pueden
+sustituir una instantánea confirmada más reciente ni su aspecto. Un guardado pendiente que
+termina después de volver a abrir Ajustes actualiza la instancia actual; las lecturas
+anteriores de Ajustes o del arranque no pueden deshacer un guardado confirmado.
 
-### Initial focus and return
+### Foco inicial y retorno
 
-Explicit initial-focus targets take precedence. Otherwise a modal focuses:
+Los destinos de foco inicial explícitos tienen prioridad. Si no hay, un modal pone el foco en:
 
-1. Its first eligible editable text/number field.
-2. Its eligible content heading, if no field exists.
-3. Its accessible boundary or painted frame, not the close action.
+1. Su primer campo de texto/número editable que cumpla los requisitos.
+2. Su encabezado de contenido que cumpla los requisitos, si no hay ningún campo.
+3. Su límite accesible o su marco pintado, no la acción de cerrar.
 
-Disabled, read-only, hidden and inactive controls are ineligible. Headerless surfaces do
-not focus non-rendering `display: contents` wrappers. This does not enable native Tab.
+Los controles desactivados, de solo lectura, ocultos o inactivos no cumplen los requisitos.
+Las superficies sin cabecera no ponen el foco en envoltorios `display: contents` que no se
+pintan. Esto no activa el Tab nativo.
 
-Closing a child returns focus to its eligible invoking element in the resumed parent.
-Detached, disabled, hidden or superseded targets cannot steal focus; if the invoker is
-unavailable, the active surface uses its initial-focus policy. Popups retain their
-explicit focus-return rules.
+Cerrar un hijo devuelve el foco al elemento que lo invocó en el padre que se reanuda, si
+cumple los requisitos. Los destinos desconectados, desactivados, ocultos o sustituidos no
+pueden robar el foco; si el elemento invocador no está disponible, la superficie activa usa
+su política de foco inicial. Los popups conservan sus reglas explícitas de retorno del foco.
 
-### Nested modal parents
+### Padres de modales anidados
 
-A child modal does not close, remount or hide its parent with `display: none`. Parents
-remain painted and retain state and scroll position. Only the active modal and its owned
-interactive children receive interaction/accessibility access. A child may naturally
-cover its parent's paint.
+Un modal hijo no cierra, vuelve a montar ni oculta a su padre con `display: none`. Los padres
+siguen pintados y conservan su estado y su posición de scroll. Solo el modal activo y sus
+hijos interactivos propios reciben acceso a la interacción y a la accesibilidad. Un hijo
+puede, naturalmente, tapar el pintado de su padre.
 
-### Busy operations and close guards
+### Operaciones en curso y protecciones de cierre
 
-Source/folder/session/node deletion confirmations consume Escape without closing while
-deletion is in progress, matching their disabled Cancel/backdrop dismissal paths.
-A generic `busy` flag does not imply a dismissal lock: abort confirmations, setup and
-provider connection/cancellation flows retain their domain-specific behavior.
-Closing a surface does not implicitly cancel an accepted write or other domain operation.
+Las confirmaciones de borrado de fuentes, carpetas, sesiones o nodos consumen Escape sin
+cerrarse mientras el borrado está en curso, igual que sus rutas de cierre desactivadas
+mediante Cancelar o el fondo. Un indicador genérico `busy` no implica un bloqueo del cierre:
+las confirmaciones de aborto, la configuración inicial y los flujos de conexión/cancelación de
+proveedores conservan su comportamiento propio del dominio. Cerrar una superficie no cancela
+implícitamente una escritura aceptada ni otra operación del dominio.
 
-### Settings singleton and return-to navigation
+### Instancia única de Ajustes y navegación de vuelta
 
-There is one Settings instance. Opening Settings places it above the current surface
-without discarding that surface. Returning to Settings beneath child layers requests
-closure top-down through normal callbacks:
+Hay una única instancia de Ajustes. Abrir Ajustes la coloca encima de la superficie actual
+sin descartar esa superficie. Volver a Ajustes cuando está debajo de capas hijas solicita el
+cierre de arriba abajo mediante los callbacks normales:
 
-- Stop if a layer refuses, handles the request without closing, or remains open during
-  asynchronous cancellation.
-- Invoke each close callback at most once per request. Do not force cancellation, spin
-  until a layer disappears or queue deferred navigation.
-- Retarget Settings only after return-to succeeds, preserving section/deep-link state.
+- Detente si una capa se niega, gestiona la solicitud sin cerrarse o sigue abierta durante una
+  cancelación asíncrona.
+- Invoca cada callback de cierre como mucho una vez por solicitud. No fuerces la cancelación,
+  no esperes en bucle a que desaparezca una capa ni encoles una navegación diferida.
+- Redirige Ajustes solo cuando la vuelta haya tenido éxito, conservando el estado de la
+  sección y del enlace profundo.
 
-Paint order is not lifetime ownership: unloading a plugin dialog below global Settings
-does not destroy Settings.
+El orden de pintado no implica la propiedad del ciclo de vida: descargar un diálogo de plugin
+que está debajo de los Ajustes globales no destruye Ajustes.
 
-## Surface families
+## Familias de superficies
 
-| Family | Examples | Behavior |
+| Familia | Ejemplos | Comportamiento |
 | --- | --- | --- |
-| Modal dialogs | Settings, setup, confirmations, provider connections, plugin dialogs, keyboard cheat sheet | Modal focus/accessibility/scroll isolation and domain-specific close guards. |
-| Anchored menus/popups | Model/thinking/provider/font/language menus, context menus, plugin menus, graph/statistics panels | Owner-scoped interaction with each popup's geometry, search/arrows, outside-pointer, scroll-close and focus-return rules. |
-| Content-area views | Chains browser, expanded diagrams/figures, expanded full plan | Main-content bounds with sidebar interaction, not viewport-modal isolation. |
-| Inline/noninteractive UI | Activity disclosures, notifications/update banners, drag previews | No modal interaction layer. |
+| Diálogos modales | Ajustes, configuración inicial, confirmaciones, conexiones de proveedores, diálogos de plugins, chuleta de atajos | Aislamiento modal del foco, la accesibilidad y el scroll, y protecciones de cierre propias del dominio. |
+| Menús/popups anclados | Menús de modelo/razonamiento/proveedor/fuente tipográfica/idioma, menús contextuales, menús de plugins, paneles del grafo/estadísticas | Interacción acotada a su propietario con las reglas de geometría, búsqueda/flechas, puntero exterior, cierre por scroll y retorno del foco de cada popup. |
+| Vistas del área de contenido | Navegador de cadenas, diagramas/figuras expandidos, plan completo expandido | Límites del contenido principal con la barra lateral interactiva, sin aislamiento modal de todo el viewport. |
+| Interfaz en línea/no interactiva | Desplegables de actividad, notificaciones/banners de actualización, vistas previas de arrastre | Sin capa de interacción modal. |
 
-### Plugin menu repeated-anchor toggle
+### Alternancia del menú de plugin sobre el mismo ancla
 
-Within one plugin UI owner, repeated `openMenu` calls for the exact same anchor element
-toggle the existing menu closed, synchronously even before React mounts it. Closing calls
-the existing menu's latest `onClose` once and returns an inert handle for the repeated call.
-The incoming props/callback do not create another menu. Different owners and anchors
-retain independent behavior.
+Dentro de un mismo propietario de interfaz de plugin, las llamadas repetidas a `openMenu`
+para exactamente el mismo elemento ancla cierran el menú existente, de forma síncrona incluso
+antes de que React lo monte. Al cerrarse se llama una vez al `onClose` más reciente del menú
+existente y se devuelve un manejador inerte para la llamada repetida. Las props y el callback
+entrantes no crean otro menú. Los distintos propietarios y anclas mantienen un comportamiento
+independiente.
 
-Outside clicks (including another button), action dismissal, Escape-only anchor focus
-return and error/async behavior retain their normal semantics. Caller/plugin/surface
-expiry or explicit disposal clears the anchor registration without synthesizing `onClose`;
-stale handles cannot affect a later menu.
+Los clics fuera (incluido otro botón), el cierre por acción, el retorno del foco al ancla
+solo con Escape y el comportamiento ante errores o asíncrono conservan su semántica normal. La
+caducidad del llamante, el plugin o la superficie, o su liberación explícita, borran el
+registro del ancla sin generar un `onClose`; los manejadores obsoletos no pueden afectar a un
+menú posterior.
 
-### Plugin knowledge picker
+### Selector de conocimiento para plugins
 
-The controlled `mountKnowledgePicker` uses the real Chains interface and selection/source
-organization operations. Presentation depends on the invocation owner:
+El `mountKnowledgePicker` controlado usa la interfaz real de Cadenas y sus operaciones de
+selección y de organización de fuentes. La presentación depende del propietario de la
+invocación:
 
-- A plugin/native page or page-body surface opens a main-content-pane `view`, excluding
-  the sidebar and leaving it interactive.
-- A dialog, Settings or another modal ancestor opens a full-window modal, with its parent
-  painted and the background/sidebar inactive.
+- Una página nativa o de plugin, o una superficie del cuerpo de página, abre una `view` en
+  el panel de contenido principal, que excluye la barra lateral y la deja interactiva.
+- Un diálogo, Ajustes u otro ancestro modal abre un modal de ventana completa, con su padre
+  pintado y el fondo y la barra lateral inactivos.
 
-The host captures owner and bounds; plugins do not supply an origin option. Navigation
-away from the source page or expiry of the exact owner/widget closes pending/open pickers.
-Covering a live origin retains mounted state. A global-modal origin follows its actual
-modal/widget lifetime, not an unrelated background route.
+El host captura el propietario y los límites; los plugins no proporcionan una opción de
+origen. Salir de la página de origen o la caducidad del propietario/widget exacto cierra los
+selectores pendientes o abiertos. Tapar un origen vivo conserva el estado montado. Un origen
+de modal global sigue el ciclo de vida real de su modal/widget, no el de una ruta de fondo
+ajena.
 
-Both presentations reserve native-window control clearance without adding a sidebar-reopen
-control or changing the background sidebar preference. The selection action is **Done**.
-Local view paint follows interaction order, including surfaces and owned popups; global
-modal dialogs remain above this main-local stratum. Deck/library ownership stays with the
-plugin, not the picker.
+Ambas presentaciones reservan el espacio para los controles de la ventana nativa sin añadir
+un control para volver a abrir la barra lateral ni cambiar la preferencia de la barra lateral
+de fondo. La acción de selección es **Hecho**. El pintado de la vista local sigue el orden de
+interacción, incluidas las superficies y los popups propios; los diálogos modales globales
+quedan por encima de este estrato local principal. La propiedad de mazos y biblioteca sigue
+siendo del plugin, no del selector.
 
-## Host implementation
+## Implementación en el host
 
-Private implementation modules are `components/interaction-layers.tsx`,
-`components/host-dialog.tsx`, `components/menu-shell.tsx` and
-`components/popover-dismiss.ts`. They coordinate ownership and paint without owning domain
-validation, authentication cancellation, source mutations or plugin business logic.
+Los módulos de implementación privados son `components/interaction-layers.tsx`,
+`components/host-dialog.tsx`, `components/menu-shell.tsx` y
+`components/popover-dismiss.ts`. Coordinan la propiedad y el pintado sin encargarse de la
+validación del dominio, la cancelación de la autenticación, las modificaciones de fuentes ni
+la lógica de negocio de los plugins.
 
-Modal composition uses non-looping Radix FocusScope containment, outside-content
-accessibility isolation, nested scroll isolation and host-owned portals/backdrops.
-Leaf-first dismissal replaces stock capture-phase Escape dismissal. Passive tooltips use
-Popper/Presence without registering an interaction owner.
+La composición modal usa la contención de FocusScope de Radix sin bucle, el aislamiento de
+accesibilidad del contenido exterior, el aislamiento del scroll anidado y portales/fondos
+propios del host. El cierre que empieza por las hojas sustituye al cierre estándar con Escape
+en fase de captura. Los tooltips pasivos usan Popper/Presence sin registrar un propietario de
+interacción.
 
-Escape ownership is observed before routing unconsumed events after leaf handlers. Native
-Tab defaults are prevented without stopping propagation. Find, Enter submission,
-model/thinking shortcuts and fallback Escape actions use eligible interaction owners.
-Close outcomes distinguish closed, blocked, handled-without-closing and pending; pending
-cancellation never authorizes deferred stack traversal.
+La propiedad de Escape se observa antes de enrutar los eventos no consumidos tras los
+manejadores hoja. Se evita el comportamiento nativo por defecto de Tab sin detener la
+propagación. Buscar, el envío con Enter, los atajos de modelo/razonamiento y las acciones de
+Escape por defecto usan los propietarios de interacción que cumplan los requisitos. Los
+resultados del cierre distinguen entre cerrado, bloqueado, gestionado sin cerrar y pendiente;
+una cancelación pendiente nunca autoriza un recorrido diferido de la pila.
 
-Settings commits distinguish acceptance, validation rejection, blocked writes and
-persistence failure. Revision tickets protect newer drafts; native number inputs retain
-steppers and `badInput` handling so incomplete tokens are not mistaken for empty values.
-Disposed or superseded opening requests cannot activate after late responses. Covering a
-parent does not dispose its content. Portaled popup ownership keeps focus, accessibility,
-scrolling and paint aligned without manual React DOM relocation or unrelated z-index jumps.
+Las confirmaciones de Ajustes distinguen entre aceptación, rechazo por validación, escrituras
+bloqueadas y fallo de persistencia. Unos tickets de revisión protegen los borradores más
+recientes; los campos numéricos nativos conservan los botones de incremento y el tratamiento
+de `badInput`, para que los valores incompletos no se confundan con valores vacíos. Las
+solicitudes de apertura liberadas o sustituidas no pueden activarse tras respuestas tardías.
+Tapar un padre no libera su contenido. La propiedad de los popups en portales mantiene
+alineados el foco, la accesibilidad, el scroll y el pintado sin recolocar manualmente el DOM
+de React ni saltos de z-index sin relación.
 
-Interaction providers live in the client AppShell. Module initialization/server rendering
-does not access browser globals or import private server/store code into the client graph.
+Los proveedores de interacción viven en el AppShell del cliente. La inicialización de los
+módulos y el renderizado en el servidor no acceden a globales del navegador ni importan
+código privado del servidor/almacén en el grafo del cliente.
