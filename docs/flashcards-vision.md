@@ -1,175 +1,175 @@
-# Flashcards: product vision
+# Flashcards: visión del producto
 
-**Status:** Native-first implementation authorized by the human. Keep v1 simple: one self-contained plugin package/local store, generation, library, and spaced review. No Anki integration. The plugin is also a reference consumer for improving the still-evolving host API: report awkward, hacky or disproportionate integration work rather than building a workaround.
+**Estado:** la persona ha autorizado una implementación nativa primero. Mantén la v1 sencilla: un único paquete de plugin autocontenido con almacén local, generación, biblioteca y repaso espaciado. Sin integración con Anki. El plugin es además un consumidor de referencia para mejorar la API del host, que sigue evolucionando: informa del trabajo de integración incómodo, chapucero o desproporcionado en lugar de construir un apaño.
 
-## Why this belongs in LearnHarness
+## Por qué esto encaja en LearnHarness
 
-LearnHarness aims to maximize real, usable understanding per unit of mental effort. The point is not to remove the learner's struggle with the material, but to remove the logistics around it.
+LearnHarness busca maximizar la comprensión real y utilizable por unidad de esfuerzo mental. No se trata de quitarle al alumno la lucha con el material, sino de quitarle la logística que la rodea.
 
-Teaching and recall solve different problems. A learner can follow a lesson, understand its reasoning, and still fail to bring the relevant fact to mind later. That does not make the understanding fake. Understanding a proposition and having it available in the situations where it is useful are different achievements.
+La enseñanza y el recuerdo resuelven problemas distintos. Un alumno puede seguir una lección, entender su razonamiento y aun así no lograr traer a la mente el hecho relevante más adelante. Eso no hace que la comprensión sea falsa. Entender una proposición y tenerla disponible en las situaciones en que es útil son logros distintos.
 
-Recall operates on cues: features of a situation that bring something to mind. Teaching initially gives a proposition a narrow set of cues, closely tied to the lesson. Practice broadens and strengthens that set.
+El recuerdo funciona con pistas: rasgos de una situación que traen algo a la mente. La enseñanza da al principio a una proposición un conjunto estrecho de pistas, muy ligado a la lección. La práctica amplía y refuerza ese conjunto.
 
-Flashcards provide a deliberately small part of that solidifying process: native, spaced fact recall drawn from the propositions already represented in LearnHarness. They do not replace teaching, reasoning practice, or the existing adaptive practice sessions. Nor does remembering an answer demonstrate that the learner understands the reasoning beneath it.
+Las flashcards aportan una parte deliberadamente pequeña de ese proceso de consolidación: recuerdo de hechos nativo y espaciado, a partir de las proposiciones que ya están representadas en LearnHarness. No sustituyen a la enseñanza, a la práctica de razonamiento ni a las sesiones de práctica adaptativa existentes. Tampoco recordar una respuesta demuestra que el alumno entienda el razonamiento que hay debajo.
 
-The native experience is the product. Anki export/import is deferred entirely; none belongs in version one.
+La experiencia nativa es el producto. La exportación e importación de Anki se aplaza por completo; nada de ello entra en la versión uno.
 
-## The central model: proposition, cue, card
+## El modelo central: proposición, pista, tarjeta
 
-The hierarchy is:
+La jerarquía es:
 
-> Deck (source-based by default) → Proposition → Cue/card
+> Mazo (basado en la fuente por defecto) → Proposición → Pista/tarjeta
 
-The proposition is the knowledge target. Each cue is a different situation or demand that should bring that proposition to mind. Each cue corresponds to its own flashcard, containing just two content fields: **question** and **answer**.
+La proposición es el objetivo de conocimiento. Cada pista es una situación o exigencia distinta que debería traer esa proposición a la mente. Cada pista corresponde a su propia flashcard, con solo dos campos de contenido: **pregunta** y **respuesta**.
 
-Both fields support the app's standard built-in rich rendering: Markdown, mathematical notation, syntax-highlighted code blocks, tables, callouts, Mermaid diagrams, and normal typography. Markdown image URLs are refused by the shared host pipeline; native image and SVG artifact cards are separate. Two fields does not mean plain-text-only fields. Reuse the host rendering stack through its supported static Markdown mount rather than copying private components, bundling another native renderer, or disguising flashcards as worker-result widgets.
+Ambos campos admiten el renderizado enriquecido integrado estándar de la app: Markdown, notación matemática, bloques de código con resaltado de sintaxis, tablas, avisos destacados, diagramas Mermaid y tipografía normal. La canalización compartida del host rechaza las URL de imágenes en Markdown; las tarjetas nativas de artefactos de imagen y SVG son otra cosa. Dos campos no significa campos solo de texto plano. Reutiliza la pila de renderizado del host a través de su montaje de Markdown estático admitido en lugar de copiar componentes privados, empaquetar otro renderizador nativo o disfrazar las flashcards de widgets de resultados de workers.
 
-The approved shared renderer displays static content without auxiliary copy/download/retry/expand/zoom/disclosure controls and without registered plugin code-block widgets. Ordinary links retain their normal behavior. The host implementation is verified and exposes a general static Markdown mount with standard update/disposal and per-mount cancellation. Question and answer rendering use that public contract.
+El renderizador compartido aprobado muestra contenido estático sin controles auxiliares de copiar, descargar, reintentar, expandir, zoom o desplegar, y sin widgets de bloques de código registrados por plugins. Los enlaces ordinarios conservan su comportamiento normal. La implementación del host está verificada y expone un montaje general de Markdown estático con actualización y liberación estándar y cancelación por montaje. El renderizado de preguntas y respuestas usa ese contrato público.
 
-This is not one card whose question randomly changes shape. Different cues are separate cards so their review outcomes can be distinguished. They share a proposition, not an identity.
+No es una única tarjeta cuya pregunta cambia de forma al azar. Las distintas pistas son tarjetas separadas para que se puedan distinguir sus resultados de repaso. Comparten una proposición, no una identidad.
 
-The generation principle is:
+El principio de generación es:
 
-> Search for different reasons the proposition would need to come to mind—not merely different ways to ask for it.
+> Busca razones distintas por las que la proposición tendría que venir a la mente, no simplemente formas distintas de preguntar por ella.
 
-Paraphrasing a question does not by itself create a useful new cue. Conversely, an answer need not repeat the proposition verbatim: it should answer the particular question accurately while exercising that proposition.
+Parafrasear una pregunta no crea por sí solo una pista nueva útil. A la inversa, una respuesta no tiene por qué repetir la proposición al pie de la letra: debe responder con precisión a la pregunta concreta mientras ejercita esa proposición.
 
-There is no fixed quota of cards per proposition and no mandatory cue taxonomy. Some propositions warrant several useful cues; some warrant fewer. When existing cards already cover the useful cues, generating zero additional cards is a valid result.
+No hay una cuota fija de tarjetas por proposición ni una taxonomía obligatoria de pistas. Algunas proposiciones merecen varias pistas útiles; otras, menos. Cuando las tarjetas existentes ya cubren las pistas útiles, generar cero tarjetas adicionales es un resultado válido.
 
-## First-version boundary: fact recall
+## Límite de la primera versión: recuerdo de hechos
 
-Version one exercises **one proposition at a time** through concise question-and-answer cards.
+La versión uno ejercita **una proposición cada vez** mediante tarjetas concisas de pregunta y respuesta.
 
-It does not introduce reasoning-chain cards, multi-step derivation exercises, sequence-construction cards, or agent-graded problems. Those possibilities are not rejected forever; they are outside this first version.
+No introduce tarjetas de cadenas de razonamiento, ejercicios de derivación en varios pasos, tarjetas de construcción de secuencias ni problemas calificados por un agente. Esas posibilidades no se descartan para siempre; quedan fuera de esta primera versión.
 
-Reasoning chains still matter. The generator may see the reasoning context around a proposition so it can understand its meaning, assumptions, and uses. A chain's premises are jointly sufficient: context must not turn “A and B imply C” into the false claim “A alone implies C.”
+Las cadenas de razonamiento siguen importando. El generador puede ver el contexto de razonamiento alrededor de una proposición para entender su significado, sus supuestos y sus usos. Las premisas de una cadena son suficientes en conjunto: el contexto no debe convertir “A y B implican C” en la afirmación falsa “A por sí sola implica C”.
 
-The distinction is intentional: reasoning informs which fact-recall cards are sensible without turning the review interaction into a reasoning lesson.
+La distinción es intencionada: el razonamiento informa de qué tarjetas de recuerdo de hechos tienen sentido sin convertir la interacción de repaso en una lección de razonamiento.
 
-## A library organized around the existing knowledge
+## Una biblioteca organizada en torno al conocimiento existente
 
-The library should feel like the reasoning-chains view: a compact, expandable, folder-like hierarchy rather than a flat pile of unrelated cards. Version one uses **flat decks, without subdecks**. Each deck expands to propositions, and each proposition expands to its cues/cards.
+La biblioteca debería sentirse como la vista de cadenas de razonamiento: una jerarquía compacta, desplegable y parecida a carpetas, en lugar de un montón plano de tarjetas sin relación. La versión uno usa **mazos planos, sin submazos**. Cada mazo se despliega en proposiciones y cada proposición se despliega en sus pistas/tarjetas.
 
-Default decks correspond to teaching sources: teaching sessions or imported notes. A proposition's initial deck is determined by its birth source, the first surviving provenance source used by the graph's region grouping. Multiple generations from the same source accumulate in that source's deck rather than creating generation-specific decks.
+Los mazos por defecto corresponden a las fuentes de enseñanza: sesiones de enseñanza o notas importadas. El mazo inicial de una proposición lo determina su fuente de nacimiento, la primera fuente de procedencia que sobrevive y que usa la agrupación por regiones del grafo. Varias generaciones desde la misma fuente se acumulan en el mazo de esa fuente en lugar de crear mazos por generación.
 
-Decks are **collections of references, not exclusive owners**. A proposition may belong to multiple decks, but it still has exactly one cue collection, FSRS state, and review history. Reviewing or editing it through one deck affects the same record visible through every other deck. The graph proposition's identity remains the anchor; membership never creates a copy.
+Los mazos son **colecciones de referencias, no propietarios exclusivos**. Una proposición puede pertenecer a varios mazos, pero sigue teniendo exactamente una colección de pistas, un estado de FSRS y un historial de repasos. Repasarla o editarla desde un mazo afecta al mismo registro que se ve desde todos los demás mazos. La identidad de la proposición del grafo sigue siendo el ancla; la pertenencia nunca crea una copia.
 
-The learner can create custom decks and add or remove proposition memberships, allowing a large notes source to be split into useful study collections or several small sources to be combined. Each proposition must retain at least one deck membership. Removing its last membership, including through deck deletion, requires choosing another deck; deleting a collection does not delete its cards, schedule, or history. There is no automatic Unfiled deck in version one. These actions do not rewrite teaching-source provenance or reorganize the core graph. The deck/library tree belongs to the plugin; a general-purpose host tree API is not part of the selected scope.
+El alumno puede crear mazos personalizados y añadir o quitar pertenencias de proposiciones, lo que permite dividir una fuente de notas grande en colecciones de estudio útiles o combinar varias fuentes pequeñas. Cada proposición debe conservar al menos una pertenencia a un mazo. Quitar su última pertenencia, también al borrar un mazo, exige elegir otro mazo; borrar una colección no borra sus tarjetas, su calendario ni su historial. En la versión uno no hay un mazo automático “Unfiled” (sin clasificar). Estas acciones no reescriben la procedencia de las fuentes de enseñanza ni reorganizan el grafo del núcleo. El árbol de mazos y biblioteca pertenece al plugin; una API general de árboles del host no forma parte del alcance elegido.
 
-This source-based, shared-membership design supersedes the earlier generation-created decks, exclusive ownership, automatic moves, and nested-deck plan. Standard Anki has single-deck card ownership, so shared membership is an intentional native extension, not a claim of identical Anki deck semantics.
+Este diseño basado en fuentes y con pertenencia compartida sustituye al plan anterior de mazos creados por cada generación, propiedad exclusiva, movimientos automáticos y mazos anidados. El Anki estándar tiene propiedad de las tarjetas por un único mazo, así que la pertenencia compartida es una extensión nativa intencionada, no una pretensión de tener la misma semántica de mazos que Anki.
 
-The learner can edit and delete generated cards in the library. Generation does not require a separate draft-approval stage: successful additions are available for review immediately.
+El alumno puede editar y borrar tarjetas generadas en la biblioteca. La generación no requiere una fase aparte de aprobación de borradores: las incorporaciones correctas están disponibles para repasar de inmediato.
 
-The plugin is named **Flashcards**, with plugin ID `flashcards`.
+El plugin se llama **Flashcards**, con ID de plugin `flashcards`.
 
-Being an official plugin does not make its dependencies application-wide. Third-party feature dependencies belong in the plugin's own package manifest and lockfile and are bundled with its distribution, not added to LearnHarness's root dependencies or installed into the app at runtime. Host runtime capabilities and supported public APIs remain the boundary.
+Ser un plugin oficial no hace que sus dependencias sean de toda la aplicación. Las dependencias de funcionalidades de terceros van en el manifiesto de paquete y el lockfile propios del plugin y se empaquetan con su distribución, no se añaden a las dependencias raíz de LearnHarness ni se instalan en la app en tiempo de ejecución. Las capacidades de runtime del host y las API públicas admitidas siguen siendo el límite.
 
-## Generation is explicit, contextual, and additive
+## La generación es explícita, contextual y aditiva
 
-The learner decides what enters the flashcard system. Version one has no automatic generation when a teaching session finishes or graph content appears.
+El alumno decide qué entra en el sistema de flashcards. La versión uno no tiene generación automática al terminar una sesión de enseñanza o al aparecer contenido en el grafo.
 
-Proposition/reasoning-chain selection reuses the **actual host chains view**, rather than a new picker implementation inside Flashcards. The interaction should mirror the new-practice selection bubble: open the full-view selector, select knowledge, then close it while retaining the selection in the plugin's workflow. It need not be embedded among other plugin controls or inherit the graph canvas's current selection.
+La selección de proposiciones y cadenas de razonamiento reutiliza la **vista real de cadenas del host**, en lugar de una nueva implementación de selector dentro de Flashcards. La interacción debería imitar la burbuja de selección de una práctica nueva: abrir el selector a vista completa, seleccionar conocimiento y cerrarlo conservando la selección en el flujo del plugin. No tiene por qué estar incrustada entre otros controles del plugin ni heredar la selección actual del lienzo del grafo.
 
-The existing source renaming, folder creation, and drag behavior in that host view are wanted and may remain available. They are intentional host source-management actions, distinct from plugin-owned deck moves. The shared selection experience is accessed through a supported host UI capability; Flashcards must not import or copy private host components.
+Se quieren, y pueden seguir disponibles, el cambio de nombre de fuentes, la creación de carpetas y el arrastre existentes en esa vista del host. Son acciones intencionadas de gestión de fuentes del host, distintas de los movimientos de mazos propios del plugin. A la experiencia de selección compartida se accede mediante una capacidad de interfaz admitida del host; Flashcards no debe importar ni copiar componentes privados del host.
 
-Generation receives the selected propositions, their immediate reasoning-chain neighborhood, and existing cards for those targets. Include every chain directly involving a target and preserve all of each chain's premises and conclusion. Do not recursively expand the graph or include full teaching transcripts in version one. Existing cards are important context: the task is to find useful missing cues, not regenerate a proposition's collection from scratch.
+La generación recibe las proposiciones seleccionadas, su vecindario inmediato de cadenas de razonamiento y las tarjetas existentes para esos objetivos. Incluye todas las cadenas que afecten directamente a un objetivo y conserva todas las premisas y la conclusión de cada cadena. En la versión uno, no expandas el grafo de forma recursiva ni incluyas transcripciones completas de enseñanza. Las tarjetas existentes son un contexto importante: la tarea es encontrar pistas útiles que falten, no regenerar desde cero la colección de una proposición.
 
-First generation assigns a proposition to its birth-source deck. Repeated generation adds useful missing cues in place; it does not create a new deck, move the proposition, or change its existing memberships.
+La primera generación asigna una proposición al mazo de su fuente de nacimiento. Las generaciones repetidas añaden in situ las pistas útiles que falten; no crean un mazo nuevo, no mueven la proposición ni cambian sus pertenencias existentes.
 
-Repeated generation preserves manual edits, existing cards, review history, and the proposition's schedule. It adds useful missing cards rather than replacing what is already there. The exact creation timing of initially needed source decks, including zero-card results and failed chunks, remains an implementation-plan decision.
+La generación repetida conserva las ediciones manuales, las tarjetas existentes, el historial de repasos y el calendario de la proposición. Añade las tarjetas útiles que falten en lugar de sustituir lo que ya hay. El momento exacto de creación de los mazos de fuente necesarios al principio, incluidos los resultados con cero tarjetas y los fragmentos fallidos, sigue siendo una decisión del plan de implementación.
 
-Generation follows LearnHarness's current **cheap model slot** unless the learner has explicitly configured a plugin-specific model/thinking override. Clearing the override returns to following the slot. The slot is resolved when generation starts, not copied permanently into plugin settings. An unavailable or unconfigured model produces an explicit error, not a silent fallback.
+La generación sigue la **ranura de modelo barato** actual de LearnHarness salvo que el alumno haya configurado explícitamente una sustitución de modelo y razonamiento específica del plugin. Borrar la sustitución vuelve a seguir la ranura. La ranura se resuelve al empezar la generación, no se copia de forma permanente en los ajustes del plugin. Un modelo no disponible o sin configurar produce un error explícito, no un recurso silencioso a otro.
 
-The worker must be able to repair an invalid submission in the same conversation. A failed output validation is feedback for correction, not a reason to discard the context and start over. Runs are bounded, and failure to produce an accepted result must not be presented as successful generation.
+El worker debe poder reparar un envío no válido en la misma conversación. Una validación de salida fallida es información para corregir, no un motivo para descartar el contexto y empezar de nuevo. Las ejecuciones están acotadas, y no conseguir un resultado aceptado no debe presentarse como una generación correcta.
 
-Large selections are split into configurable chunks, initially targeting **4,000 estimated input tokens**. The budget concerns the assembled generation context, including reasoning and existing cards, not just the proposition statements. Each proposition has one owning chunk; its work is not split across competing workers. Independent chunks can execute in parallel through host-managed worker execution and shared request admission.
+Las selecciones grandes se dividen en fragmentos configurables, con un objetivo inicial de **4.000 tokens de entrada estimados**. El presupuesto se refiere al contexto de generación ensamblado, incluidos el razonamiento y las tarjetas existentes, no solo a los enunciados de las proposiciones. Cada proposición tiene un único fragmento propietario; su trabajo no se reparte entre workers en competencia. Los fragmentos independientes pueden ejecutarse en paralelo mediante la ejecución de workers gestionada por el host y la admisión compartida de peticiones.
 
-If one proposition's complete required context cannot fit the configured budget, preflight reports that explicitly before generation starts. The learner can increase the budget or reduce the selection. Do not silently drop premises, omit targets, or truncate existing cards to make the request fit.
+Si el contexto completo necesario de una proposición no cabe en el presupuesto configurado, la comprobación previa lo indica explícitamente antes de empezar la generación. El alumno puede aumentar el presupuesto o reducir la selección. No descartes premisas en silencio, no omitas objetivos ni recortes tarjetas existentes para que la petición quepa.
 
-Version one allows **one active generation batch at a time**, with independent chunks within that batch running in parallel. Another generation request is explicitly blocked while the batch is active, rather than creating overlapping work.
+La versión uno permite **un único lote de generación activo a la vez**, con los fragmentos independientes de ese lote ejecutándose en paralelo. Mientras el lote está activo, cualquier otra petición de generación se bloquea explícitamente en lugar de crear trabajo superpuesto.
 
-Successful chunks are accepted independently and their cards become available without waiting for the whole batch. A failure in another chunk does not discard accepted work. Cancellation stops further additions without removing cards already accepted, and a batch with failures is visibly partial rather than reported as successful.
+Los fragmentos correctos se aceptan de forma independiente y sus tarjetas pasan a estar disponibles sin esperar al lote completo. Un fallo en otro fragmento no descarta el trabajo aceptado. La cancelación detiene nuevas incorporaciones sin quitar las tarjetas ya aceptadas, y un lote con fallos se muestra visiblemente como parcial en lugar de informarse como correcto.
 
-Exact packing, limits, and retry behavior still require an implementation plan. The vision does not imply unlimited parallelism, a competing plugin-local admission system, or automatic replay of interrupted work.
+El empaquetado exacto, los límites y el comportamiento de los reintentos siguen requiriendo un plan de implementación. La visión no implica paralelismo ilimitado, un sistema de admisión local al plugin que compita con el del host ni la repetición automática del trabajo interrumpido.
 
-## Review: one cue, one proposition-level schedule
+## Repaso: una pista, un calendario por proposición
 
-A review presents **one cue/card for a proposition**, not all its cues in succession.
+Un repaso presenta **una pista/tarjeta de una proposición**, no todas sus pistas seguidas.
 
-The interaction is intentionally familiar and simple:
+La interacción es intencionadamente familiar y sencilla:
 
-1. Read the question and attempt recall.
-2. Reveal the answer.
-3. Self-rate with **Again**, **Hard**, **Good**, or **Easy**.
+1. Lee la pregunta e intenta recordar.
+2. Revela la respuesta.
+3. Autocalifícate con **Again**, **Hard**, **Good** o **Easy**.
 
-There is no thinking field, typed answer requirement, or agent evaluation in this first version. This is a deliberate narrower interaction than LearnHarness's teaching and adaptive practice sessions.
+En esta primera versión no hay campo de razonamiento, exigencia de escribir la respuesta ni evaluación por un agente. Es una interacción deliberadamente más estrecha que las sesiones de enseñanza y práctica adaptativa de LearnHarness.
 
-New introductions are paced by an adjustable **per-deck** daily limit, initially **20 previously unreviewed propositions per deck per day**. This supersedes the earlier plugin-wide introduction limit. Due reviews are uncapped, including learning/relearning repetitions. The introduction count is per proposition, not per cue or presentation; it does not limit card generation, library browsing, or learning elsewhere in LearnHarness. A shared proposition is introduced only once globally, and that first introduction counts against **every deck containing it**, regardless of which deck was used for the review. It does not become new again when encountered through another deck. Only the deck being studied controls admission of a new proposition. A full or zero allowance in another containing deck does not block that introduction, but the introduction still counts there; a deck's count may therefore exceed its limit because of reviews through other decks.
+Las introducciones nuevas se dosifican con un límite diario ajustable **por mazo**, al principio **20 proposiciones no repasadas antes por mazo y día**. Esto sustituye al límite anterior de introducciones para todo el plugin. Los repasos vencidos no tienen tope, incluidas las repeticiones de aprendizaje y reaprendizaje. El recuento de introducciones es por proposición, no por pista ni por presentación; no limita la generación de tarjetas, la navegación por la biblioteca ni el aprendizaje en otras partes de LearnHarness. Una proposición compartida se introduce una sola vez en total, y esa primera introducción cuenta en **todos los mazos que la contienen**, con independencia del mazo usado para el repaso. No vuelve a ser nueva al encontrarla a través de otro mazo. Solo el mazo que se está estudiando controla la admisión de una proposición nueva. Un cupo lleno o a cero en otro mazo que la contenga no bloquea esa introducción, pero la introducción sigue contando allí; por tanto, el recuento de un mazo puede superar su límite por repasos hechos desde otros mazos.
 
-Normal review handles existing obligations before new introductions: ready learning/relearning steps first, then due reviews, then new propositions up to the applicable deck limit. A large overdue backlog therefore takes priority over new material.
+El repaso normal atiende las obligaciones existentes antes que las introducciones nuevas: primero los pasos de aprendizaje y reaprendizaje listos, después los repasos vencidos y después las proposiciones nuevas hasta el límite del mazo aplicable. Por tanto, una gran acumulación de vencidos tiene prioridad sobre el material nuevo.
 
-The learner can review the whole library or narrow scheduled review to selected decks or propositions. Filtering does not create separate scheduling states or turn review into an early/cram mode.
+El alumno puede repasar toda la biblioteca o restringir el repaso programado a mazos o proposiciones seleccionados. Filtrar no crea estados de planificación separados ni convierte el repaso en un modo anticipado o de empollar.
 
-There are no subdecks or parent-deck limits in version one. Adding nested organization later need not duplicate propositions or reset their schedules; its limit behavior would need its own design.
+En la versión uno no hay submazos ni límites de mazos padre. Añadir más adelante una organización anidada no tendría por qué duplicar proposiciones ni reiniciar sus calendarios; su comportamiento de límites necesitaría un diseño propio.
 
-Scheduling uses **FSRS**, with one scheduling state per **proposition**, not per cue. The rating updates that proposition's schedule. This avoids treating each new cue as an entirely separate fact with its own independent review obligation.
+La planificación usa **FSRS**, con un estado de planificación por **proposición**, no por pista. La calificación actualiza el calendario de esa proposición. Así se evita tratar cada pista nueva como un hecho completamente aparte con su propia obligación de repaso independiente.
 
-The chosen algorithm reference is **FSRS-6**, pinned to the published `ts-fsrs@5.2.3` implementation. The scheduler will be implemented without a runtime scheduler dependency, retaining the reference's MIT attribution. Version one uses published default parameters; personalized parameter optimization is deferred. Review history is retained independently of that decision.
+La referencia de algoritmo elegida es **FSRS-6**, fijada a la implementación publicada `ts-fsrs@5.2.3`. El planificador se implementará sin una dependencia de planificación en tiempo de ejecución, conservando la atribución MIT de la referencia. La versión uno usa los parámetros por defecto publicados; la optimización personalizada de parámetros se aplaza. El historial de repasos se conserva con independencia de esa decisión.
 
-Desired retention is one plugin-wide setting, initially **90%**, rather than a separate target or preset for each topic. Higher targets trade more frequent reviews for higher expected retention.
+La retención deseada es un único ajuste para todo el plugin, al principio del **90 %**, en lugar de un objetivo o preajuste aparte para cada tema. Objetivos más altos cambian repasos más frecuentes por una retención esperada mayor.
 
-Short-term review uses Anki-style learning and relearning steps, initially **1 minute, then 10 minutes** for new propositions and **10 minutes** after a lapse. These steps are editable in the plugin's settings; version one does not rely on FSRS's experimental empty-steps mode for all short-term intervals.
+El repaso a corto plazo usa pasos de aprendizaje y reaprendizaje al estilo de Anki, al principio **1 minuto y después 10 minutos** para las proposiciones nuevas y **10 minutos** tras un fallo. Estos pasos se pueden editar en los ajustes del plugin; la versión uno no depende del modo experimental de FSRS sin pasos para todos los intervalos a corto plazo.
 
-This is an adaptation of Anki-style scheduling, not a claim of identical Anki behavior. Standard Anki schedules cards independently. Here, a proposition is scheduled while the cue used to test it can vary. A success on one cue is therefore not proof that every cue for that proposition is equally strong, and the standard scheduler's retention predictions are not a guarantee for this adapted setup.
+Es una adaptación de la planificación al estilo de Anki, no una pretensión de comportarse igual que Anki. El Anki estándar planifica las tarjetas de forma independiente. Aquí se planifica una proposición mientras puede variar la pista usada para ponerla a prueba. Por tanto, un acierto con una pista no demuestra que todas las pistas de esa proposición sean igual de sólidas, y las predicciones de retención del planificador estándar no son una garantía para esta configuración adaptada.
 
-## Cue choice is a separate problem from scheduling
+## Elegir la pista es un problema distinto de planificar
 
-When a proposition is due, the plugin chooses which of its cues to present.
+Cuando una proposición vence, el plugin elige cuál de sus pistas presentar.
 
-Selection mixes untried and reviewed cues. Untried cues need opportunities to be exercised; weaker reviewed cues should be favored; stronger cues must remain eligible. Favoring weaker cues means **weighted choice**, not always selecting the single weakest cue.
+La elección mezcla pistas sin probar y pistas ya repasadas. Las pistas sin probar necesitan oportunidades de ejercitarse; deben favorecerse las pistas repasadas más débiles; las más sólidas deben seguir siendo elegibles. Favorecer las pistas más débiles significa **elección ponderada**, no elegir siempre la más débil.
 
-Cue-level outcomes are retained to inform this choice, even though the proposition owns the FSRS state. The separation is fundamental:
+Los resultados por pista se conservan para informar esta elección, aunque el estado de FSRS sea de la proposición. La separación es fundamental:
 
-- The proposition is the knowledge target and scheduling unit.
-- The cue/card supplies a retrieval route and has its own observed outcomes.
-- Review history records what was actually shown and how it was rated.
+- La proposición es el objetivo de conocimiento y la unidad de planificación.
+- La pista/tarjeta aporta una ruta de recuperación y tiene sus propios resultados observados.
+- El historial de repasos registra lo que realmente se mostró y cómo se calificó.
 
-Version one's selection rule uses each reviewed cue's most recent rating, with relative weights **Again 4, Hard 3, Good 2, Easy 1**, and **3 for an untried cue**. A cue can therefore recover from an older failure rather than being permanently penalized by it. Full review history is still retained. These are explicit, simple selection heuristics, not FSRS parameters or a claim of optimal weighting.
+La regla de elección de la versión uno usa la calificación más reciente de cada pista repasada, con pesos relativos **Again 4, Hard 3, Good 2, Easy 1**, y **3 para una pista sin probar**. Así, una pista puede recuperarse de un fallo antiguo en lugar de quedar penalizada para siempre por él. El historial completo de repasos se sigue conservando. Son heurísticas de elección explícitas y sencillas, no parámetros de FSRS ni una pretensión de ponderación óptima.
 
-Learning and relearning repetitions keep the same cue until the proposition returns to normal review. A new weighted choice is made for the next normal review. This keeps an immediate repair focused on the retrieval route that needed work rather than switching away from it.
+Las repeticiones de aprendizaje y reaprendizaje mantienen la misma pista hasta que la proposición vuelve al repaso normal. Para el siguiente repaso normal se hace una elección ponderada nueva. Así, una reparación inmediata se centra en la ruta de recuperación que necesitaba trabajo en lugar de cambiar a otra.
 
-## Keep knowledge and learner evidence separate
+## Mantener separados el conocimiento y la evidencia sobre el alumno
 
-LearnHarness's graph is an objective representation of propositions and their reasoning relationships. Presence in that graph is not evidence that the learner can recall a proposition, or that they have mastered it.
+El grafo de LearnHarness es una representación objetiva de las proposiciones y sus relaciones de razonamiento. Que algo esté en ese grafo no es evidencia de que el alumno pueda recordar una proposición ni de que la domine.
 
-The plugin reads that knowledge and owns its cards, scheduling state, and review history separately. It does not write mastery values, learner difficulty, or review results into the core graph. Creating a card does not create evidence of learning.
+El plugin lee ese conocimiento y guarda aparte sus tarjetas, su estado de planificación y su historial de repasos. No escribe valores de dominio, dificultad del alumno ni resultados de repasos en el grafo del núcleo. Crear una tarjeta no crea evidencia de aprendizaje.
 
-The relationship is also non-destructive. If a card's proposition ID can no longer be found in the graph, its cards move to an **Archive** section outside normal review. The plugin retains its own content, proposition snapshots, and history. Deleting graph data never silently deletes plugin-owned data.
+La relación tampoco es destructiva. Si el ID de proposición de una tarjeta ya no se encuentra en el grafo, sus tarjetas pasan a una sección **Archive** fuera del repaso normal. El plugin conserva su propio contenido, las instantáneas de las proposiciones y el historial. Borrar datos del grafo nunca borra en silencio datos propios del plugin.
 
-Deleting a reasoning chain alone does not archive cards when the proposition itself still exists. If an original source is deleted but the proposition survives through other provenance, preserve its existing deck memberships and retain the old source deck with its stored label. Do not automatically follow the graph's re-attributed birth source or reorganize custom collections. The live proposition remains eligible for review. Archive presentation and restoration details remain to be settled.
+Borrar solo una cadena de razonamiento no archiva tarjetas si la proposición sigue existiendo. Si se borra una fuente original pero la proposición sobrevive gracias a otra procedencia, conserva sus pertenencias a mazos existentes y mantén el mazo de la fuente antigua con su etiqueta guardada. No sigas automáticamente la fuente de nacimiento reasignada por el grafo ni reorganices las colecciones personalizadas. La proposición viva sigue siendo elegible para repasar. Quedan por decidir los detalles de presentación y restauración del Archive.
 
-## Deferred Anki integration
+## Integración con Anki aplazada
 
-The human removed all Anki integration from v1. There is no export/import UI, packaging library, SQLite WASM asset, converter or Anki-specific verification requirement. Revisit integration only if requested after the native plugin is useful.
+La persona ha eliminado toda integración con Anki de la v1. No hay interfaz de exportación o importación, biblioteca de empaquetado, recurso SQLite WASM, conversor ni requisitos de verificación específicos de Anki. Vuelve a plantear la integración solo si se pide después de que el plugin nativo resulte útil.
 
-## What this first version should make possible
+## Qué debería hacer posible esta primera versión
 
-The learner can select knowledge they care about, generate genuinely different fact-retrieval cues without managing prompts, and maintain those cues in a familiar hierarchy. They can return for a straightforward spaced-review session without a model call at every answer. Their work remains native to LearnHarness, without an integration dependency on another application.
+El alumno puede seleccionar el conocimiento que le importa, generar pistas de recuperación de hechos realmente distintas sin gestionar prompts y mantener esas pistas en una jerarquía familiar. Puede volver para una sesión de repaso espaciado sencilla sin una llamada al modelo en cada respuesta. Su trabajo sigue siendo nativo de LearnHarness, sin depender de la integración con otra aplicación.
 
-The success criterion is useful availability of known facts—not card count, duplicated paraphrases, or a mastery label inferred from the graph. The plugin should spend the learner's effort on attempted recall and keep everything around that interaction as bare-bones as possible.
+El criterio de éxito es la disponibilidad útil de los hechos conocidos, no el número de tarjetas, las paráfrasis duplicadas ni una etiqueta de dominio deducida del grafo. El plugin debería emplear el esfuerzo del alumno en intentar recordar y mantener todo lo que rodea esa interacción lo más austero posible.
 
-## Implementation notes
+## Notas de implementación
 
-The human authorized beginning implementation rather than further exhaustive planning. Use a simple native implementation; bring consequential new ambiguities or genuine infrastructure friction back to the human as they arise. The earlier detailed draft is not blanket approval for its proposed machinery. The following historical checklist is context, not a prerequisite to more planning:
+La persona autorizó empezar la implementación en lugar de seguir planificando de forma exhaustiva. Usa una implementación nativa sencilla; plantea a la persona las nuevas ambigüedades importantes o la fricción real de infraestructura a medida que surjan. El borrador detallado anterior no es una aprobación general de la maquinaria que proponía. La siguiente lista histórica es contexto, no un requisito previo para seguir planificando:
 
-- **Scheduling policy:** retention/step-setting bounds and change behavior; interval randomization and day-boundary behavior; ordering within due/new queues; membership changes after an introduction and whole-library/multi-deck review.
-- **Generation contract:** exact prompt and result schema; token estimation and packing; output/repair budgets and task limits.
-- **Batch lifecycle:** retries, interrupted work, detailed progress/cancellation interactions, and the creation timing of initially needed source decks. Shared request admission is provided by the host, not a separate plugin concurrency setting.
-- **Product UI:** concrete plugin-owned deck/library/review layouts and controls; custom-deck naming/deletion and membership-editing controls; card editing/deletion; archive restoration; and progress/error presentation. Use the verified shared Markdown renderer for card content.
-- **Delivery:** plugin source/build/distribution location and the coherent implementation and verification plan.
+- **Política de planificación:** límites de los ajustes de retención y pasos y comportamiento al cambiarlos; aleatorización de intervalos y comportamiento en el cambio de día; orden dentro de las colas de vencidas y nuevas; cambios de pertenencia tras una introducción y repaso de toda la biblioteca o de varios mazos.
+- **Contrato de generación:** prompt exacto y esquema del resultado; estimación de tokens y empaquetado; presupuestos de salida y reparación y límites de tareas.
+- **Ciclo de vida de los lotes:** reintentos, trabajo interrumpido, interacciones detalladas de progreso y cancelación, y momento de creación de los mazos de fuente necesarios al principio. La admisión compartida de peticiones la aporta el host, no un ajuste de concurrencia aparte del plugin.
+- **Interfaz del producto:** disposiciones y controles concretos propios del plugin para mazos, biblioteca y repaso; controles para nombrar y borrar mazos personalizados y editar pertenencias; edición y borrado de tarjetas; restauración del archivo; y presentación del progreso y los errores. Usa el renderizador de Markdown compartido verificado para el contenido de las tarjetas.
+- **Entrega:** ubicación del código, la build y la distribución del plugin y un plan coherente de implementación y verificación.
 
-Resolving these must preserve the distinctions that motivate the plugin: understanding versus availability, propositions versus cues, scheduling versus cue choice, objective knowledge versus learner evidence, and product functionality versus unnecessary integration machinery.
+Resolver estas cuestiones debe conservar las distinciones que motivan el plugin: comprensión frente a disponibilidad, proposiciones frente a pistas, planificación frente a elección de pistas, conocimiento objetivo frente a evidencia sobre el alumno, y funcionalidad del producto frente a maquinaria de integración innecesaria.
 
-## Conceptual foundations
+## Fundamentos conceptuales
 
-This vision applies the teaching/practice/world-model distinction articulated in the human's *How I Learn Difficult Things With AI* and *The learning harness — canonical articulation* (2026-10-05), together with the subsequent direct product decisions for Flashcards. It is intentionally narrower than the broader assessment-and-adaptive-practice direction described there.
+Esta visión aplica la distinción entre enseñanza, práctica y modelo del mundo formulada en *How I Learn Difficult Things With AI* y *The learning harness — canonical articulation* (2026-10-05), ambos de la persona, junto con las decisiones de producto directas posteriores para Flashcards. Es intencionadamente más estrecha que la dirección más amplia de evaluación y práctica adaptativa descrita allí.

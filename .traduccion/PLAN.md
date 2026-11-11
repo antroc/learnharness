@@ -35,6 +35,24 @@ comentarios y docstrings de los 7 ficheros Python. El código en sí no se modif
   plugins se dejan en inglés.
 - THIRD-PARTY: se traduce la prosa explicativa; nombres de licencias, titulares de copyright
   y textos de licencia se dejan en inglés.
+- Textos que muestra el host y que los docs citan como literales (mensajes de error y
+  diálogos: `Could not prepare submission…`, `Surface target is no longer active`,
+  `Submitted image`, `Preparing question…`, `Dictation is active elsewhere`,
+  `No settings available`, **Dismiss this question?**…) se dejan en inglés; los botones
+  nativos citados en prosa se traducen (Enviar, Detener, Descartar, Reintentar, Reasignar,
+  Borrar, Restablecer). Las etiquetas definidas por los plugins oficiales (Draw, Pen, Hand,
+  Create card, Review selected, Again/Hard/Good/Easy, Tests passed, ajustes como
+  "Dark mode ink color"…) se dejan en inglés. Home / New Draft → Inicio / Nuevo borrador.
+- Referencia generada `docs/plugin-api/` (M3): los encabezados son identificadores y no se
+  traducen (así las ~1.500 anclas internas no cambian); solo se traduce la prosa (JSDoc).
+  Las frases repetidas ya están traducidas en los 22 ficheros con `sed` (sesión 3):
+  "Tipo público del SDK, exportado como…", "Declaración de apoyo usada por un tipo
+  público…", "— declaración de apoyo", "**Tipos relacionados:**", "**Devuelve:**",
+  "**Índice de miembros** (…)", "[Índice de la API]", los enlaces a guías de la cabecera y
+  el comentario `<!-- Generado por … -->`. Consecuencia conocida: la prueba
+  `tests/plugin-api-reference.test.ts` (que compara con una regeneración) falla en esta
+  rama; no se toca. `docs/plugin-api/README.md` aún tiene sin traducir sus encabezados y su
+  prosa; antes de traducir sus encabezados, comprueba si algo enlaza a sus anclas.
 
 ## Herramienta para comentarios de código
 
@@ -67,8 +85,8 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 | Lote | Contenido | Ficheros | Palabras | Estado |
 |------|-----------|---------:|---------:|--------|
 | M1 | Raíz, docs generales y prompts del agente (`src/agent/**/*.md`) | 40 | 30.172 | [x] |
-| M2 | Docs de plugins (`docs/plugin-*.md`, flashcards) y READMEs de `plugins/` y `examples/` | 20 | 34.368 | [~] parcial |
-| M3 | `docs/plugin-api/` | 22 | 31.155 | [ ] |
+| M2 | Docs de plugins (`docs/plugin-*.md`, flashcards) y READMEs de `plugins/` y `examples/` | 20 | 34.368 | [x] |
+| M3 | `docs/plugin-api/` | 22 | 31.155 | [~] parcial |
 | M4 | `docs/archive/`, `skills/` y READMEs de `tests/` | 14 | 26.742 | [ ] |
 | C1 | Comentarios: `src/core/contracts`, `src/store`, `src/server/pi`, `src/agent` (sin subagents) | 86 | 28.518 | [ ] |
 | C2 | Comentarios: `src/agent/subagents`, `src/server` | 59 | 30.924 | [ ] |
@@ -104,10 +122,22 @@ se quitan los signos de puntuación y se conservan las tildes.
 | docs/plugin-architecture.md (M2) | `#testing` | `#pruebas` |
 | docs/plugin-authoring.md (M2) | `#package-and-installation` | `#empaquetado-e-instalación` (ya enlazado así) |
 | docs/plugin-authoring.md (M2) | `#controlled-host-ui` | `#interfaz-controlada-del-host` (ya enlazado así) |
-| docs/plugin-authoring.md (M2) | `#action-shortcuts` | `#atajos-de-acciones` (ya enlazado así desde docs/plugin-view-context.md; al traducir, actualiza también docs/plugin-architecture.md, plugins/drawing-pad/README.md y docs/plugin-api/plugin-shortcuts.md) |
+| docs/plugin-authoring.md (M2) | `#action-shortcuts` | `#atajos-de-acciones` (enlaces entrantes ya actualizados) |
+| docs/plugin-authoring.md (M2) | `#quick-start` | `#inicio-rápido` |
+| docs/plugin-authoring.md (M2) | `#install-a-prebuilt-package` | `#instalar-un-paquete-precompilado` |
+| docs/plugin-authoring.md (M2) | `#develop-outside-the-plugins-directory` | `#desarrollar-fuera-del-directorio-de-plugins` (ya enlazado así desde skills/learnharness-plugins/SKILL.md) |
+| docs/plugin-authoring.md (M2) | `#backend-and-data` | `#backend-y-datos` (ya enlazado así desde docs/plugin-api/) |
+| docs/plugin-authoring.md (M2) | `#managed-conversational-agents` | `#agentes-conversacionales-gestionados` (ídem) |
+| docs/plugin-authoring.md (M2) | `#result-oriented-workers-and-background-tools` | `#workers-orientados-a-resultados-y-herramientas-en-segundo-plano` (ídem) |
+| docs/plugin-session-extension-contract.md (M2) | `#8-public-surface-contract` | `#8-contrato-público-de-superficies` (enlaces entrantes ya actualizados) |
+| docs/plugin-examples.md (M2) | `#focused-recipes-for-gaps` | `#recetas-centradas-para-los-huecos` |
+| plugins/ui-showcase/README.md (M2) | `#gallery-map` | `#mapa-de-la-galería` (ya enlazado así desde docs/plugin-examples.md) |
 
 Antes de dar por cerrado un lote, busca enlaces rotos a anclas en inglés:
 `grep -rnoE '\]\([^)#]*\.md#[a-z0-9-]+\)' --include=*.md .` y compáralos con los encabezados reales.
+Más fiable: `python3 .traduccion/anclas.py .` comprueba todos los enlaces `fichero.md#ancla`
+contra los encabezados reales (los 4 avisos de URL externas de docs/claude-code.md son
+falsos positivos).
 
 ## Registro
 
@@ -130,3 +160,16 @@ Antes de dar por cerrado un lote, busca enlaces rotos a anclas en inglés:
   docs/plugin-question-contract.md, docs/plugin-session-extension-contract.md,
   docs/plugin-tree-contract.md, plugins/{coding-questions,drawing-pad,flashcards,
   rich-code-blocks,ui-showcase}/README.md.
+- Sesión 3: M2 terminado: docs/plugin-architecture.md, docs/plugin-authoring.md,
+  docs/plugin-session-extension-contract.md, docs/plugin-problem-contract.md,
+  docs/plugin-question-contract.md, docs/plugin-tree-contract.md, docs/plugin-examples.md,
+  docs/flashcards-vision.md y los README de plugins/{ui-showcase,drawing-pad,
+  rich-code-blocks,coding-questions,flashcards}. Enlaces entrantes a las anclas nuevas
+  actualizados en todo el repo (también en docs/plugin-api/ y skills/, aún sin traducir).
+  Comprobación de anclas: sin enlaces rotos.
+  M3 empezado: frases repetidas traducidas en los 22 ficheros (ver Convenciones) y prosa
+  completa de docs/plugin-api/{phases,plugin-shortcuts,contracts-jobs,settings}.md.
+  M3 pendiente (prosa JSDoc): README.md, contracts-chat, contracts-graph, contracts-models,
+  contracts-plan, events, native-messages, plugin-agents, plugin-problems,
+  plugin-questions, plugin-submissions, plugin-tree, plugin-ui, plugin-view-context,
+  plugin-workers, plugins, question-core, view.
