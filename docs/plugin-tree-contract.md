@@ -1,120 +1,134 @@
-# Shared tree presentation — plugin API v1
+# Presentación compartida de árboles — API v1 de plugins
 
-Current API v1 contract. Exact public types are in `src/core/plugin-tree.ts`, with
-`mountTree` in `src/core/plugin-ui.ts`. Use documentation and type-only SDK declarations
-matching the target app, not private runtime imports.
+Contrato actual de la API v1. Los tipos públicos exactos están en `src/core/plugin-tree.ts`,
+con `mountTree` en `src/core/plugin-ui.ts`. Usa documentación y declaraciones del SDK de
+solo tipos que correspondan a la app de destino, no importaciones privadas del runtime.
 
-## Boundary
+## Límite
 
-A manageable shared presentation foundation is used by the existing native Chains UI
-without moving its controllers or business logic. Native Chains appearance, navigation,
-selection, sorting and source operations stay unchanged. The plugin adapter is
-`components/plugin-tree.tsx`; it exposes the same native presentation, not native data
-or a Chains controller.
+Una base de presentación compartida y manejable la usa la interfaz nativa de Chains
+existente sin mover sus controladores ni su lógica de negocio. El aspecto, la navegación, la
+selección, la ordenación y las operaciones sobre fuentes de Chains no cambian. El adaptador
+para plugins es `components/plugin-tree.tsx`; expone la misma presentación nativa, no los
+datos nativos ni un controlador de Chains.
 
 ```ts
 ctx.ui.mountTree(container, tree, { signal }): PluginWidgetHandle<PluginTreeProps>
 ```
 
-`tree` is a generic configuration object. `PluginTreeProps` means TypeScript properties;
-it is not the native Chains **Props** proposition-count column. The widget opens nothing:
-knowledge selection, dialogs and session surfaces remain separate APIs.
+`tree` es un objeto de configuración genérico. `PluginTreeProps` se refiere a propiedades de
+TypeScript; no es la columna **Props** (recuento de proposiciones) de Chains. El widget no
+abre nada: la selección de conocimiento, los diálogos y las superficies de sesión siguen
+siendo API aparte.
 
-The caller owns hierarchy/data, search, sorting, actions, domain rename/move rules,
-selection policy, storage, scroll containers, loading and empty-state UI. This is not a
-file manager, deck/library domain API or new declarative UI framework. No column-resize
-or sticky-header system is added. No Flashcards or other product plugin is migrated here.
+Quien llama es responsable de la jerarquía y los datos, la búsqueda, la ordenación, las
+acciones, las reglas de dominio para renombrar y mover, la política de selección, el
+almacenamiento, los contenedores de scroll, la carga y la interfaz del estado vacío. Esto no
+es un gestor de ficheros, ni una API de dominio de mazos o bibliotecas, ni un framework de
+interfaz declarativa nuevo. No se añade un sistema de redimensionado de columnas ni de
+cabecera fija. Aquí no se migra Flashcards ni ningún otro plugin de producto.
 
-## Controlled configuration
+## Configuración controlada
 
-- `PluginTreeProps`: required accessible `label` and `rows`; optional primary `header`
-  and trailing `columns`. `label` is an accessible name only, never an automatic visible
-  title. Primary content fills the remaining width.
-- `PluginTreeRow`: `key`, primary `content`, optional `cells`, `children`, `selection`
-  and `disclosure`. Every row has a **globally unique occurrence key**, including rows
-  below collapsed ancestors. Any string, including `""`, is allowed if unique. The key
-  identifies that displayed occurrence, independently of the entity it represents:
-  there is no `itemId` field or inferred coupling between duplicate entity occurrences.
-- `selection`: `{ label, checked, indeterminate?, disabled?, onChange(checked) }`.
-  The caller controls each checkbox independently. No parent/child selection cascade or
-  derived indeterminate state is supplied.
-- `disclosure`: `{ label, expanded, onChange(expanded) }`. Expansion is controlled;
-  publish accepted state through `update`. Children without a disclosure are always
-  visible. A collapsed disclosure unmounts descendant content and runs cleanup;
-  reopening remounts it. Persist retained data/drafts in plugin state, not mounted DOM.
-- `PluginTreeColumn`: `{ key, header, width, align? }`; row `cells` are keyed by the
-  configured columns. Alignment is `"left"` by default or `"right"`. Numeric width is
-  pixels and must be finite and nonnegative (**0 is valid**); a non-whitespace string
-  uses CSS width semantics. Width is not a resizing or persistence service.
+- `PluginTreeProps`: `label` accesible y `rows` obligatorios; `header` principal y `columns`
+  finales opcionales. `label` es solo un nombre accesible, nunca un título visible
+  automático. El contenido principal ocupa el ancho restante.
+- `PluginTreeRow`: `key`, `content` principal, y `cells`, `children`, `selection` y
+  `disclosure` opcionales. Cada fila tiene una **clave de aparición única globalmente**,
+  incluidas las filas bajo antecesores plegados. Se admite cualquier cadena, incluida `""`,
+  siempre que sea única. La clave identifica esa aparición mostrada, con independencia de la
+  entidad que representa: no hay campo `itemId` ni acoplamiento deducido entre apariciones
+  duplicadas de una misma entidad.
+- `selection`: `{ label, checked, indeterminate?, disabled?, onChange(checked) }`. Quien
+  llama controla cada casilla de forma independiente. No se ofrece cascada de selección entre
+  padres e hijos ni estado indeterminado derivado.
+- `disclosure`: `{ label, expanded, onChange(expanded) }`. La expansión está controlada;
+  publica el estado aceptado mediante `update`. Los hijos sin desplegable siempre son
+  visibles. Un desplegable plegado desmonta el contenido descendiente y ejecuta su limpieza;
+  al reabrirlo se vuelve a montar. Persiste los datos y borradores que quieras conservar en el
+  estado del plugin, no en el DOM montado.
+- `PluginTreeColumn`: `{ key, header, width, align? }`; las `cells` de las filas se indexan
+  por las columnas configuradas. La alineación es `"left"` por defecto o `"right"`. Un ancho
+  numérico son píxeles y debe ser finito y no negativo (**0 es válido**); una cadena que no
+  sea solo espacios usa la semántica de ancho de CSS. El ancho no es un servicio de
+  redimensionado ni de persistencia.
 
-Primary row/header content and trailing cell/header content accept `PluginTreeContent`:
-`string | PluginUiContent`. The latter is the existing HTMLElement or signal-scoped
-mount function, with optional synchronous/asynchronous cleanup. Rich content occupies
-slots **inside fixed native row/header/cell shells**; it cannot replace row markup,
-checkboxes, disclosure controls or their alignment. Actions can be plugin-owned content;
-the host does not infer row actions from data.
+El contenido principal de filas y cabecera y el contenido de celdas y cabeceras finales
+aceptan `PluginTreeContent`: `string | PluginUiContent`. Lo segundo es el HTMLElement o la
+función de montaje con ámbito de señal existentes, con limpieza síncrona o asíncrona
+opcional. El contenido enriquecido ocupa huecos **dentro de los marcos nativos fijos de fila,
+cabecera y celda**; no puede sustituir el marcado de la fila, las casillas, los controles
+desplegables ni su alineación. Las acciones pueden ser contenido propio del plugin; el host
+no deduce acciones de fila a partir de los datos.
 
-## Layout and interaction
+## Disposición e interacción
 
-If no row anywhere in the configuration has `selection`, including collapsed descendants,
-the checkbox gutter is removed. Any selection reserves that gutter for **all** rows.
-A plain flat list without branches or disclosures has no disclosure gutter; hierarchy
-reserves aligned disclosure space. Native guide positions are **19px without selection**
-or **37px with selection**, plus **36px per depth**.
+Si ninguna fila de la configuración tiene `selection`, incluidos los descendientes plegados,
+se elimina el margen de las casillas. Cualquier selección reserva ese margen para **todas**
+las filas. Una lista plana sin ramas ni desplegables no tiene margen de desplegable; la
+jerarquía reserva un espacio alineado para el desplegable. Las posiciones nativas de las
+guías son **19px sin selección** o **37px con selección**, más **36px por nivel de
+profundidad**.
 
-Native typography defaults use `font-ui`: primary labels are `text-sm` (**12.5px**),
-weight **500**; metadata and headers are `text-xs` (**11px**), weight **400**.
-Width-bearing header and body cells use matching font metrics, including for CSS
-`em`/`ch` widths; this does not guarantee positional alignment under width constraints.
-Rich content may override its own styles. Native thin separators appear
-**between top-level groups only**: nested rows are unruled, with no separator after the
-last group. Internal root selectors are implementation details, not styling APIs.
+Los valores tipográficos nativos por defecto usan `font-ui`: las etiquetas principales son
+`text-sm` (**12,5px**), peso **500**; los metadatos y cabeceras son `text-xs` (**11px**),
+peso **400**. Las celdas de cabecera y cuerpo que llevan ancho usan las mismas métricas de
+fuente, también para anchos CSS en `em`/`ch`; esto no garantiza la alineación posicional con
+anchos restringidos. El contenido enriquecido puede sustituir sus propios estilos. Los
+separadores finos nativos aparecen **solo entre grupos de nivel superior**: las filas
+anidadas no llevan líneas y no hay separador tras el último grupo. Los selectores internos
+de la raíz son detalles de implementación, no API de estilos.
 
-**Column fit, available width and scrolling are caller-owned in v1.** If the container
-cannot accommodate configured trailing widths plus maximum hierarchy indentation and
-control/prefix space, the layout can overflow and header/body column positions can
-diverge even while declared widths are retained. Matching font metrics do not remove
-this limit. Supply sufficient width or an inner minimum width with a caller-owned
-horizontal scroll container, or choose fewer/narrower columns. The required budget
-depends on your hierarchy, controls, columns and primary content; the host supplies no
-minimum-width calculation, clipping policy or responsive layout engine. Native behavior
-is unchanged.
+**El ajuste de columnas, el ancho disponible y el scroll son responsabilidad de quien llama
+en v1.** Si el contenedor no da cabida a los anchos finales configurados más la sangría
+máxima de la jerarquía y el espacio de controles y prefijos, la disposición puede
+desbordarse y las posiciones de las columnas de cabecera y cuerpo pueden descuadrarse aunque
+se conserven los anchos declarados. Que las métricas de fuente coincidan no elimina este
+límite. Proporciona un ancho suficiente o un ancho mínimo interior con un contenedor de scroll
+horizontal propio, o elige menos columnas o más estrechas. El margen necesario depende de tu
+jerarquía, tus controles, tus columnas y tu contenido principal; el host no aporta cálculo de
+ancho mínimo, política de recorte ni motor de disposición adaptable. El comportamiento nativo
+no cambia.
 
-The widget reuses **existing native Chains arrow-row navigation**, not native Tab focus:
-Up/Down move among siblings; Right opens a closed branch and enters its first child after
-the controlled update, or enters the first child of an open branch. Left follows the
-native parent/fold-parent rule (an expandable root folds itself). Space toggles only the
-active row's optional host-owned checkbox when enabled. Plugin text inputs,
-contenteditable content and already-handled keys retain their own interaction.
+El widget reutiliza la **navegación por filas con flechas nativa de Chains existente**, no el
+foco nativo con Tab: Arriba/Abajo se mueven entre hermanos; Derecha abre una rama cerrada y
+entra en su primer hijo tras la actualización controlada, o entra en el primer hijo de una
+rama abierta. Izquierda sigue la regla nativa de padre o plegar el padre (una raíz expandible
+se pliega a sí misma). Espacio solo conmuta la casilla opcional del host de la fila activa
+cuando está habilitada. Las entradas de texto del plugin, el contenido contenteditable y las
+teclas ya gestionadas conservan su propia interacción.
 
-A thin root-local adapter uses the private pure `components/tree-navigation.ts` kernel,
-mechanically extracted from `chain-navigation.ts`; native exports alias it while the
-native hook, metadata and event policy remain unchanged. Nested widget roots navigate
-independently. This adds no autofocus, Find/search handling, global handler, public
-keyboard-controller API or new props. **The app-wide Tab policy is unchanged in every
-context**: no Tab exception or native Tab browser-focus promise is introduced.
+Un adaptador fino local a la raíz usa el núcleo puro privado `components/tree-navigation.ts`,
+extraído mecánicamente de `chain-navigation.ts`; las exportaciones nativas son alias suyos,
+mientras el hook nativo, los metadatos y la política de eventos no cambian. Las raíces de
+widgets anidadas navegan de forma independiente. Esto no añade autoenfoque, gestión de
+Buscar, manejador global, API pública de controlador de teclado ni props nuevas. **La
+política de Tab de toda la app no cambia en ningún contexto**: no se introduce ninguna
+excepción para Tab ni promesa de foco del navegador con Tab nativo.
 
-## Lifecycle and updates
+## Ciclo de vida y actualizaciones
 
-The normal widget contract applies: final `{ signal }`, shallow `update(partialTree)`
-and idempotent `dispose()`. Replace complete `rows`/`columns` arrays when changing them;
-callbacks alone do not update controlled values. Widget-signal abort, plugin deactivation,
-row removal, collapse and content replacement clean up their affected mounts. Setting
-`selection.disabled` disables that checkbox; it does **not** unmount row content. Async
-content must honor its mount signal; late cleanup follows the existing `PluginUiContent`
-lifecycle.
+Se aplica el contrato normal de widgets: `{ signal }` al final, `update(partialTree)`
+superficial y `dispose()` idempotente. Sustituye los arrays `rows`/`columns` completos al
+cambiarlos; las callbacks por sí solas no actualizan los valores controlados. La cancelación
+de la señal del widget, la desactivación del plugin, quitar una fila, plegar y sustituir
+contenido limpian los montajes afectados. Fijar `selection.disabled` desactiva esa casilla;
+**no** desmonta el contenido de la fila. El contenido asíncrono debe respetar su señal de
+montaje; la limpieza tardía sigue el ciclo de vida existente de `PluginUiContent`.
 
-Keep mount-function identities stable across updates when the content should remain
-mounted. Creating a new function on each update replaces that content and remounts it;
-stable occurrence keys do not override content-identity changes. Reopening collapsed
-content still remounts even when its function identity is stable.
+Mantén estables las identidades de las funciones de montaje entre actualizaciones cuando el
+contenido deba seguir montado. Crear una función nueva en cada actualización sustituye ese
+contenido y lo vuelve a montar; las claves de aparición estables no anulan los cambios de
+identidad del contenido. Reabrir contenido plegado lo vuelve a montar aunque la identidad de
+su función sea estable.
 
-## Example: plugin-owned folders and files
+## Ejemplo: carpetas y ficheros propios del plugin
 
-Inside a plugin view's `mount(container, signal)`, this uses arbitrary file-like data,
-not a host filesystem service. The caller retains expansion, selection and a draft.
-The wrapper demonstrates caller-owned horizontal scrolling and an illustrative `32rem`
-inner minimum; choose a sufficient budget for your own data, not a fixed host requirement.
+Dentro del `mount(container, signal)` de una vista de plugin, esto usa datos arbitrarios con
+aspecto de ficheros, no un servicio de sistema de ficheros del host. Quien llama conserva la
+expansión, la selección y un borrador. El envoltorio muestra un scroll horizontal propio de
+quien llama y un mínimo interior ilustrativo de `32rem`; elige un margen suficiente para tus
+propios datos, no es un requisito fijo del host.
 
 ```js
 let expanded = true;
@@ -122,7 +136,7 @@ let checked = false;
 let draft = "A plugin-owned note";
 let treeHandle;
 
-// Stable function identity; the draft survives descendant unmount/remount.
+// Identidad de función estable; el borrador sobrevive al desmontaje/remontaje de los descendientes.
 function noteContent(slot, mountSignal) {
   if (mountSignal.aborted) return;
   const field = document.createElement("input");
@@ -163,7 +177,7 @@ function rows() {
 const scroller = document.createElement("div");
 scroller.style.overflowX = "auto";
 const inner = document.createElement("div");
-inner.style.minWidth = "32rem"; // Illustrative caller choice, not a host minimum.
+inner.style.minWidth = "32rem"; // Elección ilustrativa de quien llama, no un mínimo del host.
 scroller.append(inner);
 container.append(scroller);
 
@@ -178,9 +192,10 @@ return () => {
 };
 ```
 
-## Testing
+## Pruebas
 
-Test controlled controls/occurrence keys, content retention across updates, collapse/remount,
-late cleanup, editable/nested-widget keyboard isolation, native Chains regressions and
-fitting-width header/body alignment. Underconstrained layouts remain the caller's
-responsibility, not an alignment guarantee.
+Prueba los controles controlados y las claves de aparición, la conservación del contenido
+entre actualizaciones, plegar y remontar, la limpieza tardía, el aislamiento del teclado en
+contenido editable y widgets anidados, las regresiones de Chains nativo y la alineación de
+cabecera y cuerpo cuando el ancho es suficiente. Las disposiciones sin restricciones
+suficientes siguen siendo responsabilidad de quien llama, no una garantía de alineación.

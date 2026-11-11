@@ -1,78 +1,89 @@
-# Session extensions: submissions, images and page-body surfaces
+# Extensiones de sesión: envíos, imágenes y superficies del cuerpo de página
 
-Current API v1 contract for the matching source/build; use documentation/types matching
-the target app. Use the downloaded skill's `bundle.json` to identify the app;
-API v1 alone does not identify every available capability. Exact types live in `src/core/plugin-submissions.ts`
-and `plugin-ui.ts`. Custom practice submissions additionally follow the
-[problem contract](plugin-problem-contract.md).
+Contrato actual de la API v1 para el código fuente y la build correspondientes; usa
+documentación y tipos que correspondan a la app de destino. Usa el `bundle.json` de la skill
+descargada para identificar la app; la API v1 por sí sola no identifica todas las
+capacidades disponibles. Los tipos exactos están en `src/core/plugin-submissions.ts` y
+`plugin-ui.ts`. Los envíos de práctica personalizados siguen además el
+[contrato de problemas](plugin-problem-contract.md).
 
-## 1. Boundary
+## 1. Límite
 
-Frontend interceptors prepare actual learner content; they do not provide native send/
-steer methods, mutable agents, backend hook registration or generic model-context events.
-Existing action placements launch UI. Only explicit native image data is an image: paths
-retain their ordinary text/attachment behavior. There is no image store, native file-picker/
-clipboard/drop importer, editable drawing format or new export-asset service.
+Los interceptores del frontend preparan el contenido real del alumno; no aportan métodos
+nativos de envío o reorientación, agentes mutables, registro de hooks en el backend ni
+eventos genéricos de contexto del modelo. Las colocaciones de acciones existentes lanzan la
+interfaz. Solo los datos de imagen nativos explícitos son una imagen: las rutas conservan su
+comportamiento ordinario de texto o adjunto. No hay almacén de imágenes, ni importador
+nativo de selector de ficheros, portapapeles o arrastre, ni formato de dibujo editable, ni
+servicio nuevo de exportación de recursos.
 
-The host owns routing, exact occurrences, derived builtin grading, acceptance and model
-capability. Plugins own external input, intentional transformations, UI and persistence.
-Surfaces cover page bodies, not arbitrary regions; no transcript-only coverage or navigation
-suspension/restoration is provided.
+El host es responsable del enrutado, las apariciones exactas, la calificación integrada
+derivada, la aceptación y la capacidad del modelo. Los plugins son responsables de la
+entrada externa, las transformaciones intencionadas, la interfaz y la persistencia. Las
+superficies cubren cuerpos de página, no regiones arbitrarias; no se ofrece cobertura solo de
+la transcripción ni suspensión y restauración de la navegación.
 
-## 2. Learner content
+## 2. Contenido del alumno
 
-`PluginSubmissionContent` is `{text: string, images: readonly ImageContent[]}`. Images
-are Pi native `{type:"image",data:<base64>,mimeType:<string>}` blocks. Text precedes images;
-arbitrary interleaving is not promised.
+`PluginSubmissionContent` es `{text: string, images: readonly ImageContent[]}`. Las imágenes
+son bloques nativos de Pi `{type:"image",data:<base64>,mimeType:<string>}`. El texto precede
+a las imágenes; no se promete intercalado arbitrario.
 
-`PluginSubmission` is a readonly discriminated union:
+`PluginSubmission` es una unión discriminada de solo lectura:
 
-| `type` | Mutable learner channels |
+| `type` | Canales mutables del alumno |
 | --- | --- |
-| `text` | `content` (send vs steer is host delivery) |
-| `thinking` | `content` on a captured native practice problem |
+| `text` | `content` (enviar o reorientar es cosa de la entrega del host) |
+| `thinking` | `content` sobre un problema de práctica nativo capturado |
 | `answer` | `answer: PluginBuiltinSubmissionAnswer`, `thinking`, `readingThinking` |
-| `plugin-question-answer` | JSON `answer`, `answerImages`, `thinking`, `readingThinking` |
-| `plugin-problem-submission` | JSON `submission`, `submissionImages`, `thinking` |
+| `plugin-question-answer` | `answer` JSON, `answerImages`, `thinking`, `readingThinking` |
+| `plugin-problem-submission` | `submission` JSON, `submissionImages`, `thinking` |
 
-`PluginBuiltinSubmissionAnswer` contains optional `dontKnow`, stable option `values`
-(not display indices), `other`, `text`, `confidence`, plus `images`. Thinking stays
-separate. Correctness, commitments, timestamps, identities, question snapshots and native
-result envelopes are never mutable learner input. Preserve finite JSON/raw strings without
-coercion, trimming or truthiness filtering.
+`PluginBuiltinSubmissionAnswer` contiene `dontKnow` opcional, `values` estables de las
+opciones (no índices de presentación), `other`, `text`, `confidence` y además `images`. El
+razonamiento va aparte. La corrección, los compromisos, las marcas de tiempo, las
+identidades, las instantáneas de preguntas y los sobres de resultado nativos nunca son
+entrada mutable del alumno. Conserva el JSON finito y las cadenas en bruto sin coerción,
+recorte ni filtrado por veracidad.
 
-## 3. Targets and context
+## 3. Destinos y contexto
 
-`PluginSubmissionTarget` is the host-produced readonly target, sharing the input's `type`:
-`sessionId`, `sessionKind`, applicable `channels`, opaque `surfaceTarget` and variant data:
+`PluginSubmissionTarget` es el destino de solo lectura que produce el host y comparte el
+`type` de la entrada: `sessionId`, `sessionKind`, los `channels` aplicables, `surfaceTarget`
+opaco y los datos de la variante:
 
-| Target | Additional data |
+| Destino | Datos adicionales |
 | --- | --- |
 | `text` | `channels:["content"]` |
 | `thinking` | `problem:{occurrence,statement}`, `channels:["content"]` |
-| `answer` | Learner-facing `ClientQuestion` plus `occurrence`, optional `questionType`, actual displayed options/stable values; applicable answer/thinking/reading channels |
-| `plugin-question-answer` | `question:{questionId,occurrence,pluginId,typeId,contractVersion,label,variant,showThinking}`; applicable answer/thinking/reading channels |
+| `answer` | `ClientQuestion` visible para el alumno más `occurrence`, `questionType` opcional y las opciones y valores estables realmente mostrados; canales aplicables de respuesta, razonamiento y lectura |
+| `plugin-question-answer` | `question:{questionId,occurrence,pluginId,typeId,contractVersion,label,variant,showThinking}`; canales aplicables de respuesta, razonamiento y lectura |
 | `plugin-problem-submission` | `problem:{problemId,occurrence,pluginId,typeId,contractVersion,label,statement}`; `channels:["submission","thinking"]` |
 
-`PluginSubmissionOccurrence` is exactly `{messageId,contentIndex,toolCallId,toolName}`.
-`PluginSubmissionChannel` includes content, answer, submission, thinking and readingThinking.
-Learner-facing builtin presentation has no grading keys. Plugin presentation is not a
-promise of generic sanitization of arbitrary plugin payloads.
+`PluginSubmissionOccurrence` es exactamente `{messageId,contentIndex,toolCallId,toolName}`.
+`PluginSubmissionChannel` incluye content, answer, submission, thinking y readingThinking.
+La presentación integrada visible para el alumno no tiene claves de calificación. La
+presentación de plugins no promete una sanitización genérica de cargas útiles arbitrarias de
+plugins.
 
-`PluginSubmissionContext` adds detached/deeply readonly/frozen `messages`, preparation
-`signal`, and `onAccepted(callback)`. Messages are complete current browser-native history,
-including potentially streamed/not-yet-durable content, not rendered text or a canonical
-persistence guarantee. Full history is trusted-plugin visibility, not a secrecy boundary.
-Signals/opaque targets are live host references, not JSON to persist/clone.
+`PluginSubmissionContext` añade `messages` separados, de solo lectura en profundidad y
+congelados, la `signal` de la preparación y `onAccepted(callback)`. Los mensajes son el
+historial nativo completo actual del navegador, incluido contenido posiblemente en streaming
+o aún no duradero, no texto renderizado ni una garantía de persistencia canónica. El
+historial completo es visibilidad para plugins de confianza, no un límite de secreto. Las
+señales y los destinos opacos son referencias vivas del host, no JSON para persistir o
+clonar.
 
-`onAccepted` observes this attempt's acknowledged API acceptance, independent of later
-model success. It is live/best-effort, not durable replay or exactly-once delivery. Lost
-acknowledgment never fires it or authorizes clearing external input. Callback errors report
-a plugin error, not failure of an accepted submission. Snapshot eligible callbacks before
-delivery, invoke without blocking native stream consumption on async observers, and continue
-after individual observer failure. Late registrations/canceled-owner callbacks do not run.
+`onAccepted` observa la aceptación de la API con acuse de este intento, con independencia de
+que el modelo tenga éxito después. Es en vivo y de mejor esfuerzo, no repetición duradera ni
+entrega exactamente una vez. Un acuse perdido nunca la dispara ni autoriza a borrar entrada
+externa. Los errores de la callback notifican un error del plugin, no el fallo de un envío
+aceptado. Toma una instantánea de las callbacks elegibles antes de la entrega, invócalas sin
+bloquear el consumo del stream nativo en observadores asíncronos y continúa aunque falle un
+observador concreto. Los registros tardíos y las callbacks de propietarios cancelados no se
+ejecutan.
 
-## 4. Registration and ordering
+## 4. Registro y orden
 
 ```ts
 interface PluginSubmissionInterceptor {
@@ -82,138 +93,174 @@ interface PluginSubmissionInterceptor {
   intercept(input: PluginSubmission, context: PluginSubmissionContext):
     PluginSubmission | null | void | Promise<PluginSubmission | null | void>;
 }
-// Frontend context:
+// Contexto del frontend:
 registerSubmissionInterceptor(definition: PluginSubmissionInterceptor): () => void;
 refreshSubmissions(): void;
 ```
 
-IDs are lowercase-hyphen identifiers unique per activation. Priority is a finite integer,
-default 0; higher first, then plugin ID/interceptor ID. Capture the ordered hook set once
-per attempt; later hooks see earlier output. `undefined` passes through, same-type replacement
-transforms, `null` cancels without sending. Throws/rejection/invalid output fail closed.
-Validate/clone/freeze replacements before proceeding; late mutation cannot alter payloads.
+Los ID son identificadores en minúsculas con guiones, únicos por activación. La prioridad es
+un entero finito, 0 por defecto; primero la más alta y después por ID de plugin e ID de
+interceptor. Captura el conjunto ordenado de hooks una vez por intento; los hooks posteriores
+ven la salida de los anteriores. `undefined` deja pasar, una sustitución del mismo tipo
+transforma y `null` cancela sin enviar. Las excepciones, los rechazos y las salidas no
+válidas fallan en cerrado. Valida, clona y congela las sustituciones antes de seguir; una
+mutación tardía no puede alterar las cargas útiles.
 
-`hasPendingInput` is synchronous and side-effect-free. Call `refreshSubmissions()` when
-external state changes. True enables preparation, not final validity: builtin answers may
-prepare before native selection/text exists, but custom questions/problems still require
-a current ready editor value. Context-only attachments need not advertise native readiness.
-Predicate exceptions report errors and contribute no readiness. Captured unregister/unload
-cancels preparation, not silent omission; new registrations join the next attempt.
+`hasPendingInput` es síncrono y sin efectos secundarios. Llama a `refreshSubmissions()`
+cuando cambie el estado externo. Verdadero habilita la preparación, no la validez final: las
+respuestas integradas pueden prepararse antes de que exista la selección o el texto nativos,
+pero las preguntas y problemas personalizados siguen exigiendo un valor actual de editor
+listo. Los adjuntos solo de contexto no necesitan anunciar disponibilidad nativa. Las
+excepciones del predicado notifican errores y no aportan disponibilidad. Anular el registro
+o descargar un interceptor capturado cancela la preparación, no lo omite en silencio; los
+registros nuevos se suman al siguiente intento.
 
-## 5. Preparation, acceptance and retries
+## 5. Preparación, aceptación y reintentos
 
-One runner covers normal/contextual/opening messages, busy steers, builtin/custom answers
-and native/custom practice submissions:
+Un único ejecutor cubre los mensajes normales, contextuales y de apertura, las
+reorientaciones mientras está ocupado, las respuestas integradas y personalizadas y los envíos
+de práctica nativos y personalizados:
 
-1. Capture the native view/occurrence and reserve one attempt **before any await**.
-2. Finish original-target dictation/editor publication. Recheck identity; capture final
-   learner input, form draft and readonly history. Never switch targets after an await.
-3. Keep preparation distinct from delivery; preserve visible drafts and prevent duplicates.
-4. Run ordered interceptors serially, validating each output.
-5. Recheck instance/occurrence/readiness/plugin ownership. Rebuild builtin derived answers
-   through native grading using captured rendered question data, not plugin-supplied fields.
-6. Create optimism from prepared content; use existing POST/admission/steer delivery.
-7. Notify acknowledged acceptance once, including internal steer fallback; release the
-   preparation/delivery lease on acknowledgment/refusal, **not** model-stream completion.
-   Fresh busy steers may prepare while earlier accepted work streams.
+1. Captura la vista y la aparición nativas y reserva un intento **antes de cualquier
+   `await`**.
+2. Termina la publicación del dictado o del editor del destino original. Vuelve a comprobar
+   la identidad; captura la entrada final del alumno, el borrador del formulario y el
+   historial de solo lectura. Nunca cambies de destino tras un `await`.
+3. Mantén la preparación separada de la entrega; conserva los borradores visibles y evita
+   duplicados.
+4. Ejecuta los interceptores ordenados en serie y valida cada salida.
+5. Vuelve a comprobar la instancia, la aparición, la disponibilidad y la propiedad del
+   plugin. Reconstruye las respuestas integradas derivadas mediante la calificación nativa con
+   los datos capturados de la pregunta renderizada, no con campos aportados por el plugin.
+6. Crea la vista optimista a partir del contenido preparado; usa la entrega existente por
+   POST, admisión o reorientación.
+7. Notifica una vez la aceptación con acuse, incluido el recurso interno de reorientación;
+   libera la concesión de preparación y entrega con el acuse o el rechazo, **no** al terminar
+   el stream del modelo. Pueden prepararse nuevas reorientaciones mientras el trabajo
+   aceptado antes sigue en streaming.
 
-Preparation is silent: no progress row, label, spinner or preparation Cancel control is
-rendered. Existing submission-disabled states and preparation errors remain. Internal
-pre-POST cancellation (for example view disposal or interceptor unregistration) ignores late
-hook results, retains drafts/final dictated text, and works even if a hook ignores its signal.
-When no interceptors were captured, no history snapshot is allocated; payload validation,
-target capture, reservation and eligibility checks still run. With interceptors, the complete
-detached/frozen history snapshot is captured before the first hook, at the same preparation
-boundary, and shared by the ordered hooks.
-Failure uses `Could not prepare submission ({plugin name}): {message}. Your input has been kept.`
-Once POST starts, preserve native accepted-delivery/turn-abort semantics; preparation
-cancellation no longer applies. Clear only captured draft revisions at confirmed boundaries;
-newer edits remain. Host never clears plugin-private material: its acceptance observer does.
+La preparación es silenciosa: no se renderiza ninguna fila de progreso, etiqueta, indicador
+de carga ni control de Cancelar la preparación. Se mantienen los estados existentes de envío
+desactivado y los errores de preparación. La cancelación interna previa al POST (por ejemplo,
+al liberar la vista o anular el registro de un interceptor) ignora los resultados tardíos de
+los hooks, conserva los borradores y el texto dictado final, y funciona aunque un hook ignore
+su señal. Cuando no se capturó ningún interceptor, no se reserva ninguna instantánea del
+historial; la validación de la carga útil, la captura del destino, la reserva y las
+comprobaciones de elegibilidad se siguen ejecutando. Con interceptores, la instantánea
+completa, separada y congelada del historial se captura antes del primer hook, en el mismo
+límite de preparación, y la comparten los hooks ordenados. Un fallo usa
+`Could not prepare submission ({plugin name}): {message}. Your input has been kept.`
+Una vez empieza el POST, se mantiene la semántica nativa de entrega aceptada y cancelación del
+turno; la cancelación de la preparación ya no se aplica. Borra solo las revisiones del
+borrador capturadas en límites confirmados; las ediciones más nuevas se mantienen. El host
+nunca borra material privado del plugin: lo hace su observador de aceptación.
 
-- Model Retry/Continue, malformed-question retry, control-only Next and silent dismissal
-  do not intercept content. Submit of a restored unaccepted form is a fresh attempt.
-- Busy-refusal resend / steer-to-send fallback reuse prepared content and observers.
-- Lost acknowledgment requires canonical reconciliation/exact-question guards, not guessed
-  clearing or automatic invention of another submission. A later explicit submission is
-  fresh; no global deduplication/exactly-once transaction is added.
-- Between problems, empty text with pending plugin content is a submission, not control-only Next.
+- Reintentar o Continuar del modelo, el reintento por pregunta mal formada, el Siguiente que
+  solo es de control y el descarte silencioso no interceptan contenido. Enviar un formulario
+  restaurado no aceptado es un intento nuevo.
+- El reenvío tras un rechazo por ocupado y el recurso de reorientación a envío reutilizan el
+  contenido preparado y los observadores.
+- Un acuse perdido requiere conciliación canónica y guardas de pregunta exacta, no borrados
+  adivinados ni la invención automática de otro envío. Un envío explícito posterior es nuevo;
+  no se añade deduplicación global ni transacción exactamente una vez.
+- Entre problemas, un texto vacío con contenido de plugin pendiente es un envío, no un
+  Siguiente solo de control.
 
-## 6. Validation and host authority
+## 6. Validación y autoridad del host
 
-Capture native `QuestionData` privately with its actual shuffle/resolved grading. Combine
-final dictation/reading fields before hooks; afterward validate types, finite confidence,
-known unique values, cardinality/combinations, meaningful content and channel applicability.
-Reject unknown/duplicate selections rather than dropping them. Preserve legitimate existing
-confidence rounding/clamping. Build derived answers through existing `buildAnswer` against
-that same captured question. This is frontend recomputation, not a builtin HTTP grading migration.
+Captura de forma privada el `QuestionData` nativo con su barajado y su calificación resuelta
+reales. Combina el dictado final y los campos de lectura antes de los hooks; después valida
+tipos, confianza finita, valores conocidos y únicos, cardinalidad y combinaciones, contenido
+con sentido y aplicabilidad de los canales. Rechaza las selecciones desconocidas o
+duplicadas en lugar de descartarlas. Conserva el redondeo y el acotado legítimos existentes
+de la confianza. Construye las respuestas derivadas con el `buildAnswer` existente contra esa
+misma pregunta capturada. Esto es un recálculo en el frontend, no una migración de la
+calificación integrada a HTTP.
 
-Builtin text answers need text or answer images; thinking/reading images do not satisfy it.
-Select answers need valid final selection/Other/dontKnow (possibly supplied by a hook).
-Plugin JSON follows canonical saved-schema/refinement/availability/occurrence checks.
+Las respuestas de texto integradas necesitan texto o imágenes de respuesta; las imágenes de
+razonamiento o lectura no bastan. Las respuestas de selección necesitan una selección final,
+Otro o dontKnow válidos (que puede aportar un hook). El JSON de los plugins sigue las
+comprobaciones canónicas de esquema guardado, refinamiento, disponibilidad y aparición.
 
-Builtin answer/thinking applicability follows native fields; reading follows existing reveal/
-phase policy. Plugin questions always have answer content, thinking only with `showThinking`,
-reading only on teach checks. Public DTOs have empty inapplicable channels; nonempty injected
-text/images reject. Transport/envelopes omit inapplicable channels, preserving absence versus
-presence. Practice custom submissions have submission/thinking, not reading-thinking.
+La aplicabilidad de respuesta y razonamiento integrados sigue los campos nativos; la de
+lectura sigue la política existente de revelación y fase. Las preguntas de plugins siempre
+tienen contenido de respuesta, razonamiento solo con `showThinking` y lectura solo en las
+comprobaciones de enseñanza. Los DTO públicos tienen vacíos los canales no aplicables; el
+texto o las imágenes inyectados no vacíos se rechazan. El transporte y los sobres omiten los
+canales no aplicables, conservando la distinción entre ausencia y presencia. Los envíos de
+práctica personalizados tienen submission y thinking, no readingThinking.
 
-## 7. Images, transport and model admission
+## 7. Imágenes, transporte y admisión por el modelo
 
-Use additive optional native image fields beside existing strings; old records replay without
-migration. Text/steer/native-thinking inputs carry optional `images`; builtin/plugin answers
-carry channelled images; custom practice carries submission/thinking images. Empty arrays omit
-on write. Strings remain each channel's sole text authority. New builtin/thinking UI requests
-include exact occurrence; fresh image-bearing requests require that binding, while old
-non-image callers remain compatible. Recheck canonical target after server awaits.
+Usa campos de imagen nativos opcionales y aditivos junto a las cadenas existentes; los
+registros antiguos se reproducen sin migración. Las entradas de texto, reorientación y
+razonamiento nativo llevan `images` opcionales; las respuestas integradas y de plugins llevan
+imágenes por canal; la práctica personalizada lleva imágenes de envío y de razonamiento. Los
+arrays vacíos se omiten al escribir. Las cadenas siguen siendo la única autoridad de texto de
+cada canal. Las peticiones nuevas de la interfaz integrada y de razonamiento incluyen la
+aparición exacta; las peticiones nuevas con imágenes exigen ese vínculo, mientras que los
+llamantes antiguos sin imágenes siguen siendo compatibles. Vuelve a comprobar el destino
+canónico tras los `await` del servidor.
 
-Require nonempty base64 native image blocks, not File/Blob/URLs/path strings. Accept PNG,
-JPEG, WebP, GIF only, sniffing bytes against MIME. Reuse actual model resize policy (existing
-defaults: 2000×2000 bounding box and 4.5 MiB processed base64 payload per image). Persist
-normalized accepted bytes for history and model; originals/editable drawings remain plugin-owned.
-No new arbitrary image-count setting/store is added. Processor failure refuses submission,
-not image-omitted success or synthetic learner hints.
+Exige bloques de imagen nativos base64 no vacíos, no File, Blob, URL ni cadenas de ruta. Se
+aceptan solo PNG, JPEG, WebP y GIF, comprobando los bytes contra el MIME. Reutiliza la
+política real de redimensionado del modelo (valores por defecto existentes: caja de 2000×2000
+y 4,5 MiB de carga base64 procesada por imagen). Persiste los bytes aceptados normalizados
+para el historial y el modelo; los originales y los dibujos editables siguen siendo del
+plugin. No se añade ningún ajuste ni almacén nuevo de número arbitrario de imágenes. Un fallo
+del procesador rechaza el envío, no da un éxito sin la imagen ni pistas sintéticas para el
+alumno.
 
-Optimistic previews remain immediate. Defer canonical adoption while their image-bearing
-POST is unresolved to avoid duplicate normalized/original previews. On delivery settlement,
-discard deferred snapshots and reconcile afresh, including refusal/lost acknowledgment.
-Retire only that attempt's provisional entries; preserve drafts/external input and never
-infer acceptance from reconciliation.
+Las previsualizaciones optimistas siguen siendo inmediatas. Aplaza la adopción canónica
+mientras su POST con imágenes no se haya resuelto, para evitar previsualizaciones duplicadas
+normalizadas y originales. Cuando se resuelve la entrega, descarta las instantáneas aplazadas
+y concilia de nuevo, incluidos el rechazo y el acuse perdido. Retira solo las entradas
+provisionales de ese intento; conserva los borradores y la entrada externa y nunca deduzcas
+la aceptación a partir de la conciliación.
 
-| Channel | Saved/UI placement | Model placement |
+| Canal | Ubicación guardada y en la interfaz | Ubicación para el modelo |
 | --- | --- | --- |
-| Message/steer | Native user image blocks | Native user images |
-| Native practice thinking | Marker details / thinking block | Labelled text + native images |
-| Builtin/custom question answer | Host answer container | Native answer tool result |
-| Question thinking / reading | Separate host thinking containers | Separately labelled sections in tool result |
-| Custom practice submission / thinking | Marker details / submitted card and thinking | Labelled submission/thinking + native images |
+| Mensaje / reorientación | Bloques de imagen nativos del usuario | Imágenes nativas del usuario |
+| Razonamiento de práctica nativo | Detalles del marcador / bloque de razonamiento | Texto etiquetado + imágenes nativas |
+| Respuesta a pregunta integrada o personalizada | Contenedor de respuesta del host | Resultado nativo de la herramienta de respuesta |
+| Razonamiento / lectura de la pregunta | Contenedores de razonamiento del host separados | Secciones etiquetadas por separado en el resultado de la herramienta |
+| Envío / razonamiento de práctica personalizada | Detalles del marcador / tarjeta enviada y razonamiento | Envío y razonamiento etiquetados + imágenes nativas |
 
-Model bytes must be native image content, never metadata-only or base64 inside answer JSON.
-Question result channel order is answer, thinking, reading-thinking. Shared submitted images
-are centered thumbnails bounded in both dimensions by five lines of configured session prose,
-without cropping/upscaling or dimming with thinking text. Clicking opens the same accepted
-bytes in the existing session figure viewer with fit/pan/zoom and Escape/X close; without a
-session viewer, the preview remains noninteractive. Thinking images remain inside their
-thinking disclosure. Image-only channels stay visible, labelled `Submitted image`; text uses
-normal PathText/Markdown. Host images remain outside plugin-owned renderer slots.
+Los bytes para el modelo deben ser contenido de imagen nativo, nunca solo metadatos ni base64
+dentro del JSON de la respuesta. El orden de los canales en el resultado de una pregunta es
+respuesta, razonamiento y razonamiento de lectura. Las imágenes enviadas compartidas son
+miniaturas centradas, acotadas en ambas dimensiones por cinco líneas de la prosa configurada
+de la sesión, sin recorte ni ampliación ni atenuación con el texto de razonamiento. Al hacer
+clic se abren los mismos bytes aceptados en el visor de figuras existente de la sesión, con
+ajuste, desplazamiento y zoom y cierre con Escape o X; sin visor de sesión, la
+previsualización no es interactiva. Las imágenes de razonamiento quedan dentro de su
+desplegable de razonamiento. Los canales que solo tienen imagen siguen visibles, con la
+etiqueta `Submitted image`; el texto usa PathText/Markdown normal. Las imágenes del host
+quedan fuera de los huecos de renderizado propiedad de los plugins.
 
-Resolve the **actual effective dispatch engine**, not a parallel provider resolver. New-turn/
-save-only admission rechecks canonical target and effective model/resize policy after awaited
-preflight; no await intervenes before acceptance write/claim. Agent construction uses that
-checked engine. Busy steers capture live-agent identity/model, not future session settings,
-and synchronously verify it at handoff. Settled-run fallback prepares against the next engine
-without re-intercepting; changed/replaced targets refuse stale rather than silently retarget.
+Resuelve el **motor de despacho efectivo real**, no un resolutor de proveedores paralelo. La
+admisión de un turno nuevo o de solo guardar vuelve a comprobar el destino canónico y la
+política efectiva de modelo y redimensionado tras la comprobación previa esperada; no hay
+ningún `await` entre medias antes de la escritura o reclamación de la aceptación. La
+construcción del agente usa ese motor comprobado. Las reorientaciones mientras está ocupado
+capturan la identidad y el modelo del agente vivo, no ajustes futuros de la sesión, y los
+verifican de forma síncrona en el traspaso. El recurso tras una ejecución terminada prepara
+contra el siguiente motor sin volver a interceptar; los destinos cambiados o sustituidos se
+rechazan por obsoletos en lugar de redirigirse en silencio.
 
-Text-only engines refuse fresh images. Custom endpoints retain current attempt-transport
-policy; remote refusal is provider failure. Historical model-switch omission placeholders,
-ChatGPT/subscription/Claude CLI transport and CLI text-before-images ordering remain native.
-Parked steers retain existing memory-only tradeoffs: acknowledged acceptance can notify,
-but is not guaranteed durable history or a replayable notification.
+Los motores solo de texto rechazan imágenes nuevas. Los endpoints personalizados conservan la
+política actual de transporte por intento; un rechazo remoto es un fallo del proveedor. Los
+marcadores de omisión por cambio de modelo en el historial, el transporte de
+ChatGPT/suscripción/CLI de Claude y el orden texto antes que imágenes de la CLI siguen siendo
+nativos. Las reorientaciones aparcadas conservan las concesiones existentes de solo memoria:
+la aceptación con acuse puede notificarse, pero no se garantiza historial duradero ni una
+notificación reproducible.
 
-## 8. Public surface contract
+## 8. Contrato público de superficies
 
 ```ts
 interface PluginSurfaceProps {
-  title: string; // Accessible name, not a visible host heading.
+  title: string; // Nombre accesible, no un encabezado visible del host.
   background?: "dimmed" | "opaque";
   content: PluginUiContent;
   onClose?: () => void | Promise<void>;
@@ -222,53 +269,66 @@ openSurface(props: PluginSurfaceProps, options: PluginWidgetOptions): PluginWidg
 openSurface(target: PluginSurfaceTarget, props: PluginSurfaceProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginSurfaceProps>;
 ```
 
-`PluginSurfaceTarget` is opaque host identity, not DOM, a persisted session ID or backend
-serializable token. Native action/submission context exposes it. Targetless invocation
-captures the active page boundary **once synchronously** (plugin views, chat, Home, New Draft),
-not a later page after awaits. Explicit targets identify one mounted native teaching/practice
-view. Missing/expired live boundaries throw `Surface target is no longer active`; returning
-to the same session never revives a token. Already-aborted signals return inert handles before
-boundary resolution. Recheck expiry at mount commit; late expiry disposes/reports.
+`PluginSurfaceTarget` es una identidad opaca del host, no DOM, ni un ID de sesión persistido,
+ni un token serializable para el backend. El contexto nativo de acciones y envíos lo expone.
+La invocación sin destino captura el límite de la página activa **una vez y de forma
+síncrona** (vistas de plugins, chat, Inicio, Nuevo borrador), no una página posterior tras
+los `await`. Los destinos explícitos identifican una vista nativa montada de enseñanza o
+práctica. Los límites vivos que faltan o han caducado lanzan
+`Surface target is no longer active`; volver a la misma sesión nunca revive un token. Las
+señales ya canceladas devuelven handles inertes antes de resolver el límite. Vuelve a
+comprobar la caducidad al confirmar el montaje; una caducidad tardía libera y notifica.
 
-Coverage is only the page body. Top bars/sidebar remain usable; Home/New Draft preserve
-floating sidebar toggle/window chrome while body graph/composer stay mounted but inactive.
-Surfaces stack, retaining covered DOM/state/paint. Only eligible foreground content receives
-body interaction. Ordinary siblings do not own one another's lifetime: removing a lower
-plugin surface must not remove another plugin's foreground surface. Caller signals may
-intentionally bind lifetimes.
+La cobertura es solo el cuerpo de la página. Las barras superiores y la lateral siguen
+utilizables; Inicio y Nuevo borrador conservan el conmutador flotante de la barra lateral y
+el marco de la ventana, mientras el grafo y el compositor del cuerpo siguen montados pero
+inactivos. Las superficies se apilan y conservan el DOM, el estado y el pintado cubiertos.
+Solo el contenido elegible en primer plano recibe la interacción del cuerpo. Los hermanos
+ordinarios no son dueños del ciclo de vida de los demás: quitar una superficie de plugin
+inferior no debe quitar la superficie en primer plano de otro plugin. Las señales de quien
+llama pueden vincular ciclos de vida de forma intencionada.
 
-Leave/hide of the owning page, unload, caller abort or dispose tears down the scope; re-entry
-creates a new boundary. No suspension/restoration or arbitrary DOM-parent injection. Content
-fills available width/height; controlled replacement disposes each old mount exactly once,
-including late async cleanup. Existing view layers own ordering/paint and covered-input
-routing, not another modal/overlay registry or viewport scroll lock.
+Salir u ocultar la página propietaria, descargar, la cancelación por parte de quien llama o
+la liberación desmontan el ámbito; volver a entrar crea un límite nuevo. No hay suspensión y
+restauración ni inyección en un padre arbitrario del DOM. El contenido ocupa el ancho y alto
+disponibles; la sustitución controlada libera cada montaje antiguo exactamente una vez,
+incluida la limpieza asíncrona tardía. Las capas de vista existentes son responsables del
+orden, el pintado y el enrutado de la entrada cubierta, no otro registro de modales u
+overlays ni un bloqueo de scroll del viewport.
 
-Dialogs/Settings always remain in front, even if a surface opens from their content. That
-surface belongs to the page, not the modal opener; it cannot inherit modal focus/Escape
-eligibility. If the dialog closes and the signal remains live, the surface can emerge.
-Do not dispatch submit/Tab/dictation into covered inputs. Closing/unloading a plugin removes
-only its surfaces; global Settings is not lifetime-owned merely by being painted above one.
+Los diálogos y los Ajustes siempre quedan delante, aunque una superficie se abra desde su
+contenido. Esa superficie pertenece a la página, no al modal que la abre; no puede heredar la
+elegibilidad de foco o Escape del modal. Si el diálogo se cierra y la señal sigue viva, la
+superficie puede aparecer. No despaches envío, Tab ni dictado a entradas cubiertas. Cerrar o
+descargar un plugin solo quita sus superficies; los Ajustes globales no pasan a ser
+propiedad de una superficie solo por pintarse encima de ella.
 
-Entry preserves eligible existing/remembered focus, then a synchronously mounted visible
-focusable `data-plugin-initial-focus` marker, then editable fields/headings/frame. No async
-retry or autofocus-on-update. Without content targets, focus the painted labelled frame,
-not its floating X/nonrendering wrapper. Late mounts cannot steal focus from newer layers.
-On close restore eligible uncovered opener, otherwise the surviving region's remembered/
-entry target. Covered disposal/page expiry cannot steal focus or restore into departed DOM.
-No focus trap across the exposed top bar/sidebar is added.
+Al entrar se conserva el foco elegible existente o recordado, después una marca
+`data-plugin-initial-focus` enfocable, visible y montada de forma síncrona, y después campos
+editables, encabezados o el marco. No hay reintento asíncrono ni autoenfoque al actualizar.
+Sin destinos de contenido, enfoca el marco pintado y etiquetado, no su X flotante ni un
+envoltorio que no se renderiza. Los montajes tardíos no pueden robar el foco a capas más
+nuevas. Al cerrar, restaura el elemento que la abrió si es elegible y no está cubierto; si
+no, el destino recordado o de entrada de la región superviviente. La liberación cubierta o la
+caducidad de la página no pueden robar el foco ni restaurarlo en DOM que ya no existe. No se
+añade una trampa de foco que abarque la barra superior y la lateral expuestas.
 
-Titles are accessible only. A quiet pinned X floats over content without a header row or
-inset scrollbar padding. Plugins own visible headings/actions. `dimmed` (default) uses native
-tint/blur; `opaque` is solid background without blur; invalid values reject on mount/update.
-Dialogs share headerless/X presentation within their modal bounds. `onClose` is notification,
-not an async veto. Abort/programmatic disposal follows normal handle cleanup. Shared
-Escape/focus ownership follows the [interaction contract](dialog-overlay-contract.md).
+Los títulos son solo accesibles. Una X discreta fijada flota sobre el contenido sin fila de
+cabecera ni relleno para la barra de scroll. Los plugins son responsables de los encabezados
+y acciones visibles. `dimmed` (por defecto) usa el tinte y el desenfoque nativos; `opaque` es
+un fondo sólido sin desenfoque; los valores no válidos se rechazan al montar o actualizar.
+Los diálogos comparten la presentación sin cabecera y con X dentro de los límites de su modal.
+`onClose` es una notificación, no un veto asíncrono. La cancelación o la liberación
+programática siguen la limpieza normal del handle. La propiedad compartida de Escape y del
+foco sigue el [contrato de interacción](dialog-overlay-contract.md).
 
-## 9. Testing
+## 9. Pruebas
 
-Cover ordering/immutable transforms, readiness, final speech publication, stale occurrence/
-model/view/registration, cancellation retaining drafts, busy fallback once-only interception,
-acknowledgment uncertainty, native image bytes/UI/model channels and unsupported engines.
-Surface checks include exact bounds, retained covered state, one-Escape ownership, focus return,
-page expiry, modal ordering, owner-scoped cleanup and late mounts. Use isolated storage
-and controlled providers when exercising the plugin in the app.
+Cubre el orden y las transformaciones inmutables, la disponibilidad, la publicación final del
+habla, la aparición, el modelo, la vista o el registro obsoletos, la cancelación que conserva
+los borradores, la intercepción única en el recurso por ocupado, la incertidumbre del acuse,
+los bytes de imagen nativos en los canales de interfaz y modelo, y los motores no admitidos.
+Las comprobaciones de superficies incluyen límites exactos, estado cubierto conservado,
+propiedad de un único Escape, devolución del foco, caducidad de la página, orden de los
+modales, limpieza con ámbito de propietario y montajes tardíos. Usa almacenamiento aislado y
+proveedores controlados al probar el plugin en la app.

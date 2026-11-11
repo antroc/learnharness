@@ -1,26 +1,32 @@
-# Plugin question tools — API v1 contract
+# Herramientas de preguntas de plugins — contrato de la API v1
 
-Custom teaching questions share the native question lifecycle. This contract describes
-the matching source/build. Match the target app using the downloaded skill's `bundle.json`;
-API v1 alone does not identify every available capability. Exact types live in
-`src/core/plugin-questions.ts` and the matching type-only SDK. For practice, use the
-separate [problem contract](plugin-problem-contract.md), not teaching enrollment.
+Las preguntas de enseñanza personalizadas comparten el ciclo de vida nativo de las
+preguntas. Este contrato describe el código fuente y la build correspondientes. Comprueba la
+app de destino con el `bundle.json` de la skill descargada; la API v1 por sí sola no
+identifica todas las capacidades disponibles. Los tipos exactos están en
+`src/core/plugin-questions.ts` y en el SDK correspondiente, que solo contiene tipos. Para la
+práctica, usa el [contrato de problemas](plugin-problem-contract.md), que es aparte, no la
+inscripción en la enseñanza.
 
-## 1. Scope and ownership
+## 1. Alcance y responsabilidades
 
-The host owns canonical identity, saved contracts, validation/persistence/continuation,
-question cards/dock, fold/reveal, submission/dismissal, session stats, microphone/model
-controls, optional thinking and check reading-thinking, and probe/teach positioning.
-The plugin owns payload/answer schemas, optional presentation, the answer editor,
-instructions for using its format, and optional generic grading/result presentation.
+El host es responsable de la identidad canónica, los contratos guardados, la validación, la
+persistencia y la continuación, las tarjetas y el dock de preguntas, el plegado y la
+revelación, el envío y el descarte, las estadísticas de la sesión, los controles de micrófono
+y modelo, el razonamiento opcional y el razonamiento de lectura de las comprobaciones, y del
+posicionamiento en el sondeo y la enseñanza. El plugin es responsable de los esquemas de la
+carga útil y de la respuesta, la presentación opcional, el editor de respuestas, las
+instrucciones para usar su formato y la calificación genérica opcional y la presentación de
+su resultado.
 
-This is not a generic pending-input/forms framework, host code-editor catalogue,
-persistent editor-draft format, core chat migration hook or replacement for builtin
-question grading. The ordinary teacher reviews the saved answer and any observations.
+Esto no es un framework genérico de entrada pendiente o formularios, ni un catálogo de
+editores de código del host, ni un formato persistente de borradores de editores, ni un hook
+de migración del chat del núcleo, ni un sustituto de la calificación de preguntas integrada.
+El profesor ordinario revisa la respuesta guardada y cualquier observación.
 
-## 2. Backend registration
+## 2. Registro en el backend
 
-`ctx.registerQuestionType(definition)` returns an unregister function:
+`ctx.registerQuestionType(definition)` devuelve una función para anular el registro:
 
 ```ts
 {
@@ -39,226 +45,277 @@ question grading. The ordinary teacher reviews the saved answer and any observat
 }
 ```
 
-`Q`/`A` denote schema-inferred payload/answer values. Type IDs use `[A-Za-z0-9_-]`,
-1–128 characters; labels/descriptions must contain non-whitespace text. Contract versions
-are positive safe integers, independent of package version. `showThinking` is required
-plugin policy, not model-authored. At least one variant is required: probe contributes
-only to prober, teach only to teacher; no practice enrollment is implied.
+`Q`/`A` designan los valores de carga útil y respuesta inferidos del esquema. Los ID de tipo
+usan `[A-Za-z0-9_-]`, de 1 a 128 caracteres; las etiquetas y descripciones deben contener
+texto que no sea solo espacios. Las versiones del contrato son enteros seguros positivos,
+independientes de la versión del paquete. `showThinking` es una política obligatoria del
+plugin, no algo que escriba el modelo. Se necesita al menos una variante: probe solo aporta
+al agente de sondeo y teach solo al profesor; no implica inscripción en la práctica.
 
-The host builds native posing tools, not plugin `execute` handlers. Names follow native
-tool admission rules. Ordinary tools, questions, problems and instructions from a package
-are admitted atomically from one per-turn contribution snapshot. Never invoke a factory
-again to reconstruct authority.
+El host construye herramientas nativas de planteamiento, no manejadores `execute` del
+plugin. Los nombres siguen las reglas nativas de admisión de herramientas. Las herramientas
+ordinarias, las preguntas, los problemas y las instrucciones de un paquete se admiten de
+forma atómica a partir de una única instantánea de contribución por turno. No vuelvas a
+invocar nunca una factoría para reconstruir la autoridad.
 
-Native parameters are `{question: string, payload: Q}` for probe and
-`{type: "predict" | "check", nodeId: string, question: string, payload: Q}` for teach.
-Common fields cannot collide with payload fields. `question` is non-whitespace
-learner-visible Markdown preserved as authored, providing a safe teaser/fallback.
-Teach node IDs must be applicable live plan nodes; existing predict/check pacing applies.
+Los parámetros nativos son `{question: string, payload: Q}` para probe y
+`{type: "predict" | "check", nodeId: string, question: string, payload: Q}` para teach. Los
+campos comunes no pueden colisionar con los de la carga útil. `question` es Markdown visible
+para el alumno, que no puede ser solo espacios y se conserva tal como se escribió, y sirve
+como adelanto seguro o recurso. Los ID de nodo de teach deben ser nodos aplicables del plan
+vivo; se aplica el ritmo existente de predict/check.
 
-Optional side-effect-free synchronous refinements receive immutable context:
-`validateQuestion({chatId,variant,contractVersion,input})` and
-`validateAnswer({chatId,questionId,variant,contractVersion,input,answer})`.
-Return `undefined`/`[]` or readable error strings. Async/thenable validation is refused.
-Authoring errors do not pose a question; answer errors preserve pending input/drafts.
-A schema-valid but incorrect answer is not a validation failure.
+Los refinamientos síncronos opcionales y sin efectos secundarios reciben un contexto
+inmutable: `validateQuestion({chatId,variant,contractVersion,input})` y
+`validateAnswer({chatId,questionId,variant,contractVersion,input,answer})`. Devuelve
+`undefined`/`[]` o cadenas de error legibles. Se rechaza la validación asíncrona o que
+devuelva un thenable. Los errores de autoría no plantean ninguna pregunta; los errores de la
+respuesta conservan la entrada pendiente y los borradores. Una respuesta válida según el
+esquema pero incorrecta no es un fallo de validación.
 
-## 3. Schema and JSON boundary
+## 3. Esquemas y límite JSON
 
-Use self-contained persistable schemas supported by the installed TypeBox compiler.
-Compile the plain persisted representation, preserving local JSON Pointer reference
-meaning when embedding payloads. Reject external references, `$id`/anchor/dynamic
-resolution, runtime-dependent functions/RegExp/validation objects, non-JSON extensions
-and unsupported formats. Descriptive TypeBox branding is not persisted validation.
-This is bounded schema hygiene, not full JSON Schema meta-validation.
+Usa esquemas persistibles autocontenidos que admita el compilador de TypeBox instalado.
+Compila la representación persistida plana, conservando el significado de las referencias
+locales JSON Pointer al incrustar cargas útiles. Rechaza las referencias externas, la
+resolución por `$id`, anclas o dinámica, las funciones, RegExp u objetos de validación que
+dependen del runtime, las extensiones no JSON y los formatos no admitidos. El marcado
+descriptivo de TypeBox no es validación persistida. Esto es higiene acotada de esquemas, no
+una metavalidación completa de JSON Schema.
 
-Values are finite JSON: strings, finite numbers, booleans, null, arrays and plain objects.
-Do not convert, clean, trim, truthiness-filter or silently omit values. Preserve raw code
-whitespace and valid `false`, `0`, `null`, empty strings/arrays exactly.
+Los valores son JSON finito: cadenas, números finitos, booleanos, null, arrays y objetos
+planos. No conviertas, limpies, recortes, filtres por veracidad ni omitas valores en
+silencio. Conserva exactamente los espacios en bruto del código y los valores válidos
+`false`, `0`, `null` y cadenas o arrays vacíos.
 
-## 4. Durable authority and stream presentation
+## 4. Autoridad duradera y presentación del stream
 
-A frozen accepted per-turn registry plus host pose ledger attest successful execution.
-Only a successful host pose creates pending authority: raw arguments, tool-name
-coincidence or arbitrary result tokens do not. Immutable snapshots bind host-minted
-question ID, exact call occurrence, owner/type/label/version/variant, validated input,
-schemas, `showThinking`, refinement and grading requirements, and teach role/node.
+Un registro congelado aceptado por turno más el libro de planteamientos del host certifican
+la ejecución correcta. Solo un planteamiento correcto del host crea autoridad pendiente: los
+argumentos en bruto, la coincidencia de nombres de herramienta o los tokens arbitrarios en
+los resultados, no. Las instantáneas inmutables vinculan el ID de pregunta acuñado por el
+host, la aparición exacta de la llamada, el propietario, tipo, etiqueta, versión y variante,
+la entrada validada, los esquemas, `showThinking`, los requisitos de refinamiento y
+calificación y el papel y nodo de teach.
 
-App-only `lhQuestions` metadata is indexed by assistant content position. Attempt
-annotations carry visibility facts but no pending authority. Ungraded snapshots use
-local protocol v1; graded ones use v2 with `requiresGrading: true` (section 6).
+Los metadatos `lhQuestions`, exclusivos de la app, se indexan por posición en el contenido
+del asistente. Las anotaciones de intentos llevan datos de visibilidad, pero no autoridad
+pendiente. Las instantáneas sin calificación usan el protocolo local v1; las calificadas usan
+v2 con `requiresGrading: true` (sección 6).
 
-A successful pose ends the native run using a temporary engine acknowledgement, not a
-learner answer. Suppress only ledger-attested temporary acks across stream/settlement
-carriers; retain errors/ordinary sibling results. Correlate original events before wire
-filtering. A successful pose stops mixed batches even when another question attempt fails.
+Un planteamiento correcto termina la ejecución nativa con un acuse temporal del motor, no con
+una respuesta del alumno. Suprime solo los acuses temporales certificados por el libro en
+todos los portadores de stream y resolución; conserva los errores y los resultados hermanos
+ordinarios. Correlaciona los eventos originales antes de filtrar el cable. Un planteamiento
+correcto detiene los lotes mixtos aunque falle otro intento de pregunta.
 
-Question attempts never fall into the generic raw-input trace, including failed/live/
-interrupted attempts and missing renderers. Decorate outgoing assistant snapshot copies
-at message start/update/end after subscription admission and ID remapping, before renderer
-selection; never mutate shared native objects. Persist unsuccessful attempt classification
-separately. Failed attempts show safe host status, not raw errors quoting private payloads.
-Fallback uses common `question`, not a payload dump. This presentation boundary is not an
-OS/browser sandbox or a promise that authored prose cannot contain an answer.
+Los intentos de pregunta nunca caen en la traza genérica de entrada en bruto, incluidos los
+intentos fallidos, en curso o interrumpidos y los que no tienen renderizador. Decora las
+copias salientes de las instantáneas del asistente al inicio, al actualizar y al final del
+mensaje, tras la admisión de la suscripción y el remapeo de ID y antes de elegir el
+renderizador; no modifiques nunca objetos nativos compartidos. Persiste aparte la
+clasificación de los intentos fallidos. Los intentos fallidos muestran un estado seguro del
+host, no errores en bruto que citen cargas útiles privadas. El recurso usa la `question`
+común, no un volcado de la carga útil. Este límite de presentación no es un sandbox del
+sistema operativo o del navegador ni promete que la prosa escrita no pueda contener una
+respuesta.
 
-Strip app-only metadata from model messages. Never rewrite historical calls or allow
-plugin callbacks to migrate core chat records.
+Quita los metadatos exclusivos de la app de los mensajes para el modelo. No reescribas nunca
+llamadas históricas ni permitas que las callbacks de plugins migren registros del chat del
+núcleo.
 
-## 5. Canonical adoption, submission and compatibility
+## 5. Adopción canónica, envío y compatibilidad
 
-Mount actionable editors only after canonical persistence/client adoption. Live attempts
-may show non-actionable placeholders. After stream termination explicitly reconcile;
-a failed read stays gated with reconciliation-only Retry, never another teacher turn.
-Connection-generation/epoch/ticket fences reject detached completions. Reconnecting the
-same occurrence must start/join a current task, not reuse obsolete readiness.
+Monta los editores accionables solo después de la persistencia canónica y la adopción por el
+cliente. Los intentos en curso pueden mostrar marcadores de posición no accionables. Tras
+terminar el stream, concilia explícitamente; una lectura fallida sigue bloqueada con un
+Reintentar que solo concilia, nunca con otro turno del profesor. Las barreras de generación
+de conexión, época y ticket rechazan las finalizaciones separadas. Reconectar la misma
+aparición debe iniciar o unirse a una tarea actual, no reutilizar una disponibilidad
+obsoleta.
 
-Submission binds stable question ID **and exact occurrence**, not only call ID. Pending
-plugin questions cannot be bypassed by ordinary text/Continue/Retry or legacy builtin
-answer/dismiss paths. Session settings/model changes remain possible.
+El envío vincula el ID estable de la pregunta **y la aparición exacta**, no solo el ID de la
+llamada. Las preguntas de plugins pendientes no se pueden saltar con texto ordinario,
+Continuar o Reintentar, ni con los caminos antiguos de respuesta o descarte integrados. Los
+ajustes de la sesión y los cambios de modelo siguen siendo posibles.
 
-The host latches one attempt, finishes dictation, awaits editor transcript publication,
-rechecks occurrence/mount/readiness, resolves saved canonical schemas, validates/refines,
-optionally grades, saves the genuine native result, then follows existing sibling/owed-turn
-continuation rules. Duplicate/stale attempts cannot save another answer or launch extra work.
-New hooks never retroactively change old saved acceptance requirements.
+El host fija un intento, termina el dictado, espera a que el editor publique la
+transcripción, vuelve a comprobar la aparición, el montaje y la disponibilidad, resuelve los
+esquemas canónicos guardados, valida y refina, califica opcionalmente, guarda el resultado
+nativo real y después sigue las reglas existentes de continuación de hermanos y turnos
+pendientes. Los intentos duplicados u obsoletos no pueden guardar otra respuesta ni lanzar
+trabajo extra. Los hooks nuevos nunca cambian con efecto retroactivo los requisitos de
+aceptación guardados antiguos.
 
-Compatibility is explicit:
+La compatibilidad es explícita:
 
-- The current backend supports its exact `contractVersion`. Saved schemas still govern.
-  Package revision/hash or a different version number alone never authorizes cancellation.
-- `incompatibleContractVersions` declares genuine incompatibility; contradictory declarations
-  reject. Explicit incompatibility or genuinely unreadable host protocol can produce quiet
-  host cancellation only with enough readable identity to bind the exact occurrence.
-  Never guess a cancellation target or race an active turn.
-- Missing/disabled backend, undeclared version, missing renderer or rendering failure keeps
-  pending input with readable fallback and recovery dismissal. Frontend failure cannot
-  declare incompatibility. No automatic upgrade/range/migration over chat records exists.
+- El backend actual admite su `contractVersion` exacto. Los esquemas guardados siguen
+  gobernando. Una revisión o hash del paquete o un número de versión distinto, por sí solos,
+  nunca autorizan una cancelación.
+- `incompatibleContractVersions` declara una incompatibilidad real; las declaraciones
+  contradictorias se rechazan. Una incompatibilidad explícita o un protocolo del host
+  realmente ilegible pueden producir una cancelación silenciosa del host solo si hay
+  identidad legible suficiente para vincular la aparición exacta. Nunca adivines el destino
+  de una cancelación ni compitas con un turno activo.
+- Un backend ausente o desactivado, una versión no declarada, la falta de renderizador o un
+  fallo al renderizar mantienen la entrada pendiente con un recurso legible y descarte de
+  recuperación. Un fallo del frontend no puede declarar incompatibilidad. No existe
+  actualización automática, rangos ni migración sobre los registros del chat.
 
-## 6. Grading and saved results
+## 6. Calificación y resultados guardados
 
-Optional `gradeAnswer(context)` runs **after validation, before save**, receiving immutable
-historical input/answer and a host signal. Return any finite JSON, not a host envelope.
-There is no host result schema, correctness/status enum, scoring or automatic badge UI.
+`gradeAnswer(context)` opcional se ejecuta **después de la validación y antes de guardar**, y
+recibe la entrada y la respuesta históricas inmutables y una señal del host. Devuelve
+cualquier JSON finito, no un sobre del host. No hay esquema de resultado del host, ni enum de
+corrección o estado, ni puntuación, ni interfaz automática de insignias.
 
-The host answer envelope contains `kind: "plugin-question"`, `questionId`, `pluginId`,
-`typeId`, `contractVersion`, exact `answer`, applicable `thinking`/`readingThinking`,
-`answeredAt`, optional image channels and optional `grading`:
+El sobre de respuesta del host contiene `kind: "plugin-question"`, `questionId`, `pluginId`,
+`typeId`, `contractVersion`, la `answer` exacta, `thinking`/`readingThinking` aplicables,
+`answeredAt`, canales de imagen opcionales y `grading` opcional:
 
 ```ts
 type PluginQuestionGradingOutcome = { result: JsonValue } | { error: string };
 ```
 
-The server supplies identity/time. Thinking is separate from answer; `showThinking`
-controls applicability, not nonempty-writing requirements. Reading thinking applies only
-to teach checks. Preserve applicable defined empty/whitespace values; reject injected
-inapplicable channels. Full accepted details persist in the native result; model-facing
-text includes answer/thinking/grading, with native image blocks alongside it. There is no
-plugin-controlled replacement of the host answer message.
+El servidor aporta la identidad y la hora. El razonamiento va separado de la respuesta;
+`showThinking` controla la aplicabilidad, no exige escribir algo no vacío. El razonamiento de
+lectura solo se aplica a las comprobaciones de teach. Conserva los valores aplicables
+definidos que estén vacíos o sean solo espacios; rechaza los canales no aplicables
+inyectados. Los detalles completos aceptados persisten en el resultado nativo; el texto para
+el modelo incluye respuesta, razonamiento y calificación, con los bloques de imagen nativos
+junto a él. El plugin no puede sustituir el mensaje de respuesta del host.
 
-Throws/rejections/non-JSON grading returns save an **accepted answer with `grading.error`**,
-not a validation failure. Successful falsy/null/empty results remain valid. Outcomes reach
-`mountAnswered` and the model; projection, continuation/retry and remount never rerun grading.
+Las excepciones, rechazos o valores no JSON devueltos por la calificación guardan una
+**respuesta aceptada con `grading.error`**, no un fallo de validación. Los resultados falsy,
+null o vacíos correctos siguen siendo válidos. Los resultados llegan a `mountAnswered` y al
+modelo; la proyección, la continuación o el reintento y el remontaje nunca vuelven a
+ejecutar la calificación.
 
-Grading is pose-frozen: protocol v2 records `requiresGrading: true`; v1 remains ungraded
-if a hook is later added, and unexpected v1 grading is ignored on projection without
-rewriting history. Missing exact required grader keeps the question unavailable/pending.
-An older host unable to read v2 may quietly cancel the bound unreadable occurrence.
-Manifest API version remains 1.
+La calificación queda congelada en el planteamiento: el protocolo v2 registra
+`requiresGrading: true`; v1 sigue sin calificar si después se añade un hook, y una
+calificación v1 inesperada se ignora al proyectar sin reescribir el historial. Si falta el
+calificador exacto obligatorio, la pregunta sigue no disponible o pendiente. Un host más
+antiguo que no sepa leer v2 puede cancelar en silencio la aparición ilegible vinculada. La
+versión de la API del manifiesto sigue siendo 1.
 
-Grading occupies the inline answer POST/existing turn-preparation owner: no jobs, queue
-or extra LLM pass. Captured model/provider stays fixed through continuation. Disconnect/
-navigation does not cancel admitted grading. Stop, disable or exact registration removal
-aborts its signal and fences save: no learner answer saves for that attempt. The host
-waits for actual callback settlement, not an abort-race wrapper. Cancellation is cooperative;
-plugins own deadlines/cleanup, with no hard host timeout/process termination.
+La calificación ocupa el POST de respuesta en línea y el propietario existente de la
+preparación del turno: sin tareas, cola ni pasada extra del LLM. El modelo y el proveedor
+capturados se mantienen durante la continuación. Una desconexión o navegación no cancelan una
+calificación admitida. Stop, desactivar o quitar exactamente ese registro cancelan su señal y
+bloquean el guardado: no se guarda ninguna respuesta del alumno para ese intento. El host
+espera a que la callback termine de verdad, no a un envoltorio que compite con la
+cancelación. La cancelación es cooperativa; los plugins se encargan de plazos y limpieza, sin
+límite de tiempo estricto ni terminación de procesos por parte del host.
 
-There is no automatic plugin-answer 409 retry. Explicit pre-save retry may rerun grading;
-no across-crash exactly-once guarantee or rollback of external side effects is promised.
-Lost acknowledgment requires canonical reconciliation, not a guessed new submission.
+No hay reintento automático de respuestas de plugins tras un 409. Un reintento explícito
+previo al guardado puede volver a ejecutar la calificación; no se promete garantía de
+exactamente una vez a través de un cierre inesperado ni reversión de efectos secundarios
+externos. Un acuse perdido requiere conciliación canónica, no un envío nuevo adivinado.
 
-Dismissal/incompatibility produce honest host cancellation results, not learner answers,
-and do not automatically run the teacher. Next deliberate input follows normal wake rules.
+El descarte y la incompatibilidad producen resultados de cancelación honestos del host, no
+respuestas del alumno, y no ejecutan automáticamente al profesor. La siguiente entrada
+deliberada sigue las reglas normales de despertar.
 
-## 7. Frontend slots, drafts and lifetime
+## 7. Huecos del frontend, borradores y ciclo de vida
 
 `registerQuestionRenderer({id,supportedContractVersions,mountQuestion?,mountAnswerEditor,
-mountAnswered?})` returns an unregister function scoped to the owning plugin/type.
-Default question presentation is host Markdown; default answered presentation is readable
-saved learner data. These slots are not ordinary tool renderers or cross-plugin claims.
+mountAnswered?})` devuelve una función para anular el registro con ámbito en el plugin y
+tipo propietarios. La presentación por defecto de la pregunta es Markdown del host; la
+presentación por defecto ya respondida son los datos guardados del alumno de forma legible.
+Estos huecos no son renderizadores de herramientas ordinarios ni reclamaciones entre
+plugins.
 
-Mounts receive immutable normalized input, chat/question ID, historical contract version,
-variant and signal. `mountAnswered` adds accepted answer, optional grading and optional
-readonly `headerContainer` (inline after host label) / `footerContainer` (after host answer
-thinking). These live DOM slots share the body's generation/signal/cleanup, confer no
-ownership of host heading/thinking, and disappear on failure/replacement/unmount. If absent,
-use body fallback; never query/move surrounding host DOM or retain slots across generations.
-Question/editor mounts receive neither slot. Host thinking/images stay outside plugin bodies.
+Los montajes reciben la entrada normalizada inmutable, el ID de chat y de pregunta, la
+versión histórica del contrato, la variante y la señal. `mountAnswered` añade la respuesta
+aceptada, la calificación opcional y `headerContainer` (en línea tras la etiqueta del host) /
+`footerContainer` (tras el razonamiento de la respuesta del host) opcionales de solo lectura.
+Estos huecos vivos del DOM comparten la generación, la señal y la limpieza del cuerpo, no
+otorgan propiedad sobre el encabezado ni el razonamiento del host y desaparecen al fallar,
+sustituir o desmontar. Si faltan, usa el cuerpo como recurso; no consultes ni muevas nunca el
+DOM circundante del host ni conserves los huecos entre generaciones. Los montajes de
+pregunta y de editor no reciben ninguno de los dos huecos. El razonamiento y las imágenes del
+host quedan fuera de los cuerpos de los plugins.
 
-The editor receives `active`, controlled `answer` and synchronous `onChange(state)`:
-`{status:"empty"}` or `{status:"unready"|"ready",value:JsonValue}`. Ready requires a current
-handle/publication; schema-valid falsy/empty values may qualify. Drafts need not yet pass
-the schema. `empty` keeps no value; use `unready` to retain incomplete text.
+El editor recibe `active`, `answer` controlado y `onChange(state)` síncrono:
+`{status:"empty"}` o `{status:"unready"|"ready",value:JsonValue}`. Listo requiere un handle o
+publicación actual; los valores falsy o vacíos válidos según el esquema pueden cumplirlo.
+Los borradores no tienen por qué cumplir aún el esquema. `empty` no guarda ningún valor; usa
+`unready` para conservar texto incompleto.
 
-Required handle: `update({answer,active})`, `focus()`, `dispose()`; optional
-`handleKeyDown(key): "handled" | "pass"`, `appendTranscript(text)` (sync/async).
-Apply controlled updates without echoing publication or resetting identical selection/
-composition. Async mounts/late callbacks are exact-occurrence/generation scoped: obsolete
-handles cannot publish, focus, consume keys or receive speech.
+Handle obligatorio: `update({answer,active})`, `focus()`, `dispose()`; opcionales
+`handleKeyDown(key): "handled" | "pass"` y `appendTranscript(text)` (síncrono o asíncrono).
+Aplica las actualizaciones controladas sin reenviar una publicación ni reiniciar una
+selección o composición idéntica. Los montajes asíncronos y las callbacks tardías tienen
+ámbito de aparición y generación exactas: los handles obsoletos no pueden publicar, enfocar,
+consumir teclas ni recibir habla.
 
-Keep mounts alive across folding, updating active state. Same-question canonical adoption
-must not remount. In-memory occurrence-keyed drafts survive remounts while the session model
-lives, not necessarily model destruction/reload/restart. No persistent draft format is added.
+Mantén vivos los montajes al plegar, actualizando el estado activo. La adopción canónica de
+la misma pregunta no debe remontar. Los borradores en memoria indexados por aparición
+sobreviven a los remontajes mientras vive el modelo de la sesión, no necesariamente a su
+destrucción, recarga o reinicio. No se añade ningún formato persistente de borradores.
 
-## 8. Keyboard, dictation and native UI
+## 8. Teclado, dictado e interfaz nativa
 
-Host Enter submits; Shift+Enter edits a newline; reserved Cmd/Ctrl+Enter submits subject
-to readiness/IME. Offer plain Tab, Enter, Shift+Enter and Escape to the active eligible
-editor first. `handled` claims once; omission/`pass` uses host defaults. Tab uses the
-private host field chain, not browser traversal. Unhandled Escape moves to the next host
-field (or blurs an editor-only chain), claiming that event without also discarding or
-aborting. App shortcuts retain precedence, including Shift+Tab model-thinking cycling.
-No public shortcut registry.
+Enter del host envía; Mayús+Enter inserta un salto de línea; el acorde reservado
+Cmd/Ctrl+Enter envía, sujeto a la disponibilidad y al IME. Ofrece primero Tab, Enter,
+Mayús+Enter y Escape sin modificadores al editor elegible activo. `handled` reclama una vez;
+omitirlo o `pass` usa los valores por defecto del host. Tab usa la cadena privada de campos
+del host, no el recorrido del navegador. Escape no gestionado pasa al siguiente campo del
+host (o quita el foco en una cadena formada solo por el editor), reclamando ese evento sin
+descartar ni cancelar además. Los atajos de la app conservan la precedencia, incluido el
+cambio cíclico de razonamiento del modelo con Mayús+Tab. No hay registro público de atajos.
 
-Outside the editor, after focused-field/dictation/layer handling, Escape uses native
-question-dismissal confirmation. Cancel/dialog Escape preserves drafts. Confirmation binds
-the exact occurrence/question; stale targets close without action, never retarget. Idle
-confirmation saves cancellation without teacher wake. During grading the silent dismissal
-route validates current state, parks dismissal and requests Stop together; actual grader
-cleanup must settle before parked cancellation lands. Healthy questions still gain no
-ordinary Dismiss button, and builtin question/problem behavior is unchanged.
+Fuera del editor, tras la gestión del campo enfocado, el dictado y las capas, Escape usa la
+confirmación nativa de descarte de la pregunta. Cancelar o Escape en el diálogo conservan
+los borradores. La confirmación se vincula a la aparición y la pregunta exactas; los destinos
+obsoletos se cierran sin acción, nunca se redirigen. En reposo, la confirmación guarda la
+cancelación sin despertar al profesor. Durante la calificación, la ruta de descarte
+silencioso valida el estado actual, aparca el descarte y solicita Stop a la vez; la limpieza
+real del calificador debe terminar antes de que se aplique la cancelación aparcada. Las
+preguntas sanas siguen sin tener un botón Descartar ordinario, y el comportamiento de las
+preguntas y problemas integrados no cambia.
 
-Composition/229 must not submit/cycle/run editing commands; preserve composing Enter's
-native default while suppressing host routing. Covered/hidden/stale editors cannot claim.
-Keep the editor outside the submit footer's native form; no fabricated keyboard dispatch.
+La composición/229 no debe enviar, cambiar de campo ni ejecutar comandos de edición;
+conserva el comportamiento nativo por defecto de Enter durante la composición y suprime el
+enrutado del host. Los editores cubiertos, ocultos u obsoletos no pueden reclamar. Mantén el
+editor fuera del formulario nativo del pie de envío; no fabriques despachos de teclado.
 
-Dictation goes to unrevealed check ReadingThinking; after reveal/open probe/predict it
-goes to host Thinking when enabled, otherwise explicit editor `appendTranscript` if
-provided. Without either, microphone stays visible/disabled, never routes to a hidden
-composer. Folding does not erase/redirect it. Finish before reveal/submit; transcript
-callbacks must publish before resolving. Settle/cancel obsolete capture destinations.
+El dictado va al ReadingThinking de una comprobación no revelada; tras la revelación o en un
+probe/predict abierto va al Thinking del host si está activado y, si no, al
+`appendTranscript` explícito del editor si se proporciona. Sin ninguno de los dos, el
+micrófono sigue visible pero desactivado y nunca enruta a un compositor oculto. Plegar no lo
+borra ni lo redirige. Termina antes de revelar o enviar; las callbacks de transcripción deben
+publicar antes de resolverse. Resuelve o cancela los destinos de captura obsoletos.
 
-Reuse native dock/card/stats/toolbar/reveal machinery, not a rewrite of builtin forms.
-Thinking uses the native frame with compact 40px minimum and natural growth. Healthy
-questions have no Dismiss; it is recovery-only. Unknown/sync-failed availability is not
-confirmed unavailability: show Preparing or readable content with Retry syncing, gate
-submission, and keep an admitted same-owner editor read-only until canonical readiness.
-Legitimate initial publications/transcript completion still settle under draft-ownership
-checks while interaction is inactive.
+Reutiliza la maquinaria nativa de dock, tarjeta, estadísticas, barra de herramientas y
+revelación, no una reescritura de los formularios integrados. El razonamiento usa el marco
+nativo con un mínimo compacto de 40px y crecimiento natural. Las preguntas sanas no tienen
+Descartar; es solo para recuperación. Una disponibilidad desconocida o con fallo de
+sincronización no es una no disponibilidad confirmada: muestra `Preparing question…` o
+contenido legible con `Retry syncing`, bloquea el envío y mantén en solo lectura un editor
+admitido del mismo propietario hasta la disponibilidad canónica. Las publicaciones iniciales
+legítimas y la finalización de la transcripción siguen resolviéndose bajo las comprobaciones
+de propiedad del borrador mientras la interacción está inactiva.
 
-Opening height retargets from current geometry over remaining original animation time
-when late editor admission changes size; do not delay/restart opening, animate ordinary
-typing growth or remount the editor. In history, reading thinking is above the card with
-native label/default-open; answer thinking is inside with native inCard/default-closed.
-Defined empty/whitespace channels remain present; text/images combine per channel.
+La altura de apertura se reajusta desde la geometría actual durante el tiempo que quede de
+la animación original cuando la admisión tardía del editor cambia el tamaño; no retrases ni
+reinicies la apertura, no animes el crecimiento ordinario al escribir ni remontes el editor.
+En el historial, el razonamiento de lectura va encima de la tarjeta con la etiqueta nativa y
+abierto por defecto; el razonamiento de la respuesta va dentro, con inCard nativo y cerrado
+por defecto. Los canales definidos vacíos o solo con espacios siguen presentes; el texto y
+las imágenes se combinan por canal.
 
-Fallback respects reveal pacing, shows safe saved Markdown/status, disables submission
-and exposes recovery dismissal. Copy: `Preparing question…`, `Question unavailable`,
-`Dismiss question`, `Could not sync the saved session.` / `Retry syncing`.
+El recurso respeta el ritmo de revelación, muestra el Markdown y el estado guardados de forma
+segura, desactiva el envío y expone el descarte de recuperación. Textos:
+`Preparing question…`, `Question unavailable`, `Dismiss question`,
+`Could not sync the saved session.` / `Retry syncing`.
 
-## 9. Testing
+## 9. Pruebas
 
-Tests should cover ledger-attested poses/mixed batches, stream suppression, canonical
-reconnect/adoption, exact occurrences, schemas/local references, unavailable/incompatible
-states, grading cancellation/save order, duplicate/legacy bypasses, editor generations,
-drafts, keyboard/IME, speech delivery and host fallback. Typecheck against the portable SDK
-and exercise the plugin in an isolated app profile as well as unit/component fixtures.
+Las pruebas deben cubrir los planteamientos certificados por el libro y los lotes mixtos, la
+supresión en el stream, la reconexión y adopción canónicas, las apariciones exactas, los
+esquemas y referencias locales, los estados no disponible e incompatible, la cancelación de
+la calificación y el orden de guardado, los saltos duplicados o por caminos antiguos, las
+generaciones de editores, los borradores, el teclado y el IME, la entrega del habla y el
+recurso del host. Comprueba los tipos contra el SDK portable y prueba el plugin en un perfil
+aislado de la app además de en fixtures unitarias y de componentes.

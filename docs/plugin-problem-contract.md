@@ -1,37 +1,45 @@
-# Plugin-defined practice problems — host API v1
+# Problemas de práctica definidos por plugins — API v1 del host
 
-Custom **practice problem types** share the native practice lifecycle, not teaching
-questions, a second lifecycle, a separate conclusion tool or a new assessment system.
-This describes the matching source/build. Match the target app using the downloaded skill's
-`bundle.json`; API v1 alone does not identify every available capability. Public types live in
-`src/core/plugin-problems.ts` and the type-only `learnharness-plugin-api` SDK.
+Los **tipos de problema de práctica** personalizados comparten el ciclo de vida nativo de la
+práctica; no son preguntas de enseñanza, ni un segundo ciclo de vida, ni una herramienta de
+conclusión aparte, ni un sistema de evaluación nuevo. Esto describe el código fuente y la
+build correspondientes. Comprueba la app de destino con el `bundle.json` de la skill
+descargada; la API v1 por sí sola no identifica todas las capacidades disponibles. Los tipos
+públicos están en `src/core/plugin-problems.ts` y en el SDK `learnharness-plugin-api`, que
+solo contiene tipos.
 
-## Shared lifecycle
+## Ciclo de vida compartido
 
-- A backend registers one posing tool per problem type. It is contributed to **practice
-  agents only**, subject to the existing package-atomic tool-name collision admission.
-- Native and plugin poses share the same synchronous one-active-problem gate and graph
-  target validation. Failed/dangling poses do not activate a problem. An acknowledged
-  pose ends the turn, including mixed tool batches, and owes no automatic continuation.
-  Before acknowledgment, the generic collapsible tool trace is intentionally unchanged:
-  its expandable arguments may include the committed solution, like inspectable agent
-  thinking. Accepted poses use the statement-only problem card.
-- Every pose has `statement`, `mode: "recall" | "discrimination" | "composition"`, optional
-  `target: string[]`, required `modelSolution: string`, and plugin-defined `payload`.
-  Common fields and their model-facing descriptions come from the native practice schema.
-- The host persists the accepted plugin contract in the actual pose acknowledgment's
-  `details.pluginProblem`. The saved contract, not a live registry lookup or a guessed
-  tool name, identifies historical/active plugin problems. No second question ledger is
-  needed: unlike teaching-question placeholders, practice acknowledgments already persist.
-- One problem accepts multiple learner submissions. Only the existing **`conclude`** tool
-  records the model's final assessment and closes it. The native conclusion card reveals
-  the original pose's committed `modelSolution`; plugins do not supply a conclusion tool.
-- Normal practice dismissal remains available and silent. Disabling/removing a plugin,
-  missing a renderer, or declaring an incompatible contract does **not** replace the
-  problem with a native text editor or lose its committed solution. Submission is
-  unavailable until compatible implementations return, or the learner dismisses it.
+- Un backend registra una herramienta de planteamiento por tipo de problema. Se aporta
+  **solo a los agentes de práctica**, sujeta a la admisión existente de colisiones de nombres
+  de herramienta atómica por paquete.
+- Los planteamientos nativos y de plugins comparten la misma barrera síncrona de un único
+  problema activo y la misma validación de destinos del grafo. Los planteamientos fallidos o
+  colgantes no activan ningún problema. Un planteamiento con acuse termina el turno, incluso
+  en lotes mixtos de herramientas, y no implica continuación automática. Antes del acuse, la
+  traza genérica plegable de la herramienta no cambia, de forma intencionada: sus argumentos
+  desplegables pueden incluir la solución comprometida, igual que el razonamiento
+  inspeccionable del agente. Los planteamientos aceptados usan la tarjeta de problema que solo
+  muestra el enunciado.
+- Todo planteamiento tiene `statement`, `mode: "recall" | "discrimination" | "composition"`,
+  `target: string[]` opcional, `modelSolution: string` obligatorio y un `payload` definido
+  por el plugin. Los campos comunes y sus descripciones para el modelo provienen del esquema
+  nativo de la práctica.
+- El host persiste el contrato del plugin aceptado en `details.pluginProblem` del acuse real
+  del planteamiento. Es el contrato guardado, no una consulta al registro vivo ni un nombre
+  de herramienta adivinado, lo que identifica los problemas de plugins históricos o activos.
+  No hace falta un segundo libro de preguntas: a diferencia de los marcadores de posición de
+  las preguntas de enseñanza, los acuses de práctica ya persisten.
+- Un problema acepta varios envíos del alumno. Solo la herramienta existente **`conclude`**
+  registra la evaluación final del modelo y lo cierra. La tarjeta de conclusión nativa revela
+  el `modelSolution` comprometido en el planteamiento original; los plugins no aportan una
+  herramienta de conclusión.
+- El descarte normal de la práctica sigue disponible y es silencioso. Desactivar o quitar un
+  plugin, que falte un renderizador o declarar un contrato incompatible **no** sustituye el
+  problema por un editor de texto nativo ni pierde su solución comprometida. El envío no está
+  disponible hasta que vuelvan implementaciones compatibles o el alumno lo descarte.
 
-## Backend registration
+## Registro en el backend
 
 ```ts
 import { Type } from "typebox";
@@ -52,44 +60,48 @@ export function activate(ctx: PluginBackendContext) {
     validateSubmission(context) { return undefined; },
     async processSubmission(context) {
       context.signal.throwIfAborted();
-      // Run plugin-owned checks against context.submission and the saved input.
-      // Return observations, not the host-owned outcome envelope or a verdict.
+      // Ejecuta comprobaciones propias del plugin sobre context.submission y la entrada guardada.
+      // Devuelve observaciones, no el sobre de resultado propiedad del host ni un veredicto.
       return { observedLength: context.submission.length };
     },
   });
 }
 ```
 
-`registerProblemType<Q extends TSchema, S extends TSchema>(definition)` returns an
-unregister function. The definition contains:
+`registerProblemType<Q extends TSchema, S extends TSchema>(definition)` devuelve una función
+para anular el registro. La definición contiene:
 
-- Required stable local `id`, `label`, positive safe integer `contractVersion`, `tool`
-  (`toolName`, `description`), `problemSchema`, and `submissionSchema`.
-- Optional `incompatibleContractVersions: number[]`; an incompatible saved problem stays
-  active but unavailable. A differing version not listed is also unavailable.
-- Optional synchronous, side-effect-free `validateProblem` and `validateSubmission`,
-  returning `undefined`, `[]`, or readable error strings. Async/thenable validation cannot
-  grant acceptance. Schemas follow the same bounded finite-JSON/local-reference policy
-  as plugin questions. Neither validation nor schema admission coerces/trims the value.
-- Optional `processSubmission`, synchronous or awaited, returning **finite JSON**.
+- Obligatorios: `id` local estable, `label`, `contractVersion` entero seguro positivo, `tool`
+  (`toolName`, `description`), `problemSchema` y `submissionSchema`.
+- `incompatibleContractVersions: number[]` opcional; un problema guardado incompatible sigue
+  activo pero no disponible. Una versión distinta que no figure en la lista tampoco está
+  disponible.
+- `validateProblem` y `validateSubmission` opcionales, síncronos y sin efectos secundarios,
+  que devuelven `undefined`, `[]` o cadenas de error legibles. Una validación asíncrona o que
+  devuelva un thenable no puede conceder la aceptación. Los esquemas siguen la misma política
+  de JSON finito acotado y referencias locales que las preguntas de plugins. Ni la validación
+  ni la admisión del esquema convierten ni recortan el valor.
+- `processSubmission` opcional, síncrono o esperado, que devuelve **JSON finito**.
 
-Problem validation gets readonly `chatId`, `contractVersion`, and accepted common
-`input` including schema-inferred `input.payload`. Submission validation additionally
-gets `problemId` and schema-inferred `submission`. Processing adds `thinking: string`,
-optional `images: PluginProblemSubmissionImages`, and host-owned `signal: AbortSignal`.
-Owned JSON is detached/frozen; the live signal itself is not frozen. No private turn
-controller, history accessor, scoring API, or conclude capability is supplied.
+La validación del problema recibe `chatId`, `contractVersion` y la `input` común aceptada, de
+solo lectura, incluido `input.payload` inferido del esquema. La validación del envío recibe
+además `problemId` y `submission` inferido del esquema. El procesamiento añade
+`thinking: string`, `images: PluginProblemSubmissionImages` opcional y `signal: AbortSignal`
+propiedad del host. El JSON propio está separado y congelado; la señal viva en sí no está
+congelada. No se proporciona controlador privado del turno, acceso al historial, API de
+puntuación ni capacidad de concluir.
 
-### Validate → process → save → continue
+### Validar → procesar → guardar → continuar
 
-The saved schema and pose-frozen refinement/processing requirements govern **each**
-submission. Required implementations must be available at the saved contract version.
-New hooks do not retroactively change a previously posed problem's requirements.
+El esquema guardado y los requisitos de refinamiento y procesamiento congelados en el
+planteamiento gobiernan **cada** envío. Las implementaciones obligatorias deben estar
+disponibles en la versión del contrato guardada. Los hooks nuevos no cambian con efecto
+retroactivo los requisitos de un problema ya planteado.
 
-The host validates synchronously, captures the exact implementation, awaits optional
-processing, rechecks canonical problem identity/activation, saves one learner marker,
-and starts one normal practice continuation. The marker stores separate `submission`,
-`thinking`, optional `images`, and optional `processing`:
+El host valida de forma síncrona, captura la implementación exacta, espera al procesamiento
+opcional, vuelve a comprobar la identidad y la activación canónicas del problema, guarda un
+marcador del alumno e inicia una continuación de práctica normal. El marcador guarda por
+separado `submission`, `thinking`, `images` opcional y `processing` opcional:
 
 ```ts
 type PluginProblemProcessingOutcome =
@@ -97,26 +109,30 @@ type PluginProblemProcessingOutcome =
   | { error: string };
 ```
 
-`false`, `null`, zero, and empty JSON/string results are valid observations. Ordinary
-throws, rejection, or non-JSON returns become `processing.error` on an **accepted**
-submission. They are not a wrong-answer flag or a reason to auto-conclude. The model
-reads the saved observations alongside the submission and thinking. Stored observations
-are never recomputed on history projection, remount, continuation, or model retry.
+`false`, `null`, cero y los resultados JSON o de cadena vacíos son observaciones válidas. Las
+excepciones ordinarias, los rechazos o los valores devueltos que no son JSON se convierten en
+`processing.error` sobre un envío **aceptado**. No son una marca de respuesta incorrecta ni un
+motivo para concluir automáticamente. El modelo lee las observaciones guardadas junto con el
+envío y el razonamiento. Las observaciones guardadas nunca se recalculan al proyectar el
+historial, al remontar, al continuar ni al reintentar el modelo.
 
-Processing uses the existing inline turn-preparation owner, not a background job/queue
-or another model request. It is attachable and excludes competing turns/submissions.
-HTTP disconnect/navigation does not cancel accepted work. Stop, plugin disable, or exact
-registration removal aborts its signal and prevents a late save. Ownership remains held
-until the underlying callback actually settles: plugins must cooperate with cancellation
-and own any execution timeout. Model/provider choice is captured for the admitted
-submission; later picker changes apply to the next request. Plugin-problem POSTs do
-**not** automatically repost after a 409. Explicit retry after a pre-save failure may
-rerun processing; there is no across-crash exactly-once guarantee.
+El procesamiento usa el propietario existente de la preparación del turno en línea, no una
+tarea o cola en segundo plano ni otra petición al modelo. Se puede adjuntar y excluye turnos
+y envíos en competencia. Una desconexión HTTP o una navegación no cancelan el trabajo
+aceptado. Stop, desactivar el plugin o quitar exactamente ese registro cancelan su señal e
+impiden un guardado tardío. La propiedad se mantiene hasta que la callback subyacente
+termina de verdad: los plugins deben cooperar con la cancelación y encargarse de cualquier
+límite de tiempo de ejecución. La elección de modelo y proveedor se captura para el envío
+admitido; los cambios posteriores en el selector se aplican a la siguiente petición. Los POST
+de problemas de plugins **no** se reenvían automáticamente tras un 409. Un reintento explícito
+tras un fallo previo al guardado puede volver a ejecutar el procesamiento; no hay garantía de
+exactamente una vez a través de un cierre inesperado.
 
-## Frontend registration and native dock
+## Registro en el frontend y dock nativo
 
-`ctx.registerProblemRenderer(renderer)` is owner-scoped by plugin ID and stable type ID,
-with explicit `supportedContractVersions`. It returns an unregister function.
+`ctx.registerProblemRenderer(renderer)` tiene ámbito de propietario por ID de plugin e ID de
+tipo estable, con `supportedContractVersions` explícito. Devuelve una función para anular el
+registro.
 
 ```ts
 import type { PluginProblemRenderer } from "learnharness-plugin-api";
@@ -143,75 +159,84 @@ const renderer: PluginProblemRenderer<{ starter: string }, string> = {
   },
   mountSubmitted(container, context) {
     container.textContent = context.submission;
-    // Optional context.processing is observational data; display it as desired.
-    // context.headerContainer ?? container can host a generic ctx.ui.mountBadge.
+    // context.processing opcional son datos de observación; muéstralos como prefieras.
+    // context.headerContainer ?? container puede alojar un ctx.ui.mountBadge genérico.
   },
 };
-// During frontend activation: ctx.registerProblemRenderer(renderer).
+// Durante la activación del frontend: ctx.registerProblemRenderer(renderer).
 ```
 
-Both mounts receive the saved `input`, `chatId`, `problemId`, `contractVersion`, and
-an `AbortSignal`. `mountSubmissionEditor` also receives `active`, controlled `submission`,
-and `onChange`. State is `{status:"empty"}` or `{status:"unready"|"ready",value:JsonValue}`.
-A ready editor value is mandatory even when an interceptor has pending external input.
-The required handle has `update`, `focus`, `dispose`; optional `handleKeyDown` and
-`appendTranscript` use the same editor-handle vocabulary as teaching questions.
+Ambos montajes reciben la `input` guardada, `chatId`, `problemId`, `contractVersion` y una
+`AbortSignal`. `mountSubmissionEditor` recibe además `active`, `submission` controlado y
+`onChange`. El estado es `{status:"empty"}` o
+`{status:"unready"|"ready",value:JsonValue}`. Un valor de editor listo es obligatorio aunque
+un interceptor tenga entrada externa pendiente. El handle obligatorio tiene `update`, `focus`
+y `dispose`; `handleKeyDown` y `appendTranscript` opcionales usan el mismo vocabulario de
+handle de editor que las preguntas de enseñanza.
 
-The native practice dock retains its statement, then inserts the plugin editor above
-**Your thinking**, with one **Submit** button. After acceptance the editor value stays
-for further revisions; only thinking unchanged since capture is cleared. The editor
-and draft survive collapse and a busy processing/continuation cycle. Stale async mounts,
-callbacks, registration replacements, and cleanup cannot mutate a successor generation.
+El dock de práctica nativo conserva su enunciado y después inserta el editor del plugin por
+encima de **Your thinking**, con un único botón **Enviar**. Tras la aceptación, el valor del
+editor se mantiene para revisiones posteriores; solo se borra el razonamiento que no haya
+cambiado desde la captura. El editor y el borrador sobreviven a plegar y a un ciclo ocupado
+de procesamiento y continuación. Los montajes asíncronos obsoletos, las callbacks, las
+sustituciones de registro y la limpieza no pueden modificar una generación sucesora.
 
-Keyboard behavior shares the existing plugin-editor ownership/IME/layer guards: handled
-keys stay with the editor; unhandled Enter submits, Shift+Enter is native editing,
-Tab cycles host fields, and unhandled Escape moves directly from editor to thinking.
-The reserved Ctrl/Cmd+Enter chord submits. Escape outside the editor retains native
-practice discard-confirmation precedence. The host still owns thinking dictation.
+El comportamiento del teclado comparte las guardas existentes de propiedad, IME y capas de
+los editores de plugins: las teclas gestionadas se quedan en el editor; Enter no gestionado
+envía, Mayús+Enter es edición nativa, Tab recorre los campos del host y Escape no gestionado
+pasa directamente del editor al razonamiento. El acorde reservado Ctrl/Cmd+Enter envía.
+Escape fuera del editor conserva la precedencia nativa de la confirmación de descarte de la
+práctica. El host sigue siendo responsable del dictado del razonamiento.
 
-`mountSubmitted` is optional and receives the exact accepted `submission` plus optional
-`processing`; thinking/images stay host-owned presentation channels. Its optional readonly
-`headerContainer` is a generation-owned inline suffix after the host label, sharing its
-signal and cleanup lifetime. Optional readonly `footerContainer?: HTMLElement` is a
-generation-owned block at the bottom of the submission card, after host submission images
-and thinking. It shares that same signal/cleanup lifetime. Use it for output that belongs
-below thinking; it is not available to `mountSubmissionEditor`. Never replace the host
-heading or thinking, move surrounding DOM, or retain either slot across mount generations.
-If either optional slot is absent, mount its content in the body. Sync/async mount failure,
-replacement, StrictMode replay and unmount remove all three generation-owned slots.
-Failure/missing renderers use readable saved-value/observation fallback; they do
-not erase history or invent success/correctness badges.
+`mountSubmitted` es opcional y recibe la `submission` aceptada exacta y `processing`
+opcional; el razonamiento y las imágenes siguen siendo canales de presentación del host. Su
+`headerContainer` opcional de solo lectura es un sufijo en línea propiedad de la generación,
+tras la etiqueta del host, que comparte su señal y su ciclo de vida de limpieza.
+`footerContainer?: HTMLElement` opcional de solo lectura es un bloque propiedad de la
+generación al final de la tarjeta del envío, después de las imágenes del envío y del
+razonamiento del host. Comparte esa misma señal y ese ciclo de vida de limpieza. Úsalo para
+la salida que deba ir debajo del razonamiento; no está disponible para
+`mountSubmissionEditor`. No sustituyas nunca el encabezado ni el razonamiento del host, no
+muevas el DOM circundante ni conserves ninguno de los dos huecos entre generaciones de
+montaje. Si falta alguno de los huecos opcionales, monta su contenido en el cuerpo. Un fallo
+de montaje síncrono o asíncrono, una sustitución, la repetición de StrictMode y el desmontaje
+eliminan los tres huecos propiedad de la generación. Los fallos o la falta de renderizador
+recurren a mostrar de forma legible el valor y las observaciones guardados; no borran el
+historial ni inventan insignias de éxito o corrección.
 
-## Images and submission interceptors
+## Imágenes e interceptores de envíos
 
-Plugin practice submissions participate in the existing preparation pipeline:
+Los envíos de práctica de plugins participan en la canalización de preparación existente:
 
 ```ts
 // Extract<PluginSubmission, { type: "plugin-problem-submission" }>
 {
   type: "plugin-problem-submission",
-  submission: /* finite JSON */ "editor value",
+  submission: /* JSON finito */ "editor value",
   submissionImages: [],
   thinking: { text: "learner reasoning", images: [] },
 }
 ```
 
-The corresponding target has `channels: ["submission", "thinking"]` and
-`problem: { problemId, occurrence, pluginId, typeId, contractVersion, label, statement }`.
-Identity remains host-owned. Interceptors can transform the value/thinking or attach
-images, not retarget the problem. `onAccepted` fires only after canonical acceptance,
-so a drawing plugin can retain unsent strokes through cancellation/refusal and clear
-only accepted material. Interceptor cancellation and invalid output preserve drafts.
+El destino correspondiente tiene `channels: ["submission", "thinking"]` y
+`problem: { problemId, occurrence, pluginId, typeId, contractVersion, label, statement }`. La
+identidad sigue siendo del host. Los interceptores pueden transformar el valor o el
+razonamiento o adjuntar imágenes, no cambiar el problema de destino. `onAccepted` solo se
+dispara tras la aceptación canónica, de modo que un plugin de dibujo puede conservar los
+trazos no enviados ante una cancelación o un rechazo y borrar solo el material aceptado. La
+cancelación de un interceptor y una salida no válida conservan los borradores.
 
-Transport/saved image channels are `images: { submission?, thinking? }`; reading-thinking
-is not applicable. Images go through existing structural, byte/MIME, model-capability,
-and resize admission. Actual native image blocks reach the model alongside labeled text;
-base64 is not stuffed into the structured submission or model-facing JSON string.
+Los canales de imagen del transporte y del guardado son `images: { submission?, thinking? }`;
+el razonamiento de lectura no se aplica. Las imágenes pasan por la admisión existente de
+estructura, bytes/MIME, capacidad del modelo y redimensionado. Los bloques de imagen nativos
+reales llegan al modelo junto al texto etiquetado; el base64 no se mete en el envío
+estructurado ni en la cadena JSON que ve el modelo.
 
-## Testing
+## Pruebas
 
-Cover saved contracts, the shared native/plugin lifecycle/gate/conclusion, registration
-revocation, processing ownership/cancellation/repeat submissions, images/interceptors,
-controlled dock cleanup/drafts, renderer slots and portable SDK inference. Exercise the
-plugin in an isolated app profile as well as component fixtures. Native text-practice
-behavior remains independent.
+Cubre los contratos guardados, el ciclo de vida, la barrera y la conclusión compartidos entre
+lo nativo y los plugins, la revocación del registro, la propiedad y cancelación del
+procesamiento y los envíos repetidos, las imágenes e interceptores, la limpieza y los
+borradores del dock controlado, los huecos del renderizador y la inferencia del SDK portable.
+Prueba el plugin en un perfil aislado de la app además de en fixtures de componentes. El
+comportamiento nativo de la práctica con texto sigue siendo independiente.
