@@ -1,15 +1,18 @@
-# Whole-session view context for actions — API v1
+# Contexto de vista de toda la sesión para acciones — API v1
 
-Whole-session read-only context is general infrastructure, not a Drawing Pad-specific
-or current-question-only API. This describes the matching source/build. Use the downloaded skill's `bundle.json` to identify the
-app; API v1 alone does not identify every available capability. Public types live in `src/core/plugin-view-context.ts` and the
-matching type-only SDK.
+El contexto de solo lectura de toda la sesión es infraestructura general, no una API
+específica de Drawing Pad ni limitada a la pregunta actual. Esto describe el código fuente y
+la compilación correspondientes. Usa el `bundle.json` de la skill descargada para identificar
+la app; la API v1 por sí sola no identifica todas las capacidades disponibles. Los tipos
+públicos están en `src/core/plugin-view-context.ts` y en el SDK de solo tipos correspondiente.
 
-## Public entry point
+## Punto de entrada público
 
-A session top-bar action, or a shortcut action invoked on a session, receives readonly
-`context.view: PluginSessionViewContext`. Keyboard invocations use `placement: "keyboard"`;
-see [action shortcuts](plugin-authoring.md#action-shortcuts) for opt-in and scope rules:
+Una acción de la barra superior de la sesión, o una acción con atajo invocada sobre una
+sesión, recibe `context.view: PluginSessionViewContext` de solo lectura. Las invocaciones por
+teclado usan `placement: "keyboard"`; consulta
+[atajos de acciones](plugin-authoring.md#atajos-de-acciones) para las reglas de activación y
+de ámbito:
 
 ```ts
 ctx.registerAction({
@@ -20,7 +23,7 @@ ctx.registerAction({
     const view = context.view;
     console.log(view.title, view.messages.length, view.composer.text);
     if (view.input.type === "answer") {
-      // The actual native display order, not a consumer-authored shuffle/parser.
+      // El orden de visualización nativo real, no una mezcla/parser hecho por el consumidor.
       const options = view.input.question.options;
       const selectedValues = view.input.draft.values;
       console.log(view.input.revealed, options, selectedValues);
@@ -35,115 +38,130 @@ ctx.placeAction({
 });
 ```
 
-The existing `placement`, `surface`, `sessionId`, `kind`, and opaque `surfaceTarget`
-remain unchanged. Sidebar/graph contexts and plugin-owned-view action contexts do not
-acquire a host session snapshot. Plugin-owned views retain their owner/view identity;
-their owning plugin already owns their private state. There is no automatic serializer
-for arbitrary plugin DOM or a new plugin-view context-provider protocol.
+Los campos existentes `placement`, `surface`, `sessionId`, `kind` y el `surfaceTarget` opaco
+no cambian. Los contextos de la barra lateral y del grafo y los contextos de acción de vistas
+propiedad de plugins no obtienen una instantánea de la sesión del host. Las vistas propiedad
+de plugins conservan su identidad de propietario/vista; su plugin propietario ya es dueño de
+su estado privado. No hay un serializador automático para un DOM arbitrario de plugin ni un
+protocolo nuevo de proveedor de contexto para vistas de plugins.
 
-## Whole view, not just a submission
+## La vista completa, no solo un envío
 
-`PluginSessionViewContext` contains:
+`PluginSessionViewContext` contiene:
 
-| Field | Meaning |
+| Campo | Significado |
 | --- | --- |
-| `sessionId`, `kind`, `title` | The underlying session's identity, teaching/practice kind, and current committed title. |
-| `messages` | Complete detached current browser-native history, with the same visibility as submission-context messages, including potentially streamed or optimistic content. |
-| `transcript` | The existing host-projected transcript (`LhViewMessage` data), including its grouping and parts. Not a DOM serialization, screenshot, or independently parsed transcript. |
-| `status` | Existing `ready`, `submitted`, `streaming`, or `error` session status. |
-| `reconciliation` | Existing `ready`, `syncing`, or `failed` canonical-sync status. |
-| `busy`, `compacting` | Current host turn/reconciliation and compaction state. |
-| `phase` | The displayed `probe`, `plan`, `teach`, or `practice` phase. |
-| `contextTokens` | Existing completed-conversation context-usage estimate, or `null`. |
-| `queuedSteers` | Currently visible queued learner steers, with `id` and `text`. |
-| `composer.text` | Exact unsent composer text, retained even while a question/problem owns the dock. |
-| `input` | The host-selected current input, its applicable presentation state, and unsent learner values. |
+| `sessionId`, `kind`, `title` | La identidad de la sesión subyacente, su tipo enseñanza/práctica y su título confirmado actual. |
+| `messages` | El historial nativo actual completo del navegador, desconectado, con la misma visibilidad que los mensajes del contexto de envío, incluido el contenido que pueda estar en streaming u optimista. |
+| `transcript` | La transcripción proyectada existente del host (datos `LhViewMessage`), con su agrupación y sus partes. No es una serialización del DOM, una captura de pantalla ni una transcripción analizada por separado. |
+| `status` | El estado de sesión existente: `ready`, `submitted`, `streaming` o `error`. |
+| `reconciliation` | El estado de sincronización canónica existente: `ready`, `syncing` o `failed`. |
+| `busy`, `compacting` | El estado actual de turno/conciliación del host y de compactación. |
+| `phase` | La fase mostrada: `probe`, `plan`, `teach` o `practice`. |
+| `contextTokens` | La estimación existente de uso de contexto de la conversación completada, o `null`. |
+| `queuedSteers` | Las reorientaciones del alumno en cola visibles en ese momento, con `id` y `text`. |
+| `composer.text` | El texto exacto sin enviar del compositor, que se conserva incluso mientras una pregunta/problema ocupa el dock. |
+| `input` | La entrada actual seleccionada por el host, su estado de presentación aplicable y los valores sin enviar del alumno. |
 
-History is **not** restricted to learner-facing question fields. It may contain tool
-arguments, commitments, reasoning, custom payloads, and other already-exposed native
-records. This trusted-local-plugin API does not create a new secrecy boundary or promise
-canonical persistence, accepted delivery, or exactly-once semantics. Projected transcript
-parts are view-model data; final rendering can still hide pending parts in favor of the
-dock. Neither field is a claim that every byte is currently painted in the viewport.
+El historial **no** se limita a los campos de pregunta orientados al alumno. Puede contener
+argumentos de herramientas, compromisos, razonamiento, contenidos personalizados y otros
+registros nativos ya expuestos. Esta API para plugins locales de confianza no crea una nueva
+frontera de secreto ni promete persistencia canónica, entrega aceptada ni semántica de
+exactamente una vez. Las partes de la transcripción proyectada son datos del modelo de vista;
+el renderizado final todavía puede ocultar partes pendientes en favor del dock. Ninguno de los
+dos campos afirma que cada byte se esté pintando en ese momento en el viewport.
 
-## Current input and unsent learner input
+## Entrada actual y entrada sin enviar del alumno
 
-`PluginSessionViewInput` reuses existing submission-target types, including exact
-`{messageId, contentIndex, toolCallId, toolName}` occurrences, session identity, applicable
-channels, and the existing opaque surface target. It is **not** a submission attempt.
+`PluginSessionViewInput` reutiliza los tipos existentes de destino de envío, incluidas las
+apariciones exactas `{messageId, contentIndex, toolCallId, toolName}`, la identidad de la
+sesión, los canales aplicables y el destino de superficie opaco existente. **No** es un
+intento de envío.
 
-- **`text`**: the existing ordinary-content target. The retained draft is `view.composer.text`.
-- **`answer`**: the native learner-facing `question`, with actual displayed/shuffled option
-  order, Markdown context, applicable option descriptions, exact occurrence, and optional
-  `questionType`. Adds `expanded`, `revealed`, `available`, and `draft`.
-  `PluginNativeQuestionViewDraft` contains `dontKnow`, stable selected `values`,
-  `otherSelected`, `other`, `text`, `thinking`, `readingThinking`, and optional displayed
-  numeric `confidence`. Other text survives even when its row is not selected. Values
-  are raw drafts, not a normalized/graded answer envelope; whitespace is not trimmed.
-- **`thinking`**: the existing native practice target/statement and exact occurrence,
-  plus `expanded` and `draft.thinking`.
-- **`plugin-question-answer`**: existing plugin-question target identity/metadata, plus
-  saved `input` including payload, `expanded`, `revealed`, implementation `available`,
-  and `draft: {answer, thinking, readingThinking}`.
-- **`plugin-problem-submission`**: existing plugin-problem target identity/metadata, plus
-  saved `input` including payload, `expanded`, implementation `available`, and
-  `draft: {submission, thinking}`.
-- **`unavailable`**: the host cannot interpret/read the pending input. Carries
-  `expanded`, `revealed`, and the exact occurrence when known. It does not invent a
-  composer/native fallback or manufacture an answerable contract.
+- **`text`**: el destino de contenido ordinario existente. El borrador conservado es
+  `view.composer.text`.
+- **`answer`**: la `question` nativa orientada al alumno, con el orden real de las opciones
+  tal como se muestran/mezclan, el contexto Markdown, las descripciones de opciones
+  aplicables, la aparición exacta y un `questionType` opcional. Añade `expanded`, `revealed`,
+  `available` y `draft`. `PluginNativeQuestionViewDraft` contiene `dontKnow`, los `values`
+  seleccionados estables, `otherSelected`, `other`, `text`, `thinking`, `readingThinking` y,
+  opcionalmente, la `confidence` numérica mostrada. El texto de Otra se conserva aunque su
+  fila no esté seleccionada. Los valores son borradores en bruto, no un envoltorio de
+  respuesta normalizado/evaluado; no se recortan los espacios.
+- **`thinking`**: el destino/enunciado de práctica nativo existente y la aparición exacta,
+  más `expanded` y `draft.thinking`.
+- **`plugin-question-answer`**: la identidad/metadatos existentes del destino de pregunta de
+  plugin, más la `input` guardada con su contenido, `expanded`, `revealed`, el `available` de
+  la implementación y `draft: {answer, thinking, readingThinking}`.
+- **`plugin-problem-submission`**: la identidad/metadatos existentes del destino de problema
+  de plugin, más la `input` guardada con su contenido, `expanded`, el `available` de la
+  implementación y `draft: {submission, thinking}`.
+- **`unavailable`**: el host no puede interpretar/leer la entrada pendiente. Lleva
+  `expanded`, `revealed` y la aparición exacta cuando se conoce. No inventa una alternativa
+  de compositor/nativa ni fabrica un contrato respondible.
 
-Custom `answer`/`submission` draft state is the actual published editor state:
-`{status:"empty"}` or `{status:"unready"|"ready",value:JsonValue}`. Finite JSON falsy and
-empty values remain exact. Private editor state that a plugin has not published is not
-read by inspecting its DOM. External plugin-private unsent material is likewise not
-silently harvested. These fields are informational; neither `available` nor an editor's
-`ready` state alone grants permission to submit.
+El estado del borrador personalizado de `answer`/`submission` es el estado real publicado por
+el editor: `{status:"empty"}` o `{status:"unready"|"ready",value:JsonValue}`. Los valores JSON
+finitos falsy y vacíos se mantienen exactos. El estado privado del editor que un plugin no ha
+publicado no se lee inspeccionando su DOM. Del mismo modo, el material privado sin enviar de
+plugins externos no se recoge en silencio. Estos campos son informativos; ni `available` ni el
+estado `ready` de un editor conceden por sí solos permiso para enviar.
 
-The native question's structured `question` uses the existing `ClientQuestion` projection,
-not its answer keys/explanation/committed answer. The complete history remains available
-separately without artificial filtering. Reveal/collapse flags **describe** the host UI:
-unrevealed question data is still inspectable, but a read never opens/reveals the question.
-A consumer deciding what to render as a learner reference must use the supplied flags
-and its own product behavior, not pretend that inspectable data is already visible.
+La `question` estructurada de la pregunta nativa usa la proyección `ClientQuestion`
+existente, no sus claves de respuesta, explicación ni respuesta comprometida. El historial
+completo sigue disponible por separado, sin filtrado artificial. Los indicadores de
+revelado/plegado **describen** la interfaz del host: los datos de una pregunta no revelada
+siguen siendo inspeccionables, pero una lectura nunca abre ni revela la pregunta. Un
+consumidor que decida qué renderizar como referencia para el alumno debe usar los
+indicadores proporcionados y el comportamiento de su propio producto, no fingir que los datos
+inspeccionables ya están a la vista.
 
-## Snapshot, identity, and lifetime
+## Instantánea, identidad y ciclo de vida
 
-- An actual action invocation captures a fresh snapshot **before** calling plugin `run`.
-  Re-reading `context.view` during/after an await returns that same detached snapshot;
-  it does not follow navigation, a newer occurrence, or subsequent learner edits.
-- The snapshot's data is recursively readonly/frozen. Native history, projected transcript,
-  input/payload, and draft values are detached from live host state. Captures do not grant
-  setters, submission callbacks, or private component handles.
-- Existing opaque surface targets remain live host capabilities. They are deliberately
-  not JSON-cloned or frozen. A captured target still refers to its original underlying
-  view; normal surface lifetime rules govern later use. A stale view cannot silently
-  substitute a new session's content.
-- Dynamic `disabled(context)` predicates receive the same read-only shape. Their
-  render-time snapshot is lazy/shared for that render; the eventual click/shortcut captures anew
-  and checks disabled state again. Host input owners notify ordinary React rendering
-  when their public presentation/drafts change. Plugin-owned external state still uses
-  the existing `refreshActions()` mechanism.
-- Capture failures are contained by existing plugin action error handling. No action
-  runs if its originating view has gone away before capture.
+- Una invocación real de una acción captura una instantánea nueva **antes** de llamar al
+  `run` del plugin. Volver a leer `context.view` durante o después de un await devuelve esa
+  misma instantánea desconectada; no sigue la navegación, una aparición más reciente ni las
+  ediciones posteriores del alumno.
+- Los datos de la instantánea son recursivamente de solo lectura/congelados. El historial
+  nativo, la transcripción proyectada, la entrada/contenido y los valores del borrador están
+  desconectados del estado vivo del host. Las capturas no conceden setters, callbacks de envío
+  ni handles de componentes privados.
+- Los destinos de superficie opacos existentes siguen siendo capacidades vivas del host. A
+  propósito, no se clonan como JSON ni se congelan. Un destino capturado sigue refiriéndose a
+  su vista subyacente original; las reglas normales del ciclo de vida de las superficies rigen
+  su uso posterior. Una vista obsoleta no puede sustituir en silencio el contenido de una
+  sesión nueva.
+- Los predicados dinámicos `disabled(context)` reciben la misma forma de solo lectura. Su
+  instantánea en tiempo de renderizado es diferida/compartida para ese renderizado; el clic o
+  el atajo final captura de nuevo y vuelve a comprobar el estado desactivado. Los propietarios
+  de entrada del host avisan al renderizado normal de React cuando cambian su presentación
+  pública o sus borradores. El estado externo propiedad del plugin sigue usando el mecanismo
+  existente `refreshActions()`.
+- Los fallos de captura los contiene el tratamiento de errores existente de las acciones de
+  plugins. No se ejecuta ninguna acción si su vista de origen ha desaparecido antes de la
+  captura.
 
-There is no public subscription/global mutable context API, screenshot service, raw keyboard
-shortcut addition, or new session state model. A snapshot read does not finish dictation,
-request microphone access, persist drafts, invoke submission interceptors, process/grade,
-submit, acknowledge, or send a model request. It reports current typed/published values,
-not a forced flush of pending speech.
+No hay una API pública de suscripción ni de contexto global mutable, ni un servicio de
+capturas de pantalla, ni una adición de atajos de teclado en bruto, ni un modelo nuevo de
+estado de sesión. Leer una instantánea no termina el dictado, ni pide acceso al micrófono, ni
+guarda borradores, ni invoca interceptores de envío, ni procesa/evalúa, envía, acusa recibo o
+lanza una petición al modelo. Informa de los valores escritos/publicados actuales, no fuerza
+el vaciado del habla pendiente.
 
-## Host implementation and testing
+## Implementación en el host y pruebas
 
-`components/chat.tsx` supplies its existing native history, projected transcript, current
-session metadata and shared submission-target factories. Its native dock publishes a
-private view-local reader. Mounted question/practice components read their actual
-presentation and ref-backed draft state; custom components expose their already-published
-editor value and availability. Cleanup is generation-owned. No second history parser,
-independent shuffle, DOM inspection, global store, polling, or product-plugin dependency
-is introduced.
+`components/chat.tsx` proporciona su historial nativo existente, la transcripción proyectada,
+los metadatos de la sesión actual y las factorías compartidas de destinos de envío. Su dock
+nativo publica un lector privado local a la vista. Los componentes de pregunta/práctica
+montados leen su presentación real y el estado del borrador respaldado por refs; los
+componentes personalizados exponen el valor de editor que ya han publicado y su
+disponibilidad. La limpieza pertenece a cada generación. No se introduce un segundo parser
+del historial, ni una mezcla independiente, ni inspección del DOM, ni un almacén global, ni
+sondeo periódico, ni dependencias de plugins de producto.
 
-Test readonly/discriminated SDK types, complete context copying, custom payloads/editor
-states, unavailable input, native input-owner reads, untrimmed drafts, cleanup,
-inline/overflow action freshness, async capture stability, disabled predicates and
-capture-error containment. Exercise the plugin's actual top-bar actions and native/custom
-inputs in an isolated app profile.
+Prueba los tipos del SDK de solo lectura/discriminados, la copia completa del contexto, los
+contenidos/estados de editor personalizados, la entrada no disponible, las lecturas de los
+propietarios de entrada nativos, los borradores sin recortar, la limpieza, la frescura de las
+acciones en línea/desbordadas, la estabilidad de la captura asíncrona, los predicados de
+desactivación y la contención de los errores de captura. Ejercita las acciones reales de la
+barra superior del plugin y las entradas nativas/personalizadas en un perfil de app aislado.
