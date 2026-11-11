@@ -24,6 +24,17 @@ comentarios y docstrings de los 7 ficheros Python. El código en sí no se modif
 - Textos legales (LICENSE, avisos de copyright en THIRD-PARTY) se dejan en inglés.
 - Los prompts de `src/agent/prompts/` se traducen como el resto (esta rama es para leer;
   ten en cuenta que, si se ejecutara la app desde esta rama, el agente recibiría los prompts en castellano).
+  Consecuencia conocida: las pruebas que comprueban frases literales de los prompts en inglés
+  (p. ej. `tests/practice-agents.test.ts`) fallan en esta rama; no se tocan.
+- Cadenas literales que el código genera o muestra y que el agente o el lector deben reconocer
+  tal cual se dejan en inglés, entre comillas: en los prompts, “Recorded learner–helper
+  conversation”, *Your thinking*, *Next problem*, "Check your understanding", "dismissed",
+  "was aborted", `<lesson>`. Las etiquetas de la interfaz del host en los docs se traducen
+  (Ajustes → Plugins de la comunidad, Potente/Barato/Visión…); los textos de botones que
+  define el propio plugin de ejemplo (**Say hello**, **New conversation**…) y los nombres de
+  plugins se dejan en inglés.
+- THIRD-PARTY: se traduce la prosa explicativa; nombres de licencias, titulares de copyright
+  y textos de licencia se dejan en inglés.
 
 ## Herramienta para comentarios de código
 
@@ -55,8 +66,8 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 
 | Lote | Contenido | Ficheros | Palabras | Estado |
 |------|-----------|---------:|---------:|--------|
-| M1 | Raíz, docs generales y prompts del agente (`src/agent/**/*.md`) | 40 | 30.172 | [~] parcial |
-| M2 | Docs de plugins (`docs/plugin-*.md`, flashcards) y READMEs de `plugins/` y `examples/` | 20 | 34.368 | [ ] |
+| M1 | Raíz, docs generales y prompts del agente (`src/agent/**/*.md`) | 40 | 30.172 | [x] |
+| M2 | Docs de plugins (`docs/plugin-*.md`, flashcards) y READMEs de `plugins/` y `examples/` | 20 | 34.368 | [~] parcial |
 | M3 | `docs/plugin-api/` | 22 | 31.155 | [ ] |
 | M4 | `docs/archive/`, `skills/` y READMEs de `tests/` | 14 | 26.742 | [ ] |
 | C1 | Comentarios: `src/core/contracts`, `src/store`, `src/server/pi`, `src/agent` (sin subagents) | 86 | 28.518 | [ ] |
@@ -93,6 +104,7 @@ se quitan los signos de puntuación y se conservan las tildes.
 | docs/plugin-architecture.md (M2) | `#testing` | `#pruebas` |
 | docs/plugin-authoring.md (M2) | `#package-and-installation` | `#empaquetado-e-instalación` (ya enlazado así) |
 | docs/plugin-authoring.md (M2) | `#controlled-host-ui` | `#interfaz-controlada-del-host` (ya enlazado así) |
+| docs/plugin-authoring.md (M2) | `#action-shortcuts` | `#atajos-de-acciones` (ya enlazado así desde docs/plugin-view-context.md; al traducir, actualiza también docs/plugin-architecture.md, plugins/drawing-pad/README.md y docs/plugin-api/plugin-shortcuts.md) |
 
 Antes de dar por cerrado un lote, busca enlaces rotos a anclas en inglés:
 `grep -rnoE '\]\([^)#]*\.md#[a-z0-9-]+\)' --include=*.md .` y compáralos con los encabezados reales.
@@ -106,3 +118,15 @@ Antes de dar por cerrado un lote, busca enlaces rotos a anclas en inglés:
   docs/custom-providers.md, docs/themes.md, docs/tool-content-recovery.md.
   M1 pendiente: docs/desktop-release.md, docs/keyboard.md, docs/teaching-methodology.md,
   docs/compaction-accounting.md, docs/dialog-overlay-contract.md y todo `src/agent/**/*.md`.
+- Sesión 2: M1 terminado: docs/desktop-release.md, docs/keyboard.md,
+  docs/teaching-methodology.md, docs/compaction-accounting.md (la licencia MIT del final se
+  deja en inglés), docs/dialog-overlay-contract.md y los 28 .md de `src/agent/` (system-prompt,
+  prompts/README y los fragmentos de prober, practice, shared, side-chat y teacher).
+  M2 hecho: examples/plugins/{hello-plugin,managed-agent,teaching-extension}/README.md,
+  docs/flashcards-implementation-plan.md, plugins/drawing-pad/THIRD-PARTY.md,
+  plugins/rich-code-blocks/THIRD-PARTY.md, docs/plugin-view-context.md.
+  M2 pendiente: docs/flashcards-vision.md, docs/plugin-architecture.md,
+  docs/plugin-authoring.md, docs/plugin-examples.md, docs/plugin-problem-contract.md,
+  docs/plugin-question-contract.md, docs/plugin-session-extension-contract.md,
+  docs/plugin-tree-contract.md, plugins/{coding-questions,drawing-pad,flashcards,
+  rich-code-blocks,ui-showcase}/README.md.
