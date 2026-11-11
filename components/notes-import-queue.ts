@@ -2,15 +2,15 @@ import { IMPORT_EXTENSIONS, MAX_IMPORT_BYTES, validNotesPath } from "@/lib/notes
 import type { NotesImportResult } from "./notes-import";
 
 export const notesPath = (file: File): string => file.webkitRelativePath || file.name;
-/** Folder imports silently exclude dot-prefixed files and directories below
- * the chosen root. The root is segment 0 and stays importable even when hidden. */
+/** Las importaciones de carpetas excluyen en silencio los ficheros y directorios
+ * que empiezan por punto bajo la raíz elegida. La raíz es el segmento 0 y sigue siendo importable aunque esté oculta. */
 const hiddenInFolder = (file: File): boolean => file.webkitRelativePath.split("/").slice(1).some((part) => part.startsWith("."));
-/** From the last dot of the file name, lower-cased. A dot that starts the name (".DS_Store") or ends it ("notes.") is not an extension. */
+/** Desde el último punto del nombre del fichero, en minúsculas. Un punto que abre el nombre (".DS_Store") o lo cierra ("notes.") no es una extensión. */
 const extensionLabel = (name: string): string => {
 	const dot = name.lastIndexOf(".");
 	return dot > 0 && dot < name.length - 1 ? name.slice(dot).toLowerCase() : "no extension";
 };
-/** One line per reason for a whole pick, so a big folder cannot flood the error list. */
+/** Una línea por motivo para toda una elección, para que una carpeta grande no inunde la lista de errores. */
 const unsupportedSummary = (extensions: readonly string[]): string =>
 	`Skipped ${extensions.length} ${extensions.length === 1 ? "file that isn't" : "files that aren't"} text, Markdown, or PDF (${[...new Set(extensions)].join(", ")}).`;
 const unsafeSummary = (count: number): string =>
@@ -23,9 +23,9 @@ export interface ImportQueueSnapshot {
 }
 export const EMPTY_IMPORT_QUEUE: ImportQueueSnapshot = { importing: false, errors: [], notices: [], completion: 0 };
 
-/** PR198's refill-on-completion, one-request-per-file transport, extended to
- * accept later selections. One instance per page, NOT three workers per click.
- * Only pending/in-flight Files are retained; no retry or persisted upload queue. */
+/** El rellenado al completarse y el transporte de una petición por fichero de
+ * PR198, ampliados para aceptar selecciones posteriores. Una instancia por página,
+ * NO tres workers por clic. Solo se retienen los File pendientes/en curso; sin reintentos ni cola de subida persistida. */
 export function createNotesImportQueue(post: (files: readonly File[]) => Promise<NotesImportResult[]>) {
 	const listeners = new Set<() => void>();
 	const pending: { file: File; index: number }[] = [];
@@ -38,7 +38,7 @@ export function createNotesImportQueue(post: (files: readonly File[]) => Promise
 		snapshot = { importing: active > 0 || pending.length > 0, errors: ordered(failures), notices: ordered(notices), completion: snapshot.completion + Number(completed) };
 		for (const listener of [...listeners]) listener();
 	};
-	// Normalize a synchronously throwing transport to the same async settlement.
+	// Normaliza un transporte que lanza de forma síncrona al mismo asentamiento asíncrono.
 	const send = async (file: File) => post([file]);
 	function pump(): void {
 		while (active < 3 && pending.length > 0) {
@@ -53,7 +53,7 @@ export function createNotesImportQueue(post: (files: readonly File[]) => Promise
 						failures.set(index, `${r.filePath}: ${r.error}${r.code ? `\n${[r.code, ...details].join(" — ")}` : ""}`);
 					} else if (r.notice) notices.set(index, `${r.filePath}: ${r.notice}`);
 				} catch (error) {
-					// Never retry an ambiguous response: the merge may have committed.
+					// Nunca reintentar una respuesta ambigua: puede que la fusión ya se haya confirmado.
 					failures.set(index, `${notesPath(file)}: ${error instanceof Error ? error.message : String(error)}`);
 				} finally {
 					active--;
@@ -69,7 +69,7 @@ export function createNotesImportQueue(post: (files: readonly File[]) => Promise
 		append(files: readonly File[]) {
 			if (files.length === 0) return;
 			if (!snapshot.importing) { failures.clear(); notices.clear(); sequence = 0; }
-			// Unsafe names and unsupported types are summed up per pick; each summary sits where its first file was.
+			// Los nombres inseguros y los tipos no admitidos se resumen por elección; cada resumen va donde estaba su primer fichero.
 			const unsafe: number[] = [], unsupported: { index: number; extension: string }[] = [];
 			for (const file of files) {
 				const index = sequence++;

@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import type { ModelCatalogResponse } from "@/src/core";
 import { onSettingsSaved } from "@/components/settings-signal";
 
-// Shared stale-while-revalidate catalog. Metadata refreshes retain the last
-// good snapshot; connection changes clear selectable models immediately.
+// Catálogo compartido stale-while-revalidate. Los refrescos de metadatos conservan la última
+// instantánea buena; los cambios de conexión vacían de inmediato los modelos seleccionables.
 let catalogCache: ModelCatalogResponse | undefined;
 let catalogError = false;
 let catalogInflight: Promise<void> | undefined;

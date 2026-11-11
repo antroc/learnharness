@@ -13,11 +13,11 @@ import {
 } from "./path-input-dom";
 
 export const INSERT_FILE_PATHS_EVENT = "lh:insert-file-paths";
-/** detail: { link, onInserted?(range) } — insert a citation link at the saved caret. */
+/** detail: { link, onInserted?(range) } — inserta un enlace de cita en el cursor guardado. */
 export const INSERT_CITATION_EVENT = "lh:insert-citation";
 /** detail: { start, end, previous, source, spaceBefore?, spaceAfter? } —
- *  replace a citation link (new comment), or remove it when source is null
- *  (with the spaces its insertion added, for a cancelled fresh cite). */
+ *  sustituye un enlace de cita (comentario nuevo), o lo quita cuando source es
+ *  null (con los espacios que añadió su inserción, para una cita nueva cancelada). */
 export const UPDATE_CITATION_EVENT = "lh:update-citation";
 export type CitationInsertedRange = { start: number; end: number; spaceBefore: boolean; spaceAfter: boolean };
 export type InsertCitationDetail = { link: string; onInserted?: (range: CitationInsertedRange) => void };
@@ -28,9 +28,9 @@ export type PathInputProps = Omit<React.HTMLAttributes<HTMLDivElement>, "childre
 	placeholder?: string;
 	autoFocus?: boolean;
 	defaultDropTarget?: boolean;
-	/** Opt out of host file insertion and drop routing; normal text editing remains. */
+	/** Desactiva la inserción de ficheros y el enrutado de soltado del host; la edición de texto normal se mantiene. */
 	fileInsertion?: boolean;
-	/** Native text-input semantics: strip CR/LF and leave Enter to the caller. */
+	/** Semántica de input de texto nativo: quita CR/LF y deja Enter a quien llama. */
 	singleLine?: boolean;
 };
 
@@ -40,8 +40,9 @@ type Controller = {
 };
 
 /**
- * A controlled plaintext editor. Only the source string is state; chips are atomic
- * views of it. React never reconciles the editable DOM after a native mutation.
+ * Un editor de texto plano controlado. Solo la cadena de origen es estado; los
+ * chips son vistas atómicas de ella. React nunca reconcilia el DOM editable
+ * tras una mutación nativa.
  */
 export const PathInput = React.forwardRef<HTMLDivElement, PathInputProps>(function PathInput({
 	value, onValueChange, placeholder, autoFocus, defaultDropTarget = false, fileInsertion = true, singleLine = false, className,
@@ -53,8 +54,8 @@ export const PathInput = React.forwardRef<HTMLDivElement, PathInputProps>(functi
 	const callbacks = React.useRef({ onValueChange, singleLine, fileInsertion });
 	const composing = React.useRef(false);
 	const [chips, setChips] = React.useState<ChipHost[]>([]);
-	// Keep this text child immutable: SSR/hydration gets the complete draft,
-	// while subsequent React renders leave the browser-owned editable DOM alone.
+	// Mantén inmutable este hijo de texto: SSR/hidratación recibe el borrador completo,
+	// mientras que los renders posteriores de React dejan en paz el DOM editable del navegador.
 	const initial = React.useRef({ value: normalizePathInputValue(value, singleLine), autoFocus, singleLine });
 
 	React.useImperativeHandle(forwardedRef, () => rootRef.current!, []);
@@ -110,7 +111,7 @@ export const PathInput = React.forwardRef<HTMLDivElement, PathInputProps>(functi
 			// Global drop may have moved focus: saved selection is still authoritative.
 			let next: PathEditSnapshot;
 			try { next = insertFilePaths(current, saved, paths); }
-			catch { return; } // Invalid event payloads never mutate learner text.
+			catch { return; } // Las cargas de evento no válidas nunca modifican el texto del alumno.
 			change(next);
 			root.focus();
 			restorePathSelection(root, saved);
@@ -133,7 +134,7 @@ export const PathInput = React.forwardRef<HTMLDivElement, PathInputProps>(functi
 			if (!detail || typeof detail.previous !== "string" || typeof detail.start !== "number") return;
 			if (composing.current) return;
 			const found = locateToken(current, detail.start, detail.previous);
-			if (!found) return; // moved beyond recognition or deleted: never edit other text
+			if (!found) return; // movido hasta ser irreconocible o borrado: nunca edites otro texto
 			let { start, end } = found;
 			const source = typeof detail.source === "string" ? detail.source : "";
 			if (detail.source === null) {
@@ -162,21 +163,21 @@ export const PathInput = React.forwardRef<HTMLDivElement, PathInputProps>(functi
 			} else if (event.inputType.startsWith("format") || event.inputType === "insertHTML") {
 				event.preventDefault();
 			} else if (event.inputType === "deleteByCut") {
-				// The cut handler owns both the full-source clipboard and deletion.
-				// Never perform a second deletion if a browser also sends beforeinput.
+				// El manejador de cortar es dueño tanto del portapapeles con el origen completo como del borrado.
+				// Nunca hagas un segundo borrado si el navegador también envía beforeinput.
 				event.preventDefault();
 			} else if (/^delete(?:(?:Word|SoftLine|HardLine)(?:Backward|Forward)|EntireSoftLine)$/.test(event.inputType)) {
-				// Modifier keys have platform-specific word/visual-line semantics.
-				// Only the browser knows that extent; never substitute an adjacent chip.
+				// Las teclas modificadoras tienen semántica de palabra/línea visual propia de cada plataforma.
+				// Solo el navegador conoce ese alcance; nunca lo sustituyas por un chip adyacente.
 				let targets: StaticRange[] = [];
-				try { targets = event.getTargetRanges?.() ?? []; } catch { /* Native fallback below. */ }
+				try { targets = event.getTargetRanges?.() ?? []; } catch { /* Alternativa nativa más abajo. */ }
 				const range = targets.length === 1 ? pathInputStaticRange(root, targets[0]!) : null;
 				if (range && event.cancelable) {
 					event.preventDefault();
-					// replacePathSelection expands any intersected chip atomically.
+					// replacePathSelection amplía de forma atómica cualquier chip que corte.
 					change(replacePathSelection(current, range, ""));
 				}
-				// Missing/invalid/non-single targets: native edit + input projection owns it.
+				// Destinos ausentes/no válidos/no únicos: se encarga la edición nativa + la proyección del input.
 			} else if (event.inputType.startsWith("delete")) {
 				const range = adjacentPathRange(current, saved, event.inputType.includes("Backward") ? "backward" : "forward");
 				if (range) {
@@ -198,8 +199,8 @@ export const PathInput = React.forwardRef<HTMLDivElement, PathInputProps>(functi
 		}
 		function keyDown(event: KeyboardEvent) {
 			if (composing.current || event.isComposing || event.keyCode === 229) return;
-			// Shift+Delete is native Cut on Windows/Linux, not forward deletion.
-			// Let the browser dispatch cut so our clipboard handler can own it.
+			// Shift+Delete es el Cortar nativo en Windows/Linux, no un borrado hacia delante.
+			// Deja que el navegador lance cut para que nuestro manejador del portapapeles se encargue.
 			if (event.key === "Delete" && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey) return;
 			remember();
 			if ((event.metaKey || event.ctrlKey) && !event.altKey && (event.key.toLowerCase() === "z" || event.key.toLowerCase() === "y")) {
@@ -217,7 +218,7 @@ export const PathInput = React.forwardRef<HTMLDivElement, PathInputProps>(functi
 			if (event.defaultPrevented) return;
 			event.preventDefault();
 			const text = event.clipboardData?.getData("text/plain") ?? "";
-			// Image/file/HTML-only clipboard contents are not text replacement.
+			// El contenido del portapapeles solo de imagen/fichero/HTML no es una sustitución de texto.
 			if (text === "") return;
 			if (composing.current) pendingPaste.push(text);
 			else replace(text);
@@ -237,7 +238,7 @@ export const PathInput = React.forwardRef<HTMLDivElement, PathInputProps>(functi
 			compositionStart = snapshot();
 		}
 		function endComposition() {
-			// Some browsers send the final input immediately AFTER compositionend.
+			// Algunos navegadores envían el input final justo DESPUÉS de compositionend.
 			queueMicrotask(() => {
 				if (!mounted) return;
 				let nextValue = readPathInput(root);
@@ -273,7 +274,7 @@ export const PathInput = React.forwardRef<HTMLDivElement, PathInputProps>(functi
 				if (next === current) return;
 				remember();
 				const previous = snapshot();
-				// Dictation appends are undoable; a controlled reset starts fresh history.
+				// Los añadidos del dictado se pueden deshacer; un reinicio controlado empieza un historial nuevo.
 				if (next && next.startsWith(current)) history.push(previous);
 				else history.reset();
 				const selection = saved.anchor === current.length && saved.focus === current.length

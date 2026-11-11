@@ -19,29 +19,32 @@ import { OPENING_PROMPT_FAILURE } from "@/components/opening-prompt";
 import { SessionStarter } from "@/components/start-session";
 import type { ChatSettings, GraphSnapshot } from "@/src/core";
 
-/** The draft's pick set (owner round 10): the SAME shape the home pick
- *  bar lifts — resolved nodes as the learner SAW them at pick time. */
+/** El conjunto elegido del borrador (ronda 10 del responsable): la MISMA
+ *  forma que eleva la barra de elección del inicio — nodos resueltos tal como
+ *  los VIO el alumno en el momento de elegir. */
 export type DraftPick = { id: string; name: string; statement: string };
 
 /**
- * The sessionless draft view at /chat/new (owner, 2026-09-13): "+ New
- * session" opens THIS, never a created record — a session comes to exist
- * only when the learner sends the first message, and that message becomes
- * the session's title (the exact create-then-redirect contract the home
- * composer established). Visually identical to a fresh chat: same header
- * (title + probe chip), the same empty state, the same composer blob +
- * stats dock. The draft's model control binds the strong slot (the
- * new-session default); the created session is stamped from it
- * server-side (per-session models, owner 2026-09-28).
+ * La vista de borrador sin sesión en /chat/new (responsable, 2026-09-13):
+ * "+ New session" abre ESTO, nunca un registro creado — una sesión solo
+ * llega a existir cuando el alumno envía el primer mensaje, y ese mensaje se
+ * convierte en el título de la sesión (el contrato exacto de crear y luego
+ * redirigir que estableció el composer del inicio). Visualmente idéntica a un
+ * chat nuevo: la misma cabecera (título + chip de sondeo), el mismo estado
+ * vacío, la misma burbuja de composer + dock de estadísticas. El control de
+ * modelo del borrador se vincula a la ranura fuerte (el valor por defecto de
+ * las sesiones nuevas); la sesión creada se sella a partir de ella en el
+ * servidor (modelos por sesión, responsable 2026-09-28).
  */
 
 const DOCK = "mx-auto w-full max-w-[46rem] px-4";
 
 /**
- * Create, safely hand over the full opening text, then return a short
- * /chat/<id> target. Storage/creation failures leave the caller's draft
- * intact. A per-composer starter reuses an already-created session on an
- * unchanged retry. The server stamps settings at birth; no settings PUT.
+ * Crea, entrega de forma segura el texto de apertura completo y devuelve un
+ * destino corto /chat/<id>. Los fallos de almacenamiento/creación dejan
+ * intacto el borrador de quien llama. Un iniciador por composer reutiliza una
+ * sesión ya creada en un reintento sin cambios. El servidor sella los
+ * settings al nacer; no hay PUT de settings.
  */
 export async function startDraftSession(
 	text: string,
@@ -53,10 +56,10 @@ export async function startDraftSession(
 ): Promise<string | null> {
 	const t = text.trim();
 	if (!t) return null;
-	// THE PICKS RIDE THE CREATE (owner round 10): a practice draft seeded
-	// from the pick bar creates its session WITH the graph context — the
-	// same contract as the home screen's practice send (the marker with
-	// [id] name: statement lines, target validation's truth set).
+	// LAS ELECCIONES VIAJAN CON LA CREACIÓN (ronda 10 del responsable): un
+	// borrador de práctica sembrado desde la barra de elección crea su sesión CON
+	// el contexto del grafo — el mismo contrato que el envío de práctica del
+	// inicio (el marcador con líneas [id] nombre: enunciado, el conjunto de verdad de la validación de objetivos).
 	return starter.start(
 		mode === "practice"
 			? { title: t, kind: "practice", ...(picks && picks.length > 0 ? { graphContext: { propositions: picks } } : {}) }
@@ -66,11 +69,13 @@ export async function startDraftSession(
 	);
 }
 
-/** The pure shell (no router) — the render-test seam: the draft view's
- *  visible surface, assembled from the same pieces a fresh chat shows. */
-/* FINISH-FIRST SEND + RUN-END FOCUS live in the shell (it owns the
- * dictation instance); the truth of the text stays in the parent, whose
- * send reads a REF mirror — see NewSession below. */
+/** El armazón puro (sin router) — la frontera de las pruebas de render: la
+ *  superficie visible de la vista de borrador, montada con las mismas piezas
+ *  que muestra un chat nuevo. */
+/* EL ENVÍO QUE PRIMERO TERMINA + EL FOCO AL ACABAR LA EJECUCIÓN viven en el
+ * armazón (es dueño de la instancia de dictado); la verdad del texto se
+ * queda en el padre, cuyo envío lee un espejo en REF — ver NewSession más
+ * abajo. */
 export function DraftShell({
 	busy,
 	text,
@@ -89,26 +94,29 @@ export function DraftShell({
 	onChange: (v: string) => void;
 	onSend: () => void;
 	startError?: boolean;
-	/** The practice draft (owner, 2026-10-04): ?mode=practice — the
-	 *  created session carries kind:"practice" and the copy changes
-	 *  (the practice agent opens; no probing). */
+	/** El borrador de práctica (responsable, 2026-10-04): ?mode=practice — la
+	 *  sesión creada lleva kind:"practice" y los textos cambian (abre el agente
+	 *  de práctica; no hay sondeo). */
 	mode?: "teach" | "practice";
-	/** The first-run CTA (fix wave chunk B): the same "Set up your models"
-	 *  affordance home carries, rendered above the draft shell — passed by
-	 *  NewSession, which owns the configured state and the SetupDialog. */
+	/** La CTA de primera ejecución (fragmento B de la oleada de arreglos): la
+	 *  misma indicación "Set up your models" que lleva el inicio, renderizada
+	 *  encima del armazón del borrador — la pasa NewSession, que es dueña del
+	 *  estado de configuración y del SetupDialog. */
 	setupCta?: ReactNode;
-	/** THE PICK BAR (owner round 10): the SAME pill the home screen
-	 *  carries above its composer — dashed "Pick nodes" when empty,
-	 *  count + Clear when picked. The draft screen has
-	 *  no graph behind it, so the picker opens the standalone chain-table
-	 *  overlay over fetched snapshot data (owned by NewSession). */
+	/** LA BARRA DE ELECCIÓN (ronda 10 del responsable): la MISMA píldora que el
+	 *  inicio lleva encima de su composer — "Pick nodes" discontinua cuando está
+	 *  vacía, recuento + Clear cuando hay elección. La pantalla de borrador no
+	 *  tiene un grafo detrás, así que el selector abre el overlay independiente
+	 *  de la tabla de cadenas sobre los datos de una instantánea pedida (de la
+	 *  que es dueña NewSession). */
 	picks?: DraftPick[];
 	onOpenPicker?: () => void;
 	onClearPicks?: () => void;
-	/** THE PICKER SLOT (owner round 10b): the chain-table overlay hosts
-	 *  INSIDE the content column's relative container — the same law as
-	 *  the graph view (the overlay fills its column, never the sidebar).
-	 *  Passed as a node so the pick state stays in NewSession. */
+	/** LA RANURA DEL SELECTOR (ronda 10b del responsable): el overlay de la
+	 *  tabla de cadenas se aloja DENTRO del contenedor relativo de la columna de
+	 *  contenido — la misma ley que en la vista del grafo (el overlay llena su
+	 *  columna, nunca la barra lateral). Se pasa como nodo para que el estado de
+	 *  elección se quede en NewSession. */
 	overlay?: ReactNode;
 }) {
 	const controller = useOptionalInteractionLayers();
@@ -116,11 +124,11 @@ export function DraftShell({
 	const bodyRef = useRef<HTMLDivElement>(null);
 	const surfaceTarget = usePageSurfaceBoundary({ active: pathname === "/chat/new", viewKey: "/chat/new", bodyRef });
 	const chromeStyle = useSurfaceChromeStyle(surfaceTarget);
-	// Voice dictation (STT wave, 2026-09-17): finals append at the end of the
-	// draft text (via the parent's onChange — the truth lives there); the
-	// strip lives in the stats bar's middle slot.
-	// Tab navigates INTO the composer (owner, keyboard round 2026-10-06):
-	// the only text field on this surface — the cycle's whole chain.
+	// Dictado por voz (oleada STT, 2026-09-17): los finales se añaden al final
+	// del texto del borrador (mediante el onChange del padre — ahí vive la
+	// verdad); la tira vive en la ranura central de la barra de estadísticas.
+	// Tab navega HACIA el composer (responsable, ronda de teclado 2026-10-06):
+	// el único campo de texto de esta superficie — toda la cadena del ciclo.
 	const cycleComposer = useCallback((): readonly HTMLElement[] =>
 		Array.from(document.querySelectorAll<HTMLElement>('[data-testid="composer"] [data-file-path-input]')),
 		[]);
@@ -128,15 +136,15 @@ export function DraftShell({
 	const dictation = useDictation({
 		append: (t) => onChange(joinDictation(text, t)),
 	});
-	// A LIVE dictation keeps the composer sendable ("nothing gets lost"
-	// round, owner 2026-10-01): the spoken text is deferred in the run's
-	// buffer — Enter must reach the finish-first send, not be gated out by
-	// an empty textarea. Nothing said → the send no-ops.
+	// Un dictado EN VIVO mantiene el composer enviable (ronda "no se pierde
+	// nada", responsable 2026-10-01): el texto hablado se difiere en el búfer de
+	// la ejecución — Enter debe llegar al envío que primero termina, no quedar
+	// bloqueado por un textarea vacío. Si no se ha dicho nada, el envío no hace nada.
 	const canSend = text.trim().length > 0 || dictation.active;
-	/* FINISH DICTATION FIRST (owner, 2026-10-01): stop the run, let the
-	 * last finals land through onChange, THEN call the parent's send —
-	 * which reads its REF mirror, so the post-await timing of React's
-	 * re-render cannot eat the dictated tail. */
+	/* TERMINA EL DICTADO PRIMERO (responsable, 2026-10-01): detén la ejecución,
+	 * deja que los últimos finales lleguen a través de onChange y LUEGO llama al
+	 * envío del padre — que lee su espejo en REF, así que el momento del
+	 * re-render de React tras el await no puede comerse la cola dictada. */
 	const handleSend = () => {
 		if (dictation.active) {
 			void dictation.finish().then(onSend);
@@ -144,8 +152,9 @@ export function DraftShell({
 		}
 		onSend();
 	};
-	/* Run end focuses the composer (owner, 2026-10-01): the hands are on
-	 * the keyboard from the stop — falling edge of `active` only. */
+	/* El final de la ejecución enfoca el composer (responsable, 2026-10-01):
+	 * las manos están en el teclado desde la parada — solo en el flanco de
+	 * bajada de `active`. */
 	const composerInputRef = useRef<HTMLDivElement>(null);
 	const dictationWasActiveRef = useRef(false);
 	useEffect(() => {
@@ -157,23 +166,24 @@ export function DraftShell({
 		}
 	}, [dictation.active, controller]);
 	return (
-		/* CHROME-LESS CREATION SURFACE (owner round 11, 2026-10-05): the
-		 * drafts join home's register — no TopBar, no title (the serif title
-		 * always names a session; a draft has none). Home's proven pattern
-		 * verbatim: a drag mask first in the DOM, a floating reopen toggle
-		 * (the only pointer-events-auto spot), the empty state carrying the
-		 * orientation. The chain picker then owns the column top exactly
-		 * like the graph view's — no stacked bars. */
+		/* SUPERFICIE DE CREACIÓN SIN CROMO (ronda 11 del responsable, 2026-10-05):
+		 * los borradores se suman al registro del inicio — sin TopBar, sin título
+		 * (el título con serifa siempre nombra una sesión; un borrador no tiene).
+		 * El patrón probado del inicio al pie de la letra: una máscara de arrastre
+		 * primero en el DOM, un botón flotante de reabrir (el único punto con
+		 * pointer-events-auto) y el estado vacío que da la orientación. El selector
+		 * de cadenas es entonces dueño de la parte superior de la columna
+		 * exactamente como el de la vista del grafo — sin barras apiladas. */
 		<div className="relative flex h-dvh">
-			{/* Window-drag strip — deliberately FIRST in the DOM (the mask
-			    law: no-drag subtraction resolves by DOM order, so every
-			    carved control later in the tree subtracts correctly). */}
+			{/* Franja de arrastre de la ventana — deliberadamente PRIMERA en el DOM (la
+			ley de la máscara: la resta de no-drag se resuelve por orden del DOM, así
+			que todo control recortado más adelante en el árbol resta correctamente). */}
 			<div className="lh-drag absolute inset-x-0 top-0 h-13" aria-hidden="true" />
 			<div className="flex min-w-0 flex-1 flex-col">
 				<div ref={bodyRef} className="relative flex min-h-0 flex-1">
-					{/* The pointer-events pattern (953b22b): the sticky wrapper is
-					    pointer-events-none so nothing here blocks the empty-state
-					    area; the blob and the stats row re-enable it themselves. */}
+					{/* El patrón de pointer-events (953b22b): el envoltorio sticky es
+					pointer-events-none para que nada aquí bloquee el área del estado
+					vacío; la burbuja y la fila de estadísticas lo reactivan ellas mismas. */}
 					<div className="pointer-events-none sticky bottom-0 mt-auto w-full">
 						<Conversation className="h-full min-w-0 flex-1" initial="instant">
 							<ConversationContent className="min-h-full gap-0 p-0">
@@ -208,10 +218,10 @@ export function DraftShell({
 										inputRef={composerInputRef}
 										autoFocus
 										onEscape={dictation.active ? dictation.cancel : undefined}
-										// The opening question, same as the graph view's new-session
-										// input (owner refinement round, 2026-09-24) — no lesson has
-										// started yet, so the composer must not read like one is in
-										// flight.
+										// La pregunta de apertura, la misma que la entrada de sesión nueva de la
+										// vista del grafo (ronda de refinamiento del responsable, 2026-09-24) — aún
+										// no ha empezado ninguna lección, así que el composer no debe parecer que
+										// hay una en curso.
 										placeholder={mode === "practice" ? "What do you want to practice?" : "What do you want to learn?"}
 									/>
 								</div>
@@ -227,9 +237,9 @@ export function DraftShell({
 					</SurfaceRegion>
 				</div>
 			</div>
-			{/* The floating reopen toggle — pointer-events-none except the
-			    toggle itself (home's pattern), painted AFTER the overlay's
-			    column so nothing of it blocks the canvas area. */}
+			{/* El botón flotante de reabrir — pointer-events-none salvo el propio
+			botón (el patrón del inicio), pintado DESPUÉS de la columna del overlay
+			para que nada de él bloquee el área del lienzo. */}
 			<header style={chromeStyle} className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-2 px-3 py-2">
 				<div className="pointer-events-auto">
 					<SidebarToggle />
@@ -242,10 +252,10 @@ export function DraftShell({
 export function NewSession({ initialConfigured, mode = "teach" }: { initialConfigured: boolean; mode?: "teach" | "practice" }) {
 	const router = useRouter();
 	const [text, setText] = useState("");
-	/* The draft MIRROR ("nothing gets lost" round, 2026-10-01): the shell's
-	 * finish-first send calls THIS send after the dictation flush — which
-	 * landed via setState and may not have re-rendered yet. The send reads
-	 * the mirror; every write keeps it current. */
+	/* El ESPEJO del borrador (ronda "no se pierde nada", 2026-10-01): el envío
+	 * que primero termina del armazón llama a ESTE envío tras volcar el dictado
+	 * — que llegó mediante setState y puede que aún no se haya re-renderizado.
+	 * El envío lee el espejo; cada escritura lo mantiene al día. */
 	const textRef = useRef("");
 	const applyText = (v: string) => {
 		textRef.current = v;
@@ -255,9 +265,9 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 	const startingRef = useRef(false);
 	const starterRef = useRef(new SessionStarter());
 	const [startError, setStartError] = useState(false);
-	// THE PICK BAR (owner round 10): the draft's lifted pick set + the
-	// snapshot the standalone chain-table picker reads. Lazy — the graph
-	// is fetched on FIRST open only, then reused.
+	// LA BARRA DE ELECCIÓN (ronda 10 del responsable): el conjunto elegido elevado
+	// del borrador + la instantánea que lee el selector independiente de la tabla
+	// de cadenas. Perezoso — el grafo se pide solo en la PRIMERA apertura y luego se reutiliza.
 	const [picks, setPicks] = useState<DraftPick[]>([]);
 	const picksRef = useRef<DraftPick[]>([]);
 	const applyPicks = (next: DraftPick[]) => {
@@ -278,15 +288,15 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 				setPickerOpen(true);
 			})
 			.catch(() => {
-				/* an unreachable graph leaves the draft usable — pickless */
+				/* un grafo inalcanzable deja el borrador usable — sin elecciones */
 			});
 	};
 
-	// First-run gate (model-slots wave, owner 2026-09-20): the send
-	// INTERCEPTS into the setup flow while unconfigured — no defaults for
-	// 33 providers, chats cannot start. The draft stays in the textarea;
-	// Save stores the slots and never sends (owner ruling 2026-10-09) —
-	// the learner sends the draft themselves.
+	// Barrera de primera ejecución (oleada de ranuras de modelo, responsable
+	// 2026-09-20): el envío se DESVÍA al flujo de configuración mientras no hay
+	// configuración — no hay valores por defecto para 33 proveedores, los chats
+	// no pueden empezar. El borrador se queda en el textarea; Save guarda las
+	// ranuras y nunca envía (decisión del responsable 2026-10-09) — el alumno envía el borrador.
 	const { catalog, configured, zeroKeys } = useModelSetup(initialConfigured);
 	const [setupOpen, setSetupOpen] = useState(false);
 
@@ -297,12 +307,12 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 			setSetupOpen(true);
 			return;
 		}
-		// The pre-send KEY guards (owner interlude, no-orphan-chats): guard
-		// BEFORE startDraftSession creates the record — a refused first
-		// send would otherwise leave an orphan error-shell chat in the
-		// sidebar. Zero providers opens connection setup; an unavailable
-		// selection with another provider opens the ordinary Strong picker.
-		// The server's admission gate remains the belt.
+		// Las guardas de CLAVES previas al envío (interludio del responsable, sin
+		// chats huérfanos): comprobar ANTES de que startDraftSession cree el
+		// registro — un primer envío rechazado dejaría si no un chat huérfano con
+		// armazón de error en la barra lateral. Sin proveedores se abre la
+		// configuración de conexión; una selección no disponible con otro proveedor
+		// abre el selector Strong normal. La barrera de admisión del servidor sigue siendo el cinturón.
 		if (zeroKeys) {
 			setSetupOpen(true);
 			return;
@@ -310,7 +320,7 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 		const strong = catalog?.slots.strong?.model;
 		if (selectedModelUnavailable(catalog, strong ? `${strong.provider}:${strong.id}` : undefined)) {
 			openModelPicker();
-			return; // The learner replaces it explicitly, then sends again.
+			return; // El alumno lo sustituye explícitamente y vuelve a enviar.
 		}
 		startingRef.current = true;
 		setBusy(true);
@@ -341,10 +351,10 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 				onOpenPicker={openPicker}
 				onClearPicks={() => applyPicks([])}
 				overlay={
-					// THE PICKER (owner round 10b): hosted INSIDE the content
-					// column — absolute inset-0 resolves to the column's relative
-					// container, the same confinement the graph view gives it;
-					// never over the sidebar or the traffic lights.
+					// EL SELECTOR (ronda 10b del responsable): alojado DENTRO de la columna de
+					// contenido — absolute inset-0 se resuelve al contenedor relativo de la
+					// columna, el mismo confinamiento que le da la vista del grafo; nunca
+					// encima de la barra lateral ni de los semáforos de la ventana.
 					<ChainTableOverlay
 						open={pickerOpen}
 						nodes={snapshot?.propositions ?? []}
@@ -382,15 +392,15 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 					)
 				}
 			/>
-			{/* First-run setup: the send interception's landing surface — stage
-			    1 is the self-contained first-key screen (zero-keys wave). */}
+			{/* Configuración de primera ejecución: la superficie a la que llega el desvío
+			del envío — la etapa 1 es la pantalla autónoma de la primera clave (oleada sin claves). */}
 			<SetupDialog
 				open={setupOpen}
 				onClose={() => setSetupOpen(false)}
 				onDone={() => {
 					setSetupOpen(false);
-					// Save only saves (owner ruling 2026-10-09): the draft
-					// waits in the composer; the learner sends it.
+					// Save solo guarda (decisión del responsable 2026-10-09): el borrador
+					// espera en el composer; el alumno lo envía.
 				}}
 				/>
 		</>

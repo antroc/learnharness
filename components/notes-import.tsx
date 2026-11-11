@@ -11,7 +11,7 @@ import { createNotesImportQueue, EMPTY_IMPORT_QUEUE, notesPath } from "./notes-i
 export { MAX_IMPORT_BYTES } from "@/lib/notes-import-limits.ts";
 export { notesPath } from "./notes-import-queue";
 
-// Transport-only types: never import the server's extraction/agent module here.
+// Tipos solo de transporte: nunca importes aquí el módulo de extracción/agente del servidor.
 export interface NotesImportResult {
 	requestIndex: number;
 	filePath: string;
@@ -26,8 +26,8 @@ export interface NotesImportResult {
 	notice?: string;
 }
 
-/** Contributor's strict attribution: validate the complete response before
- * applying any row, even when several files have identical basenames. */
+/** Atribución estricta del colaborador: valida la respuesta completa antes de
+ * aplicar ninguna fila, incluso cuando varios ficheros tienen el mismo nombre base. */
 export function parseNotesImportResults(body: unknown, files: readonly File[]): NotesImportResult[] {
 	const invalid = () => new Error("Invalid import response. Check the graph before retrying.");
 	if (!body || typeof body !== "object" || !("results" in body) || !Array.isArray(body.results) || body.results.length !== files.length) throw invalid();
@@ -64,8 +64,8 @@ export async function postNotesImport(files: readonly File[]): Promise<NotesImpo
 	return parseNotesImportResults(body, files);
 }
 
-// Client module singleton: shared by both home views and successive selections.
-// SSR never appends Files, and uses the immutable empty server snapshot.
+// Singleton de módulo del cliente: lo comparten ambas vistas de inicio y las selecciones sucesivas.
+// SSR nunca añade File y usa la instantánea de servidor vacía e inmutable.
 const pageImportQueue = createNotesImportQueue(postNotesImport);
 export function useNotesImport(callbacks: { onStart?: () => void; onFinish?: () => void } = {}) {
 	const snapshot = useSyncExternalStore(pageImportQueue.subscribe, pageImportQueue.getSnapshot, () => EMPTY_IMPORT_QUEUE);
@@ -88,8 +88,8 @@ export function useNotesImport(callbacks: { onStart?: () => void; onFinish?: () 
 	};
 }
 
-/** PR198's shared Files / Folder native picker. Unlike the donor, it remains
- * available while work is running; later selections join the SAME queue. */
+/** El selector nativo compartido Files / Folder de PR198. A diferencia del
+ * donante, sigue disponible mientras hay trabajo en curso; las selecciones posteriores se suman a la MISMA cola. */
 export function NotesImportControl({ importing, onImportFiles }: { importing: boolean; onImportFiles: (files: FileList | null) => void }) {
 	const filesRef = useRef<HTMLInputElement>(null);
 	const folderRef = useRef<HTMLInputElement>(null);

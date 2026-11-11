@@ -16,64 +16,67 @@ import { useModelCatalog } from "@/components/model-catalog";
 export { useModelCatalog } from "@/components/model-catalog";
 import { defaultOrderLevel, populateLevel, THINKING_LABEL } from "@/components/thinking-default";
 
-/** provider:id → known contextWindow over the cached catalog, mirroring
- * the server's catalogContextLimits join. CLI aliases have no global
- * denominator: the stats bar uses that session's actual CLI report instead.
- * Missing limits always render usage-only, without a hardcoded fallback. */
+/** provider:id → contextWindow conocido sobre el catálogo en caché, reflejo
+ * del join catalogContextLimits del servidor. Los alias de CLI no tienen un
+ * denominador global: la barra de estadísticas usa en su lugar el informe
+ * real de la CLI de esa sesión. Los límites que faltan siempre se muestran
+ * solo como uso, sin una alternativa fijada en el código. */
 export function catalogLimits(catalog: Pick<ModelCatalogResponse, "models">): Map<string, number> {
 	return new Map(catalog.models.flatMap((m) => m.contextWindow === null ? [] : [[`${m.provider}:${m.id}`, m.contextWindow] as const]));
 }
 
 /**
- * THE CONVERSATION MODEL CONTROL — dual-bound (owner, per-session models,
- * 2026-09-28). WITH a chatId (the in-session stats bar): the pills bind
- * THE SESSION'S OWN record — reads GET /api/chats/:id (its settings field;
- * a legacy unstamped record falls back to the strong slot's display,
- * exactly what the engine resolves), writes PUT /api/chats/:id/settings
- * (validated + level-clamped server-side). The session owns its model +
- * thinking level from birth; the strong slot never reaches it again.
+ * EL CONTROL DEL MODELO DE CONVERSACIÓN — de doble vínculo (responsable,
+ * modelos por sesión, 2026-09-28). CON un chatId (la barra de estadísticas
+ * dentro de la sesión): las píldoras se vinculan al registro PROPIO DE LA
+ * SESIÓN — lee GET /api/chats/:id (su campo settings; un registro heredado
+ * sin sello recurre a lo que muestra la ranura fuerte, exactamente lo que
+ * resuelve el motor) y escribe PUT /api/chats/:id/settings (validado y con
+ * el nivel acotado en el servidor). La sesión es dueña de su modelo y su
+ * nivel de thinking desde el nacimiento; la ranura fuerte ya nunca la alcanza.
  *
- * WITHOUT a chatId (the draft surfaces — home + /chat/new): the pills
- * bind the STRONG SLOT (reads the raw models section, GET /api/settings;
- * writes PUT /api/settings/models via composeSlotModel — the same seam
- * the settings Agent section and the SetupDialog write): picking there IS
- * changing the new-session default. Unpicked reads "—" (the
- * no-factory-fallback language: the UI never presents a default model).
+ * SIN chatId (las superficies de borrador — inicio + /chat/new): las
+ * píldoras se vinculan a la RANURA FUERTE (lee la sección models en bruto,
+ * GET /api/settings; escribe PUT /api/settings/models mediante
+ * composeSlotModel — la misma frontera en la que escriben la sección Agent
+ * de ajustes y el SetupDialog): elegir ahí ES cambiar el valor por defecto de
+ * las sesiones nuevas. Sin elegir se lee "—" (el lenguaje sin alternativa de
+ * fábrica: la interfaz nunca presenta un modelo por defecto).
  */
 export function ModelControl({ chatId, onModelChange }: { chatId?: string; onModelChange?: (model: string | undefined) => void }) {
 	const { catalog, refresh } = useModelCatalog();
 	const [models, setModels] = useState<ModelsSettings | undefined>();
-	// A successful read with no settings is a legacy session; undefined
-	// means no session record is known yet, not permission to inherit Strong.
+	// Una lectura correcta sin settings es una sesión heredada; undefined
+	// significa que aún no se conoce ningún registro de sesión, no permiso para heredar Strong.
 	const [session, setSession] = useState<{ settings?: ChatSettings }>();
 	const [open, setOpen] = useState<"model" | "thinking" | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const containerRef = useRef<HTMLDivElement>(null);
 	const interactions = useInteractionLayers();
 
-	// The record read — BOTH mount and the cross-surface signal land
-	// here (fix wave: another surface's models write re-reads into the
-	// pill live; own writes also notify, and the refetch is idempotent).
-	// Dual-bound: chat mode reads BOTH the session record (the source of
-	// truth) and the models section (the display fallback for a legacy
-	// unstamped session — exactly what the engine resolves); draft mode
-	// reads the models section alone.
+	// La lectura del registro — TANTO el montaje como la señal entre superficies
+	// llegan aquí (oleada de arreglos: la escritura de modelos de otra superficie
+	// se vuelve a leer en la píldora en vivo; las escrituras propias también
+	// avisan, y volver a pedir es idempotente). Doble vínculo: el modo chat lee
+	// TANTO el registro de la sesión (la fuente de verdad) como la sección models
+	// (la alternativa de visualización para una sesión heredada sin sello —
+	// exactamente lo que resuelve el motor); el modo borrador lee solo la sección models.
 	const readRecord = useCallback(() => {
 		if (chatId) {
 			fetch(`/api/chats/${chatId}`)
 				.then((r) => { if (!r.ok) throw new Error(`session read failed: ${r.status}`); return r.json() as Promise<{ settings?: ChatSettings }>; })
 				.then((body) => setSession({ settings: body.settings }))
 				.catch(() => {
-					/* same read-only posture as a models-section failure */
+					/* la misma postura de solo lectura que un fallo de la sección models */
 				});
 		}
 		fetch("/api/settings")
 			.then((r) => r.json() as Promise<{ settings: { models?: ModelsSettings } | null }>)
 			.then((body) => setModels(body.settings?.models ?? undefined))
 			.catch(() => {
-				/* the record fetch failing leaves the control read-only
-				   ("—" triggers, closed menus) — same posture as a
-				   catalog failure */
+				/* si falla la petición del registro, el control queda en solo lectura
+				(disparadores "—", menús cerrados) — la misma postura que un fallo
+				del catálogo */
 			});
 	}, [chatId]);
 
@@ -85,12 +88,12 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 		if (section === "models") readRecord();
 	});
 
-	// Dual-bound truth: chat mode displays the session's own record,
-	// falling back to Strong only for a successfully read legacy unstamped
-	// session — EXACTLY what resolveConversationSpec runs. An unresolved or
-	// failed record read must not report a provisional global preference as
-	// this session's identity (including to the Send guard). Draft mode is
-	// the strong slot itself.
+	// Verdad de doble vínculo: el modo chat muestra el registro propio de la
+	// sesión, y recurre a Strong solo en una sesión heredada sin sello leída con
+	// éxito — EXACTAMENTE lo que ejecuta resolveConversationSpec. Una lectura del
+	// registro sin resolver o fallida no debe presentar una preferencia global
+	// provisional como identidad de esta sesión (tampoco ante la guarda de Send).
+	// El modo borrador es la propia ranura fuerte.
 	const strong = models?.strong;
 	const override: ChatSettings | undefined = chatId
 		? session ? {
@@ -108,20 +111,20 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 		(m) => m.id === effectiveId && m.provider === effectiveProvider,
 	);
 	const levels = entry?.supportedLevels ?? [];
-	// Legacy display (chunk 2 item 4, owner): a record with a model but no
-	// stored level shows the RESOLVED level — the ordering's first supported
-	// — because that is exactly what the engine build would run. Display-
-	// only: the record stays unset until a fresh pick populates it.
+	// Visualización heredada (fragmento 2, punto 4, responsable): un registro con
+	// modelo pero sin nivel guardado muestra el nivel RESUELTO — el primero
+	// admitido del orden — porque es exactamente lo que ejecutaría el motor. Solo
+	// visual: el registro sigue sin valor hasta que una elección nueva lo rellena.
 	const effectiveLevel = storedLevel ?? (entry ? defaultOrderLevel(levels) : undefined);
 
-	// The intuitive dropdown contract (owner, stats-control round 1): any
-	// click outside the open menu — or an Esc keypress — closes it. The
-	// menu's own surface keeps it open: the toggle buttons live inside the
-	// container, and the menu BODY lives in a portal on document.body
-	// (MenuShell) — never a container descendant, so its rows are carved
-	// out via [data-lh-menu] (the settings sections' discipline; without
-	// it a row's pointerdown counts as outside and eats the pick —
-	// live-caught in the fix wave, broken since the MenuShell migration).
+	// El contrato intuitivo del desplegable (responsable, ronda 1 del control de
+	// estadísticas): cualquier clic fuera del menú abierto — o pulsar Esc — lo
+	// cierra. La propia superficie del menú lo mantiene abierto: los botones de
+	// alternar viven dentro del contenedor, y el CUERPO del menú vive en un portal
+	// en document.body (MenuShell) — nunca es descendiente del contenedor, así
+	// que sus filas se recortan mediante [data-lh-menu] (la disciplina de las
+	// secciones de ajustes; sin ella, el pointerdown de una fila cuenta como
+	// externo y se come la elección — detectado en vivo en la oleada de arreglos, roto desde la migración a MenuShell).
 	useEffect(() => {
 		if (open === null) return;
 		const onPointerDown = (e: PointerEvent) => {
@@ -139,9 +142,9 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 		};
 	}, [open, interactions]);
 
-	// One write seam: composeSlotModel preserves the cheap/vision siblings
-	// (replace-whole-section discipline) and the per-field independence of
-	// model + thinkingLevel within the strong slot.
+	// Una sola frontera de escritura: composeSlotModel conserva las ranuras
+	// hermanas cheap/vision (disciplina de sustituir la sección entera) y la
+	// independencia por campo de model + thinkingLevel dentro de la ranura fuerte.
 	const save = useCallback(
 		async (next: ModelsSettings) => {
 			setError(null);
@@ -156,9 +159,9 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 					setError(body.error ?? `settings rejected (${res.status})`);
 					return;
 				}
-				// Server truth, never the request body (fix wave): a pick
-				// that rides an unsupported level lands CLAMPED in the record
-				// — the pill must show the stored value in this interaction.
+				// Verdad del servidor, nunca el cuerpo de la petición (oleada de arreglos):
+				// una elección que lleva un nivel no admitido llega ACOTADA al registro
+				// — la píldora debe mostrar el valor guardado en esta interacción.
 				const stored = (
 					(await res.json().catch(() => null)) as { settings?: UserSettings } | null
 				)?.settings?.models;
@@ -172,11 +175,11 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 		[],
 	);
 
-	// The session write seam (chat mode): PUT the per-chat settings route
-	// — validated + level-clamped server-side; the response is the stored
-	// truth (a pick riding an unsupported level lands CLAMPED — the pill
-	// shows the stored value). No notifySettingsSaved: the write touches
-	// one session's record, not the slots — no other surface reads it.
+	// La frontera de escritura de la sesión (modo chat): PUT a la ruta de
+	// settings por chat — validado y con el nivel acotado en el servidor; la
+	// respuesta es la verdad guardada (una elección con un nivel no admitido
+	// llega ACOTADA — la píldora muestra el valor guardado). Sin
+	// notifySettingsSaved: la escritura toca el registro de una sesión, no las ranuras — ninguna otra superficie lo lee.
 	const saveChat = useCallback(
 		async (next: ChatSettings) => {
 			setError(null);
@@ -201,32 +204,32 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 		[chatId],
 	);
 
-	// One apply seam over both write paths: a pick names provider + id +
-	// level; chat mode writes the session's own record (any pick pins it),
-	// draft mode composes the strong slot (siblings preserved,
-	// replace-whole-section discipline).
+	// Una sola frontera de aplicación sobre ambas rutas de escritura: una
+	// elección nombra provider + id + nivel; el modo chat escribe el registro
+	// propio de la sesión (cualquier elección lo fija), el modo borrador compone
+	// la ranura fuerte (hermanas conservadas, disciplina de sustituir la sección entera).
 	const apply = useCallback(
 		(provider: string, id: string, level: ThinkingLevel | undefined) => {
 			if (chatId) {
 				void saveChat({ model: { provider, id }, thinkingLevel: level });
 			} else {
-				// composeSlotModel's empty-string convention: no level = unset.
+				// La convención de cadena vacía de composeSlotModel: sin nivel = sin valor.
 				void save(composeSlotModel(models, "strong", provider, id, level ?? ""));
 			}
 		},
 		[chatId, models, save, saveChat],
 	);
 
-	// Shortcut seams (keyboard wave A): ⌘K opens the model menu (the
-	// universal command convention); Shift+Tab cycles the thinking level
-	// up the ladder (wrapping) — the owner's replacement for browser
-	// tab-focus. Both work from any focus, including mid-typing.
+	// Fronteras de atajos (oleada de teclado A): ⌘K abre el menú de modelos (la
+	// convención universal de comandos); Shift+Tab recorre el nivel de thinking
+	// hacia arriba por la escalera (con vuelta) — la sustitución que eligió el
+	// responsable para el foco por tabulador del navegador. Ambos funcionan desde cualquier foco, incluso a mitad de escribir.
 	useEffect(() => {
 		const onOpenPicker = () => {
 			if (!isInputShortcutScopeEligible(containerRef.current, interactions)) return;
 			setOpen("model");
 			setError(null);
-			refresh(); // mid-session key changes widen the menu (cache fix)
+			refresh(); // los cambios de claves a mitad de sesión amplían el menú (arreglo de caché)
 		};
 		window.addEventListener("lh:kbd-open-model-picker", onOpenPicker);
 		return () => window.removeEventListener("lh:kbd-open-model-picker", onOpenPicker);
@@ -245,25 +248,25 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 		return () => window.removeEventListener("lh:kbd-cycle-thinking", onCycleThinking);
 	}, [levels, effectiveLevel, effectiveProvider, effectiveId, apply, interactions]);
 
-	// Selecting a model (click and Enter share one path): keep the
-	// thinking level only when the new model supports it — otherwise
-	// drop it (a carry-over would 400 at the server's catalog gate).
+	// Seleccionar un modelo (clic y Enter comparten una ruta): conservar el
+	// nivel de thinking solo cuando el nuevo modelo lo admite — si no, se
+	// descarta (arrastrarlo daría un 400 en la barrera de catálogo del servidor).
 	const pickModel = (m: ModelCatalogEntry) => {
-		// Auto-populate (chunk 2, owner: "populate everywhere"): a fresh pick
-		// ALWAYS writes a level — the STORED one rides as-is (the write clamps
-		// server-side when the new model doesn't support it; the signal
-		// re-reads and the clamped truth displays), and a record with no
-		// stored level populates the ordering's level. The unset state can
-		// never re-enter through this door. (The DERIVED display level never
-		// rides — it belongs to the OLD model; the fresh pick's level comes
-		// from the fresh model's own ladder.)
+		// Autorrelleno (fragmento 2, responsable: "rellenar en todas partes"): una
+		// elección nueva SIEMPRE escribe un nivel — el GUARDADO va tal cual (la
+		// escritura lo acota en el servidor cuando el nuevo modelo no lo admite; la
+		// señal vuelve a leer y se muestra la verdad acotada), y un registro sin
+		// nivel guardado rellena el nivel del orden. El estado sin valor nunca puede
+		// volver a entrar por esta puerta. (El nivel DERIVADO que se muestra nunca
+		// viaja — pertenece al modelo VIEJO; el nivel de la elección nueva sale de
+		// la propia escalera del modelo nuevo.)
 		const nextLevel = populateLevel(storedLevel, m.supportedLevels);
 		apply(m.provider, m.id, nextLevel);
 	};
 
-	// Stale-while-revalidate on manual open too (⌘K covers the keyboard
-	// path above): the cached list shows instantly, the fresh federation
-	// swaps in when it lands.
+	// Stale-while-revalidate también al abrir a mano (⌘K cubre la ruta del
+	// teclado de arriba): la lista en caché se muestra al instante y la
+	// federación fresca la sustituye cuando llega.
 	const openMenu = (kind: "model" | "thinking") => {
 		setOpen((o) => (o === kind ? null : kind));
 		setError(null);
@@ -284,9 +287,9 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 				>{effectiveId ? prettyModel(effectiveId) : "—"}</ModelPickerPill>
 			</Hint>
 			<Hint
-				// "Thinking" + its real shortcut via the registry (owner interlude
-				// 2026-09-25): ⇧⇥ cycles the level, so "Thinking (⇧⇥)" —
-				// rebind-live like every Hint suffix.
+				// "Thinking" + su atajo real a través del registro (interludio del
+				// responsable, 2026-09-25): ⇧⇥ recorre el nivel, así que "Thinking (⇧⇥)" —
+				// se reasigna en vivo como todo sufijo Hint.
 				label="Thinking"
 				action="cycle-thinking"
 				side="bottom"
@@ -301,9 +304,9 @@ export function ModelControl({ chatId, onModelChange }: { chatId?: string; onMod
 				>{effectiveLevel === undefined ? "—" : (THINKING_LABEL[effectiveLevel] ?? effectiveLevel)}</ModelPickerPill>
 			</Hint>
 
-			{/* The shared dropdown body (extracted 2026-09-20): the agent
-			    settings' slot selects and the setup dialog use the exact same
-			    one. */}
+			{/* El cuerpo de desplegable compartido (extraído el 2026-09-20): los
+			selects de ranura de los ajustes del agente y el diálogo de configuración
+			usan exactamente el mismo. */}
 			{open === "model" && (
 				<MenuShell
 					anchorRef={containerRef}

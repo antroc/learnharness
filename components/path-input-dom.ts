@@ -1,12 +1,12 @@
 import { parseComposerTokens, quoteFilePath, type ComposerToken } from "@/src/core";
 
-/** Tokens store their complete source, not their abbreviated visual label.
- *  Both token kinds (file paths, tutor citations) use this one attribute. */
+/** Los tokens guardan su origen completo, no su etiqueta visual abreviada.
+ *  Ambos tipos de token (rutas de fichero, citas del tutor) usan este único atributo. */
 export const PATH_SOURCE_ATTRIBUTE = "data-file-path-source";
-/** An atomic chip: a quoted file path or a tutor citation link. */
+/** Un chip atómico: una ruta de fichero entre comillas o un enlace de cita del tutor. */
 export type ChipToken = Exclude<ComposerToken, { kind: "text" }>;
 export type ChipHost = { host: HTMLElement; token: ChipToken };
-/** Presentation-only line box for the caret after a final model newline. */
+/** Caja de línea solo de presentación para el cursor tras un salto de línea final del modelo. */
 export const PATH_CARET_ATTRIBUTE = "data-file-path-caret";
 export type TextSelection = { anchor: number; focus: number };
 export type DOMPoint = { node: Node; offset: number };
@@ -16,7 +16,7 @@ function childIndex(node: Node): number {
 	return Array.prototype.indexOf.call(node.parentNode!.childNodes, node);
 }
 
-/** Browser editing can leave BR/block nodes; never use innerText (layout/whitespace dependent). */
+/** La edición del navegador puede dejar nodos BR/de bloque; nunca uses innerText (depende del layout/espacios). */
 function segments(root: HTMLElement): Segment[] {
 	const result: Segment[] = [];
 	function walk(node: Node) {
@@ -35,7 +35,7 @@ function segments(root: HTMLElement): Segment[] {
 			return;
 		}
 		if (element.tagName === "BR") {
-			// Chromium's lone BR is an empty editor/paragraph placeholder.
+			// Un BR solitario de Chromium es un provisional de editor/párrafo vacío.
 			if (node.parentNode?.childNodes.length === 1) return;
 			const index = childIndex(node);
 			result.push({ text: "\n", start: { node: node.parentNode!, offset: index }, end: { node: node.parentNode!, offset: index + 1 } });
@@ -59,14 +59,14 @@ export function readPathInput(root: HTMLElement): string {
 	return segments(root).map((part) => part.text).join("");
 }
 
-/** Map a logical UTF-16 offset to a DOM boundary, snapping a chip interior atomically. */
+/** Traduce un desplazamiento lógico UTF-16 a un límite del DOM, ajustando de forma atómica el interior de un chip. */
 export function pathInputPoint(root: HTMLElement, offset: number): DOMPoint {
 	const parts = segments(root);
 	const trailing = root.lastChild;
 	if (trailing?.nodeType === 1 && (trailing as Element).hasAttribute(PATH_CARET_ATTRIBUTE)
 		&& offset >= parts.reduce((length, part) => length + part.text.length, 0)) {
-		// A text-node endpoint after its final newline has no line box in Chromium.
-		// The boundary immediately before this BR is on the visible final line.
+		// Un extremo en un nodo de texto tras su salto de línea final no tiene caja de línea en Chromium.
+		// El límite justo antes de este BR está en la última línea visible.
 		return { node: root, offset: childIndex(trailing) };
 	}
 	let remaining = Math.max(0, offset);
@@ -80,16 +80,16 @@ export function pathInputPoint(root: HTMLElement, offset: number): DOMPoint {
 	return { node: root, offset: root.childNodes.length };
 }
 
-/** Works without Range: useful in DOM test environments as well as real Selection. */
+/** Funciona sin Range: útil en entornos de prueba del DOM además de con una Selection real. */
 export function pathInputOffset(root: HTMLElement, node: Node, offset: number): number | null {
 	if (node !== root && !root.contains(node)) return null;
 	let total = 0;
 	for (const part of segments(root)) {
 		if (part.node === node) return total + Math.min(Math.max(0, offset), part.text.length);
 		if (part.token?.contains(node)) {
-			// A mouse/programmatic selection can end inside a noneditable label.
-			// Keep distinct interior endpoints so atomicPathRange expands copy/cut
-			// to the complete source instead of leaking the abbreviated filename.
+			// Una selección con el ratón o programática puede acabar dentro de una etiqueta no editable.
+			// Conserva extremos interiores distintos para que atomicPathRange amplíe copiar/cortar
+			// al origen completo en vez de filtrar el nombre de fichero abreviado.
 			let visualOffset = node.nodeType === 3 ? offset : Array.from(node.childNodes).slice(0, offset).reduce((length, child) => length + (child.textContent?.length ?? 0), 0);
 			let cursor = node;
 			while (cursor !== part.token) {
@@ -105,7 +105,7 @@ export function pathInputOffset(root: HTMLElement, node: Node, offset: number): 
 			total += part.text.length;
 			continue;
 		}
-		// A boundary in an ancestor is before/after every descendant segment.
+		// Un límite en un ancestro está antes/después de todo segmento descendiente.
 		let ancestor: Node = part.node ?? part.token ?? part.start.node;
 		while (ancestor.parentNode && ancestor.parentNode !== node) ancestor = ancestor.parentNode;
 		if (ancestor.parentNode === node && childIndex(ancestor) >= offset) return total;
@@ -114,7 +114,7 @@ export function pathInputOffset(root: HTMLElement, node: Node, offset: number): 
 	return total;
 }
 
-/** Validate a browser beforeinput StaticRange before projecting its exact endpoints. */
+/** Valida un StaticRange de beforeinput del navegador antes de proyectar sus extremos exactos. */
 export function pathInputStaticRange(root: HTMLElement, range: Pick<StaticRange, "startContainer" | "startOffset" | "endContainer" | "endOffset">): TextSelection | null {
 	function valid(node: Node, offset: number) {
 		return (node === root || root.contains(node)) && Number.isInteger(offset) && offset >= 0
@@ -142,7 +142,7 @@ export function restorePathSelection(root: HTMLElement, selection: TextSelection
 	browserSelection.setBaseAndExtent(anchor.node, anchor.offset, focus.node, focus.offset);
 }
 
-/** Returns portal hosts. React owns only their visual contents, never the editable tree. */
+/** Devuelve hosts de portal. React solo es dueño de su contenido visual, nunca del árbol editable. */
 export function renderPathInput(root: HTMLElement, value: string): ChipHost[] {
 	const document = root.ownerDocument;
 	const fragment = document.createDocumentFragment();
@@ -159,12 +159,12 @@ export function renderPathInput(root: HTMLElement, value: string): ChipHost[] {
 			chips.push({ host, token: part });
 		}
 	}
-	// Empty boundary text nodes allow a caret immediately before/after an atomic chip.
+	// Los nodos de texto de límite vacíos permiten un cursor justo antes/después de un chip atómico.
 	if (!fragment.firstChild || fragment.firstChild.nodeType !== 3) fragment.prepend(document.createTextNode(""));
 	if (fragment.lastChild?.nodeType !== 3) fragment.append(document.createTextNode(""));
 	if (value.endsWith("\n")) {
-		// pre-wrap alone collapses the final empty line. This BR supplies its
-		// height/caret without adding a second newline to the stored source.
+		// pre-wrap por sí solo colapsa la última línea vacía. Este BR le da su
+		// altura/cursor sin añadir un segundo salto de línea al origen guardado.
 		const caret = document.createElement("br");
 		caret.setAttribute(PATH_CARET_ATTRIBUTE, "");
 		caret.setAttribute("aria-hidden", "true");
@@ -180,7 +180,7 @@ export function clampPathSelection(value: string, selection: TextSelection): Tex
 	return { anchor: clamp(selection.anchor), focus: clamp(selection.focus) };
 }
 
-/** A selection intersecting any part of a chip edits/copies that complete source. */
+/** Una selección que corta cualquier parte de un chip edita/copia ese origen completo. */
 export function atomicPathRange(value: string, selection: TextSelection): { start: number; end: number } {
 	const clamped = clampPathSelection(value, selection);
 	let start = Math.min(clamped.anchor, clamped.focus);
@@ -207,8 +207,8 @@ export function insertFilePaths(value: string, selection: TextSelection, paths: 
 	return replacePathSelection(value, selection, before + text + after);
 }
 
-/** Insert a citation link at the saved range: a separating space before it
- *  when needed, and one space after it that replaces an existing one. */
+/** Inserta un enlace de cita en el rango guardado: un espacio separador
+ *  delante cuando hace falta, y un espacio detrás que sustituye a uno existente. */
 export function insertCitation(value: string, selection: TextSelection, link: string) {
 	const { start, end: rangeEnd } = atomicPathRange(value, selection);
 	const spaceBefore = start > 0 && !/\s/.test(value[start - 1]!);
@@ -219,8 +219,8 @@ export function insertCitation(value: string, selection: TextSelection, link: st
 	return { ...next, inserted: { start: linkStart, end: linkStart + link.length, spaceBefore, spaceAfter: !swallow } };
 }
 
-/** Where a citation link sits now: its recorded offsets when they still hold
- *  the same source, otherwise its only occurrence; null when gone or ambiguous. */
+/** Dónde está ahora un enlace de cita: sus desplazamientos registrados si
+ *  siguen conteniendo el mismo origen; si no, su única aparición; null si ha desaparecido o es ambiguo. */
 export function locateToken(value: string, start: number, source: string): { start: number; end: number } | null {
 	if (value.slice(start, start + source.length) === source) return { start, end: start + source.length };
 	const first = value.indexOf(source);
@@ -241,7 +241,7 @@ export function adjacentPathRange(value: string, selection: TextSelection, direc
 
 export type PathEditSnapshot = { value: string; selection: TextSelection };
 
-/** Match the text input value sanitization algorithm: remove CR/LF, not spaces. */
+/** Reproduce el algoritmo de saneado de valores de los input de texto: quita CR/LF, no los espacios. */
 export function normalizePathInputValue(value: string, singleLine: boolean): string {
 	return singleLine ? value.replace(/[\r\n]/g, "") : value;
 }
@@ -258,7 +258,7 @@ export function normalizePathEdit(snapshot: PathEditSnapshot, singleLine: boolea
 	};
 }
 
-/** Independent of the browser's DOM undo stack (normalization replaces native nodes). */
+/** Independiente de la pila de deshacer del DOM del navegador (la normalización sustituye nodos nativos). */
 export class PathInputHistory {
 	private undoStack: PathEditSnapshot[] = [];
 	private redoStack: PathEditSnapshot[] = [];

@@ -1,43 +1,46 @@
 import type { Phase3 } from "@/src/core";
 
 /**
- * The in-session phase presentation (owner, minimal-color round —
- * monochrome now): the header chip next to the session title, and the
- * dotted boundary rule the transcript draws where the session moves into a
- * new phase. Phase COLOR is retired app-wide (phases only advance, so
- * color-as-signal was decoration); the label text carries the phase, and
- * the chip's old dot slot is repurposed for the braille spinner while a
- * turn is in flight — motion is the honest state signal. Replaces the old
- * inline plan-divider (artifact registry): the boundary is a MESSAGE-level
- * seam, so chat.tsx renders it at the message where the phase changes, not
- * inside a tool part.
+ * La presentación de fases dentro de la sesión (responsable, ronda de color
+ * mínimo — ahora monocromo): el chip de la cabecera junto al título de la
+ * sesión, y la regla de límite punteada que dibuja la transcripción donde la
+ * sesión pasa a una fase nueva. El COLOR de fase está retirado en toda la app
+ * (las fases solo avanzan, así que el color como señal era decoración); el
+ * texto de la etiqueta transmite la fase, y la antigua ranura del punto del
+ * chip se reutiliza para el spinner braille mientras hay un turno en curso —
+ * el movimiento es la señal de estado honesta. Sustituye al antiguo divisor
+ * de plan en línea (registro de artefactos): el límite es una frontera a
+ * nivel de MENSAJE, así que chat.tsx lo renderiza en el mensaje donde cambia
+ * la fase, no dentro de una parte de herramienta.
  *
- * Quiet register (matches the old divider): hairline rules, small chips —
- * never a banner. Probe never renders a divider: phases only advance, so
- * probe is the start of the transcript and "Planning"/"Teaching" are the two
- * visible seams.
+ * Registro tranquilo (como el antiguo divisor): reglas finas, chips
+ * pequeños — nunca un banner. El sondeo nunca renderiza un divisor: las
+ * fases solo avanzan, así que el sondeo es el inicio de la transcripción y
+ * "Planning"/"Teaching" son las dos fronteras visibles.
  *
- * Owner, minimal-color round 2: the chip is LABEL-ONLY, deliberately — a
- * working-state spinner was tried here and rejected: the pill's curve and
- * the square braille cell fought for space, and the chat surface already
- * shows in-flight work (thinking shimmer, the dock). The chip states the
- * phase; work-state is the sidebar row's spinner.
+ * Responsable, ronda 2 de color mínimo: el chip es SOLO ETIQUETA, a
+ * propósito — aquí se probó un spinner de estado de trabajo y se rechazó: la
+ * curva de la píldora y la celda cuadrada del braille se peleaban por el
+ * espacio, y la superficie del chat ya muestra el trabajo en curso (brillo
+ * de thinking, el dock). El chip indica la fase; el estado de trabajo es el
+ * spinner de la fila de la barra lateral.
  */
 
-/** Header-chip labels: the phases as the learner thinks of them. */
+/** Etiquetas del chip de cabecera: las fases tal como las entiende el alumno. */
 const CHIP_LABEL: Record<Phase3, string> = {
 	probe: "Probing",
 	plan: "Planning",
 	teach: "Teaching",
 };
 
-/** The header label: the phase as a quiet flat tag (owner,
- *  extraction-UX redesign 2026-09-24 — the UN-PILL round): no border, no
- *  pill chrome, no padding — the Plan chip is the only button-shaped thing
- *  in the top bar now. Still pure decoration (owner ask, 2026-09-17): no
- *  tooltip, not selectable, not interactive in any way — no pointer events
- *  at all, so it is part of the drag surface instead of a carved-out
- *  target. */
+/** La etiqueta de la cabecera: la fase como una etiqueta plana y tranquila
+ *  (responsable, rediseño de la UX de extracción 2026-09-24 — la ronda
+ *  QUITA-PÍLDORAS): sin borde, sin cromo de píldora, sin relleno — el chip de
+ *  Plan es ahora lo único con forma de botón en la barra superior. Sigue
+ *  siendo pura decoración (petición del responsable, 2026-09-17): sin
+ *  tooltip, no seleccionable, sin ninguna interacción — sin eventos de
+ *  puntero en absoluto, así que forma parte de la superficie de arrastre en
+ *  lugar de ser un destino recortado. */
 export function PhaseChip({ phase }: { phase: Phase3 }) {
 	return (
 		<span
@@ -52,12 +55,12 @@ export function PhaseChip({ phase }: { phase: Phase3 }) {
 }
 
 /**
- * The transcript boundary: a monochrome dotted rule at the message where
- * the session enters `phase` (owner, minimal-color round — the label
- * carries the transition; the phase color never did). The plan seam
- * carries its node count ("Plan · 4 nodes"); teaching is just the label.
- * Null for probe (defensive — the fold never emits a probe transition
- * after the start).
+ * El límite de la transcripción: una regla punteada monocroma en el mensaje
+ * donde la sesión entra en `phase` (responsable, ronda de color mínimo — la
+ * etiqueta transmite la transición; el color de fase nunca lo hizo). La
+ * frontera del plan lleva su recuento de nodos ("Plan · 4 nodes"); la
+ * enseñanza es solo la etiqueta. Null para el sondeo (defensivo — el
+ * plegado nunca emite una transición de sondeo después del inicio).
  */
 export function PhaseDivider({ phase, nodeCount }: { phase: Phase3; nodeCount?: number }) {
 	if (phase === "probe") return null;
@@ -77,9 +80,10 @@ export function PhaseDivider({ phase, nodeCount }: { phase: Phase3; nodeCount?: 
 }
 
 /**
- * The node count for a plan seam: the first plan-op tree output in the
- * message that carries the seam (the plan_init that made the phase flip).
- * Structural slice of a UI message, same shape-of-shapes as core/phases.ts.
+ * El recuento de nodos para una frontera de plan: la primera salida de árbol
+ * plan-op del mensaje que lleva la frontera (el plan_init que hizo cambiar la
+ * fase). Corte estructural de un mensaje de interfaz, con la misma forma de
+ * formas que core/phases.ts.
  */
 export function planNodeCount(
 	message: { parts: ReadonlyArray<{ type: string; state?: string; output?: unknown; [k: string]: unknown }> },

@@ -2,7 +2,7 @@
 
 import type { ComponentProps } from "react";
 
-/** The core and controlled plugin pickers share the very same trigger renderer. */
+/** Los selectores del núcleo y los controlados de los plugins comparten exactamente el mismo renderizador del disparador. */
 export function ModelPickerPill({ children, ...props }: ComponentProps<"button">) {
 	return <button type="button" {...props}
 		className="flex items-center gap-1.5 rounded-full border bg-card/85 px-2.5 py-1 font-ui text-xs shadow-lg backdrop-blur transition-colors hover:border-border hover:bg-muted">

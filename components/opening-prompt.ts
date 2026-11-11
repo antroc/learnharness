@@ -1,14 +1,15 @@
 /**
- * Same-tab handover of a new session's full opening text. Never put the
- * message in the navigation URL: long query payloads can be rejected before
- * the chat page loads. Storage is required for automatic delivery, not an
- * optional best-effort side effect of navigating away from the source draft.
+ * Traspaso en la misma pestaña del texto de apertura completo de una sesión
+ * nueva. Nunca pongas el mensaje en la URL de navegación: las cargas largas
+ * en la query pueden rechazarse antes de que cargue la página del chat. El
+ * almacenamiento es obligatorio para la entrega automática, no un efecto
+ * secundario opcional y de mejor esfuerzo de salir del borrador de origen.
  */
 export const OPENING_PROMPT_FAILURE = "Couldn’t open the session. Your message is still here. Try sending again.";
 
 export interface OpeningPrompt {
 	text: string;
-	/** Written BEFORE sending. A later mount restores a draft, never reposts. */
+	/** Se escribe ANTES de enviar. Un montaje posterior restaura un borrador, nunca vuelve a publicarlo. */
 	attempted: boolean;
 }
 
@@ -17,7 +18,7 @@ const keyFor = (id: string) => `lh.openingPrompt.${id}`;
 export function stashOpeningPrompt(id: string, text: string, attempted = false): boolean {
 	try {
 		const value = JSON.stringify({ text, attempted } satisfies OpeningPrompt);
-		// Catch both the storage getter and its methods (quota/security errors).
+		// Captura tanto el getter del almacenamiento como sus métodos (errores de cuota/seguridad).
 		const storage = globalThis.sessionStorage;
 		storage.setItem(keyFor(id), value);
 		return storage.getItem(keyFor(id)) === value;
@@ -36,7 +37,7 @@ export function readOpeningPromptEntry(id: string): OpeningPrompt | undefined {
 				entry.text.length > 0 && "attempted" in entry && typeof entry.attempted === "boolean") {
 				return { text: entry.text, attempted: entry.attempted };
 			}
-		} catch { /* Old raw-text stashes have no proof that sending never began. */ }
+		} catch { /* Los alijos antiguos de texto en bruto no prueban que el envío nunca empezara. */ }
 		return { text: value, attempted: true };
 	} catch {
 		return undefined;
@@ -52,8 +53,8 @@ export function clearOpeningPrompt(id: string): boolean {
 		globalThis.sessionStorage.removeItem(keyFor(id));
 		return true;
 	} catch {
-		// Canonical conversation/acknowledgment remains the truth. A later
-		// mount with real conversation can try cleanup again; never crash it.
+		// La conversación/acuse canónicos siguen siendo la verdad. Un montaje posterior
+		// con conversación real puede volver a intentar la limpieza; nunca la hagas fallar.
 		return false;
 	}
 }
