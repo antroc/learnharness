@@ -90,7 +90,7 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 | M1 | Raíz, docs generales y prompts del agente (`src/agent/**/*.md`) | 40 | 30.172 | [x] |
 | M2 | Docs de plugins (`docs/plugin-*.md`, flashcards) y READMEs de `plugins/` y `examples/` | 20 | 34.368 | [x] |
 | M3 | `docs/plugin-api/` | 22 | 31.155 | [x] |
-| M4 | `docs/archive/`, `skills/` y READMEs de `tests/` | 14 | 26.742 | [ ] |
+| M4 | `docs/archive/`, `skills/` y READMEs de `tests/` | 14 | 26.742 | [~] parcial |
 | C1 | Comentarios: `src/core/contracts`, `src/store`, `src/server/pi`, `src/agent` (sin subagents) | 86 | 28.518 | [ ] |
 | C2 | Comentarios: `src/agent/subagents`, `src/server` | 59 | 30.924 | [ ] |
 | C3 | Comentarios: `src/core` (1ª mitad) | 38 | 21.353 | [ ] |
@@ -133,6 +133,7 @@ se quitan los signos de puntuación y se conservan las tildes.
 | docs/plugin-authoring.md (M2) | `#managed-conversational-agents` | `#agentes-conversacionales-gestionados` (ídem) |
 | docs/plugin-authoring.md (M2) | `#result-oriented-workers-and-background-tools` | `#workers-orientados-a-resultados-y-herramientas-en-segundo-plano` (ídem) |
 | docs/plugin-session-extension-contract.md (M2) | `#8-public-surface-contract` | `#8-contrato-público-de-superficies` (enlaces entrantes ya actualizados) |
+| docs/plugin-api/README.md (M3) | `#entry-points`, `#modules`, `#public-types`, `#supporting-declarations`, `#external-types` | `#puntos-de-entrada`, `#módulos`, `#tipos-públicos`, `#declaraciones-de-apoyo`, `#tipos-externos` (sin enlaces entrantes) |
 | docs/plugin-examples.md (M2) | `#focused-recipes-for-gaps` | `#recetas-centradas-para-los-huecos` |
 | plugins/ui-showcase/README.md (M2) | `#gallery-map` | `#mapa-de-la-galería` (ya enlazado así desde docs/plugin-examples.md) |
 
@@ -176,3 +177,15 @@ falsos positivos).
   contracts-plan, events, native-messages, plugin-agents, plugin-problems,
   plugin-questions, plugin-submissions, plugin-tree, plugin-ui, plugin-view-context,
   plugin-workers, plugins, question-core, view.
+- Sesión 4: M3 terminado: prosa de los 18 ficheros pendientes de docs/plugin-api/ con
+  la herramienta nueva `.traduccion/prosa.py`; README.md con encabezados traducidos (nada
+  enlazaba a sus anclas); "— N firmas o variantes" y "| Parámetro | Tipo |" traducidos en
+  todos los ficheros. Las teclas se dejan en inglés (Enter, Shift+Enter, Ctrl+Enter), como
+  en docs/keyboard.md. Comprobación de anclas: sin enlaces rotos (solo los 4 falsos
+  positivos conocidos).
+  M4 empezado: docs/archive/README.md, docs/archive/release-0.3.md,
+  skills/learnharness-plugins/README.md, tests/skills/README.md,
+  tests/fixtures/golden-data/README.md (ninguno tenía enlaces entrantes a sus anclas).
+  M4 pendiente: skills/learnharness-plugins/SKILL.md, skills/learnharness/SKILL.md,
+  skills/learnharness/references/data-format.md, docs/archive/{probe-teach-split,plan,
+  architecture-2026-09-08,pi-engine-swap,vision,plugin-implementation-history}.md.
