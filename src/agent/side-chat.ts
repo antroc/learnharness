@@ -1,17 +1,18 @@
 /**
- * The SIDE-QUESTION model call: #487's tool-less streamed generation,
- * using the session's conversation model. No agent loop, no tools, no
- * session identity — a Claude Code
- * call without a session id never retains or reuses the lesson's live
- * CLI process (docs/claude-code.md "Questions, reuse, and cancellation").
+ * La llamada al modelo de PREGUNTA LATERAL: la generación en streaming sin herramientas de #487,
+ * con el modelo de conversación de la sesión. Sin bucle de agente, sin herramientas, sin
+ * identidad de sesión: una llamada de Claude Code sin id de sesión nunca retiene ni reutiliza
+ * el proceso vivo de la CLI de la lección (docs/claude-code.md, «Preguntas, reutilización y
+ * cancelación»).
  *
- * Instructions: the side-chat base, then the curated shared appendix the
- * practice agent also composes (voice, accuracy, formatting — one law
- * across every learner-facing agent; the LaTeX/markdown contract matters
- * because answers render through the same markdown pipeline). Shared
- * fragments honor the learner's enabled overrides, by the same key the
- * other agents use. A final side-only style fragment keeps replies brief
- * after the shared appendix; neither side-specific fragment is editable.
+ * Instrucciones: la base del hilo lateral y después el apéndice compartido seleccionado que
+ * también compone el agente de práctica (voz, precisión, formato: una ley para todos los
+ * agentes que tratan con el alumno; el contrato de LaTeX/Markdown importa porque las
+ * respuestas se renderizan por la misma canalización de Markdown). Los fragmentos compartidos
+ * respetan las sustituciones activadas del alumno, con la misma clave que usan los demás
+ * agentes. Un fragmento final de estilo solo para el hilo lateral mantiene las respuestas
+ * breves tras el apéndice compartido; ninguno de los dos fragmentos propios del hilo lateral
+ * es editable.
  */
 
 import fs from "node:fs";
@@ -28,7 +29,7 @@ import { readPromptOverride } from "./prompt-segments.ts";
 const PROMPTS_DIR = path.join(PATHS.root, "src", "agent", "prompts");
 const SIDE_BASE = path.join(PROMPTS_DIR, "side-chat", "00-base.md");
 const SIDE_STYLE = path.join(PROMPTS_DIR, "side-chat", "90-style.md");
-/** The shared appendix, in composition order (keys = override paths). */
+/** El apéndice compartido, en orden de composición (claves = rutas de sustitución). */
 const SIDE_SHARED_FRAGMENTS = ["shared/10-voice.md", "shared/15-accuracy.md", "shared/40-formatting.md"];
 
 function readSource(file: string): string {
@@ -39,8 +40,8 @@ function readSource(file: string): string {
 	}
 }
 
-/** The side model's system prompt, composed fresh per call (an override
- *  switched on between questions lands on the next one). */
+/** El prompt de sistema del modelo lateral, compuesto de nuevo en cada llamada (una sustitución
+ *  activada entre preguntas se aplica en la siguiente). */
 export function composeSideChatInstructions(switches: Record<string, boolean> = {}): string {
 	const segments = [readSource(SIDE_BASE)];
 	for (const key of SIDE_SHARED_FRAGMENTS) {
@@ -55,13 +56,13 @@ export function composeSideChatInstructions(switches: Record<string, boolean> = 
 }
 
 export interface SideAnswerResult {
-	/** The answer text (partial when stopped or failed). */
+	/** El texto de la respuesta (parcial si se detuvo o falló). */
 	text: string;
-	/** Present when the provider reported usage (also on failures). */
+	/** Presente cuando el proveedor informó del uso (también en los fallos). */
 	usage?: Usage;
-	/** How the call ended. */
+	/** Cómo terminó la llamada. */
 	outcome: "done" | "aborted" | "error";
-	/** The provider's failure text (outcome "error"). */
+	/** El texto de fallo del proveedor (resultado "error"). */
 	errorMessage?: string;
 }
 
@@ -73,10 +74,10 @@ function textOf(message: AssistantMessage): string {
 }
 
 /**
- * Stream one side answer. `onText` receives the FULL text so far on every
- * text delta (replace, never append — the same slot discipline as the
- * turn stream). Never throws for provider failures or aborts: the outcome
- * says how it ended and `text` keeps whatever arrived.
+ * Emite en streaming una respuesta lateral. `onText` recibe el texto COMPLETO hasta el momento
+ * en cada delta de texto (sustituir, nunca añadir: la misma disciplina de ranura que el stream
+ * del turno). Nunca lanza por fallos del proveedor ni abortos: el resultado indica cómo terminó
+ * y `text` conserva lo que haya llegado.
  */
 export async function streamSideAnswer(opts: {
 	engine: PiEngine;
@@ -84,7 +85,7 @@ export async function streamSideAnswer(opts: {
 	turns: readonly SideModelTurn[];
 	signal?: AbortSignal;
 	onText?: (text: string) => void;
-	/** Existing opt-in diagnostic identity, NOT a reusable provider session. */
+	/** Identidad de diagnóstico opcional existente, NO una sesión de proveedor reutilizable. */
 	chatId?: string;
 	runId?: string;
 }): Promise<SideAnswerResult> {

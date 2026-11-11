@@ -47,7 +47,7 @@ export function pluginProblemTools(contributions: readonly NativePluginProblemCo
     };
   });
 }
-/** Practice ACKs persist; a successful host snapshot also stops mixed tool batches. */
+/** Los ACK de práctica persisten; una instantánea correcta del host también detiene los lotes mixtos de herramientas. */
 export function isPluginProblemPoseAcknowledgment(value: unknown): boolean {
   const result = value as { isError?: boolean; details?: { pluginProblem?: unknown } } | undefined;
   return !!result && !result.isError && !!readPluginProblemSnapshot(result.details?.pluginProblem);

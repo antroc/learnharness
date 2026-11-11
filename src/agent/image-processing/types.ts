@@ -1,5 +1,5 @@
-// Port baseline: @earendil-works/pi-coding-agent 1.1.0 image utilities (MIT).
-/** Native resize overrides, supplied by the caller for the selected model. */
+// Base de la adaptación: utilidades de imagen de @earendil-works/pi-coding-agent 1.1.0 (MIT).
+/** Sustituciones nativas del redimensionado, que aporta el llamador para el modelo seleccionado. */
 export interface ModelImageResizeOptions {
 	maxWidth?: number;
 	maxHeight?: number;

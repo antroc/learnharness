@@ -1,4 +1,4 @@
-// Ported from @earendil-works/pi-coding-agent 1.1.0, dist/utils/image-resize-worker.js (MIT).
+// Adaptado de @earendil-works/pi-coding-agent 1.1.0, dist/utils/image-resize-worker.js (MIT).
 import { parentPort } from "node:worker_threads";
 import { IMAGE_RESIZE_WORKER_RESPONSE_TYPE, resizeImageInProcess, } from "./resize-core.mjs";
 function isResizeImageWorkerRequest(value) {

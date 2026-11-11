@@ -1,4 +1,4 @@
-// Ported from @earendil-works/pi-coding-agent 1.1.0, dist/utils/image-resize.js (MIT).
+// Adaptado de @earendil-works/pi-coding-agent 1.1.0, dist/utils/image-resize.js (MIT).
 import path from "node:path";
 import { Worker } from "node:worker_threads";
 import {
@@ -15,7 +15,7 @@ function isResizeImageWorkerResponse(value: unknown): value is ResizeImageWorker
 async function resizeImageInWorker(workerPath: string, inputBytes: Uint8Array, mimeType: string, options?: ModelImageResizeOptions): Promise<ResizedImage | null> {
 	const worker = new Worker(workerPath);
 	try {
-		// Transfer a worker-owned copy so the caller's bytes remain intact.
+		// Transfiere una copia propiedad del worker para que los bytes del llamador queden intactos.
 		const inputBytesForWorker = new Uint8Array(inputBytes);
 		return await new Promise((resolve, reject) => {
 			let settled = false;
@@ -30,7 +30,7 @@ async function resizeImageInWorker(workerPath: string, inputBytes: Uint8Array, m
 				reject(error);
 			};
 			worker.on("message", (message: unknown) => {
-				// Ignore Node's own worker-channel messages (e.g. node --watch).
+				// Ignora los mensajes propios de Node en el canal del worker (p. ej. node --watch).
 				if (!isResizeImageWorkerResponse(message)) return;
 				if ("error" in message) fail(new Error(message.error));
 				else settle(message.result);
@@ -47,9 +47,9 @@ async function resizeImageInWorker(workerPath: string, inputBytes: Uint8Array, m
 }
 
 export async function resizeImage(inputBytes: Uint8Array, mimeType: string, options?: ModelImageResizeOptions): Promise<ResizedImage | null> {
-	// Source-vs-runtime adaptation: Next bundles the TS orchestration, but traces
-	// unbundled .mjs worker/core/EXIF/Photon resources at this cwd-relative path.
-	// The packaged server's cwd is the standalone root. No Bun path is needed.
+	// Adaptación del código al runtime: Next empaqueta la orquestación en TS, pero rastrea los
+	// recursos .mjs sin empaquetar (worker, núcleo, EXIF, Photon) en esta ruta relativa al cwd.
+	// El cwd del servidor empaquetado es la raíz independiente. No hace falta ninguna ruta de Bun.
 	const workerPath = path.join(process.cwd(), "src/agent/image-processing/resize-worker.mjs");
 	try {
 		return await resizeImageInWorker(workerPath, inputBytes, mimeType, options);

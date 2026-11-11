@@ -28,10 +28,10 @@ function callIdentifier(id: string): void {
 	if (typeof id !== "string" || !id.length || id.length > 512 || /[\x00-\x1f]/.test(id)) throw new Error("Invalid tool call id");
 }
 
-/** Find incomplete batches without fabricating tool answers. A later explicit user
- * input is a recovery boundary: the incomplete batch is omitted from model context,
- * but its native messages remain intact on disk. Genuine pending inputs cannot use
- * this escape hatch (send is rejected until they have all been answered). */
+/** Encuentra lotes incompletos sin inventar respuestas de herramientas. Una entrada explícita posterior del
+ * usuario es un límite de recuperación: el lote incompleto se omite del contexto del modelo,
+ * pero sus mensajes nativos quedan intactos en disco. Las entradas pendientes genuinas no pueden usar
+ * esta vía de escape (el envío se rechaza hasta que se hayan respondido todas). */
 function modelHistory(messages: AgentMessage[]): AgentMessage[] {
 	const result: AgentMessage[] = [];
 	for (let i = 0; i < messages.length; i++) {
@@ -67,11 +67,11 @@ interface Session {
 	notifyQueued?: boolean;
 }
 
-/** Native pi 1.4 Agent orchestration, independent of any transport or view.
- * run() only retries an existing runnable input; starting a task requires send().
- * No tools are replayed after restart, and no input-tool placeholders persist.
- * dispose requests cooperative cancellation; it does not wait for uncooperative
- * plugin code, and such code is prevented from making late managed writes. */
+/** Orquestación nativa de Agent de pi 1.4, independiente de cualquier transporte o vista.
+ * run() solo reintenta una entrada ejecutable existente; empezar una tarea requiere send().
+ * No se vuelve a ejecutar ninguna herramienta tras reiniciar, ni persiste ningún marcador de herramienta de entrada.
+ * dispose pide una cancelación cooperativa; no espera al código de plugin que no coopere,
+ * y a ese código se le impide hacer escrituras gestionadas tardías. */
 export function createPluginAgentService(deps: PluginAgentServiceDeps): PluginAgentService {
 	const definitions = new Map<string, PluginAgentDefinition>();
 	const sessions = new Map<string, Session>();
@@ -87,9 +87,9 @@ export function createPluginAgentService(deps: PluginAgentServiceDeps): PluginAg
 			s.notifyQueued = false;
 			if (disposed) return;
 			for (const listener of [...s.listeners]) {
-				try { listener(snapshot(s)); } catch { /* Views cannot fail a managed run. */ }
+				try { listener(snapshot(s)); } catch { /* Las vistas no pueden hacer fallar una ejecución gestionada. */ }
 			}
-			try { deps.onChange?.(); } catch { /* Notification is not persistence. */ }
+			try { deps.onChange?.(); } catch { /* Notificar no es persistir. */ }
 		});
 	};
 	const commit = (s: Session, next: PluginAgentRecord) => {
@@ -101,7 +101,7 @@ export function createPluginAgentService(deps: PluginAgentServiceDeps): PluginAg
 			s.poisoned = new Error(`Plugin agent persistence failed: ${errorText(error)}`);
 			s.run?.controller.abort();
 			s.run?.agent?.abort();
-			// Never install uncommitted accepted IDs, inputs, or successful results.
+			// Nunca instales ID aceptados, entradas ni resultados correctos sin commit.
 			s.record = { ...s.record, status: "error", error: s.poisoned.message };
 			notify(s);
 			throw s.poisoned;
@@ -139,7 +139,7 @@ export function createPluginAgentService(deps: PluginAgentServiceDeps): PluginAg
 	};
 	const launch = (s: Session, d: PluginAgentDefinition, purpose: PluginCallPurpose) => {
 		const run: Run = { controller: new AbortController(), cancelled: false };
-		s.run = run; // Reserve the writer before engine resolution or any other await.
+		s.run = run; // Reserva el escritor antes de resolver el motor o de cualquier otro await.
 		const active = () => {
 			if (disposed || run.cancelled || run.controller.signal.aborted || s.poisoned || definitions.get(d.id) !== d) {
 				throw new Error("Plugin agent run cancelled or unavailable");
@@ -160,7 +160,7 @@ export function createPluginAgentService(deps: PluginAgentServiceDeps): PluginAg
 						active();
 						if (tool.kind === "input") {
 							inputs.set(id, clone(args));
-							// Runtime-only sentinel: never emitted as a persisted tool result.
+							// Centinela solo de runtime: nunca se emite como resultado de herramienta persistido.
 							return { content: [], details: null, terminate: true };
 						}
 						return tool.execute!(id, args, signal, onUpdate);
@@ -200,7 +200,7 @@ export function createPluginAgentService(deps: PluginAgentServiceDeps): PluginAg
 				agent.subscribe((event) => {
 					active();
 					if (event.type === "message_update") {
-						// Keep ONE SDK-owned latest partial; copy only on observation/flush.
+						// Mantén UN único parcial más reciente propiedad del SDK; copia solo al observar o vaciar.
 						if (event.message.role !== "assistant") return;
 						s.partial = event.message;
 						if (!s.timer) {
@@ -217,11 +217,11 @@ export function createPluginAgentService(deps: PluginAgentServiceDeps): PluginAg
 							commit(s, { ...s.record, messages: [...s.record.messages, m],
 								...(m.stopReason === "error" ? { error: m.errorMessage ?? "Provider error" } : {}) });
 							if (new Set(ids).size !== ids.length) throw new Error("Duplicate tool call IDs in assistant response");
-							// This awaited native subscription is the side-effect write barrier.
+							// Esta suscripción nativa esperada es la barrera de escritura de efectos secundarios.
 							if (m.stopReason !== "aborted" && usageWasAdmitted(m.usage)) {
 								try { deps.onUsage?.(clone(d.model), clone(m.usage)); } catch {
-									// Accounting cannot rewrite an already committed response, but
-									// failures must be visible. Never log callback errors/request data.
+									// La contabilidad no puede reescribir una respuesta ya confirmada, pero los
+									// fallos deben verse. Nunca registres errores de callbacks ni datos de la petición.
 									console.error("[plugin-agents] Plugin accounting failure", { definitionId: d.id, sessionId: s.record.id });
 								}
 							}
@@ -234,7 +234,7 @@ export function createPluginAgentService(deps: PluginAgentServiceDeps): PluginAg
 							}] });
 						} else {
 							inputs.delete(event.toolCallId);
-							// Checkpoint immediately, even while sibling tools are still running.
+							// Guarda un punto de control de inmediato, aunque las herramientas hermanas sigan ejecutándose.
 							saveResult({ role: "toolResult", toolCallId: event.toolCallId, toolName: event.toolName,
 								content: event.result.content ?? [], details: event.result.details, usage: event.result.usage,
 								isError: event.isError, ...(event.durationMs === undefined ? {} : { durationMs: event.durationMs }), timestamp: Date.now() });
@@ -250,7 +250,7 @@ export function createPluginAgentService(deps: PluginAgentServiceDeps): PluginAg
 					: s.record.pending.length ? "waiting" : "idle" });
 			} catch (error) {
 				if (!disposed && !run.cancelled && !s.poisoned) {
-					try { commit(s, { ...s.record, status: "error", error: errorText(error) }); } catch { /* commit already failed closed */ }
+					try { commit(s, { ...s.record, status: "error", error: errorText(error) }); } catch { /* el commit ya falló de forma cerrada */ }
 				}
 			} finally {
 				if (s.run === run) s.run = undefined;
@@ -334,7 +334,7 @@ export function createPluginAgentService(deps: PluginAgentServiceDeps): PluginAg
 			const result = tool.formatResult ? tool.formatResult(clone(json)) : { content: [{ type: "text" as const, text: serialized }], details: json };
 			if (result.isError || !Array.isArray(result.content)) throw new Error("Answer formatter must return a successful tool result");
 			const remaining = s.record.pending.filter((p) => p !== pending);
-			// Source-order tool results, regardless of the order external answers arrive.
+			// Resultados de herramientas en el orden del código, sea cual sea el orden en que lleguen las respuestas externas.
 			const messages = [...s.record.messages];
 			let start = messages.length - 1;
 			while (start >= 0 && messages[start]!.role !== "assistant") start--;
@@ -351,7 +351,7 @@ export function createPluginAgentService(deps: PluginAgentServiceDeps): PluginAg
 			const s = session(id);
 			if (!accept(s, options)) return snapshot(s);
 			if (s.record.pending.length) throw new Error("External inputs are pending; answer all pending calls before resuming");
-			modelHistory(s.record.messages); // Reject unsafe side-effect replay before acceptance.
+			modelHistory(s.record.messages); // Rechaza la repetición insegura de efectos secundarios antes de la aceptación.
 			if (!s.record.messages.length || s.record.messages.at(-1)?.role === "assistant") throw new Error("No runnable persisted input; use .send(id, explicitPrompt, {requestId, purpose:'background'}) to start a task");
 			accepted(s, options, { status: "running" });
 			launch(s, definition(s), options.purpose ?? "background");
@@ -378,7 +378,7 @@ export function createPluginAgentService(deps: PluginAgentServiceDeps): PluginAg
 			if (failure) throw failure;
 		},
 	};
-	const disabled = () => { void service.dispose().catch(() => { /* Writes failed closed; no further work is allowed. */ }); };
+	const disabled = () => { void service.dispose().catch(() => { /* Las escrituras fallaron de forma cerrada; no se permite más trabajo. */ }); };
 	deps.signal?.addEventListener("abort", disabled, { once: true });
 	if (deps.signal?.aborted) disabled();
 	return service;

@@ -41,9 +41,9 @@ export function questionLacksDeliveredProse(message: AssistantMessage, toolName:
 
 export function makeNarrationGuard(): ToolCallHooks {
 	let blocked = 0;
-	// The sequential output/question tools run in call order. Credit only a
-	// successful output already executed for THIS response, never a later
-	// call, an older lesson, or a failed/aborted output. State is run-local.
+	// Las herramientas secuenciales de salida y de preguntas se ejecutan en orden de llamada. Cuenta solo
+	// una salida correcta ya ejecutada para ESTA respuesta, nunca una llamada posterior,
+	// una lección anterior ni una salida fallida o abortada. El estado es local a la ejecución.
 	const delivered = new WeakSet<AssistantMessage>();
 	return {
 		beforeToolCall: async ({ assistantMessage, toolCall }) => {

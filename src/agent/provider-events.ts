@@ -1,44 +1,43 @@
 /**
- * provider-events — the raw-wire recorder (owner, 2026-10-04).
+ * provider-events: el grabador del cable en bruto (propietario, 2026-10-04).
  *
- * pi-ai 1.0's onProviderStreamEvent observer fires for each PARSED
- * provider stream event BEFORE pi normalizes it — the exact layer where
- * our provider-quirk incident class lives and where nothing else in the
- * app can see: GLM-flash truncating tool-call arguments mid-JSON
- * (2026-09-25), DeepSeek resetting tool-call ids every response
- * (2026-10-04, the Lacan session). This module turns that observer into
- * an inspectable artifact.
+ * El observador onProviderStreamEvent de pi-ai 1.0 se dispara con cada evento ANALIZADO del
+ * stream del proveedor ANTES de que pi lo normalice: justo la capa donde vive nuestra clase de
+ * incidentes por rarezas de los proveedores y donde nada más en la app puede mirar: GLM-flash
+ * truncando los argumentos de las llamadas a herramientas a mitad del JSON (2026-09-25),
+ * DeepSeek reiniciando los ids de las llamadas a herramientas en cada respuesta (2026-10-04, la
+ * sesión de Lacan). Este módulo convierte ese observador en un artefacto inspeccionable.
  *
- * Gating (owner choice, 2026-10-04): env var only —
+ * Activación (elección del propietario, 2026-10-04): solo variable de entorno:
  *   LH_PROVIDER_EVENTS=1 npm run dev
- * Default off: raw events carry full prompts (privacy) and unbounded
- * volume (disk). No app surface; a debugging feature, not a feature.
+ * Desactivado por defecto: los eventos en bruto llevan los prompts completos (privacidad) y un
+ * volumen ilimitado (disco). Sin superficie en la app; es una herramienta de depuración, no una
+ * funcionalidad.
  *
- * Artifact: one JSONL file per chat at
+ * Artefacto: un fichero JSONL por chat en
  *   data/debug/provider-events/<chatId>.jsonl
- * (data/ is disposable scratch — no retention system). Each line:
+ * (data/ es espacio de trabajo desechable: sin sistema de retención). Cada línea:
  *   {"t":<epoch ms>,"ctx":"teacher|prober|job:<role>","provider":…,"model":…,"event":<raw>}
- * plus {"note":…} run markers. A per-file byte cap (CAPPED at ~20 MB)
- * writes one truncation marker and stops — a runaway turn must not fill
- * the disk. Event payloads are adapter-owned; a non-serializable event
- * degrades to a type note, never throws (an observer exception must not
- * kill a stream).
+ * más marcas de ejecución {"note":…}. Un límite de bytes por fichero (LIMITADO a ~20 MB)
+ * escribe una única marca de truncado y se detiene: un turno desbocado no debe llenar el disco.
+ * El contenido de los eventos es propiedad del adaptador; un evento no serializable se degrada
+ * a una nota con su tipo y nunca lanza (una excepción del observador no debe matar un stream).
  */
 
 import * as fs from "node:fs";
 import path from "node:path";
 import { PATHS } from "../../config.ts";
 
-/** Max bytes per chat's JSONL before recording stops (with a marker). */
+/** Bytes máximos del JSONL de cada chat antes de dejar de grabar (con una marca). */
 const CAP_BYTES = 20 * 1024 * 1024;
 
-/** Test seam (the toolTimeoutMs idiom): shrink the cap to exercise it. */
+/** Juntura para pruebas (el patrón toolTimeoutMs): reduce el límite para ejercitarlo. */
 export const providerEventsCap = { current: CAP_BYTES };
 
-/** Test seam (the toolTimeoutMs idiom): redirect the output directory. */
+/** Juntura para pruebas (el patrón toolTimeoutMs): redirige el directorio de salida. */
 export const providerEventsDir = { current: path.join(PATHS.debug, "provider-events") };
 
-/** The model shape the observer receives (structural — pi passes Model). */
+/** La forma del modelo que recibe el observador (estructural: pi pasa Model). */
 export interface ProviderEventModel {
 	provider?: string;
 	id?: string;
@@ -46,12 +45,12 @@ export interface ProviderEventModel {
 
 export type ProviderEventObserver = (data: unknown, model: ProviderEventModel) => void;
 
-/** Per-file accounting so the cap marker writes exactly once. */
+/** Contabilidad por fichero para que la marca del límite se escriba exactamente una vez. */
 const files = new Map<string, { bytes: number; capped: boolean }>();
 
 function fileFor(chatId: string): string {
-	// chat ids are app-minted (chat_<base36>) — sanitize against any future
-	// id scheme putting path-hostile characters in here.
+	// los ids de chat los genera la app (chat_<base36>): se sanean por si algún futuro
+	// esquema de ids metiera aquí caracteres problemáticos para las rutas.
 	const safe = chatId.replace(/[^a-zA-Z0-9_-]/g, "_");
 	return path.join(/* turbopackIgnore: true */ providerEventsDir.current, `${safe}.jsonl`);
 }
@@ -72,12 +71,12 @@ function writeLine(file: string, line: Record<string, unknown>): void {
 			files.set(file, { bytes, capped: false });
 		}
 	} catch {
-		// The debug recorder must never take a run down with it.
+		// El grabador de depuración nunca debe tumbar una ejecución.
 	}
 }
 
-/** Encode an adapter-owned event safely: JSON when it cooperates, a type
- *  note when it does not (cyclic/BigInt payloads). */
+/** Codifica de forma segura un evento propiedad del adaptador: JSON cuando colabora y una nota
+ *  con el tipo cuando no (cargas cíclicas o con BigInt). */
 function encodeEvent(data: unknown): unknown {
 	try {
 		JSON.stringify(data);
@@ -87,17 +86,17 @@ function encodeEvent(data: unknown): unknown {
 	}
 }
 
-/** True when recording is on (read per call — toggling needs no restart
- *  beyond the next turn's agent construction). */
+/** True cuando la grabación está activada (se lee en cada llamada: activarla o desactivarla no
+ *  requiere más reinicio que la construcción del agente del siguiente turno). */
 export function providerEventsEnabled(): boolean {
 	return !!process.env.LH_PROVIDER_EVENTS;
 }
 
 /**
- * The observer for one agent run, or undefined when disabled. Pass the
- * result as the Agent's onProviderStreamEvent (both construction sites —
- * teacher-agent's baseAgentOptions and pi-run's runSubagent — build it
- * from a chatId in hand).
+ * El observador para una ejecución de agente, o undefined si está desactivado. Pasa el
+ * resultado como onProviderStreamEvent del Agent (los dos sitios de construcción
+ * —baseAgentOptions de teacher-agent y runSubagent de pi-run— lo construyen a partir de un
+ * chatId que ya tienen).
  */
 export function providerEventObserver(chatId: string, context: string): ProviderEventObserver | undefined {
 	if (!providerEventsEnabled()) return undefined;
@@ -111,8 +110,8 @@ export function providerEventObserver(chatId: string, context: string): Provider
 	};
 }
 
-/** A run marker (start/end/abort notes) so events correlate with the
- *  persisted record; no-op when disabled. */
+/** Una marca de ejecución (notas de inicio, fin o aborto) para que los eventos se correlacionen
+ *  con el registro guardado; no hace nada si está desactivado. */
 export function providerEventNote(chatId: string, context: string, text: string): void {
 	if (!providerEventsEnabled()) return;
 	writeLine(fileFor(chatId), { ctx: context, note: text });

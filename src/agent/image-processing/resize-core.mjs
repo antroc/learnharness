@@ -1,13 +1,13 @@
-// Ported from @earendil-works/pi-coding-agent 1.1.0, dist/utils/image-resize-core.js (MIT).
-// Runtime .mjs resources stay unbundled for Next's Node/Electron worker packaging.
+// Adaptado de @earendil-works/pi-coding-agent 1.1.0, dist/utils/image-resize-core.js (MIT).
+// Los recursos .mjs de runtime se quedan sin empaquetar para el empaquetado de workers de Node/Electron de Next.
 import { applyExifOrientation } from "./exif-orientation.mjs";
 import { loadPhoton } from "./photon.mjs";
 /**
- * Tag on image resize worker replies. Node can post its own messages on the worker channel
- * (for example `{ "watch:require": [...] }` under `node --watch`), so replies must be identifiable.
+ * Etiqueta de las respuestas del worker de redimensionado de imágenes. Node puede publicar sus propios mensajes en el
+ * canal del worker (por ejemplo `{ "watch:require": [...] }` con `node --watch`), así que las respuestas deben ser identificables.
  */
 export const IMAGE_RESIZE_WORKER_RESPONSE_TYPE = "pi:image-resize-response";
-// 4.5MB of base64 payload. Provides headroom below Anthropic's 5MB limit.
+// 4,5 MB de carga en base64. Deja margen por debajo del límite de 5 MB de Anthropic.
 const DEFAULT_MAX_BYTES = 4.5 * 1024 * 1024;
 const DEFAULT_OPTIONS = {
     maxWidth: 2000,
@@ -24,17 +24,17 @@ function encodeCandidate(buffer, mimeType) {
     };
 }
 /**
- * Resize an image to fit within the specified max dimensions and encoded file size.
- * Returns null if the image cannot be resized below maxBytes.
+ * Redimensiona una imagen para que quepa en las dimensiones máximas y el tamaño de fichero codificado indicados.
+ * Devuelve null si la imagen no se puede redimensionar por debajo de maxBytes.
  *
- * Uses Photon (Rust/WASM) for image processing. If Photon is not available,
- * returns null.
+ * Usa Photon (Rust/WASM) para procesar la imagen. Si Photon no está disponible,
+ * devuelve null.
  *
- * Strategy for staying under maxBytes:
- * 1. First resize to maxWidth/maxHeight
- * 2. Try PNG first, then JPEG qualities in insertion order (first under cap wins)
- * 3. If still too large, try the remaining JPEG qualities
- * 4. If still too large, progressively reduce dimensions until 1x1
+ * Estrategia para quedarse por debajo de maxBytes:
+ * 1. Primero redimensiona a maxWidth/maxHeight
+ * 2. Prueba primero PNG y después las calidades JPEG en orden de inserción (gana la primera que quede por debajo del límite)
+ * 3. Si sigue siendo demasiado grande, prueba las calidades JPEG restantes
+ * 4. Si sigue siendo demasiado grande, reduce progresivamente las dimensiones hasta 1x1
  */
 export async function resizeImageInProcess(inputBytes, mimeType, options) {
     const opts = { ...DEFAULT_OPTIONS, ...options };
@@ -52,7 +52,7 @@ export async function resizeImageInProcess(inputBytes, mimeType, options) {
         const originalWidth = image.get_width();
         const originalHeight = image.get_height();
         const format = mimeType.split("/")[1] ?? "png";
-        // Check if already within all limits (dimensions AND encoded size)
+        // Comprueba si ya está dentro de todos los límites (dimensiones Y tamaño codificado)
         if (originalWidth <= opts.maxWidth && originalHeight <= opts.maxHeight && inputBase64Size < opts.maxBytes) {
             return {
                 data: Buffer.from(inputBytes).toString("base64"),
@@ -64,7 +64,7 @@ export async function resizeImageInProcess(inputBytes, mimeType, options) {
                 wasResized: false,
             };
         }
-        // Calculate initial dimensions respecting max limits
+        // Calcula las dimensiones iniciales respetando los límites máximos
         let targetWidth = originalWidth;
         let targetHeight = originalHeight;
         if (targetWidth > opts.maxWidth) {

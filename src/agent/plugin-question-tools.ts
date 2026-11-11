@@ -8,15 +8,15 @@ import {
 import { newMessageId } from "../core/native-messages.ts";
 import { invalidInputResult, questionResult } from "./tool-execute.ts";
 
-/** Heterogeneous host registry: schemas are validated dynamically before these callbacks run.
- * TypeBox's Static<any> is unknown, so erase the callback payload explicitly, not the public SDK generic. */
+/** Registro heterogéneo del host: los esquemas se validan dinámicamente antes de que se ejecuten estas callbacks.
+ * El Static<any> de TypeBox es unknown, así que borra explícitamente la carga de la callback, no el genérico público del SDK. */
 export type NativePluginQuestionDefinition = Omit<PluginQuestionTypeDefinition, "validateQuestion" | "validateAnswer" | "gradeAnswer"> & {
 	validateQuestion?: (context: PluginQuestionValidationContext<any>) => undefined | string[];
 	validateAnswer?: (context: PluginQuestionAnswerValidationContext<any, any>) => undefined | string[];
 	gradeAnswer?: (context: PluginQuestionGradingContext<any, any>) => JsonValue | Promise<JsonValue>;
 };
 
-/** The accepted, single-invocation contribution snapshot; never reconstruct it. */
+/** La instantánea aceptada de la contribución, de una sola invocación; nunca la reconstruyas. */
 export interface NativePluginQuestionContribution {
 	pluginId: string;
 	definition: NativePluginQuestionDefinition;
@@ -33,7 +33,7 @@ interface Epoch { poses: Map<number, Pose>; message?: AgentMessage }
 const ledgers = new WeakMap<Agent, PluginQuestionLedger>();
 export function pluginQuestionLedgerFor(agent: Agent): PluginQuestionLedger | undefined { return ledgers.get(agent); }
 
-/** Private per-Agent proof of actual native execution, not a model-authored token. */
+/** Prueba privada, por Agent, de la ejecución nativa real; no es un token escrito por el modelo. */
 export class PluginQuestionLedger {
 	private readonly definitions = new Map<string, NativePluginQuestionContribution>();
 	private readonly epochs = new WeakMap<object, Epoch>();
@@ -71,7 +71,7 @@ export class PluginQuestionLedger {
 		});
 	}
 
-	/** SDK-provided raw call OBJECT and validated args identity bind execution to its exact content position. */
+	/** El OBJETO de llamada en bruto que aporta el SDK y la identidad de los argumentos validados ligan la ejecución a su posición exacta en el contenido. */
 	validatedCall(context: BeforeToolCallContext): void {
 		if (!this.definitions.has(context.toolCall.name)) return;
 		const epoch = this.epochs.get(context.assistantMessage);
@@ -103,7 +103,7 @@ export class PluginQuestionLedger {
 		if (mapped.role !== "assistant") return mapped;
 		const annotations: Record<string, PluginQuestionAttempt | PluginQuestionSnapshot> = {};
 		const epoch = this.epochs.get(source);
-		if (!epoch) return mapped; // historical records are never reclassified by current tool names
+		if (!epoch) return mapped; // los registros históricos nunca se reclasifican por los nombres actuales de las herramientas
 		const id = canonical ? (mapped as AgentMessage & { id?: string }).id ?? newMessageId() : undefined;
 		mapped.content.forEach((call, index) => {
 			if (call.type !== "toolCall") return;
@@ -124,7 +124,7 @@ export class PluginQuestionLedger {
 		return { ...mapped, ...(id ? { id } : {}), lhQuestions: Object.freeze(annotations) } as AgentMessage;
 	}
 
-	/** Called only AFTER admission and the uniquifier saw the original SDK event. */
+	/** Se llama solo DESPUÉS de la admisión y de que el desambiguador viera el evento original del SDK. */
 	wire(original: AgentEvent, mapped: AgentEvent): AgentEvent | undefined {
 		if (original.type === "tool_execution_end" && this.isAcknowledgment(original.result)) return undefined;
 		if (original.type === "message_start" || original.type === "message_update" || original.type === "message_end") {

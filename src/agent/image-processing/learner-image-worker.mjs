@@ -1,5 +1,5 @@
-// Learner-image normalization runs off the server thread and is terminable on abort.
-// Re-encoding removes source metadata and bakes orientation before storage/model use.
+// La normalización de las imágenes del alumno se ejecuta fuera del hilo del servidor y se puede terminar al abortar.
+// Volver a codificar elimina los metadatos de origen y aplica la orientación antes de guardar o usar con el modelo.
 import { parentPort } from "node:worker_threads";
 import { convertImageBytesToPng } from "./convert.mjs";
 import { resizeImageInProcess } from "./resize-core.mjs";

@@ -23,31 +23,31 @@ import { streamClaudeCode } from "./claude-code/stream.ts";
 import { nativeSubscriptionId, nativeSubscriptionModel } from "./subscription-bridge.ts";
 import { nativeSubscriptionStream } from "./subscription-stream.ts";
 
-/** App identity is immutable and shared by Models and every native Agent.
- * Agent's default Pi attribution otherwise overrides the Models identity. */
+/** La identidad de la app es inmutable y la comparten Models y todos los Agent nativos.
+ * De lo contrario, la atribución a Pi por defecto de Agent sustituye a la identidad de Models. */
 export const APP_IDENTITY = Object.freeze({
 	userAgent: Object.freeze({ custom: `learnharness/${packageMetadata.version}` }),
 	attribution: Object.freeze({ name: packageMetadata.name, url: packageMetadata.homepage }),
 });
 
 /**
- * The one engine factory every agent's model comes from (the pi-ai swap,
- * docs/archive/pi-engine-swap.md). BYOK ALL THE WAY DOWN (owner, 2026-09-22):
- * there are no factory pins — every engine resolves from a RESOLVED SPEC
- * (the settings chain's output) and the one builder here wires it to
- * pi-ai's federated catalogs.
+ * La única factoría de motores de la que sale el modelo de cada agente (el cambio a pi-ai,
+ * docs/archive/pi-engine-swap.md). BYOK HASTA EL FONDO (propietario, 2026-09-22):
+ * no hay modelos fijados en la factoría: cada motor se resuelve a partir de una ESPECIFICACIÓN
+ * RESUELTA (la salida de la cadena de ajustes) y el único constructor de aquí la conecta con
+ * los catálogos federados de pi-ai.
  *
- * An "engine" is the model + the stream function the agent loop runs on —
- * the two things a test fake replaces. Production engines resolve the model
- * from pi-ai's static catalogs and stream through the same Models
- * collection.
+ * Un «motor» es el modelo + la función de stream sobre la que se ejecuta el bucle del agente:
+ * las dos cosas que sustituye un falso de pruebas. Los motores de producción resuelven el modelo
+ * a partir de los catálogos estáticos de pi-ai y hacen streaming a través de la misma colección
+ * Models.
  */
 
 export interface PiEngine {
 	model: Model<Api>;
 	streamFn: StreamFunction;
-	/** The initially resolved (config-or-settings, CLAMPED) thinking level.
-	 *  Custom streams re-resolve the original preference per operation. */
+	/** El nivel de razonamiento resuelto inicialmente (de la configuración o los ajustes, LIMITADO).
+	 *  Los streams personalizados vuelven a resolver la preferencia original en cada operación. */
 	level?: ThinkingLevel;
 }
 
@@ -60,10 +60,10 @@ interface ProviderSource {
 }
 let providerSource: ProviderSource | undefined;
 
-/** Configuration IO is injected by the server; the agent never imports stores. */
+/** El servidor inyecta la E/S de configuración; el agente nunca importa almacenes. */
 export function configureProviderSource(source: ProviderSource): void {
-	// Server module re-evaluation can replace the source while this collection
-	// survives. Retire only the previous source's routes, not built-ins.
+	// Volver a evaluar el módulo del servidor puede sustituir el origen mientras esta colección
+	// sobrevive. Retira solo las rutas del origen anterior, no las integradas.
 	if (collection && providerSource) {
 		for (const provider of collection.getProviders()) {
 			if (providerSource.isCustom(provider.id)) collection.deleteProvider(provider.id);
@@ -72,21 +72,20 @@ export function configureProviderSource(source: ProviderSource): void {
 	providerSource = source;
 }
 
-/** The process-wide pi-ai Models collection — EVERY builtin provider's
- *  catalog (model slots wave, 2026-09-20): engines and the picker resolve
- *  against all of pi-ai's per-provider catalogs, so a settings slot can pin
- *  any native model id. Auth is resolved per request by pi-ai itself from
- *  the environment (the keys seam reflects file-saved keys into env), and
- *  a provider with no key simply fails its stream with "not configured" —
- *  honest, late, and unreachable through the picker, which gates on
- *  keyPresent. */
+/** La colección Models de pi-ai de todo el proceso: el catálogo de TODOS los proveedores
+ *  integrados (oleada de ranuras de modelo, 2026-09-20): los motores y el selector resuelven
+ *  contra todos los catálogos por proveedor de pi-ai, así que una ranura de ajustes puede fijar
+ *  cualquier id de modelo nativo. La propia pi-ai resuelve la autenticación en cada petición a
+ *  partir del entorno (la juntura de claves refleja en env las claves guardadas en fichero), y
+ *  un proveedor sin clave simplemente hace fallar su stream con "not configured": honesto,
+ *  tardío e inalcanzable a través del selector, que se condiciona a keyPresent. */
 export function piModels() {
 	if (!collection) {
 		collection = createModels({ identity: APP_IDENTITY });
 		for (const provider of builtinProviders()) {
-			// Keep the native Bedrock implementation reachable by standalone tracing.
-			// Pi's default Node-only loader hides this import from bundlers. Only
-			// replace its lazy forwarding; preserve the native factory's auth/catalog.
+			// Mantén alcanzable para el rastreo independiente la implementación nativa de Bedrock.
+			// El cargador por defecto de Pi, solo para Node, oculta esta importación a los empaquetadores. Solo
+			// sustituye su reenvío diferido; conserva la autenticación y el catálogo de la factoría nativa.
 			collection.setProvider(provider.id === "amazon-bedrock"
 				? { ...provider, ...lazyApi(() => import("@earendil-works/pi-ai/api/bedrock-converse-stream")) }
 				: provider);
@@ -97,25 +96,25 @@ export function piModels() {
 	return collection;
 }
 
-/** OpenRouter API key (BYOK); tests never read this — they inject engines. */
+/** Clave de API de OpenRouter (BYOK); las pruebas nunca la leen: inyectan motores. */
 export function openRouterApiKey(): string | undefined {
 	return process.env.OPENROUTER_API_KEY || undefined;
 }
 
-/** A fully-resolved model pin — the shape every engine now comes from:
- *  the settings-resolution chain's output (role override → slot, or the
- *  chat's conversation chain). thinkingLevel is OPTIONAL: unset means
- *  the baked default resolves here (owner 2026-09-22) — the first entry
- *  of DEFAULT_THINKING_ORDER the model supports. */
+/** Un modelo fijado totalmente resuelto, la forma de la que sale ahora cada motor:
+ *  la salida de la cadena de resolución de ajustes (sustitución por rol → ranura, o la
+ *  cadena de conversación del chat). thinkingLevel es OPCIONAL: sin asignar significa
+ *  que aquí se resuelve el valor por defecto fijo (propietario, 2026-09-22): la primera entrada
+ *  de DEFAULT_THINKING_ORDER que admita el modelo. */
 export interface ResolvedModelSpec {
 	provider: string;
 	id: string;
 	thinkingLevel?: ThinkingLevel;
 }
 
-/** The first entry of the baked default order the model supports (owner,
- *  2026-09-22). A non-reasoning model reports exactly ["off"], so the
- *  order walk lands there naturally. */
+/** La primera entrada del orden por defecto fijo que admite el modelo (propietario,
+ *  2026-09-22). Un modelo sin razonamiento informa exactamente ["off"], así que el
+ *  recorrido del orden acaba ahí de forma natural. */
 function defaultThinkingLevel(model: Model<Api>): ThinkingLevel {
 	const supported = getSupportedThinkingLevels(model);
 	for (const level of DEFAULT_THINKING_ORDER) {
@@ -124,41 +123,41 @@ function defaultThinkingLevel(model: Model<Api>): ThinkingLevel {
 	return supported[0] ?? "off";
 }
 
-/** The production engine for a RESOLVED spec (model slots wave,
- *  2026-09-20): provider-aware catalog lookup + thinking clamp. The API
- *  key is resolved by pi-ai itself from the environment per request (the
- *  keys seam reflects file-saved keys into env), so the engine never
- *  hardcodes OpenRouter's. */
+/** El motor de producción para una especificación RESUELTA (oleada de ranuras de modelo,
+ *  2026-09-20): búsqueda en el catálogo según el proveedor + limitación del razonamiento. La
+ *  propia pi-ai resuelve la clave de API a partir del entorno en cada petición (la juntura de
+ *  claves refleja en env las claves guardadas en fichero), así que el motor nunca fija la
+ *  de OpenRouter en el código. */
 export function piEngineForSpec(spec: ResolvedModelSpec, background: boolean | (() => boolean) = true, lifecycle?: ChatGPTDispatchLifecycle, cacheRetention?: () => CacheRetention | undefined): PiEngine {
 	const models: Models = piModels();
 	const nativeId = nativeSubscriptionId(spec.provider);
 	const registeredModel = spec.provider === "chatgpt" ? chatGPTModel(spec.id) : nativeId ? nativeSubscriptionModel(spec.provider, spec.id) : models.getModel(spec.provider, spec.id);
 	const custom = providerSource?.isCustom(spec.provider) ?? false;
-	// Custom endpoint owners authorize image attempts independently of sparse
-	// discovery metadata. Never promote the registered/catalog capabilities.
+	// Los propietarios de endpoints personalizados autorizan los intentos con imágenes con independencia
+	// de unos metadatos de descubrimiento escasos. Nunca promuevas las capacidades registradas o del catálogo.
 	const permitImages = (value: Model<Api>): Model<Api> => ({ ...value, input: ["text", "image"] });
 	const model = custom && registeredModel ? permitImages(registeredModel) : registeredModel;
 	if (!model) {
 		throw new Error(`${spec.provider} catalog has no model ${spec.id}`);
 	}
-	// UNSET level → the baked default order (first entry the model
-	// supports); SET level → pi's native nearest-clamp (model swaps keep
-	// the user's intent and adapt honestly).
+	// Nivel SIN ASIGNAR → el orden por defecto fijo (la primera entrada que
+	// admite el modelo); nivel ASIGNADO → la limitación al más cercano nativa de pi (al cambiar
+	// de modelo se mantiene la intención del usuario y se adapta con honestidad).
 	const thinkingPreference = spec.thinkingLevel;
 	const level = thinkingPreference
 		? clampThinkingLevel(model, thinkingPreference)
 		: defaultThinkingLevel(model);
-	// A lesson's agent loop can stay alive through many tool calls. Remember
-	// only that this is a custom route, never its configuration for that run.
+	// El bucle de agente de una lección puede seguir vivo a lo largo de muchas llamadas a herramientas.
+	// Recuerda solo que es una ruta personalizada, nunca su configuración para esa ejecución.
 	return {
 		model,
 		level,
-		// The agent loop forwards state.thinkingLevel as `reasoning` (undefined
-		// = off on pi-ai's scale). Built-ins keep the factory clamp; custom
-		// requests re-resolve thinking against their current metadata below.
+		// El bucle del agente reenvía state.thinkingLevel como `reasoning` (undefined
+		// = off en la escala de pi-ai). Los integrados mantienen la limitación de la factoría; las
+		// peticiones personalizadas vuelven a resolver el razonamiento contra sus metadatos actuales, abajo.
 		streamFn: (requestModel, context, options) => {
-			// Read the slot preference for every operation, not just engine creation.
-			// Unset adds NOTHING: native defaults/env and explicit caller options survive.
+			// Lee la preferencia de la ranura en cada operación, no solo al crear el motor.
+			// Sin asignar no añade NADA: los valores nativos por defecto, el env y las opciones explícitas del llamador sobreviven.
 			const retention = cacheRetention?.();
 			const requestOptions = {
 				...options,
@@ -166,10 +165,10 @@ export function piEngineForSpec(spec: ResolvedModelSpec, background: boolean | (
 				reasoning: level === "off" ? undefined : level,
 			};
 			if (custom) {
-				// Revalidate before EVERY upstream model operation, including later
-				// tool-loop steps. Resolve thinking from the ORIGINAL preference (or
-				// existing default order), not a previous metadata snapshot's clamp.
-				// Pi retains the setup of an operation already in flight.
+				// Revalida antes de CADA operación del modelo aguas arriba, incluidos los pasos posteriores
+				// del bucle de herramientas. Resuelve el razonamiento a partir de la preferencia ORIGINAL (o
+				// del orden por defecto existente), no de la limitación de una instantánea anterior de metadatos.
+				// Pi conserva la configuración de una operación que ya está en curso.
 				const current = piModels();
 				const currentModel = current.getModel(spec.provider, spec.id);
 				if (!currentModel) return lazyStream(requestModel, async () => { throw new Error("The selected custom model is unavailable."); });
@@ -185,12 +184,12 @@ export function piEngineForSpec(spec: ResolvedModelSpec, background: boolean | (
 	};
 }
 
-/** The LEGACY role entry point — BYOK made it an honest THROWER (owner,
- *  2026-09-22): no factory pins exist to fall back to, and this module
- *  cannot read settings (architecture law — the agent layer never
- *  imports the server layer). Production resolves the chain in
- *  chat-handler and ALWAYS injects engines; reaching this means a
- *  wiring bug, so it fails loudly instead of guessing a model. */
+/** El punto de entrada HEREDADO por rol: BYOK lo convirtió en algo que LANZA con honestidad
+ *  (propietario, 2026-09-22): no existen modelos fijados en la factoría a los que recurrir, y este
+ *  módulo no puede leer los ajustes (ley de la arquitectura: la capa de agente nunca
+ *  importa la capa de servidor). Producción resuelve la cadena en
+ *  chat-handler y SIEMPRE inyecta motores; llegar aquí significa un error de
+ *  cableado, así que falla ruidosamente en lugar de adivinar un modelo. */
 export function piEngineFor(role: ModelRole): PiEngine {
 	throw new Error(
 		`no configured model for role "${role}" — set your model slots (settings → models)`,

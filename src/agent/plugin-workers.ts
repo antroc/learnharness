@@ -12,7 +12,7 @@ import type { PiEngine } from "./models.ts";
 import { usageWasAdmitted } from "./subscription-request-cycle.ts";
 import { runSubagent } from "./subagents/pi-run.ts";
 
-/** Host observability only: never project prompts, inputs, transcripts or results. */
+/** Solo para la observabilidad del host: nunca proyectes prompts, entradas, transcripciones ni resultados. */
 export type PluginWorkerActivityMetadata = Pick<PluginTaskRecord,
 	"id" | "definitionId" | "status" | "createdAt" | "updatedAt" | "activity" | "model" | "usage">;
 
@@ -78,8 +78,8 @@ interface Task {
 	activityRecord?: PluginTaskRecord;
 }
 
-/** Standalone result tasks. One service/writer per directory; no admission pool,
- * replay, DAG, transport, or dependence on a subscribed view. */
+/** Tareas de resultado independientes. Un servicio/escritor por directorio; sin grupo de admisión,
+ * repetición, DAG, transporte ni dependencia de una vista suscrita. */
 export function createPluginWorkerService(deps: PluginWorkerServiceDeps): PluginWorkerService {
 	const definitions = new Map<string, PluginWorkerDefinition>();
 	const tasks = new Map<string, Task>();
@@ -94,14 +94,14 @@ export function createPluginWorkerService(deps: PluginWorkerServiceDeps): Plugin
 		if (!disposed && t.activityRecord !== t.record) {
 			t.activityRecord = t.record;
 			const { id, definitionId, status, createdAt, updatedAt, activity, model, usage } = t.record;
-			try { deps.onChange?.(clone({ id, definitionId, status, createdAt, updatedAt, activity, model, usage })); } catch { /* Observe only. */ }
+			try { deps.onChange?.(clone({ id, definitionId, status, createdAt, updatedAt, activity, model, usage })); } catch { /* Solo observar. */ }
 		}
 		if (disposed || t.notifying) return;
 		t.notifying = true;
 		queueMicrotask(() => {
 			t.notifying = false;
 			if (disposed) return;
-			for (const listener of [...t.listeners]) { try { listener(snapshot(t)); } catch { /* Views do not own execution. */ } }
+			for (const listener of [...t.listeners]) { try { listener(snapshot(t)); } catch { /* Las vistas no son propietarias de la ejecución. */ } }
 		});
 	};
 	const commit = (t: Task, record: PluginTaskRecord) => {
@@ -112,15 +112,15 @@ export function createPluginWorkerService(deps: PluginWorkerServiceDeps): Plugin
 		catch (error) {
 			t.poisoned = new Error(`Plugin task storage failed: ${text(error)}`);
 			t.controller.abort();
-			// A successful result is already authoritative; never replace it with
-			// a later checkpoint failure. Otherwise try to durably expose failure.
+			// Un resultado correcto ya es autoritativo; nunca lo sustituyas por
+			// un fallo posterior del punto de control. Si no, intenta exponer el fallo de forma duradera.
 			let uncertainSuccess = false;
 			if (next.status === "succeeded") {
 				try { uncertainSuccess = deps.store.get(next.id)?.status === "succeeded"; } catch { uncertainSuccess = true; }
 			}
 			if (!terminal(t.record) && !uncertainSuccess) {
 				const failed: PluginTaskRecord = { ...t.record, status: "failed", completedAt: new Date().toISOString(), error: { code: "storage_error", message: t.poisoned.message } };
-				try { deps.store.save(clone(failed)); t.record = failed; } catch { /* wait rejects, rather than inventing a durable terminal state. */ }
+				try { deps.store.save(clone(failed)); t.record = failed; } catch { /* wait rechaza, en lugar de inventar un estado terminal duradero. */ }
 			}
 			notify(t); throw t.poisoned;
 		}
@@ -214,7 +214,7 @@ export function createPluginWorkerService(deps: PluginWorkerServiceDeps): Plugin
 							...(usage ? { usage: accumulateJobUsage(t.record.usage, `${m.provider}:${m.model}`, piUsageToStep(m.usage)) } : {}) });
 						if (usage) {
 							try { deps.onUsage?.(clone(t.record.model), clone(m.usage)); }
-							catch (error) { // Accounting writes are also host persistence, never a model-correctable error.
+							catch (error) { // Las escrituras de contabilidad también son persistencia del host, nunca un error que el modelo pueda corregir.
 								const failure = new Error(`Plugin task accounting storage failed: ${text(error)}`);
 								try { finish(t, "failed", { code: "storage_error", message: failure.message }); }
 								finally { t.poisoned ??= failure; t.controller.abort(); notify(t); }
@@ -239,7 +239,7 @@ export function createPluginWorkerService(deps: PluginWorkerServiceDeps): Plugin
 			}
 		} catch (error) {
 			if (!terminal(t.record) && !t.poisoned && !disposed) {
-				try { finish(t, "failed", expired(t) ? timeoutError : { code: "run_error", message: text(error) }); } catch { /* Storage poison is already visible. */ }
+				try { finish(t, "failed", expired(t) ? timeoutError : { code: "run_error", message: text(error) }); } catch { /* El envenenamiento del almacenamiento ya es visible. */ }
 			}
 		} finally {
 			if (t.flush) clearTimeout(t.flush); t.flush = undefined; t.partial = undefined;
@@ -267,8 +267,8 @@ export function createPluginWorkerService(deps: PluginWorkerServiceDeps): Plugin
 			const d = definitions.get(definitionId); if (!d) throw new Error(`Worker definition unavailable: ${definitionId}`);
 			const now = new Date().toISOString();
 			const record: PluginTaskRecord = { ...options, version: 1, id: randomUUID(), definitionId, createdAt: now, updatedAt: now, status: "queued", messages: [{ role: "user", content: options.prompt, timestamp: Date.now() }], turns: 0 };
-			// A post-rename fsync failure has an uncertain durable outcome. Stop
-			// further acceptance rather than risking duplicate request identities.
+			// Un fallo de fsync tras el rename tiene un resultado duradero incierto. Detén
+			// más aceptaciones en lugar de arriesgarte a identidades de petición duplicadas.
 			try { deps.store.save(clone(record)); }
 			catch (error) { acceptanceError = new Error(`Plugin task acceptance storage failed: ${text(error)}`); throw acceptanceError; }
 			const t: Task = { record, controller: new AbortController(), listeners: new Set(), waiters: new Set() }; tasks.set(record.id, t);
@@ -278,7 +278,7 @@ export function createPluginWorkerService(deps: PluginWorkerServiceDeps): Plugin
 					t.timer = setTimeout(() => {
 						if (terminal(t.record)) return;
 						if (!expired(t)) { schedule(); return; }
-						try { finish(t, "failed", timeoutError); } catch { /* Storage poison is exposed to waiters. */ }
+						try { finish(t, "failed", timeoutError); } catch { /* El envenenamiento del almacenamiento se expone a quienes esperan. */ }
 					}, Math.max(0, Math.min(2147483647, remaining)));
 					t.timer.unref?.();
 				};
@@ -313,7 +313,7 @@ export function createPluginWorkerService(deps: PluginWorkerServiceDeps): Plugin
 			if (failure) throw failure;
 		},
 	};
-	const disabled = () => { void service.dispose().catch(() => { /* Storage failures remain poisoned, never hidden as success. */ }); };
+	const disabled = () => { void service.dispose().catch(() => { /* Los fallos de almacenamiento siguen envenenados; nunca se ocultan como éxito. */ }); };
 	deps.signal?.addEventListener("abort", disabled, { once: true }); if (deps.signal?.aborted) disabled();
 	return service;
 }

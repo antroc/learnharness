@@ -1,30 +1,30 @@
 /**
- * THE canonical prompt-segment discovery + override resolution (P2
- * reconciliation, 2026-09-19). The agent layer owns it because composition
- * lives here: composeInstructions (teacher-agent.ts) composes through
- * effectivePromptSegments, and the discovery reads THIS layer's own tree
- * (src/agent/prompts — base, shared/, per-agent fragments) — the exact
- * rules the pre-P2 loader used, now in one place.
+ * EL descubrimiento canónico de segmentos de prompt + resolución de sustituciones (conciliación
+ * P2, 2026-09-19). Lo posee la capa de agente porque la composición vive aquí:
+ * composeInstructions (teacher-agent.ts) compone a través de effectivePromptSegments, y el
+ * descubrimiento lee el árbol propio de ESTA capa (src/agent/prompts: base, shared/,
+ * fragmentos por agente): exactamente las reglas que usaba el cargador anterior a P2, ahora en
+ * un solo sitio.
  *
- * The architecture law pins the layout: the agent layer never imports the
- * store adapters, so the override-file READ lives here too (config-anchored
- * static file, same discipline as reading the source fragments); the
- * override-file CRUD (write/delete/list — the mutating store behind the
- * core port) stays in src/store/prompt-overrides.ts. Both sides share the
- * pure path grammar (src/core/prompt-segments.ts).
+ * La ley de la arquitectura fija la estructura: la capa de agente nunca importa los adaptadores
+ * de almacenamiento, así que la LECTURA del fichero de sustitución también vive aquí (fichero
+ * estático anclado en la configuración, la misma disciplina que leer los fragmentos de origen);
+ * el CRUD del fichero de sustitución (escribir/borrar/listar: el almacén que modifica, detrás
+ * del puerto del núcleo) se queda en src/store/prompt-overrides.ts. Ambos lados comparten la
+ * gramática pura de rutas (src/core/prompt-segments.ts).
  *
- * SEGMENTS: the SHARED base (src/agent/system-prompt.md), then every
- * numeric-prefix *.md fragment in the agent's own directory (sorted by
- * filename), then the shared/ fragments directory (composed by BOTH
- * agents as a trailing appendix — the 2026-09-27 reorder). The segment
- * list adapts to the code: an override keyed to a segment the source no
- * longer ships stops composing automatically.
+ * SEGMENTOS: la base COMPARTIDA (src/agent/system-prompt.md), después cada fragmento *.md con
+ * prefijo numérico del directorio propio del agente (ordenados por nombre de fichero) y
+ * después el directorio de fragmentos shared/ (que componen LOS DOS agentes como apéndice
+ * final: la reordenación del 2026-09-27). La lista de segmentos se adapta al código: una
+ * sustitución asociada a un segmento que el código ya no incluye deja de componerse
+ * automáticamente.
  *
- * OVERRIDES: override files mirror the source layout under
- * config.PROMPTS_OVERRIDE_DIR — "system-prompt.md" at the root,
- * "shared/<file>", "teacher/<file>" / "prober/<file>". File presence is NOT
- * the override: the settings SWITCH is (owner decision) — the user keeps
- * their file and flips back to the source default to compare.
+ * SUSTITUCIONES: los ficheros de sustitución replican la estructura del código bajo
+ * config.PROMPTS_OVERRIDE_DIR: "system-prompt.md" en la raíz, "shared/<file>",
+ * "teacher/<file>" / "prober/<file>". La presencia del fichero NO es la sustitución: lo es el
+ * INTERRUPTOR de los ajustes (decisión del propietario): el usuario conserva su fichero y
+ * vuelve al valor por defecto del código para comparar.
  */
 
 import fs from "node:fs";
@@ -34,22 +34,21 @@ import { FRAGMENT_RE, isValidSegmentPath, type PromptAgent, type PromptSegmentIn
 
 const PROMPTS_DIR = path.join(PATHS.root, "src", "agent", "prompts");
 
-/** Shared fragments the PRACTICE agent composes: the VOICE, ACCURACY,
- *  and MENTAL-MODEL chunks joined the formatting guide (owner rounds 13
- *  and the prompt-refinement round of 2026-10-07) — personality, the
- *  truth contract, and the thinking-fields doctrine are ONE law across
- *  every agent. The question/confidence/file mechanics stay out
- *  (practice has no such tools). */
+/** Fragmentos compartidos que compone el agente de PRÁCTICA: los bloques de VOZ, PRECISIÓN
+ *  y MODELO MENTAL se sumaron a la guía de formato (rondas 13 del propietario y la ronda de
+ *  refinamiento de prompts del 2026-10-07): la personalidad, el contrato de veracidad y la
+ *  doctrina de los campos de razonamiento son UNA ley para todos los agentes. La mecánica de
+ *  preguntas, confianza y ficheros se queda fuera (la práctica no tiene esas herramientas). */
 const PRACTICE_SHARED_FRAGMENTS = ["10-voice.md", "15-accuracy.md", "16-mental-model.md", "35-side-conversations.md", "40-formatting.md"];
 
-/** Absolute path for an override file (unchecked — validate first). */
+/** Ruta absoluta de un fichero de sustitución (sin comprobar: valida antes). */
 function overrideFileFor(segmentPath: string): string {
 	return path.join(PROMPTS_OVERRIDE_DIR, ...segmentPath.split("/"));
 }
 
-/** Read one override file, or null when absent/invalid — the composition
- *  side's reader (the store's readOverride is the same mirror layout,
- *  kept separate because the layers may not import each other). */
+/** Lee un fichero de sustitución, o null si no existe o no es válido: el lector del lado de
+ *  la composición (el readOverride del almacén usa la misma estructura replicada, pero se
+ *  mantiene aparte porque las capas no pueden importarse entre sí). */
 export function readPromptOverride(segmentPath: string): string | null {
 	if (!isValidSegmentPath(segmentPath)) return null;
 	try {
@@ -59,18 +58,18 @@ export function readPromptOverride(segmentPath: string): string | null {
 	}
 }
 
-/** List the SOURCE segments for one agent, in composition order — the
- *  shared base, then the agent's own fragments sorted by filename, then
- *  the shared/ fragments (the 2026-09-27 reorder: the agent's job and
- *  method lead; the shared tool/file/format mechanics are an appendix).
- *  The exact order composeInstructions composes them in. */
+/** Lista los segmentos de ORIGEN de un agente, en orden de composición: la base compartida,
+ *  después los fragmentos propios del agente ordenados por nombre de fichero y después los
+ *  fragmentos de shared/ (la reordenación del 2026-09-27: el trabajo y el método del agente van
+ *  primero; la mecánica compartida de herramientas, ficheros y formato es un apéndice).
+ *  Exactamente el orden en que los compone composeInstructions. */
 export function listSourceSegments(agent: PromptAgent): Array<{ path: string; shared: boolean; file: string }> {
-	// PRACTICE (owner, 2026-10-04): its own directory plus a CURATED
-	// shared appendix — the teaching base and the question/confidence/
-	// file mechanics stay out (the doctrine contradicts them; 00-base.md
-	// plays the base role), but the FORMATTING guide composes for every
-	// agent (owner, 2026-10-04 late): LaTeX delimiters and markdown apply
-	// in all settings — practice shares the $...$/$$...$$ authoring contract.
+	// PRÁCTICA (propietario, 2026-10-04): su propio directorio más un apéndice compartido
+	// SELECCIONADO: la base de enseñanza y la mecánica de preguntas, confianza y
+	// ficheros se quedan fuera (la doctrina las contradice; 00-base.md
+	// hace el papel de base), pero la guía de FORMATO se compone para todos los
+	// agentes (propietario, 2026-10-04, más tarde): los delimitadores de LaTeX y el Markdown se
+	// aplican en todos los contextos: la práctica comparte el contrato de escritura $...$/$$...$$.
 	const segments: Array<{ path: string; shared: boolean; file: string }> = agent === "practice" ? [] : [
 		{ path: "system-prompt.md", shared: true, file: PATHS.teacherPrompt },
 	];
@@ -83,7 +82,7 @@ export function listSourceSegments(agent: PromptAgent): Array<{ path: string; sh
 	}
 	const sharedDir = path.join(PROMPTS_DIR, "shared");
 	if (fs.existsSync(sharedDir)) {
-		// The practice allowlist (owner, 2026-10-04 late): formatting only.
+		// La lista de permitidos de la práctica (propietario, 2026-10-04, más tarde): solo formato.
 		const allow = agent === "practice" ? PRACTICE_SHARED_FRAGMENTS : null;
 		const sharedFragments = fs
 			.readdirSync(sharedDir)
@@ -97,10 +96,10 @@ export function listSourceSegments(agent: PromptAgent): Array<{ path: string; sh
 }
 
 /**
- * The effective segment view for one agent — every segment with its source
- * text, override text, and effective switch state. `switches` is the
- * settings record's agent.prompts map (absent key = off); enabled =
- * switch on AND the override file exists.
+ * La vista efectiva de los segmentos de un agente: cada segmento con su texto de origen, su
+ * texto de sustitución y el estado efectivo de su interruptor. `switches` es el mapa
+ * agent.prompts del registro de ajustes (clave ausente = off); enabled = interruptor activado
+ * Y el fichero de sustitución existe.
  */
 export function effectivePromptSegments(
 	agent: PromptAgent,
@@ -111,7 +110,7 @@ export function effectivePromptSegments(
 		try {
 			sourceText = fs.readFileSync(segment.file, "utf-8");
 		} catch {
-			sourceText = ""; // source unreadable — the agent loader would crash anyway
+			sourceText = ""; // origen ilegible: el cargador del agente fallaría de todas formas
 		}
 		const overrideText = readPromptOverride(segment.path);
 		return {
@@ -124,7 +123,7 @@ export function effectivePromptSegments(
 	});
 }
 
-/** Every known segment path across both agents (route validation). */
+/** Todas las rutas de segmentos conocidas de los dos agentes (validación de rutas). */
 export function allSegmentPaths(): string[] {
 	const paths = new Set<string>();
 	for (const agent of ["prober", "teacher", "practice"] as const) {
