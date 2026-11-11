@@ -1,36 +1,37 @@
 "use client";
 
 /**
- * THE cross-surface settings signal (fix wave, owner ruling 2026-09-22):
- * every WRITER dispatches after a successful PUT, every READER re-reads —
- * the composer reflects the strong slot the instant setup saves, the
- * settings section reflects the composer's pick on its next mount... and
- * so on, by construction. CustomEvent on the window, the lh:chat-renamed
- * pattern: writers and readers live in different component subtrees
- * (portaled dialogs included), and the app already speaks this dialect.
+ * LA señal de ajustes entre superficies (oleada de arreglos, decisión del
+ * responsable 2026-09-22): todo ESCRITOR despacha tras un PUT con éxito, todo
+ * LECTOR vuelve a leer — el composer refleja la ranura fuerte en el instante
+ * en que la configuración guarda, la sección de ajustes refleja la elección
+ * del composer en su siguiente montaje... y así sucesivamente, por
+ * construcción. CustomEvent en la ventana, el patrón de lh:chat-renamed: los
+ * escritores y los lectores viven en subárboles de componentes distintos
+ * (diálogos en portal incluidos), y la app ya habla este dialecto.
  *
- * The event carries the section name so ONE event serves all sections —
- * readers filter on what they actually read.
+ * El evento lleva el nombre de la sección para que UN evento sirva a todas
+ * las secciones — los lectores filtran por lo que de verdad leen.
  */
 import { useEffect, useRef } from "react";
 
 export const SETTINGS_SAVED_EVENT = "lh:settings-saved";
 
-/** The settings sections a writer can land (the write seam's union). */
-// "keys" joined the roster (zero-keys wave, 2026-09-25): keys-section
-// dispatches it after save AND delete — deletions used to be invisible to
-// the zero-keys pill and the setup dialog's auto-advance.
+/** Las secciones de ajustes que un escritor puede tocar (la unión de la frontera de escritura). */
+// "keys" se sumó a la lista (oleada sin claves, 2026-09-25): keys-section
+// lo despacha tras guardar Y tras borrar — los borrados antes eran invisibles para
+// la píldora sin claves y el avance automático del diálogo de configuración.
 export type SettingsSection = "general" | "keys" | "agent" | "models" | "appearance" | "graph" | "compaction" | "dictation" | "claudeCode";
 
-/** Writers call this after the PUT resolves ok — never before (a failed
- *  write notifies nothing; the record is unchanged). */
+/** Los escritores llaman a esto cuando el PUT se resuelve bien — nunca antes (una
+ *  escritura fallida no avisa de nada; el registro no ha cambiado). */
 export function notifySettingsSaved(section: SettingsSection): void {
 	window.dispatchEvent(
 		new CustomEvent(SETTINGS_SAVED_EVENT, { detail: { section } }),
 	);
 }
 
-/** Non-hook listener (imperative seams, tests). Returns an unsubscribe. */
+/** Listener que no es hook (fronteras imperativas, pruebas). Devuelve la baja. */
 export function onSettingsSaved(handler: (section: SettingsSection) => void): () => void {
 	const listener = (e: Event) => {
 		const section = (e as CustomEvent<{ section?: SettingsSection }>).detail?.section;
@@ -40,9 +41,9 @@ export function onSettingsSaved(handler: (section: SettingsSection) => void): ()
 	return () => window.removeEventListener(SETTINGS_SAVED_EVENT, listener);
 }
 
-/** Reader subscription: re-invokes whenever a writer lands, with the
- *  handler captured through a ref so callers never churn the
- *  subscription (and never stale-close over it either). */
+/** Suscripción del lector: se vuelve a invocar cada vez que llega un
+ *  escritor, con el manejador capturado mediante una ref para que quien llama
+ *  nunca rehaga la suscripción (ni la cierre con un valor obsoleto). */
 export function useSettingsSaved(handler: (section: SettingsSection) => void): void {
 	const saved = useRef(handler);
 	saved.current = handler;

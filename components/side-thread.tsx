@@ -15,8 +15,8 @@ import type { SideThreadAnchor, SideThreadOpenArgs, SideThreadState } from "./us
 import { useOptionalInteractionLayers } from "./interaction-layers";
 import { isInteractionScopeEligible } from "./plugin-input-focus";
 
-/** Ask always opens the selected teaching segment's ONE conversation. Cite
- * is an independent action that inserts a chip into the main/thinking field. */
+/** Ask siempre abre la ÚNICA conversación del segmento de enseñanza seleccionado. Cite
+ * es una acción independiente que inserta un chip en el campo principal/de thinking. */
 export function createSideQuestionActions({ open }: { open: (args: SideThreadOpenArgs) => void }): SelectionAction[] {
 	return [{
 		id: "side-ask", label: "Ask", ariaLabel: "Ask a side question about this selection", icon: MessageCircleQuestion, visible: () => true,
@@ -55,7 +55,7 @@ function Passage({ text, chatId, sourceMessageId, selector, citation: savedCitat
 		className="cursor-pointer rounded-sm text-left hover:bg-accent/50" onClick={(event) => actions.openSource!(citation, event.currentTarget)}>{quote}</button>;
 }
 
-/** Sample locally: microphone frames must not rerender the chat/composer. */
+/** Muestrea en local: los fotogramas del micrófono no deben re-renderizar el chat/composer. */
 function SideInputMeter({ levelRef }: { levelRef?: { current: number } }) {
 	const [level, setLevel] = useState(0);
 	useEffect(() => {
@@ -68,8 +68,8 @@ function SideInputMeter({ levelRef }: { levelRef?: { current: number } }) {
 	</span>;
 }
 
-/** #451's companion body, rendering the durable raw messages supplied by
- * #487's service. There is no sharing toggle, generated note, or deletion. */
+/** El cuerpo del compañero de #451, que renderiza los mensajes en bruto duraderos que
+ * aporta el servicio de #487. No hay interruptor de compartir, nota generada ni borrado. */
 export function SideThreadBody({ state, chatId, draft, readDraft, dictation, onDraftChange, onAsk, onStop, onExpand, onFloat, onClose, onCurrentStep, onDragStart }: {
 	state: SideThreadState; chatId?: string; onDragStart?: (event: React.PointerEvent<HTMLElement>) => void;
 } & SideThreadHandlers) {
@@ -97,8 +97,8 @@ export function SideThreadBody({ state, chatId, draft, readDraft, dictation, onD
 		if (state.answering || !isInteractionScopeEligible(inputRef.current, controller)) return;
 		if (dictation?.active) await dictation.finish();
 		if (!isInteractionScopeEligible(inputRef.current, controller)) return;
-		// A dictation flush updates the saved draft synchronously, before
-		// React commits its new prop. Never submit the pre-flush local text.
+		// Un volcado del dictado actualiza el borrador guardado de forma síncrona, antes
+		// de que React confirme su nueva prop. Nunca envíes el texto local previo al volcado.
 		const sent = readDraft?.() ?? draftRef.current;
 		if (!sent.trim()) return;
 		if (await onAsk(sent) && (readDraft?.() ?? draftRef.current) === sent) changeDraft("");
@@ -110,8 +110,8 @@ export function SideThreadBody({ state, chatId, draft, readDraft, dictation, onD
 				if (dictation && actionForBinding(eventBinding(event.nativeEvent)) === "toggle-dictation") {
 					event.preventDefault(); event.stopPropagation(); dictation.toggle();
 				} else if (event.key === "Enter") {
-					// This companion owns its controls even when docked. Preserve
-					// native button activation, but never submit the main question.
+					// Este compañero es dueño de sus controles incluso acoplado. Conserva la
+					// activación nativa de los botones, pero nunca envíes la pregunta principal.
 					event.stopPropagation();
 				}
 			}}>
@@ -212,10 +212,11 @@ const RESIZE_HANDLES: { edge: SideThreadResizeEdge; className: string }[] = [
 	{ edge: "se", className: "bottom-0 right-0 size-3 cursor-nwse-resize" },
 ];
 
-/** Retains #451's anchored placement and draggable header; all eight
- * borders/corners resize the floating window without changing the dock.
- * Render as native session content, not a body portal: whole-session surfaces
- * must cover/inactivate this companion without closing it or losing its draft. */
+/** Conserva la colocación anclada y la cabecera arrastrable de #451; los ocho
+ * bordes/esquinas redimensionan la ventana flotante sin cambiar el acoplado.
+ * Se renderiza como contenido nativo de la sesión, no como portal al body: las
+ * superficies de toda la sesión deben tapar/inactivar este compañero sin cerrarlo
+ * ni perder su borrador. */
 export function SideThreadPopover({ state, chatId, composer, ...handlers }: { state: SideThreadState; chatId: string; composer: () => HTMLElement | null } & SideThreadHandlers) {
 	const controller = useOptionalInteractionLayers();
 	const boxRef = useRef<HTMLDivElement>(null);

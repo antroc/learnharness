@@ -1,39 +1,44 @@
 "use client";
 /**
- * The first-run setup flow (model-slots wave, 2026-09-20, owner design
- * "A — composer CTA + send interception"): chats cannot start until the
- * user has picked all three model slots — there are no defaults for 33
- * providers. The graph view's new-session dock (the app's home, where
- * chats start) shows a "Set up your models" CTA while unconfigured;
- * submitting a topic — or sending on /chat/new — opens THIS dialog with
- * the draft preserved; Save stores the slots — the draft WAITS in the
- * composer, the learner sends it themselves (owner ruling 2026-10-09:
- * saving models must never send the message).
+ * El flujo de configuración de primera ejecución (oleada de ranuras de
+ * modelo, 2026-09-20, diseño del responsable "A — CTA en el composer +
+ * desvío del envío"): los chats no pueden empezar hasta que el usuario haya
+ * elegido las tres ranuras de modelo — no hay valores por defecto para 33
+ * proveedores. El dock de sesión nueva de la vista del grafo (el inicio de la
+ * app, donde empiezan los chats) muestra una CTA "Set up your models"
+ * mientras no hay configuración; enviar un tema — o enviar en /chat/new —
+ * abre ESTE diálogo con el borrador conservado; Save guarda las ranuras — el
+ * borrador ESPERA en el composer y el alumno lo envía él mismo (decisión del
+ * responsable 2026-10-09: guardar los modelos nunca debe enviar el mensaje).
  *
- * STAGED BY DEPENDENCY (owner, 2026-09-20: "first keys, then models —
- * there's no point presenting the model picker before the user has set a
- * key because there are no models to pick then"):
- *   Unknown catalog — neutral loading (or error/Retry), never a key screen.
- *   Stage 1 — no keyed provider or saved selection: a SELF-CONTAINED first-key screen
- *     (zero-keys wave, owner 2026-09-25): provider picker + one key
- *     input + save via PUT /api/keys/:id. The dialog STAYS MOUNTED —
- *     saving dispatches the "keys" signal, the fetch effect re-runs on
- *     it, and the stage flips to the pickers on its own. No Settings
- *     round-trip anymore; the draft lives in the caller's state,
- *     untouched throughout.
- *   Stage 2 — Strong → Cheap → Vision pickers over the FEDERATED catalog
- *     (keyed providers only), the vision slot filtered to image-capable
- *     models, in the app's shared dropdown language (ModelMenuList).
- *     Saved disconnected selections and edits are retained internally in
- *     the exclusive provider stage. Connecting with all slots already saved
- *     closes setup; otherwise the pickers require only the missing slots.
- *     All three required (owner: no skip, no defaults); Save PUTs the
- *     models section and reports onDone(models).
+ * POR ETAPAS SEGÚN DEPENDENCIA (responsable, 2026-09-20: "primero las
+ * claves, luego los modelos — no tiene sentido presentar el selector de
+ * modelos antes de que el usuario haya puesto una clave, porque entonces no
+ * hay modelos que elegir"):
+ *   Catálogo desconocido — carga neutra (o error/Retry), nunca una pantalla de claves.
+ *   Etapa 1 — sin proveedor con clave ni selección guardada: una pantalla
+ *     AUTÓNOMA de primera clave (oleada sin claves, responsable 2026-09-25):
+ *     selector de proveedor + un input de clave + guardado vía
+ *     PUT /api/keys/:id. El diálogo SIGUE MONTADO — guardar despacha la
+ *     señal "keys", el efecto de petición se vuelve a ejecutar con ella y la
+ *     etapa cambia sola a los selectores. Ya no hay ida y vuelta por
+ *     Settings; el borrador vive en el estado de quien llama, intacto todo
+ *     el tiempo.
+ *   Etapa 2 — selectores Strong → Cheap → Vision sobre el catálogo FEDERADO
+ *     (solo proveedores con clave), con la ranura de visión filtrada a los
+ *     modelos que admiten imágenes, en el lenguaje de desplegables
+ *     compartido de la app (ModelMenuList). Las selecciones desconectadas
+ *     guardadas y las ediciones se conservan internamente en la etapa
+ *     exclusiva de proveedores. Conectar con todas las ranuras ya guardadas
+ *     cierra la configuración; si no, los selectores solo piden las ranuras
+ *     que faltan. Las tres son obligatorias (responsable: sin saltar, sin
+ *     valores por defecto); Save hace PUT de la sección models e informa con
+ *     onDone(models).
  *
- * Closable without configuring (Esc/backdrop/✕) — browsing the app stays
- * possible; the GATE is the send interception, not the dialog. The
- * settings-dialog visual language: dim backdrop, border rounded-md card,
- * CMU title, z-50.
+ * Se puede cerrar sin configurar (Esc/fondo/✕) — sigue siendo posible
+ * navegar por la app; la BARRERA es el desvío del envío, no el diálogo. El
+ * lenguaje visual del diálogo de ajustes: fondo atenuado, tarjeta con borde
+ * rounded-md, título en CMU, z-50.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -56,8 +61,8 @@ import { defaultOrderLevel, populateLevel, THINKING_LABEL } from "@/components/t
 import { ThinkingMenuList } from "@/components/settings/model-menu";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 
-/** The pickers' slot identity — same roster language as the Agent
- *  section's slot rows. */
+/** La identidad de ranura de los selectores — el mismo lenguaje de lista
+ *  que las filas de ranura de la sección Agent. */
 const SLOT_META: Record<ModelSlotName, { label: string; roster: string }> = {
 	strong: { label: "Strong", roster: "Prober, teacher" },
 	cheap: { label: "Cheap", roster: "Researcher, demo builder, extractor, auditor" },
@@ -65,18 +70,19 @@ const SLOT_META: Record<ModelSlotName, { label: string; roster: string }> = {
 };
 const SLOT_ORDER: readonly ModelSlotName[] = ["strong", "cheap", "vision"];
 
-/** The GET /api/models response fields the flow consumes. */
+/** Los campos de la respuesta de GET /api/models que consume el flujo. */
 interface ModelsBody {
 	models: ModelCatalogEntry[];
 	providers: { id: string; keyPresent: boolean }[];
-	/** The three tiers' RESOLVED pins (BYOK: NULL per unset tier) — the
-	 *  PREFILL + "needed" marks (owner, 2026-09-22): pinned tiers open
-	 *  with their pick, unpinned tiers carry the mark. */
+	/** Las fijaciones RESUELTAS de los tres niveles (BYOK: NULL por cada nivel
+	 *  sin valor) — el PRERRELLENO + las marcas "needed" (responsable,
+	 *  2026-09-22): los niveles fijados se abren con su elección, los no fijados
+	 *  llevan la marca. */
 	slots?: Record<ModelSlotName, { model: { provider: string; id: string }; thinkingLevel?: ThinkingLevel } | null>;
 }
 
-/** Pure: which stage the flow opens at — no keyed provider = keys first
- *  (owner's dependency ordering). Exported for tests. */
+/** Pura: en qué etapa se abre el flujo — sin proveedor con clave = primero
+ *  las claves (el orden de dependencias del responsable). Exportada para las pruebas. */
 export function setupStage(
 	providers: { id: string; keyPresent: boolean }[] | null,
 ): "loading" | "keys" | "pickers" {
@@ -86,8 +92,8 @@ export function setupStage(
 
 type ModelSelection = Pick<ModelCatalogEntry, "provider" | "id">;
 
-/** Saved identity is independent of selectable metadata. A disconnected
- * pin still prefills; only the menu is restricted to the live catalog. */
+/** La identidad guardada es independiente de los metadatos seleccionables. Una fijación
+ * desconectada sigue prerrellenando; solo el menú se limita al catálogo vivo. */
 export function prefillFromSlots(
 	models: ModelCatalogEntry[],
 	slots: Record<ModelSlotName, { model: { provider: string; id: string } } | null> | undefined,
@@ -103,11 +109,11 @@ export function prefillFromSlots(
 	return pre;
 }
 
-/** Level prefill (chunk 2): a pinned tier opens with its STORED level
- *  as-is (Save clamps server-side if the ladder lapsed), else the
- *  ordering's level for that model — the level a fresh pick would
- *  populate (owner: the ordering's only purpose is first assignment).
- *  Exported pure for tests. */
+/** Prerrelleno del nivel (fragmento 2): un nivel fijado se abre con su nivel
+ *  GUARDADO tal cual (Save lo acota en el servidor si la escalera caducó);
+ *  si no, el nivel del orden para ese modelo — el que rellenaría una
+ *  elección nueva (responsable: el único propósito del orden es la primera
+ *  asignación). Exportada como pura para las pruebas. */
 export function prefillLevelFromPin(
 	entry: ModelCatalogEntry,
 	pin: { thinkingLevel?: ThinkingLevel } | null | undefined,
@@ -115,13 +121,15 @@ export function prefillLevelFromPin(
 	return populateLevel(pin?.thinkingLevel, entry.supportedLevels);
 }
 
-/** Stage 1's pure body — exported for SSR pins (the delete/settings
- *  body pattern). The wrapper owns state + effects + the portal.
+/** El cuerpo puro de la etapa 1 — exportado para las fijaciones de SSR (el
+ *  patrón de cuerpo de delete/settings). El envoltorio es dueño del estado +
+ *  los efectos + el portal.
  *
- * The first-key screen (owner, zero-keys wave): provider picker (the
- * app's shared dropdown language, ProviderMenuList), one paste input,
- * Save. A save that 400s keeps the line inline (the keys section's
- * shape-gates write user-facing error text). */
+ * La pantalla de primera clave (responsable, oleada sin claves): selector de
+ * proveedor (el lenguaje de desplegables compartido de la app,
+ * ProviderMenuList), un input para pegar, Save. Un guardado que da 400
+ * mantiene la línea en línea (las barreras de forma de la sección de claves
+ * escriben un texto de error para el usuario). */
 export function SetupKeysBody({
 	providers,
 	provider,
@@ -138,10 +146,10 @@ export function SetupKeysBody({
 	isCustom,
 	onCustomSaved,
 }: {
-	/** The full provider roster (GET /api/keys providers) — undefined
-	 *  while it loads; the picker renders an honest empty state then. */
+	/** La lista completa de proveedores (providers de GET /api/keys) — undefined
+	 *  mientras se carga; el selector renderiza entonces un estado vacío honesto. */
 	providers: ProviderKeyInfo[] | undefined;
-	/** The chosen provider; null = the picker trigger reads "Pick a
+	/** El proveedor elegido; null = el disparador del selector muestra "Pick a
 	 *  provider…". */
 	provider: ProviderKeyInfo | null;
 	value: string;
@@ -153,10 +161,10 @@ export function SetupKeysBody({
 	onPick: (p: ProviderKeyInfo) => void;
 	onValue: (v: string) => void;
 	onSave: () => void;
-	/** The MenuShell anchor — wired by the wrapper (its triggerRef). */
+	/** El ancla del MenuShell — la conecta el envoltorio (su triggerRef). */
 	menuAnchor: React.RefObject<HTMLDivElement | null>;
-	/** Chosen provider is the custom endpoint: a base URL field joins the key
-	 *  field. All three optional so plain-key callers (and tests) stay unchanged. */
+	/** El proveedor elegido es el endpoint personalizado: un campo de URL base se suma al
+	 *  campo de la clave. Los tres son opcionales para que quien usa solo la clave (y las pruebas) no cambie. */
 	isCustom?: boolean;
 	onCustomSaved?: () => void;
 }) {
@@ -247,13 +255,13 @@ function prefillLevels(body: ModelsBody | undefined): Partial<Record<ModelSlotNa
 interface SetupDialogProps {
 	open: boolean;
 	onClose: () => void;
-	/** Saving never sends the caller's draft. */
+	/** Guardar nunca envía el borrador de quien llama. */
 	onDone: (models: ModelsSettings) => void;
 }
 
 export function SetupDialog(props: SetupDialogProps) {
-	// An open owns its draft. Mount-time cache seeding avoids a key-screen
-	// first frame, and reopening cannot reuse a previous open's edits.
+	// Una apertura es dueña de su borrador. Sembrar la caché al montar evita un primer
+	// fotograma con la pantalla de claves, y reabrir no puede reutilizar las ediciones de una apertura anterior.
 	return props.open ? <OpenSetupDialog {...props} /> : null;
 }
 
@@ -268,25 +276,25 @@ function OpenSetupDialog({ onClose, onDone }: SetupDialogProps) {
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [openMenu, setOpenMenu] = useState<{ slot: ModelSlotName; kind: "model" | "thinking" } | null>(null);
-	// Stage 1's first-key screen (zero-keys wave): the provider roster,
-	// the chosen provider + pasted value, its busy/error pair, and its own
-	// menu-open bit (the slot menus' dismissal machinery covers it too —
-	// see the trigger testid branch below).
+	// La pantalla de primera clave de la etapa 1 (oleada sin claves): la lista de proveedores,
+	// el proveedor elegido + el valor pegado, su par ocupado/error y su propio
+	// bit de menú abierto (la maquinaria de descarte de los menús de ranura también lo cubre —
+	// ver la rama del testid del disparador más abajo).
 	const [keyProviders, setKeyProviders] = useState<ProviderKeyInfo[] | undefined>(undefined);
 	const [keyProvider, setKeyProvider] = useState<ProviderKeyInfo | null>(null);
 	const [keyValue, setKeyValue] = useState("");
 	const [keySaving, setKeySaving] = useState(false);
 	const [keyError, setKeyError] = useState<string | null>(null);
 	const [keyMenuOpen, setKeyMenuOpen] = useState(false);
-	// Stage 1's provider-picker trigger wrapper — the shared shell's anchor.
-	// Stage 2's slot menus anchor by anchorTestid instead — see the slot
-	// MenuShell below for why a freshly attached ref cannot work there.
+	// El envoltorio del disparador del selector de proveedores de la etapa 1 — el ancla del armazón compartido.
+	// Los menús de ranura de la etapa 2 se anclan en cambio por anchorTestid — ver el
+	// MenuShell de ranura más abajo para saber por qué ahí no puede funcionar una ref recién enganchada.
 	const keyTriggerRef = useRef<HTMLDivElement>(null);
 
-	// The keys signal (zero-keys wave): keys-section saves/deletes AND
-	// THIS dialog's own first-key save dispatch it; the fetch effect below
-	// re-runs on it, so saving a key widens the catalog. Incomplete saved
-	// slots advance to pickers; complete saved slots just close setup.
+	// La señal de claves (oleada sin claves): la despachan los guardados/borrados de keys-section Y
+	// el guardado de primera clave de ESTE diálogo; el efecto de petición de abajo
+	// se vuelve a ejecutar con ella, así que guardar una clave amplía el catálogo. Las ranuras guardadas
+	// incompletas avanzan a los selectores; las completas simplemente cierran la configuración.
 	const [keysTick, setKeysTick] = useState(0);
 	useSettingsSaved((section) => {
 		if (section === "keys") setKeysTick((t) => t + 1);
@@ -305,8 +313,8 @@ function OpenSetupDialog({ onClose, onDone }: SetupDialogProps) {
 		if (!catalog) return;
 		const pre = prefillFromSlots(catalog.models, catalog.slots);
 		const preLevels = prefillLevels(catalog);
-		// Fresh metadata is always used, but a response cannot reset an
-		// edited slot, including a level chosen while the request was pending.
+		// Siempre se usan los metadatos frescos, pero una respuesta no puede reiniciar una
+		// ranura editada, incluido un nivel elegido mientras la petición estaba pendiente.
 		setPicked((prev) => {
 			const next = { ...prev };
 			for (const slot of SLOT_ORDER) if (!editedSlots.current.has(slot)) {
@@ -329,12 +337,12 @@ function OpenSetupDialog({ onClose, onDone }: SetupDialogProps) {
 		if (stage === "keys") providerStageSeen.current = true;
 		if (closeAfterConnection && !connectionCloseRequested.current) {
 			connectionCloseRequested.current = true;
-			onClose(); // Connection recovery is not a model-settings save.
+			onClose(); // Recuperar la conexión no es guardar los ajustes de modelos.
 		}
 	}, [stage, closeAfterConnection, onClose]);
 
-	// Keep setup's existing outside-pointer policy; MenuShell and HostDialog
-	// own leaf-first Escape, including while a connection dialog covers setup.
+	// Mantén la política de punteros externos existente de la configuración; MenuShell y HostDialog
+	// son dueños del Escape de hoja hacia arriba, también mientras un diálogo de conexión tapa la configuración.
 	useEffect(() => {
 		const onPointerDown = (e: PointerEvent) => {
 			if (!(e.target instanceof Element)) return;
@@ -355,16 +363,16 @@ function OpenSetupDialog({ onClose, onDone }: SetupDialogProps) {
 		return () => document.removeEventListener("pointerdown", onPointerDown);
 	}, [controller, openMenu, keyMenuOpen]);
 
-	// Do not briefly paint model pickers between successful connection and
-	// closing an already-configured setup. No saved model/thinking writes.
+	// No pintes brevemente los selectores de modelos entre una conexión con éxito y
+	// el cierre de una configuración ya completa. Sin escrituras de modelo/thinking guardados.
 	if (closeAfterConnection) return null;
 
 	const allPicked = SLOT_ORDER.every((s) => picked[s]);
 
-	/** Stage 1's save: PUT the pasted key, dispatch the keys signal, and
-	 *  CLEAN the local key field. The fresh catalog decides whether to
-	 *  close recovery or advance to the missing model slots. Shape-gate
-	 *  400s keep their user-facing line inline. */
+	/** El guardado de la etapa 1: PUT de la clave pegada, despacho de la señal
+	 *  de claves y LIMPIEZA del campo de clave local. El catálogo fresco decide
+	 *  si cerrar la recuperación o avanzar a las ranuras de modelo que faltan.
+	 *  Los 400 de las barreras de forma mantienen su línea para el usuario en línea. */
 	async function saveKey() {
 		if (!keyProvider || keySaving) return;
 		if (!keyValue.trim()) return;
@@ -394,7 +402,7 @@ function OpenSetupDialog({ onClose, onDone }: SetupDialogProps) {
 		for (const slot of SLOT_ORDER) {
 			const level = levels[slot];
 			models[slot] = {
-				// Advanced controls stay out of setup; never erase their saved choice.
+				// Los controles avanzados quedan fuera de la configuración; nunca borres su elección guardada.
 				...(catalog?.slots[slot]?.cacheRetention !== undefined ? { cacheRetention: catalog.slots[slot]!.cacheRetention } : {}),
 				model: { provider: picked[slot]!.provider, id: picked[slot]!.id },
 				...(level ? { thinkingLevel: level } : {}),
@@ -469,7 +477,7 @@ function OpenSetupDialog({ onClose, onDone }: SetupDialogProps) {
 							const entry = picked[slot];
 							const level = levels[slot];
 							const metadata = catalog?.models.find((m) => m.id === entry?.id && m.provider === entry.provider);
-							// Unavailable metadata cannot erase or clamp a saved preference.
+							// Unos metadatos no disponibles no pueden borrar ni acotar una preferencia guardada.
 							const levelsForEntry = metadata?.supportedLevels ?? (entry ? Object.keys(THINKING_LABEL) : []);
 							const available = catalog?.models ?? (failed ? [] : undefined);
 							const slotCatalog = slot === "vision"
@@ -507,15 +515,15 @@ function OpenSetupDialog({ onClose, onDone }: SetupDialogProps) {
 												</span>
 											</button>
 											</Hint>
-											{/* Anchor by TESTID, not a ref (the settings-section pattern):
-											    React attaches a host element's ref AFTER its descendants'
-											    layout effects run, so a ref freshly attached in this same
-											    commit (menu opening = the ref condition turning true) is
-											    still null when MenuShell measures — place() gives up, the
-											    menu stays invisible, and only a window resize (which re-runs
-											    place()) shows it. querySelector at place time has no such
-											    ordering hazard. Live-caught by the owner 2026-10-09: every
-											    setup picker opened dead until a window resize. */}
+											{/* Ancla por TESTID, no por ref (el patrón de la sección de ajustes):
+											React engancha la ref de un elemento host DESPUÉS de que se ejecuten los
+											efectos de layout de sus descendientes, así que una ref recién enganchada en
+											este mismo commit (abrir el menú = la condición de la ref pasa a true) sigue
+											siendo null cuando MenuShell mide — place() se rinde, el menú sigue
+											invisible y solo un redimensionado de la ventana (que vuelve a ejecutar
+											place()) lo muestra. querySelector en el momento de colocar no tiene ese
+											riesgo de orden. Detectado en vivo por el responsable el 2026-10-09: todos
+											los selectores de configuración se abrían muertos hasta redimensionar la ventana. */}
 											{openMenu?.slot === slot && openMenu.kind === "model" && (
 												<MenuShell
 													anchorTestid={`setup-trigger-${slot}`}
@@ -533,10 +541,10 @@ function OpenSetupDialog({ onClose, onDone }: SetupDialogProps) {
 														onPick={(m) => {
 															editedSlots.current.add(slot);
 															setPicked((prev) => ({ ...prev, [slot]: m }));
-															// Auto-populate (chunk 2, owner: "populate
-															// everywhere"): no explicit level → the
-															// ordering's level for the fresh pick; an
-															// explicit one rides (Save clamps server-side).
+															// Autorrelleno (fragmento 2, responsable: "rellenar
+															// en todas partes"): sin nivel explícito → el
+															// nivel del orden para la elección nueva; uno
+															// explícito viaja tal cual (Save lo acota en el servidor).
 															setLevels((prev) => ({
 																...prev,
 																[slot]: populateLevel(prev[slot], m.supportedLevels),
@@ -548,8 +556,8 @@ function OpenSetupDialog({ onClose, onDone }: SetupDialogProps) {
 												</MenuShell>
 											)}
 										</div>
-										{/* Thinking selector (chunk 2): editable, pre-populated from
-										    the ordering per picked model — no model, no levels. */}
+										{/* Selector de thinking (fragmento 2): editable, prerrellenado a partir
+										del orden para cada modelo elegido — sin modelo, no hay niveles. */}
 										<div className="relative">
 											<button
 												type="button"

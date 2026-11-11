@@ -1,18 +1,20 @@
 "use client";
 /**
- * The zero-keys surfaces (zero-keys wave, 2026-09-25, owner-locked over
- * Platform's 66dbea9 key-presence gate): when NO model-provider key
- * exists, chat / home / /chat/new hoist a composer pill — "Add a
- * provider key" — that takes PRECEDENCE over the models setup CTA
- * (keys come first in the chain: the model pickers list only what
- * keys unlock). Click opens the SetupDialog, whose stage derives to
- * the first-key screen on its own.
+ * Las superficies sin claves (oleada sin claves, 2026-09-25, fijado por el
+ * responsable por encima de la barrera de presencia de claves 66dbea9 de
+ * Platform): cuando NO existe ninguna clave de proveedor de modelos, chat /
+ * inicio / /chat/new suben al composer una píldora — "Add a provider key" —
+ * que tiene PRIORIDAD sobre la CTA de configuración de modelos (las claves
+ * van primero en la cadena: los selectores de modelos solo listan lo que
+ * desbloquean las claves). El clic abre el SetupDialog, cuya etapa se deriva
+ * sola a la pantalla de la primera clave.
  *
- * Truth: GET /api/keys — a PROVIDER key present (env or file; tool keys
- * like Deepgram do not count — they unlock no models). Live updates ride
- * the lh:settings-saved "keys" signal (keys-section dispatches after
- * save AND delete; the setup dialog's first-key screen dispatches on
- * its own save), the same re-read pattern chat.tsx uses for "models".
+ * Verdad: GET /api/keys — hay una clave de PROVEEDOR (en env o en fichero;
+ * las claves de herramientas como Deepgram no cuentan — no desbloquean
+ * modelos). Las actualizaciones en vivo llegan por la señal "keys" de
+ * lh:settings-saved (keys-section la despacha tras guardar Y borrar; la
+ * pantalla de primera clave del diálogo de configuración la despacha al
+ * guardar), el mismo patrón de volver a leer que usa chat.tsx para "models".
  */
 
 import { useEffect, useState } from "react";
@@ -20,31 +22,32 @@ import { CUSTOM_PROVIDER, MODEL_SLOTS, type AuthKeyStatus, type ModelCatalogResp
 import { classifyKeys, type ProviderKeyInfo } from "@/components/settings/keys-section";
 import { useModelCatalog } from "@/components/model-catalog";
 
-/** Pure: does a MODEL-PROVIDER key exist among the statuses? Reuses
- *  classifyKeys (the keys section's own classification — no drift):
- *  a status whose id is a provider env-var (or the pre-interlude
- *  fallback shape) with present=true counts, present or file-sourced,
- *  env-owned included (env wins but it EXISTS). Exported for pins. */
+/** Pura: ¿existe una clave de PROVEEDOR DE MODELOS entre los estados?
+ *  Reutiliza classifyKeys (la clasificación propia de la sección de claves —
+ *  sin divergencias): cuenta un estado cuyo id es una variable de entorno de
+ *  proveedor (o la forma alternativa previa al interludio) con present=true,
+ *  presente o procedente de fichero, incluida la que es propiedad de env
+ *  (env gana, pero EXISTE). Exportada para las fijaciones. */
 export function hasProviderKey(
 	statuses: readonly AuthKeyStatus[],
 	providers: readonly ProviderKeyInfo[] | undefined,
 ): boolean {
-	// A stored custom-endpoint key counts too: classifyKeys drops it from
-	// providerRows (it has its own dedicated row), but a connected custom
-	// endpoint IS a way to run inference, so it clears the zero-keys gate.
+	// Una clave de endpoint personalizado guardada también cuenta: classifyKeys la quita
+	// de providerRows (tiene su propia fila dedicada), pero un endpoint personalizado
+	// conectado ES una forma de ejecutar inferencia, así que supera la barrera sin claves.
 	return (
 		classifyKeys(statuses, providers).providerRows.some((s) => s.present) ||
 		statuses.some((s) => s.id === CUSTOM_PROVIDER.envVar && s.present)
 	);
 }
 
-/** Completeness is saved identity, not current provider availability. */
+/** La compleción es la identidad guardada, no la disponibilidad actual del proveedor. */
 export function savedSlotsConfigured(slots: ModelCatalogResponse["slots"] | undefined): boolean {
 	return MODEL_SLOTS.every((slot) => !!slots?.[slot]?.model);
 }
 
-/** Keep the last known completeness during connection invalidation, but
- * follow ordinary slot repairs as soon as their shared snapshot arrives. */
+/** Conserva la última compleción conocida durante la invalidación de la conexión, pero
+ * sigue las reparaciones normales de ranuras en cuanto llega su instantánea compartida. */
 export function useModelSetup(initialConfigured: boolean) {
 	const { catalog } = useModelCatalog();
 	const [lastConfigured, setLastConfigured] = useState(initialConfigured);
@@ -53,31 +56,32 @@ export function useModelSetup(initialConfigured: boolean) {
 	return { catalog, configured, zeroKeys: catalog ? !catalog.providers.some((p) => p.keyPresent) : false };
 }
 
-/** A known unavailable route needs an explicit replacement, never an
- * automatic provider/model substitution. Unknown metadata defers to the
- * server's admission gate instead of declaring a route disconnected. */
+/** Una ruta que se sabe no disponible necesita una sustitución explícita, nunca un
+ * cambio automático de proveedor/modelo. Los metadatos desconocidos se remiten a la
+ * barrera de admisión del servidor en lugar de declarar desconectada una ruta. */
 export function selectedModelUnavailable(catalog: ModelCatalogResponse | undefined, selected: string | undefined): boolean {
 	return !!catalog && !!selected && !catalog.models.some((m) => `${m.provider}:${m.id}` === selected);
 }
 
-/** Reuse the ordinary control (also opened by the existing keyboard action). */
+/** Reutiliza el control normal (que también abre la acción de teclado existente). */
 export function openModelPicker(): void {
 	window.dispatchEvent(new CustomEvent("lh:kbd-open-model-picker"));
 }
 
-/** The zero-keys truth for the calling page: TRUE only after a
- *  successful read says no provider key exists (pending and failed
- *  reads render nothing — the pill must never flash on a gap, and a
- *  failed read claiming "zero keys" would be a lie the CTA flow then
- *  leans on). Re-reads on the keys signal. */
+/** La verdad sin claves para la página que llama: TRUE solo después de
+ *  que una lectura con éxito diga que no existe ninguna clave de proveedor
+ *  (las lecturas pendientes y fallidas no renderizan nada — la píldora nunca
+ *  debe parpadear en un hueco, y una lectura fallida que afirmara "cero
+ *  claves" sería una mentira en la que luego se apoyaría el flujo de la CTA).
+ *  Vuelve a leer con la señal de claves. */
 export function useZeroKeys(): boolean {
 	const { catalog } = useModelCatalog();
 	return catalog ? !catalog.providers.some((provider) => provider.keyPresent) : false;
 }
 
-/** The pill itself — the models CTA's chrome and placement, the keys
- *  chain's copy. testid "setup-cta-keys" (the models CTA keeps
- *  "setup-cta"; probes can tell them apart). */
+/** La píldora en sí — el cromo y la colocación de la CTA de modelos, el
+ *  texto de la cadena de claves. testid "setup-cta-keys" (la CTA de modelos
+ *  mantiene "setup-cta"; los sondeos pueden distinguirlas). */
 export function ZeroKeysPill({ onOpen, inline = false }: { onOpen: () => void; inline?: boolean }) {
 	const button = (
 		<button
@@ -91,24 +95,27 @@ export function ZeroKeysPill({ onOpen, inline = false }: { onOpen: () => void; i
 	);
 	return inline ? button : <div className="pointer-events-auto mb-2 flex justify-center">{button}</div>;
 }
-/** Pure: the strong slot is pinned to a provider whose key is GONE (owner
- *  interlude, 2026-09-25 — the original deleted-key scenario). The catalog
- *  already knows both halves: slots.strong is the resolved pin, providers[]
- *  lists only PRESENT-key providers (keyless ones are absent, the same
- *  discipline as the search engines). False when the strong slot is unset
- *  (the models guard owns that case — this check only runs when slots ARE
- *  configured) or the catalog hasn't loaded (the server gate remains the
- *  belt). Exported for pins. */
+/** Pura: la ranura fuerte está fijada a un proveedor cuya clave ya NO está
+ *  (interludio del responsable, 2026-09-25 — el escenario original de la
+ *  clave borrada). El catálogo ya conoce ambas mitades: slots.strong es la
+ *  fijación resuelta, providers[] lista solo los proveedores con clave
+ *  PRESENTE (los que no tienen clave no aparecen, la misma disciplina que los
+ *  motores de búsqueda). False cuando la ranura fuerte no tiene valor (de ese
+ *  caso se encarga la guarda de modelos — esta comprobación solo corre cuando
+ *  las ranuras SÍ están configuradas) o el catálogo no se ha cargado (la
+ *  barrera del servidor sigue siendo el cinturón). Exportada para las
+ *  fijaciones. */
 export function strongKeyless(catalog: ModelCatalogResponse | undefined): boolean {
 	const strong = catalog?.slots.strong;
 	if (!strong) return false;
 	return !catalog.providers.some((p) => p.id === strong.model.provider && p.keyPresent);
 }
 
-/** The strong-slot keyless truth for the PRE-SEND guard (home / /chat/new):
- *  the catalog seam with re-reads on BOTH signals that can flip it — "keys"
- *  (a provider key saved or deleted) and "models" (the strong slot
- *  re-pinned). Live-updates with the page, never mid-send. */
+/** La verdad de ranura fuerte sin clave para la guarda PREVIA AL ENVÍO
+ *  (inicio / /chat/new): la frontera del catálogo, que vuelve a leer con
+ *  AMBAS señales que pueden cambiarla — "keys" (una clave de proveedor
+ *  guardada o borrada) y "models" (la ranura fuerte refijada). Se actualiza en
+ *  vivo con la página, nunca a mitad de un envío. */
 export function useStrongKeyless(): boolean {
 	const { catalog } = useModelCatalog();
 	return strongKeyless(catalog);

@@ -1,17 +1,18 @@
 "use client";
 
 /**
- * THE SESSION HOOK (Wave D, owner-approved 2026-09-26): the React adapter
- * over the pure SessionModel (components/session-core.ts — the state
- * machine, testable without a renderer). All mechanics live in the model;
- * this hook re-renders on change and derives the view (core/view.ts
- * projectView — the golden-master grouping, client-side).
+ * EL HOOK DE SESIÓN (oleada D, aprobado por el responsable 2026-09-26): el
+ * adaptador de React sobre el SessionModel puro (components/session-core.ts
+ * — la máquina de estados, que se puede probar sin renderizador). Toda la
+ * mecánica vive en el modelo; este hook re-renderiza al cambiar y deriva la
+ * vista (projectView de core/view.ts — la agrupación de referencia dorada,
+ * en el cliente).
  *
- * Every turn is a server-side background process (owner ruling
- * 2026-09-25); the hook is a view. Sends are ONE explicit input event
- * each ({chatId, input}); the turn stream is the VERBATIM AgentEvent
- * passthrough. Status vocabulary (pre-Wave-D parity): ready | submitted
- * | streaming | error.
+ * Cada turno es un proceso en segundo plano en el servidor (decisión del
+ * responsable 2026-09-25); el hook es una vista. Cada envío es UN evento de
+ * entrada explícito ({chatId, input}); el stream del turno es el paso
+ * LITERAL de AgentEvent. Vocabulario de estado (paridad previa a la oleada
+ * D): ready | submitted | streaming | error.
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
@@ -20,28 +21,28 @@ import { SessionModel, type SessionState } from "@/components/session-core";
 
 export interface UseChatSessionOptions {
 	chatId: string;
-	/** The native record seed (server-rendered page or a full sync). */
+	/** La semilla del registro nativo (página renderizada en el servidor o una sincronización completa). */
 	initialMessages: LhMessage[];
-	/** Transient settlement failure retained by the server, not the transcript. */
+	/** Fallo transitorio de asentamiento conservado por el servidor, no por la transcripción. */
 	initialError?: string;
-	/** Reattach on mount: a turn is running server-side with no live view. */
+	/** Reenganche al montar: hay un turno en marcha en el servidor sin vista viva. */
 	initiallyInFlight?: boolean;
 }
 
 export function useChatSession({ chatId, initialMessages, initialError, initiallyInFlight }: UseChatSessionOptions) {
-	// The model is per-mount (chatId-keyed component); onChange forces the
-	// re-render. The ref pattern keeps it stable across renders.
+	// El modelo es por montaje (componente con clave chatId); onChange fuerza el
+	// re-render. El patrón de ref lo mantiene estable entre renders.
 	const modelRef = useRef<SessionModel | null>(null);
 	if (modelRef.current === null) {
 		modelRef.current = new SessionModel({ chatId, initialMessages, initialError });
 	}
 	const model = modelRef.current;
-	// The render VERSION — bumped by every model change, so the state memo
-	// below recomputes exactly when the model actually changed. (Using the
-	// reducer's dispatch as the memo dep was a freeze bug: dispatch is
-	// STABLE by contract, so the memo computed once per mount and the view
-	// never saw a single model update — no optimistic bubble, no stream, no
-	// error banner. The empty-session bug, 2026-09-26.)
+	// La VERSIÓN del render — se incrementa con cada cambio del modelo, para que
+	// el memo de estado de abajo se recalcule justo cuando el modelo cambia de
+	// verdad. (Usar el dispatch del reducer como dependencia del memo era un fallo
+	// de congelación: dispatch es ESTABLE por contrato, así que el memo se calculaba
+	// una vez por montaje y la vista nunca veía ninguna actualización del modelo —
+	// ni burbuja optimista, ni stream, ni banner de error. El fallo de la sesión vacía, 2026-09-26.)
 	const [version, bump] = useReducer((n: number) => n + 1, 0);
 	useEffect(() => {
 		model.onChange = bump;
@@ -50,22 +51,22 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 		};
 	}, [model, bump]);
 
-	// Reattach on mount (StrictMode-safe: a newer resume cancels the older).
-	// ATTACH-FIRST (owner, reattach round 2026-10-02): the page render just
-	// read the record — the blocking record refetch only added handshake
-	// latency before the instant replay, so a fresh mount attaches
-	// directly. This hook's effect is the SINGLE mount-reattach owner
-	// (chat.tsx's duplicate was deleted with the same round).
+	// Reenganche al montar (seguro con StrictMode: una reanudación más reciente cancela la anterior).
+	// PRIMERO ENGANCHAR (responsable, ronda de reenganche 2026-10-02): el render de la página
+	// acaba de leer el registro — la nueva petición bloqueante del registro solo añadía latencia
+	// de negociación antes de la repetición instantánea, así que un montaje nuevo se engancha
+	// directamente. El efecto de este hook es el ÚNICO responsable del reenganche al montar
+	// (el duplicado de chat.tsx se borró en esa misma ronda).
 	//
-	// CONNECTION DIET A (owner, 2026-10-10 — parallel-session freeze
-	// postmortem): unmount RELEASES the stream connection. The turn is a
-	// server-side process — it runs on with zero views; this page's open
-	// GET stream (or, pre-diet-B, its POST stream) used to survive
-	// navigation, silently pinning one of the browser's 6-per-origin
-	// connection slots until the turn settled, streaming into a dead
-	// component. Enough leaked views starved every NEW request (navigation
-	// RSC fetches included) — the multi-session navigation freeze. Aborting
-	// costs nothing: navigating back replays the compacted log + live tail.
+	// DIETA DE CONEXIONES A (responsable, 2026-10-10 — análisis post mortem del
+	// bloqueo con sesiones en paralelo): desmontar LIBERA la conexión del stream. El
+	// turno es un proceso del servidor — sigue corriendo sin ninguna vista; el
+	// stream GET abierto de esta página (o, antes de la dieta B, su stream POST)
+	// sobrevivía a la navegación, ocupando en silencio una de las 6 ranuras de
+	// conexión por origen del navegador hasta que el turno se asentaba, emitiendo
+	// hacia un componente muerto. Con suficientes vistas filtradas se ahogaba toda
+	// petición NUEVA (incluidas las peticiones RSC de navegación) — el bloqueo de la navegación con varias sesiones.
+	// Abortar no cuesta nada: al volver se repite el registro compactado + la cola viva.
 	useEffect(() => {
 		if (initiallyInFlight) void model.resumeStream(false);
 		return () => {
@@ -73,16 +74,16 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 		};
 	}, [initiallyInFlight, model]);
 
-	// The view + state, derived per model change from the model.
+	// La vista + el estado, derivados del modelo en cada cambio del modelo.
 	const state = useMemo<SessionState>(() => model.getState(), [model, version] as const);
 
-	// THE TURN-STATE BROADCAST (owner, sidebar round 2026-10-02): the same
-	// optimistic machine, propagated — the instant a turn starts locally
-	// (submitted: send, answer, session start, reattach, wake attach) the
-	// sidebar learns it without waiting for its 2.5s poll; at settle the
-	// event clears the row and triggers one immediate refetch. The model
-	// stays pure; this adapter owns the window seam (the lh:chat-renamed
-	// pattern).
+	// LA DIFUSIÓN DEL ESTADO DEL TURNO (responsable, ronda de la barra lateral
+	// 2026-10-02): la misma máquina optimista, propagada — en el instante en que
+	// empieza un turno en local (submitted: send, respuesta, inicio de sesión,
+	// reenganche, enganche al despertar) la barra lateral se entera sin esperar a
+	// su sondeo de 2,5s; al asentarse, el evento limpia la fila y dispara una
+	// nueva petición inmediata. El modelo sigue siendo puro; este adaptador es dueño de la frontera
+	// de la ventana (el patrón de lh:chat-renamed).
 	const prevStatusRef = useRef(state.status);
 	useEffect(() => {
 		const was = prevStatusRef.current;
@@ -90,11 +91,11 @@ export function useChatSession({ chatId, initialMessages, initialError, initiall
 		if (was === state.status) return;
 		const running = state.status === "submitted" || state.status === "streaming";
 		const wasRunning = was === "submitted" || was === "streaming";
-		if (running === wasRunning) return; // submitted→streaming: still running; error↔ready: not
+		if (running === wasRunning) return; // submitted→streaming: sigue en marcha; error↔ready: no
 		window.dispatchEvent(new CustomEvent("lh:turn-state", { detail: { id: chatId, running } }));
 	}, [state.status, chatId]);
 
-	// The reattach settled terminal → the sync-and-continue seam (chat.tsx).
+	// El terminal de asentamiento del reenganche → la frontera de sincronizar y continuar (chat.tsx).
 	const setReattachSettled = useCallback(
 		(fn: () => void) => {
 			model.setReattachSettled(fn);

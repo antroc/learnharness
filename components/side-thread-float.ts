@@ -1,16 +1,16 @@
-/** Anchored, dragged, and resized floating companion geometry. Only the
- * macOS native-controls corner is excluded; ordinary browser placement
- * and the rest of the desktop's top edge remain available. */
+/** Geometría del compañero flotante anclado, arrastrado y redimensionado. Solo se excluye
+ * la esquina de los controles nativos de macOS; la colocación normal en el navegador
+ * y el resto del borde superior del escritorio siguen disponibles. */
 import { computeMenuPlacement } from "./menu-shell";
 
 type Rect = { left: number; right: number; top: number; bottom: number };
 export type SideThreadViewport = {
 	width: number; height: number;
-	/** CSS-coordinate dimensions, already divided by Electron's zoom. */
+	/** Dimensiones en coordenadas CSS, ya divididas por el zoom de Electron. */
 	trafficLights?: { width: number; height: number };
 };
 
-/** 26rem, the popover's width beside a passage. */
+/** 26rem, el ancho del popover junto a un pasaje. */
 export const SIDE_THREAD_WIDTH = 416;
 const EDGE = 8;
 const GAP = 8;
@@ -21,8 +21,8 @@ export interface SideThreadPlacement {
 	maxHeight: number;
 }
 
-/** A full-width panel cannot sit beside the native controls, so leave
- * enough vertical room to fit below them, even after a window shrink. */
+/** Un panel a todo el ancho no puede ir junto a los controles nativos, así que deja
+ * sitio vertical suficiente para caber debajo de ellos, incluso tras encoger la ventana. */
 function fitHeight(height: number, width: number, viewport: SideThreadViewport): number {
 	const corner = viewport.trafficLights;
 	const top = corner && width > viewport.width - corner.width - EDGE ? Math.max(EDGE, corner.height) : EDGE;
@@ -36,7 +36,7 @@ export function clampDragged(at: { x: number; y: number }, size: { width: number
 	let y = Math.max(EDGE, Math.min(at.y, maxY));
 	const corner = viewport.trafficLights;
 	if (corner && x < corner.width && y < corner.height) {
-		// The closest valid edge wins; never reserve an entire top strip.
+		// Gana el borde válido más cercano; nunca reserves una franja superior entera.
 		const canRight = corner.width <= maxX;
 		const canBelow = corner.height <= maxY;
 		if (canRight && (!canBelow || corner.width - x < corner.height - y)) x = corner.width;
@@ -87,21 +87,21 @@ export function placeSideThread({ kind, rect, viewport, contentHeight }: {
 	}, contentHeight, viewport);
 }
 
-/** The smallest height vertical resizing allows when it fits. */
+/** La altura mínima que permite el redimensionado vertical cuando cabe. */
 export const SIDE_THREAD_MIN_HEIGHT = 160;
 
 export type SideThreadFrame = { x: number; y: number; width: number; height: number };
 export type SideThreadResizeEdge = "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw";
 
-/** Viewport bounds win over the preferred minimum in small windows. */
+/** En ventanas pequeñas, los límites del viewport ganan al mínimo preferido. */
 export function fitResizableSideThreadFrame(frame: SideThreadFrame, viewport: SideThreadViewport): SideThreadFrame {
 	const width = Math.min(Math.max(0, viewport.width - 2 * EDGE), Math.max(SIDE_THREAD_WIDTH, frame.width));
 	return { ...fitSideThreadFrame(frame, width, viewport), width };
 }
 
-/** Each handle keeps its opposite edge fixed, except when window/native
- * control clearance makes that impossible. Pure horizontal resizing leaves
- * the current height alone; vertical resizing retains the 160px minimum. */
+/** Cada asa mantiene fijo su borde opuesto, salvo cuando el margen de la ventana/los
+ * controles nativos lo impide. El redimensionado puramente horizontal no toca la
+ * altura actual; el vertical conserva el mínimo de 160px. */
 export function resizeSideThread(frame: SideThreadFrame, edge: SideThreadResizeEdge, travel: { x: number; y: number }, viewport: SideThreadViewport): SideThreadFrame {
 	const start = fitResizableSideThreadFrame(frame, viewport);
 	const minWidth = Math.min(SIDE_THREAD_WIDTH, Math.max(0, viewport.width - 2 * EDGE));
