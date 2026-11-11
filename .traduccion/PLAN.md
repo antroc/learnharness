@@ -68,8 +68,11 @@ export TS_PATH=/tmp/tsdep/node_modules/typescript
 node .traduccion/comentarios.cjs extraer /tmp/C1 $(cat .traduccion/lotes/C1.txt)
 #    → /tmp/C1.json (posiciones) y /tmp/C1.txt (originales con cabeceras "@@ id ruta:línea")
 # 2) Escribir /tmp/C1.es.txt con las mismas cabeceras "@@ id" y el comentario traducido debajo.
-#    Se pueden reflujar las líneas // libremente (la herramienta re-sangra); los /* */ y /** */
-#    deben conservar su apertura y cierre. Un id ausente se deja sin tocar.
+#    Cada grupo de líneas // debe conservar EXACTAMENTE su número de líneas (la herramienta
+#    re-sangra, pero los saltos entre comentarios // cuentan como código y, si cambian, no
+#    escribe el fichero); dentro de cada línea se puede redistribuir el texto. Los /* */ y
+#    /** */ pueden cambiar de número de líneas, pero deben conservar su apertura y cierre.
+#    Las directivas como /* turbopackIgnore: true */ se omiten (id ausente = sin tocar).
 # 3) Aplicar:
 node .traduccion/comentarios.cjs aplicar /tmp/C1
 ```
@@ -90,8 +93,8 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 | M1 | Raíz, docs generales y prompts del agente (`src/agent/**/*.md`) | 40 | 30.172 | [x] |
 | M2 | Docs de plugins (`docs/plugin-*.md`, flashcards) y READMEs de `plugins/` y `examples/` | 20 | 34.368 | [x] |
 | M3 | `docs/plugin-api/` | 22 | 31.155 | [x] |
-| M4 | `docs/archive/`, `skills/` y READMEs de `tests/` | 14 | 26.742 | [~] parcial |
-| C1 | Comentarios: `src/core/contracts`, `src/store`, `src/server/pi`, `src/agent` (sin subagents) | 86 | 28.518 | [ ] |
+| M4 | `docs/archive/`, `skills/` y READMEs de `tests/` | 14 | 26.742 | [x] |
+| C1 | Comentarios: `src/core/contracts`, `src/store`, `src/server/pi`, `src/agent` (sin subagents) | 86 | 28.518 | [~] parcial |
 | C2 | Comentarios: `src/agent/subagents`, `src/server` | 59 | 30.924 | [ ] |
 | C3 | Comentarios: `src/core` (1ª mitad) | 38 | 21.353 | [ ] |
 | C4 | Comentarios: `src/core` (2ª mitad) | 30 | 21.060 | [ ] |
@@ -189,3 +192,19 @@ falsos positivos).
   M4 pendiente: skills/learnharness-plugins/SKILL.md, skills/learnharness/SKILL.md,
   skills/learnharness/references/data-format.md, docs/archive/{probe-teach-split,plan,
   architecture-2026-09-08,pi-engine-swap,vision,plugin-implementation-history}.md.
+- Sesión 5: M4 terminado: skills/learnharness-plugins/SKILL.md, skills/learnharness/SKILL.md
+  (en el frontmatter solo se traduce `description`; `compatibility` y `license` se dejan en
+  inglés), skills/learnharness/references/data-format.md (las descripciones del bloque
+  `text` del mapa de ficheros se tradujeron como comentarios) y docs/archive/{plan,
+  probe-teach-split,architecture-2026-09-08,pi-engine-swap,vision,
+  plugin-implementation-history}.md. Ninguno tenía enlaces entrantes a sus anclas (los
+  `plan.md#…` de docs/plugin-api/ son de contracts-plan.md); los "destinos históricos"
+  `fichero.md#ancla` de plugin-implementation-history.md son texto en `código` y se dejan
+  igual. En architecture-2026-09-08.md el diagrama de capas se tradujo y se volvió a alinear.
+  Consecuencia conocida: `tests/skills/test_skill.py` busca las frases en inglés
+  "Never modify LearnHarness's data" y "archival view" en skills/learnharness/SKILL.md y
+  falla en esta rama; no se toca. Comprobación de anclas: sin enlaces rotos (solo los 4
+  falsos positivos conocidos).
+  C1 empezado: comentarios de las líneas 1–32 de `.traduccion/lotes/C1.txt` (de
+  src/agent/background-capture.ts a src/agent/side-chat.ts), en dos tandas.
+  C1 pendiente: líneas 33–86 de `.traduccion/lotes/C1.txt` (desde src/agent/subscription-bridge.ts).
