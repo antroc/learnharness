@@ -1,188 +1,191 @@
-# The probe→teach agent split & plan-movement semantics
+# La separación de agentes sondeo→enseñanza y la semántica del movimiento por el plan
 
-> **Historical design record, not current implementation documentation.**
-> The original decisions below may be superseded or unimplemented.
-> See [Architecture](../architecture.md) and [Development](../development.md) for the
-> current agent structure and development guidance, or the [archive index](README.md) for context.
+> **Registro de diseño histórico, no documentación de la implementación actual.**
+> Las decisiones originales que siguen pueden haberse sustituido o no haberse implementado.
+> Consulta [Arquitectura](../architecture.md) y [Desarrollo](../development.md) para la
+> estructura actual de los agentes y las pautas de desarrollo, o el [índice del archivo](README.md)
+> para el contexto.
 
-Shared understanding reached 2026-09-11 (user + master session). This is the
-convergence record — the decided design, with reasoning. It is not a task
-list; implementation waves are planned against it.
-
----
-
-## 1. Two agents, one conversation
-
-Probing and teaching are structurally so different that they get **separate
-agents**: separate system prompts and separate tool sets, each fully
-fleshed-out with a major focus on its own phase. The split extracts more
-system-instruction alignment: neither agent carries the other phase's bulk
-(neither needs the specifics — each gets only a brief summary of the other's
-philosophy so they share a view of the whole process).
-
-- **The prober** runs the probing phase: quiz + ask_user_question +
-  `probe_done`. Its quiz is a *different tool* (different schema: **no
-  `nodeId` field at all**) under the same name, so the model is never shown a
-  field it must not use. No plan tools, no jobs, no demos.
-- **The teacher** runs everything from planning onward: full tool set
-  (teach quiz with nodeId, plan_init, jobs, demos). Constructed the moment the
-  transcript carries a concluded `probe_done`: a non-failed/non-aborted
-  assistant call followed by a matching successful tool result.
-- **The swap happens between probing and planning** — the planning phase
-  needs full knowledge of how teaching is done, so the teacher agent starts
-  at planning.
-- **They share the message history.** No fresh start: the history holds
-  subtleties an assessment summary would lose. History tool parts are
-  content, not live schemas — the teacher reads the prober's quiz calls as
-  past conversation; the one foreign tool (`probe_done`) reads as a concluded
-  past action, and even a hypothetical re-call degrades to a returned
-  tool-error (the return-to-agent doctrine).
-- **Invisible to the user**: same chat, same record, same UI. The agents are
-  constructed per-request by the same composition root; "which agent" is a
-  construction branch, not a handoff.
-
-## 2. `probe_done` — the seam tool
-
-The prober concludes explicitly:
-
-- **Server-side tool.** Input: the learner assessment. Output: ok/error.
-- **Refuses while a question is open** ("resolve the open question first") —
-  same doctrine as nodeId validation.
-- **Refuses a second conclusion** (idempotent: the probe concludes once).
-  Conclusion requires a later `probe_done` result matching the call's ID
-  and tool name. The calling generation must not have failed or aborted;
-  the result must not be `isError` or explicitly contain `details.ok:false`.
-  Clean acknowledgments without an explicit `ok:true` remain valid. Bare,
-  unmatched, errored, or refused calls keep probing open; saved attempts
-  are never deleted or replay-executed by this detection rule.
-- The assessment is the tool call's input, so it streams to the learner live
-  and is durable in the transcript by the tool result itself. A dedicated
-  assessment card/viewer comes later (UI).
-- **Assessment shape (v1, refine later): a list of dependency strands + a
-  free-form read of the learner's edge on each.** The probe was already a
-  binary search per strand the lesson depends on; the assessment formalizes
-  exactly that. Optional overall summary.
-- **Side effect: it queues the handoff.** When the prober's turn ends, the
-  wake pipeline (the same machinery that delivers sub-agent results and
-  abort steers) fires a server-side turn with a handoff steer — the teacher
-  is constructed (probe_done has successfully concluded) and authors the plan.
-  The learner experiences assessment → plan as one continuous flow. If the
-  wake is lost (crash window), the next client message still constructs the
-  teacher — the transcript is the source of truth.
-
-## 3. `nodeId` semantics — position, not completion
-
-The old contract read a *correct* answer on a tagged check as "node done."
-That is the wrong signal and is **abolished**. The new contract:
-
-> **`nodeId` on a quiz means: "this question is about this node."**
-> Nothing else. It is a position signal, never a completion signal.
-
-- **Current node = the node referenced by the most recent tagged quiz
-  call** (the call, not the result — any state counts).
-- **Visited = every node that appeared in an earlier tagged quiz call.**
-  Sticky, monotonic. There is **no done ledger and no done bookkeeping of
-  any kind** — everything is inferred from the session history. The stored
-  tree carries structure only (the author-once protocol taken to its
-  conclusion: `currentNodeId`/`doneNodeIds` are removed from the tree).
-- **A node spans multiple turns and multiple checks naturally.** Several
-  questions may tag the same node — the map stays put. The teacher moving to
-  a new node *is* the teacher's judgment that the previous one is finished,
-  regardless of individual check outcomes (a failed check followed by a
-  re-teach and a move-on is still a visited node).
-- **Failed checks move nothing.** Results no longer feed derivation at all.
-- **Untagged checks no longer exist** (owner ruling 2026-09-26): `nodeId`
-  is required on the teach quiz schema — an untagged call is rejected at the
-  boundary and the model retries tagged. Off-map checks (quick comprehension
-  checks that don't fit a node) route through ask_user_question. The map can
-  never freeze from a lost tagging signal again.
-- **No fallback current.** Before the first tagged check nothing is
-  current. No derived-from-prereqs guess.
-- Present-but-invalid ids are still rejected at the call boundary (existing
-  validation, return-to-agent retry).
-- Visualization: current node gets a special highlight; visited nodes
-  render visible (not grayed); upcoming nodes gray out. "Where have we
-  been, where are we."
-
-## 4. Phases — explicit events, no occupancy derivation
-
-The phase chain is **event-driven**:
-
-**probe (prober)** — `probe_done` → **planning (teacher)** — the first
-`nodeId`-tagged quiz call → **teach (teacher)**
-
-- The broken derived-occupancy seam (phase-of-tree via `currentNodeId`
-  nothing ever sets — the stuck-on-plan bug) is **replaced, not patched**.
-- The verdict gate is DEAD (owner ruling 2026-09-26 — simplified away):
-  presenting the plan ends the teacher's turn, and the learner's next
-  message is a natural reply — a change request (revise, re-present, end
-  the turn again) or the go-ahead. The plan→teach seam is **inferred**:
-  the first quiz call tagged with a `nodeId` (a question ABOUT a plan
-  node; probe quizzes carry no nodeId) is where teaching begins. The
-  phase fold (`phaseAt3`) advances there, the teaching divider renders
-  before that whole assistant block, and the live phase indicator may lag
-  until the first node's question is posed (owner-accepted). Mid-lesson
-  `plan_init` rewrites need no gate at all.
-- The session picker phase derives from the transcript the same way.
-
-## 5. No global-graph context in sessions (for now)
-
-Both agents run **fully standalone** — no knowledge-graph injection into
-either prompt. The graph-as-session-context idea (W8) is shelved until
-there's a considered design for what it should actually feed. The global
-knowledge graph remains what the extraction pipeline builds; nothing in
-lesson prompts reads it.
-
-## 6. The plan UI: persistent DAG window (direction)
-
-The injected-blocks approach is superseded: the plan should live in a
-**persistent DAG window** in the conversation view (like the background-
-processes dock): always present, zoomed on the current node, auto-moving
-as the lesson advances; click → full plan (the existing popup survives as
-the expanded view). Exact layout/design is refined in the UI session.
-
-The window is LIVE (landed 2026-09-11, one day after the design): bottom-left,
-2:1 zoomed viewBox centered on the current node, clamped to the layout, click
-opens the popup. The full plan block also still renders in the flow at plan
-authoring (the presentation moment; the block sits immediately after the
-`plan_init` call) as a second popup entry point. The neighborhood-block
-machinery (frozen fragments) is retired — snapshots can't represent
-live-derived movement.
-
-## 7. Deferred / later waves (designed, not now)
-
-- ~~**Accept-plan UI**~~ — landed 2026-09-11, then **removed 2026-09-26**
-  (the verdict death): the seam is inferred from the first `nodeId`-tagged
-  quiz call (see §4).
-- **Assessment viewer** — the strand assessments displayed to the learner
-  as a proper card (data already durable in the transcript; the plain v1
-  probe-done card renders the assessment meanwhile).
-- **Model / thinking control** — currently hardcoded per role in
-  `config.ts` MODELS. The split gives natural `MODELS.prober` /
-  `MODELS.teacher` entries; runtime control comes after.
-- **Graph context, properly designed** — what the global graph should feed
-  into sessions (§5).
-
-## 8. No backwards compatibility — ever
-
-Legacy sessions are not supported. At major pivots the testing data is
-wiped and re-grown from new testing. No compat shims, no legacy marker
-fallbacks, no migration of old trees. `probe_done` is the only teacher
-construction key; sessions without it are prober sessions (dead legacy
-data is garbage to be wiped, not accommodated).
+Entendimiento compartido alcanzado el 2026-09-11 (usuario + sesión maestra). Es el
+registro de la convergencia: el diseño decidido, con su razonamiento. No es una lista de
+tareas; las oleadas de implementación se planifican a partir de él.
 
 ---
 
-## Diagnosis context (why this pivot)
+## 1. Dos agentes, una conversación
 
-The 2026-09-11 user testing round (Nietzsche + Lacan sessions, minimal-
-effort GLM) exposed: (1) the teacher never tagged `nodeId` — every quiz in
-both sessions was untagged, so nothing ever derived; (2) the phase system
-structurally could not leave "plan" — `phaseOfTree` read `currentNodeId`,
-which the author-once protocol never sets, so no session could reach
-"teach"; (3) with result-derived "done," one passed check would have
-falsely finished a node. Model-compliance issues (untagged checks,
-free-text correctAnswer) are expected to shrink with higher thinking
-budgets and runtime model control — but the *semantics* had to be right
-first. Model mistakes are good test material: they exercise the
-return-to-agent validation loops.
+El sondeo y la enseñanza son estructuralmente tan distintos que tienen **agentes
+separados**: prompts de sistema separados y conjuntos de herramientas separados, cada uno
+completamente desarrollado y centrado sobre todo en su propia fase. La separación consigue
+una mayor alineación con las instrucciones de sistema: ningún agente carga con el volumen de
+la otra fase (ninguno necesita los detalles; cada uno recibe solo un breve resumen de la
+filosofía del otro para que compartan una visión del proceso completo).
+
+- **El sondeador** lleva la fase de sondeo: quiz + ask_user_question + `probe_done`. Su
+  quiz es una *herramienta distinta* (con otro esquema: **sin ningún campo `nodeId`**) con el
+  mismo nombre, para que al modelo nunca se le muestre un campo que no debe usar. Sin
+  herramientas de plan, sin tareas, sin demos.
+- **El profesor** lleva todo desde la planificación en adelante: conjunto completo de
+  herramientas (quiz de enseñanza con nodeId, plan_init, tareas, demos). Se construye en
+  cuanto la transcripción contiene un `probe_done` concluido: una llamada del asistente que no
+  ha fallado ni se ha abortado, seguida de un resultado de herramienta correcto que coincide
+  con ella.
+- **El cambio ocurre entre el sondeo y la planificación**: la fase de planificación necesita
+  saber a fondo cómo se enseña, así que el agente profesor empieza en la planificación.
+- **Comparten el historial de mensajes.** Sin empezar de cero: el historial guarda matices
+  que un resumen de evaluación perdería. Las partes de herramienta del historial son
+  contenido, no esquemas vivos: el profesor lee las llamadas de quiz del sondeador como
+  conversación pasada; la única herramienta ajena (`probe_done`) se lee como una acción
+  pasada concluida, e incluso una hipotética nueva llamada se degrada a un error de
+  herramienta devuelto (la doctrina de devolver al agente).
+- **Invisible para el usuario**: el mismo chat, el mismo registro, la misma interfaz. Los
+  agentes se construyen en cada petición desde la misma raíz de composición; «qué agente» es
+  una rama de construcción, no un traspaso.
+
+## 2. `probe_done`: la herramienta de la juntura
+
+El sondeador concluye explícitamente:
+
+- **Herramienta del lado del servidor.** Entrada: la evaluación del alumno. Salida: ok/error.
+- **Se niega mientras haya una pregunta abierta** («resuelve antes la pregunta abierta»):
+  la misma doctrina que la validación de nodeId.
+- **Se niega a una segunda conclusión** (idempotente: el sondeo concluye una sola vez).
+  Concluir requiere un resultado posterior de `probe_done` que coincida con el ID y el nombre
+  de herramienta de la llamada. La generación que hizo la llamada no debe haber fallado ni
+  haberse abortado; el resultado no debe ser `isError` ni contener explícitamente
+  `details.ok:false`. Las confirmaciones limpias sin un `ok:true` explícito siguen siendo
+  válidas. Las llamadas sueltas, sin pareja, con error o rechazadas mantienen el sondeo
+  abierto; esta regla de detección nunca borra ni vuelve a ejecutar los intentos guardados.
+- La evaluación es la entrada de la llamada a herramienta, así que llega al alumno en
+  streaming y queda guardada en la transcripción gracias al propio resultado de la
+  herramienta. Una tarjeta o visor de evaluación dedicado llegará más adelante (interfaz).
+- **Forma de la evaluación (v1, a refinar): una lista de hebras de dependencia + una lectura
+  libre de dónde está el límite del alumno en cada una.** El sondeo ya era una búsqueda
+  binaria por cada hebra de la que depende la lección; la evaluación formaliza justo eso.
+  Resumen general opcional.
+- **Efecto secundario: pone en cola el traspaso.** Cuando termina el turno del sondeador, la
+  canalización de despertar (la misma maquinaria que entrega los resultados de los subagentes
+  y las reorientaciones por aborto) lanza un turno del lado del servidor con una
+  reorientación de traspaso: se construye el profesor (probe_done ha concluido con éxito) y
+  este escribe el plan. El alumno vive la evaluación → plan como un flujo continuo. Si el
+  despertar se pierde (ventana de caída), el siguiente mensaje del cliente igualmente
+  construye el profesor: la transcripción es la fuente de verdad.
+
+## 3. Semántica de `nodeId`: posición, no finalización
+
+El contrato antiguo interpretaba una respuesta *correcta* a una comprobación etiquetada como
+«nodo hecho». Es la señal equivocada y queda **abolida**. El contrato nuevo:
+
+> **`nodeId` en un quiz significa: «esta pregunta trata de este nodo».**
+> Nada más. Es una señal de posición, nunca de finalización.
+
+- **Nodo actual = el nodo al que se refiere la llamada de quiz etiquetada más reciente** (la
+  llamada, no el resultado: cuenta cualquier estado).
+- **Visitados = todos los nodos que aparecieron en una llamada de quiz etiquetada anterior.**
+  Persistente y monótono. **No hay registro de hechos ni contabilidad de hechos de ningún
+  tipo**: todo se infiere del historial de la sesión. El árbol guardado solo contiene la
+  estructura (el protocolo de escribir una vez llevado hasta el final: `currentNodeId` y
+  `doneNodeIds` se eliminan del árbol).
+- **Un nodo abarca de forma natural varios turnos y varias comprobaciones.** Varias preguntas
+  pueden etiquetar el mismo nodo y el mapa no se mueve. Que el profesor pase a un nodo nuevo
+  *es* su juicio de que el anterior ha terminado, sea cual sea el resultado de cada
+  comprobación (una comprobación fallida seguida de una nueva explicación y de pasar al
+  siguiente sigue siendo un nodo visitado).
+- **Las comprobaciones fallidas no mueven nada.** Los resultados ya no intervienen en la
+  derivación en absoluto.
+- **Las comprobaciones sin etiquetar ya no existen** (decisión del propietario del
+  2026-09-26): `nodeId` es obligatorio en el esquema del quiz de enseñanza; una llamada sin
+  etiquetar se rechaza en el límite y el modelo lo reintenta etiquetado. Las comprobaciones
+  fuera del mapa (comprobaciones rápidas de comprensión que no encajan en un nodo) pasan por
+  ask_user_question. El mapa ya no puede volver a congelarse por perder una señal de
+  etiquetado.
+- **Sin nodo actual de respaldo.** Antes de la primera comprobación etiquetada no hay nodo
+  actual. Nada de suposiciones derivadas de los prerrequisitos.
+- Los id presentes pero no válidos se siguen rechazando en el límite de la llamada
+  (validación existente, reintento devolviendo al agente).
+- Visualización: el nodo actual recibe un resaltado especial; los nodos visitados se ven (no
+  en gris); los próximos se muestran en gris. «Dónde hemos estado, dónde estamos».
+
+## 4. Fases: eventos explícitos, sin derivar la ocupación
+
+La cadena de fases está **dirigida por eventos**:
+
+**sondeo (sondeador)** — `probe_done` → **planificación (profesor)** — la primera llamada de
+quiz etiquetada con `nodeId` → **enseñanza (profesor)**
+
+- La juntura rota derivada de la ocupación (fase del árbol a través de un `currentNodeId` que
+  nada asignaba nunca: el error de quedarse atascado en el plan) se **sustituye, no se
+  parchea**.
+- La puerta de veredicto ha MUERTO (decisión del propietario del 2026-09-26, eliminada al
+  simplificar): presentar el plan termina el turno del profesor, y el siguiente mensaje del
+  alumno es una respuesta natural: una petición de cambio (revisar, volver a presentar,
+  terminar de nuevo el turno) o el visto bueno. La juntura plan→enseñanza se **infiere**: la
+  primera llamada de quiz etiquetada con un `nodeId` (una pregunta SOBRE un nodo del plan; los
+  quizzes de sondeo no llevan nodeId) es donde empieza la enseñanza. El pliegue de fases
+  (`phaseAt3`) avanza ahí, el separador de enseñanza se renderiza antes de todo ese bloque
+  del asistente y el indicador de fase en vivo puede ir con retraso hasta que se plantee la
+  pregunta del primer nodo (aceptado por el propietario). Las reescrituras de `plan_init` a
+  mitad de lección no necesitan ninguna puerta.
+- La fase del selector de sesiones se deriva de la transcripción de la misma forma.
+
+## 5. Sin contexto del grafo global en las sesiones (por ahora)
+
+Los dos agentes funcionan de forma **completamente independiente**: no se inyecta el grafo
+de conocimiento en ninguno de los dos prompts. La idea del grafo como contexto de la sesión
+(W8) queda archivada hasta que haya un diseño meditado de qué debería aportar realmente. El
+grafo de conocimiento global sigue siendo lo que construye la canalización de extracción;
+nada en los prompts de las lecciones lo lee.
+
+## 6. La interfaz del plan: ventana persistente con el DAG (dirección)
+
+El enfoque de bloques inyectados queda sustituido: el plan debería vivir en una **ventana
+persistente con el DAG** en la vista de la conversación (como el dock de procesos en segundo
+plano): siempre presente, con zoom sobre el nodo actual y moviéndose sola a medida que avanza
+la lección; al hacer clic → plan completo (la ventana emergente existente se conserva como
+vista ampliada). La disposición y el diseño exactos se refinan en la sesión de interfaz.
+
+La ventana ya FUNCIONA (llegó el 2026-09-11, un día después del diseño): abajo a la
+izquierda, viewBox con zoom 2:1 centrado en el nodo actual, limitado a la disposición; al
+hacer clic abre la ventana emergente. El bloque completo del plan también se sigue
+renderizando en el flujo al escribir el plan (el momento de la presentación; el bloque va
+justo después de la llamada a `plan_init`) como segundo punto de entrada a la ventana
+emergente. La maquinaria de bloques de vecindario (fragmentos congelados) se retira: las
+instantáneas no pueden representar un movimiento derivado en vivo.
+
+## 7. Aplazado / oleadas posteriores (diseñado, no para ahora)
+
+- ~~**Interfaz de aceptar el plan**~~: llegó el 2026-09-11 y se **eliminó el 2026-09-26** (la
+  muerte del veredicto): la juntura se infiere de la primera llamada de quiz etiquetada con
+  `nodeId` (ver §4).
+- **Visor de la evaluación**: las evaluaciones por hebra mostradas al alumno como una
+  tarjeta en condiciones (los datos ya están guardados en la transcripción; mientras tanto, la
+  tarjeta sencilla v1 de probe-done muestra la evaluación).
+- **Control del modelo y del razonamiento**: ahora mismo fijo por rol en `MODELS` de
+  `config.ts`. La separación da de forma natural las entradas `MODELS.prober` /
+  `MODELS.teacher`; el control en tiempo de ejecución viene después.
+- **Contexto del grafo, bien diseñado**: qué debería aportar el grafo global a las sesiones
+  (§5).
+
+## 8. Sin compatibilidad hacia atrás, nunca
+
+Las sesiones heredadas no se admiten. En los giros importantes se borran los datos de
+prueba y se vuelven a generar con pruebas nuevas. Nada de capas de compatibilidad, ni
+respaldos con marcas heredadas, ni migración de árboles antiguos. `probe_done` es la única
+clave para construir el profesor; las sesiones sin él son sesiones del sondeador (los datos
+heredados muertos son basura que se borra, no algo que haya que acomodar).
+
+---
+
+## Contexto del diagnóstico (por qué este giro)
+
+La ronda de pruebas con usuario del 2026-09-11 (sesiones sobre Nietzsche y Lacan, GLM con
+esfuerzo mínimo) puso de manifiesto que: (1) el profesor nunca etiquetaba `nodeId`: todos los
+quizzes de ambas sesiones iban sin etiquetar, así que nunca se derivaba nada; (2) el sistema
+de fases no podía salir de «plan» por su estructura: `phaseOfTree` leía `currentNodeId`, que
+el protocolo de escribir una vez nunca asigna, así que ninguna sesión podía llegar a
+«enseñanza»; (3) con un «hecho» derivado de los resultados, una sola comprobación superada
+habría dado por terminado un nodo de forma errónea. Se espera que los problemas de
+cumplimiento del modelo (comprobaciones sin etiquetar, correctAnswer en texto libre) se
+reduzcan con presupuestos de razonamiento mayores y control del modelo en tiempo de
+ejecución, pero primero la *semántica* tenía que ser correcta. Los errores del modelo son
+buen material de prueba: ejercitan los bucles de validación que devuelven al agente.
