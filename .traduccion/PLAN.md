@@ -106,8 +106,8 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 | M4 | `docs/archive/`, `skills/` y READMEs de `tests/` | 14 | 26.742 | [x] |
 | C1 | Comentarios: `src/core/contracts`, `src/store`, `src/server/pi`, `src/agent` (sin subagents) | 86 | 28.518 | [x] |
 | C2 | Comentarios: `src/agent/subagents`, `src/server` | 59 | 30.924 | [x] |
-| C3 | Comentarios: `src/core` (1ª mitad) | 38 | 21.353 | [~] parcial |
-| C4 | Comentarios: `src/core` (2ª mitad) | 30 | 21.060 | [ ] |
+| C3 | Comentarios: `src/core` (1ª mitad) | 38 | 21.353 | [x] |
+| C4 | Comentarios: `src/core` (2ª mitad) | 30 | 21.060 | [~] parcial |
 | C5 | Comentarios: `components/*` raíz (1ª mitad) | 37 | 32.633 | [ ] |
 | C6 | Comentarios: `components/*` raíz (2ª mitad) | 89 | 31.871 | [ ] |
 | C7 | Comentarios: `components/{settings,artifacts,ui,ai-elements}`, `app`, `electron`, `scripts`, `plugins`, configuración | 201 | 33.875 | [ ] |
@@ -253,3 +253,26 @@ falsos positivos).
   C3 pendiente: líneas 8–38 de `.traduccion/lotes/C3.txt` (desde src/core/compaction.ts).
   Ficheros grandes: native-messages.ts (1.093 líneas), layout.ts, graph.ts,
   plugin-questions.ts, input-events.ts, compaction.ts.
+- Sesión 8: C3 terminado: líneas 8–38 de `.traduccion/lotes/C3.txt` en siete tandas con su
+  commit (compaction…fuzzy; graph-deletion, immutable-data, index, keyboard, layout-settle;
+  graph.ts solo; input-events, learner-image-svg, math-delims, pending; layout.ts solo;
+  native-messages.ts solo; phases…plugin-questions). Ningún comentario citaba encabezados de
+  docs traducidos (solo rutas de fichero y `§N`); no había directivas en estos ficheros.
+  Literales que se dejan en inglés: "Your thinking", "dismissed", "Problem posed",
+  “Writing a question…”, "THE ASYNC PROTOCOL", "THE GRAPH SO FAR", el marcador `ponytail:`.
+  Glosario añadido en la práctica: *owner ruling* → decisión del responsable; *birth session*
+  → sesión de nacimiento; *hull* → envolvente; *anchor* → ancla; *rim* → borde; *seed* →
+  semilla/sembrar; *re-blend* → remezcla; *pose* (problema/pregunta) → planteamiento;
+  *ack* → acuse; *dangling* → colgante; *marker* → marcador; *digest* → resumen; *stretch* →
+  tramo; *cut* → corte; *kept tail* → cola conservada; *fingerprint* → huella; *cheat sheet*
+  → chuleta; *shimmer* → brillo; *request chrome* → envoltorio de la petición; *drawer* →
+  cajón; *handle* (API de plugins) → manejador (en otros contextos, identificador).
+  C4 empezado: líneas 1–7 de `.traduccion/lotes/C4.txt` (src/core/plugin-shortcuts.ts a
+  plugin-workers.ts). Los JSDoc públicos de plugin-ui.ts y plugin-workers.ts se copiaron de
+  la prosa ya traducida de `docs/plugin-api/` (misma redacción): conviene hacer lo mismo con
+  los demás ficheros cuyo JSDoc genera esa referencia (plugins.ts, question-core.ts, view.ts,
+  ports.ts…; busca la frase en `docs/plugin-api/*.md`). src/core/plugin-agents.ts (C3) se
+  tradujo sin alinear con docs/plugin-api/plugin-agents.md (revisión opcional).
+  C4 pendiente: líneas 8–30 de `.traduccion/lotes/C4.txt` (desde src/core/plugins.ts).
+  Ficheros grandes (palabras de comentario): settings.ts (≈3.300), question-core.ts (≈2.700),
+  render-settings.ts (≈1.800), plugins.ts (≈1.800), view.ts (≈1.650), ports.ts (≈1.350).
