@@ -1,73 +1,83 @@
-# LearnHarness plugin authoring skill
+# Skill de autoría de plugins de LearnHarness
 
-This is the **whole skill**, not just its `SKILL.md` instructions. The downloaded
-`learnharness-plugins/` folder contains indexed Markdown documentation, a complete
-API reference, canonical official-plugin source projects, Hello and focused no-build
-recipes, and the type-only public API SDK. No repository clone or internet connection is needed
-to read the materials or try the Hello plugin. Model-using examples require your
-configured connection and may incur cost when explicitly run.
+Esta es la **skill completa**, no solo sus instrucciones de `SKILL.md`. La carpeta
+`learnharness-plugins/` descargada contiene documentación Markdown indexada, una referencia
+completa de la API, los proyectos fuente canónicos de los plugins oficiales, Hello y
+recetas centradas sin compilación, y el SDK público de la API solo de tipos. No hace falta
+clonar el repositorio ni conexión a internet para leer los materiales o probar el plugin
+Hello. Los ejemplos que usan modelos requieren tu conexión configurada y pueden tener coste
+cuando se ejecutan explícitamente.
 
-## Give it to your coding agent
+## Dásela a tu agente de programación
 
-1. In LearnHarness, open **Settings → Community plugins → Download authoring skill**.
-2. Extract the ZIP somewhere writable. Keep the entire `learnharness-plugins/` folder.
-3. Give your coding agent the folder path and this instruction:
+1. En LearnHarness, abre **Ajustes → Plugins de la comunidad → Descargar skill de autoría**.
+2. Extrae el ZIP en algún sitio con permiso de escritura. Conserva la carpeta
+   `learnharness-plugins/` completa.
+3. Dale a tu agente de programación la ruta de la carpeta y esta instrucción:
 
-   > Read `/path/to/learnharness-plugins/SKILL.md`. Use the bundled documentation,
-   > examples and API types to help me build a LearnHarness plugin. Ask me about
-   > product behavior before implementing it.
+   > Lee `/path/to/learnharness-plugins/SKILL.md`. Usa la documentación, los ejemplos y
+   > los tipos de la API incluidos para ayudarme a crear un plugin de LearnHarness.
+   > Pregúntame por el comportamiento del producto antes de implementarlo.
 
-Start with [the skill instructions](SKILL.md), then the authoring guide's documentation
-map. It links the complete API reference, task guides and source-example reading routes.
-To make the skill automatically discoverable, put the **whole folder** in your
-coding agent's supported skills directory, following that agent's documentation.
-Agents use different project/global locations and may require a reload or explicit
-activation. LearnHarness does not choose a location or install/configure an agent.
-If the agent has no skills feature, the explicit file-path instruction still works.
-Copying only `SKILL.md` breaks access to its supporting materials.
+Empieza por [las instrucciones de la skill](SKILL.md) y después por el mapa de la
+documentación de la guía de autoría. Enlaza la referencia completa de la API, las guías por
+tarea y las rutas de lectura de los ejemplos de código. Para que la skill se descubra
+automáticamente, pon la **carpeta completa** en el directorio de skills que admita tu
+agente de programación, siguiendo su documentación. Cada agente usa ubicaciones de proyecto
+o globales distintas y puede requerir una recarga o una activación explícita. LearnHarness
+no elige ninguna ubicación ni instala ni configura ningún agente. Si el agente no tiene
+función de skills, la instrucción explícita con la ruta del fichero sigue funcionando.
+Copiar solo `SKILL.md` rompe el acceso a sus materiales de apoyo.
 
-The extracted examples are authoring material, not already-installed plugins.
-Hello and the focused recipes include built packages you can copy into the writable
-plugins directory. The official projects are source references; four have reserved Core
-IDs and cannot be installed as unchanged Community copies. Follow the example guide;
-do not install the entire skill folder as a LearnHarness plugin.
+Los ejemplos extraídos son material de autoría, no plugins ya instalados.
+Hello y las recetas centradas incluyen paquetes compilados que puedes copiar en el
+directorio de plugins con permiso de escritura. Los proyectos oficiales son referencias de
+código fuente; cuatro tienen IDs reservados del núcleo y no pueden instalarse como copias
+de la comunidad sin cambios. Sigue la guía de ejemplos; no instales la carpeta completa de
+la skill como un plugin de LearnHarness.
 
-## Compatibility
+## Compatibilidad
 
-Read `bundle.json` for the producing **app version**, **plugin API version** and
-**SDK package version**. These are different version numbers. API v1 can gain
-capabilities without changing its API number; use the documentation and types from
-the app you are targeting, rather than assuming every API-v1 host has every feature.
+Lee `bundle.json` para conocer la **versión de la app** que lo produjo, la **versión de la
+API de plugins** y la **versión del paquete del SDK**. Son números de versión distintos. La
+API v1 puede ganar capacidades sin cambiar su número; usa la documentación y los tipos de la
+app a la que te diriges, en lugar de suponer que todo host con la API v1 tiene todas las
+funciones.
 
-The exported Hello/recipe distribution manifests conservatively require at least the
-producing app version. Official source-reference manifests are preserved unchanged;
-use the producing version to identify the matching API rather than treating those
-source manifests as standalone compatibility guarantees. For your own plugin, choose an older `minAppVersion` only after checking
-that the older app supplies every capability you use. After an app update, download
-a fresh matching skill when you want to use new APIs. This bundle does not promise
-forward compatibility or change the host's compatibility rules.
+Los manifiestos de distribución exportados de Hello y de las recetas exigen, por prudencia,
+al menos la versión de la app que los produjo. Los manifiestos de las referencias de código
+oficiales se conservan sin cambios; usa la versión productora para identificar la API
+correspondiente en lugar de tratar esos manifiestos como garantías de compatibilidad
+independientes. Para tu propio plugin, elige un `minAppVersion` más antiguo solo tras
+comprobar que la app antigua ofrece todas las capacidades que usas. Tras actualizar la app,
+descarga una skill nueva que coincida cuando quieras usar API nuevas. Este paquete no
+promete compatibilidad hacia delante ni cambia las reglas de compatibilidad del host.
 
-## What's included
+## Qué incluye
 
-- `SKILL.md`: coding-agent entry point and guardrails.
-- `docs/`: the canonical authoring guide/documentation map, feature contracts, example
-  reading routes and host architecture.
-- `docs/plugin-api/`: generated, indexed Markdown for the full public API and its
-  referenced local supporting types. No website or network service is required.
-- `tools/install-plugin-local.mjs`: a dependency-free helper for outside-workspace
-  installation. The authoring guide documents the explicit-path npm command.
-- `examples/plugins/`: Hello as the starter; Managed Agent and Teaching Extension as
-  focused recipes with no-build distributions.
-- `plugins/`: the actual Flashcards, Coding Questions, Drawing Pad, Rich Code Blocks and
-  UI Showcase source projects, including build configuration, tests and licenses.
-  Generated builds, dependencies, local SDK copies and learner data are excluded.
-- `types/`: the local `learnharness-plugin-api` type-only package. It has no runtime
-  exports; TypeScript projects must supply its declared peer dependencies during
-  development. The app never installs dependencies for a plugin.
-- `bundle.json`: version information for these exact materials.
-- `LICENSE`: the existing LearnHarness AGPL license, including for the example code.
+- `SKILL.md`: punto de entrada para el agente de programación y salvaguardas.
+- `docs/`: la guía de autoría canónica y el mapa de la documentación, los contratos de
+  funcionalidades, las rutas de lectura de los ejemplos y la arquitectura del host.
+- `docs/plugin-api/`: Markdown generado e indexado de toda la API pública y de los tipos de
+  apoyo locales a los que hace referencia. No hace falta ningún sitio web ni servicio de red.
+- `tools/install-plugin-local.mjs`: un helper sin dependencias para instalar fuera del
+  espacio de trabajo. La guía de autoría documenta el comando npm con ruta explícita.
+- `examples/plugins/`: Hello como punto de partida; Managed Agent y Teaching Extension como
+  recetas centradas con distribuciones sin compilación.
+- `plugins/`: los proyectos fuente reales de Flashcards, Coding Questions, Drawing Pad,
+  Rich Code Blocks y UI Showcase, incluidas la configuración de compilación, las pruebas y
+  las licencias. Se excluyen las compilaciones generadas, las dependencias, las copias
+  locales del SDK y los datos de alumnos.
+- `types/`: el paquete local solo de tipos `learnharness-plugin-api`. No tiene
+  exportaciones en tiempo de ejecución; los proyectos TypeScript deben proporcionar sus
+  dependencias *peer* declaradas durante el desarrollo. La app nunca instala dependencias
+  para un plugin.
+- `bundle.json`: información de versiones de estos materiales exactos.
+- `LICENSE`: la licencia AGPL existente de LearnHarness, que también cubre el código de los
+  ejemplos.
 
-Keep these directories together. Build dependencies are not bundled. Some included
-source-project tests require a LearnHarness checkout or an explicitly supplied host;
-the project READMEs label those boundaries. Plugin builds, dependency installation,
-coding-agent setup and any paid/model work remain separate actions under your control.
+Mantén juntos estos directorios. Las dependencias de compilación no se incluyen. Algunas
+pruebas de los proyectos fuente incluidos requieren una copia del repositorio de
+LearnHarness o un host aportado explícitamente; los README de los proyectos señalan esos
+límites. Compilar plugins, instalar dependencias, configurar el agente de programación y
+cualquier trabajo de pago o con modelos siguen siendo acciones separadas bajo tu control.

@@ -1,70 +1,76 @@
-# First Release (0.3.0) — polish list + lock question
+# Primera versión (0.3.0): lista de pulido + la cuestión del bloqueo
 
-> **Historical planning notes (2026-10-06), not the current release checklist.**
-> The original ideas and statuses below may be superseded or unimplemented.
-> See [Desktop builds and releases](../desktop-release.md) for the current release
-> procedure, and [Architecture](../architecture.md) / [Development](../development.md)
-> for the current system and development guidance. See also the [archive index](README.md).
+> **Notas de planificación históricas (2026-10-06), no la lista de comprobación actual de
+> publicación.** Las ideas y los estados originales de más abajo pueden haber quedado
+> sustituidos o sin implementar.
+> Consulta [Compilaciones y versiones de escritorio](../desktop-release.md) para el
+> procedimiento de publicación actual, y [Arquitectura](../architecture.md) /
+> [Desarrollo](../development.md) para el sistema y la guía de desarrollo actuales. Consulta
+> también el [índice del archivo](README.md).
 
-Started 2026-10-06, owner brain-dump round. Priority 1 — everything else (assessment levels → docs/vision-assessment.md) comes after. Items are captured as spoken; design decisions inside them are **unruled** unless marked.
+Empezado el 2026-10-06, ronda de volcado de ideas del propietario. Prioridad 1: todo lo demás (niveles de evaluación → docs/vision-assessment.md) va después. Los puntos se recogen tal como se dijeron; las decisiones de diseño que contienen están **sin decidir** salvo que se indique.
 
-## Polish items (owner list, 2026-10-06)
+## Puntos de pulido (lista del propietario, 2026-10-06)
 
-1. **Graph rendering toggle — separate from the extraction pipeline.**
-   Today's graph on/off switch toggles extraction. Wanted: two switches —
-   one for the *pipeline* (named for what it does), one for *rendering*
-   ("graph on/off" = the graph view renders or not). Data, chains model,
-   extraction all keep working with rendering off.
-   - Open: **what is the home view when graph rendering is off?** It must
-     keep the import-notes button, the chains-view button, and the graph
-     pipeline cost readout. Candidate raised and not rejected: the chains
-     view (the chain table is already a complete non-graph presentation of
-     propositions + chains). A "giant DAG" was raised and rejected. Unruled.
-2. **Keyboard navigation for questions** — arrow buttons (next/previous
-   question) are currently click-only; make them real keybinds, with VIM
-   bindings (j/k or similar) as the goal. Maybe rebindable, maybe not — unruled.
-3. **Session naming.** First-message-as-name is not clean (the first message
-   is always long). Owner dislikes LLM-generated names. A naming popup after
-   first send was considered — possibly annoying; unruled. (Fact: the top-bar
-   title is already click-to-rename; whatever lands should agree with it.)
-4. **Export sessions as markdown** — likely a right-click action on a session
-   in the sidebar. (Fact: core/session-markdown.ts already renders whole
-   sessions to markdown for extraction — the serialization exists.)
-5. **Export the reasoning chains / graph** — format unruled (JSON is the
-   obvious candidate: serve the graph snapshot). Placement unruled.
-6. **Graph default settings refinement** — current defaults not ideal; minor.
-7. **Compaction summary dialog** — covers the entire screen and doesn't look
-   good; Esc prompts a dismiss question instead of just closing. Law stated:
-   **Esc always acts on the current element on screen.**
-8. **General keyboard audit** — everything must work from the keyboard; some
-   minor things don't. Examples to be enumerated in the round.
+1. **Interruptor del render del grafo, separado del flujo de extracción.**
+   Hoy el interruptor de activar/desactivar el grafo activa o desactiva la extracción. Se
+   quieren dos interruptores: uno para el *flujo* (con un nombre que diga lo que hace) y
+   otro para el *render* ("grafo activado/desactivado" = la vista del grafo se representa o
+   no). Los datos, el modelo de cadenas y la extracción siguen funcionando con el render
+   desactivado.
+   - Abierto: **¿cuál es la vista de inicio cuando el render del grafo está desactivado?**
+     Debe conservar el botón de importar notas, el botón de la vista de cadenas y el
+     indicador de coste del flujo del grafo. Candidata planteada y no rechazada: la vista de
+     cadenas (la tabla de cadenas ya es una presentación completa, sin grafo, de las
+     proposiciones + las cadenas). Se planteó y se rechazó un "DAG gigante". Sin decidir.
+2. **Navegación con teclado para las preguntas**: los botones de flecha (pregunta
+   siguiente/anterior) ahora solo funcionan con clic; convertirlos en atajos de teclado
+   reales, con atajos de VIM (j/k o similar) como objetivo. Quizá reasignables, quizá no;
+   sin decidir.
+3. **Nombres de las sesiones.** Usar el primer mensaje como nombre no queda limpio (el
+   primer mensaje siempre es largo). Al propietario no le gustan los nombres generados por
+   un LLM. Se consideró una ventana emergente para poner nombre tras el primer envío;
+   posiblemente molesta; sin decidir. (Hecho: el título de la barra superior ya permite
+   renombrar con un clic; lo que se haga debe ser coherente con ello).
+4. **Exportar sesiones como markdown**: probablemente una acción del menú contextual de una
+   sesión en la barra lateral. (Hecho: core/session-markdown.ts ya representa sesiones
+   completas en markdown para la extracción; la serialización existe).
+5. **Exportar las cadenas de razonamiento / el grafo**: formato sin decidir (JSON es el
+   candidato obvio: servir la instantánea del grafo). Ubicación sin decidir.
+6. **Ajuste de los valores por defecto del grafo**: los valores actuales no son ideales;
+   menor.
+7. **Diálogo de resumen de la compactación**: cubre toda la pantalla y no queda bien; Esc
+   muestra una pregunta de descarte en lugar de simplemente cerrar. Norma establecida:
+   **Esc siempre actúa sobre el elemento actual en pantalla.**
+8. **Auditoría general del teclado**: todo debe funcionar desde el teclado; algunas cosas
+   menores no lo hacen. Los ejemplos se enumerarán en la ronda.
 
-## What does "released" change in development? (the lock question)
+## ¿Qué cambia en el desarrollo al "publicar"? (la cuestión del bloqueo)
 
-Position agreed 2026-10-06: releasing means **on-disk user data acquires
-compatibility obligations** — after 0.3.0, persistent-schema changes are
-migrations with tolerant reads, not free edits plus wipe-your-dev-data.
-Nothing is frozen forever; the discipline changes.
+Postura acordada el 2026-10-06: publicar significa que **los datos de usuario en disco
+adquieren obligaciones de compatibilidad**: después de la 0.3.0, los cambios del esquema
+persistente son migraciones con lecturas tolerantes, no ediciones libres más borrar tus
+datos de desarrollo. Nada queda congelado para siempre; cambia la disciplina.
 
-Persistent surfaces (the obligation set):
-- `data/chats/*.json` — ChatRecord: messages (pi-ai wire shapes: thinking
-  blocks, toolCalls, usage), turns, kind, graphContext. The deepest lock —
-  and coupled to the pi-ai library's serialization (a pi-ai bump becomes a
-  migration event post-release).
-- `data/graph/` — nodes.jsonl, chains.jsonl, coverage.jsonl, sources.json,
-  sessions.jsonl (append-only ledgers), positions.json, render-settings.json.
-- `data/settings.json` (models, toggles, compaction…), `auth.json` (BYOK keys).
-- Client localStorage (camera, filters, zoom, kind filter).
-- `data/jobs/` — treat as scratch/transient, no obligation.
+Superficies persistentes (el conjunto de obligaciones):
+- `data/chats/*.json`: ChatRecord: mensajes (formas de comunicación de pi-ai: bloques de
+  razonamiento, toolCalls, uso), turnos, kind, graphContext. El bloqueo más profundo, y
+  acoplado a la serialización de la biblioteca pi-ai (tras la publicación, actualizar pi-ai
+  pasa a ser un evento de migración).
+- `data/graph/`: nodes.jsonl, chains.jsonl, coverage.jsonl, sources.json,
+  sessions.jsonl (libros de solo añadir), positions.json, render-settings.json.
+- `data/settings.json` (modelos, interruptores, compactación…), `auth.json` (claves BYOK).
+- localStorage del cliente (cámara, filtros, zoom, filtro de tipo).
+- `data/jobs/`: se trata como temporal, sin obligación.
 
-Known gaps to close *before* release (proposals, unruled):
-- **No schemaVersion anywhere.** Cheap now, load-bearing later: stamp
-  ChatRecord, settings, and the ledgers with a version at write time;
-  readers default missing → current. This is what makes later migrations
-  painless.
-- **Pin pi-ai/pi-agent-core exact versions** so record shapes move only
-  deliberately.
-- Release engineering outside code: signing/notarization await Apple
-  Developer enrollment (DMG is unsigned today); no auto-updater (manual
-  download acceptable for 0.3.0 if stated); packaged-app data location
-  already correct (LH_DATA_DIR → userData).
+Huecos conocidos que cerrar *antes* de publicar (propuestas, sin decidir):
+- **No hay schemaVersion en ningún sitio.** Barato ahora, fundamental después: marcar
+  ChatRecord, los ajustes y los libros con una versión al escribir; los lectores tratan la
+  ausencia como la versión actual. Esto es lo que hace indoloras las migraciones
+  posteriores.
+- **Fijar las versiones exactas de pi-ai/pi-agent-core** para que las formas de los
+  registros solo cambien de forma deliberada.
+- Ingeniería de publicación fuera del código: la firma y la notarización esperan a la
+  inscripción en Apple Developer (hoy el DMG no está firmado); no hay actualizador
+  automático (la descarga manual es aceptable para la 0.3.0 si se indica); la ubicación de
+  los datos en la app empaquetada ya es correcta (LH_DATA_DIR → userData).
