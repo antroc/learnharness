@@ -1,17 +1,19 @@
 # Hello plugin
 
-Copy this directory into the plugins directory shown in **Settings → Community plugins**,
-keeping the `hello-plugin/` folder and its required `dist/manifest.json`. No build is
-needed. Refresh and enable **Hello plugin**. Edit runtime files in `dist/` and restart
-LearnHarness after changing loaded code. Persistent data, if added, belongs in sibling
-`hello-plugin/data/`, never `dist/data/`; preserve it when replacing `dist/`.
-Nothing is installed or enabled automatically.
+Copia este directorio en el directorio de plugins que se muestra en **Ajustes → Plugins de la comunidad**,
+conservando la carpeta `hello-plugin/` y su `dist/manifest.json` obligatorio. No hace falta
+compilar nada. Actualiza y activa **Hello plugin**. Edita los ficheros de runtime en `dist/` y
+reinicia LearnHarness después de cambiar código ya cargado. Los datos persistentes, si se
+añaden, van en la carpeta hermana `hello-plugin/data/`, nunca en `dist/data/`; consérvalos
+al sustituir `dist/`. No se instala ni se activa nada automáticamente.
 
-This minimal frontend-only example registers a `hello` view and a separate `open`
-action. Explicit placements expose the action in the sidebar, graph, and teaching /
-practice session top bars. Registering a view or action alone adds no chrome.
+Este ejemplo mínimo, solo de frontend, registra una vista `hello` y una acción `open`
+aparte. Las ubicaciones explícitas muestran la acción en la barra lateral, en el grafo y en
+las barras superiores de las sesiones de enseñanza / práctica. Registrar una vista o una
+acción por sí solo no añade ningún elemento a la interfaz.
 
-Open the view and click **Say hello** to see a host-owned button and standard dialog
-with plugin-owned DOM content. All widgets receive the view's `{ signal }`, so closing
-the view or disabling the plugin tears them down. The custom settings mount is just
-explanatory text: there are no invented schema settings, backend, or model requests.
+Abre la vista y haz clic en **Say hello** para ver un botón propiedad del host y un diálogo
+estándar con contenido DOM propiedad del plugin. Todos los widgets reciben el `{ signal }` de
+la vista, así que cerrar la vista o desactivar el plugin los desmonta. El montaje de ajustes
+personalizado es solo texto explicativo: no hay ajustes de esquema inventados, ni backend, ni
+peticiones al modelo.
