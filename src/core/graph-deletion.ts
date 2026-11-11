@@ -1,57 +1,64 @@
 /**
- * Session deletion — the FIRST destructive operation on the append-only
- * graph ledgers (owner ruling 2026-09-22, wave 6 chunk A).
+ * Borrado de sesiones — la PRIMERA operación destructiva sobre los registros
+ * de solo añadido del grafo (decisión del responsable del 2026-09-22, oleada
+ * 6, fragmento A).
  *
- * Until now mergeFindings has been the sole writer; deletion is the second,
- * and it is held to the same discipline: PURE code over the storage ports
- * (core/ports.ts), no LLM judgment anywhere, deterministic and idempotent.
- * The caller (the DELETE /api/chats/[id] route through the server
- * orchestration) owns the cross-store choreography (chat record, jobs,
- * extraction wind-down); this module owns the LEDGERS.
+ * Hasta ahora mergeFindings era el único escritor; el borrado es el segundo,
+ * y se le exige la misma disciplina: código PURO sobre los puertos de
+ * almacenamiento (core/ports.ts), ningún juicio de LLM en ninguna parte,
+ * determinista e idempotente. Quien llama (la ruta DELETE /api/chats/[id] a
+ * través de la orquestación del servidor) se encarga de la coreografía entre
+ * stores (registro del chat, tareas, cierre de la extracción); este módulo se
+ * encarga de los REGISTROS.
  *
- * CHAINS-PRIMARY (owner, 2026-09-30): the stored truth is propositions +
- * reasoning chains; edges are a derived view. Deletion therefore operates
- * on CHAIN LINES where it used to operate on edge lines — a chain dies
- * when its provenance empties or any member node died — and the derived
- * view follows on the next read, never rewritten here.
+ * CADENAS PRIMERO (responsable, 2026-09-30): la verdad guardada son las
+ * proposiciones + las cadenas de razonamiento; las aristas son una vista
+ * derivada. Por eso el borrado opera sobre LÍNEAS DE CADENA donde antes
+ * operaba sobre líneas de arista — una cadena muere cuando su procedencia se
+ * vacía o muere cualquiera de sus nodos miembro — y la vista derivada se
+ * ajusta en la siguiente lectura, nunca se reescribe aquí.
  *
- * Two modes (owner-locked semantics):
+ * Dos modos (semántica fijada por el responsable):
  *
- *   preserve-graph  the chat's extraction bookkeeping dies — its coverage
- *                   rows and its legacy checkpoint lines — and NOTHING else:
- *                   nodes and chains stay byte-identical.
- *                   The graph keeps the session's contributions; the
- *                   snapshot simply no longer resolves the dead chatId to
- *                   a title (nodeSessions filters unknown ids at read
- *                   time — no UI ghosting).
+ *   preserve-graph  muere la contabilidad de extracción del chat — sus filas
+ *                   de cobertura y sus líneas de punto de control heredadas —
+ *                   y NADA más: los nodos y las cadenas quedan idénticos byte
+ *                   a byte. El grafo conserva las aportaciones de la sesión;
+ *                   la instantánea simplemente ya no resuelve el chatId
+ *                   muerto a un título (nodeSessions filtra los ids
+ *                   desconocidos al leer — sin fantasmas en la interfaz).
  *
- *   delete-nodes    "this session never happened": every trace of the
- *                   chat leaves the ledgers — its provenance points on
- *                   every node and chain line, its link lines (their
- *                   phrasings die with them), its coverage/checkpoint
- *                   rows — and orphans die: a node
- *                   whose references all came from this chat disappears
- *                   entirely, pruned from the positions ledger too (dead
- *                   members would break cluster hulls).
+ *   delete-nodes    «esta sesión nunca ocurrió»: todo rastro del chat sale
+ *                   de los registros — sus puntos de procedencia en cada
+ *                   línea de nodo y de cadena, sus líneas de enlace (sus
+ *                   formulaciones mueren con ellas), sus filas de cobertura y
+ *                   de punto de control — y los huérfanos mueren: un nodo
+ *                   cuyas referencias vinieran todas de este chat desaparece
+ *                   por completo, podado también del registro de posiciones
+ *                   (los miembros muertos romperían las envolventes de los
+ *                   clústeres).
  *
- * Shared nodes survive automatically (the ruling): a node lives iff ANY
- * surviving reference remains — a provenance point from another chat or
- * notes source. The create line of a surviving node is special:
- * name/statement/createdAt are the node's IDENTITY — the shared anchor
- * other sessions' link verdicts recognized — so they stay even when the
- * deleted chat created the node; but that session's phrasings (the line's
- * aliases) are stripped and its provenance points removed (owner ruling
- * 2026-09-23: all traces, identity survives).
+ * Los nodos compartidos sobreviven automáticamente (la decisión): un nodo
+ * vive si y solo si queda ALGUNA referencia superviviente — un punto de
+ * procedencia de otro chat o de una fuente de notas. La línea de creación de
+ * un nodo superviviente es especial: name/statement/createdAt son la
+ * IDENTIDAD del nodo — el ancla compartida que reconocieron los veredictos de
+ * enlace de otras sesiones — así que se quedan aunque el chat borrado creara
+ * el nodo; pero las formulaciones de esa sesión (los alias de la línea) se
+ * eliminan y se quitan sus puntos de procedencia (decisión del responsable
+ * del 2026-09-23: todos los rastros, la identidad sobrevive).
  *
- * This contribution purge also accepts imported-source IDs. Source records,
- * conversations and organizational placement remain caller-owned; this
- * module rewrites graph ledgers only.
+ * Esta purga de aportaciones acepta también ids de fuentes importadas. Los
+ * registros de las fuentes, las conversaciones y la ubicación organizativa
+ * siguen siendo responsabilidad de quien llama; este módulo solo reescribe
+ * los registros del grafo.
  *
- * Resurrection safety: the deletion runs as ONE synchronous block (no
- * awaits — atomic vs the event loop, so no extraction append can
- * interleave), and the extraction pipeline re-checks the chat record
- * before each batch's merge (a deleted chat never merges). Both seams
- * together close every corrupt/resurrect path.
+ * Seguridad frente a resurrecciones: el borrado se ejecuta como UN bloque
+ * síncrono (sin awaits — atómico respecto al bucle de eventos, así que ningún
+ * añadido de la extracción puede intercalarse), y el proceso de extracción
+ * vuelve a comprobar el registro del chat antes de fusionar cada lote (un
+ * chat borrado nunca se fusiona). Ambas fronteras juntas cierran todos los
+ * caminos de corrupción o resurrección.
  */
 
 import type {
@@ -62,21 +69,23 @@ import type {
 } from "./contracts.ts";
 import type { GraphStore } from "./ports.ts";
 
-/** The two deletion modes (owner-locked 2026-09-22). Machine-checkable on
- *  the API as the required `mode` query param — no default, so no
- *  accidental destructive choice. */
+/** Los dos modos de borrado (fijados por el responsable el 2026-09-22).
+ *  Comprobables por máquina en la API como el parámetro de consulta
+ *  obligatorio `mode` — sin valor por defecto, así que no hay elección
+ *  destructiva accidental. */
 export type ChatDeleteMode = "preserve-graph" | "delete-nodes";
 
-/** What one deletion removed from the ledgers (the DELETE response's
- *  stats; the UI can show "3 topics, 2 links removed" from this). */
+/** Lo que un borrado quitó de los registros (las estadísticas de la respuesta
+ *  de DELETE; con esto la interfaz puede mostrar «3 temas, 2 enlaces
+ *  eliminados»). */
 export interface ChatDeletionStats {
-	/** Distinct nodes that died entirely (all their lines). */
+	/** Nodos distintos que murieron por completo (todas sus líneas). */
 	nodesRemoved: number;
-	/** Chain assertion LINES removed (empty-provenance or dead member). */
+	/** LÍNEAS de afirmación de cadena eliminadas (procedencia vacía o miembro muerto). */
 	chainsRemoved: number;
-	/** Coverage rows removed. */
+	/** Filas de cobertura eliminadas. */
 	coverageRemoved: number;
-	/** Checkpoint lines removed. */
+	/** Líneas de punto de control eliminadas. */
 	checkpointsRemoved: number;
 }
 
@@ -88,24 +97,25 @@ const EMPTY_STATS: ChatDeletionStats = {
 };
 
 /**
- * Remove one chat's traces from the graph ledgers. Synchronous by design
- * (the atomicity argument above); idempotent (a second run finds nothing
- * and returns zero stats).
+ * Elimina los rastros de un chat de los registros del grafo. Síncrono por
+ * diseño (el argumento de atomicidad de arriba); idempotente (una segunda
+ * ejecución no encuentra nada y devuelve estadísticas a cero).
  */
 export function deleteChatTraces(graphStore: GraphStore, chatId: string, mode: ChatDeleteMode): ChatDeletionStats {
 	return deleteSourcesTraces(graphStore, new Set([chatId]), mode);
 }
 
-/** The same provenance rules for a selected batch, with one ledger rewrite
- * rather than reparsing/rewriting the whole graph once per imported file. */
+/** Las mismas reglas de procedencia para un lote seleccionado, con una sola
+ * reescritura de registros en lugar de volver a analizar/reescribir el grafo
+ * entero una vez por cada fichero importado. */
 export function deleteSourcesTraces(graphStore: GraphStore, sourceIds: ReadonlySet<string>, mode: ChatDeleteMode): ChatDeletionStats {
 	if (mode !== "preserve-graph" && mode !== "delete-nodes") {
 		throw new Error(`Unknown deletion mode: ${mode as string}`);
 	}
 
-	// The bookkeeping rows die in BOTH modes — coverage and checkpoints
-	// are extraction state, not graph content (owner semantics: even
-	// preserve-graph deletes "the chat's coverage rows").
+	// Las filas de contabilidad mueren en AMBOS modos — la cobertura y los puntos de
+	// control son estado de la extracción, no contenido del grafo (semántica del
+	// responsable: incluso preserve-graph borra «las filas de cobertura del chat»).
 	if (sourceIds.size === 0) return { ...EMPTY_STATS };
 	const coverage = graphStore.readCoverage().filter((row) => !sourceIds.has(row.chatId));
 	const checkpoints = graphStore.readCheckpoints().filter((row) => !sourceIds.has(row.chatId));
@@ -122,14 +132,14 @@ export function deleteSourcesTraces(graphStore: GraphStore, sourceIds: ReadonlyS
 		return stats;
 	}
 
-	// ── delete-nodes: the full purge ──────────────────────────────────────
+	// ── delete-nodes: la purga completa ───────────────────────────────────
 	const nodeLines = graphStore.readNodes();
 	const chainLines = graphStore.readChains();
 
-	// Does the chat touch the graph at all? (A never-extracted chat still
-	// needs its coverage rows dropped above, but no ledger rewrite — keeps
-	// mtimes stable so the graph revision only moves when something really
-	// changed.)
+	// ¿Toca el chat el grafo en algo? (Un chat nunca extraído sigue necesitando que
+	// se quiten arriba sus filas de cobertura, pero no reescribir los registros —
+	// así los mtimes se mantienen estables y la revisión del grafo solo se mueve
+	// cuando algo cambió de verdad.)
 	const touched =
 		nodeLines.some((line) => line.provenance.some((pt) => sourceIds.has(pt.chatId))) ||
 		chainLines.some((line) => line.provenance.some((pt) => sourceIds.has(pt.chatId)));
@@ -140,41 +150,41 @@ export function deleteSourcesTraces(graphStore: GraphStore, sourceIds: ReadonlyS
 		return stats;
 	}
 
-	// 1. Survival: a node lives iff a reference from ANY surviving source
-	//    remains — another chat/src's provenance point on any of its lines.
-	//    (Chain members are deliberately NOT survival references: a
-	//    chain's asserting session always left provenance on its endpoints,
-	//    so endpoint-only liveness cannot occur in a consistent ledger —
-	//    and counting it would keep nodes alive whose lines we would then
-	//    drop, dangling the chain.)
+	// 1. Supervivencia: un nodo vive si y solo si queda una referencia de ALGUNA
+	//    fuente superviviente — un punto de procedencia de otro chat/fuente en
+	//    cualquiera de sus líneas. (Los miembros de cadena NO son referencias de
+	//    supervivencia a propósito: la sesión que afirmó una cadena siempre dejó
+	//    procedencia en sus extremos, así que una vida solo por extremos no puede
+	//    darse en un registro coherente — y contarla mantendría vivos nodos cuyas
+	//    líneas luego descartaríamos, dejando la cadena colgando.)
 	const survives = (points: ReadonlyArray<{ chatId: string }>): boolean =>
 		points.some((pt) => !sourceIds.has(pt.chatId));
 	const touchedNodes = new Set(nodeLines.filter((line) => line.provenance.some((pt) => sourceIds.has(pt.chatId))).map((line) => line.id));
 	const live = new Set<string>();
 	for (const line of nodeLines) {
-		// Unrelated provenance-free legacy nodes are outside this deletion's
-		// blast radius, not orphans created by removing this source.
+		// Los nodos heredados sin procedencia y sin relación quedan fuera del radio de
+		// acción de este borrado; no son huérfanos creados al quitar esta fuente.
 		if (!touchedNodes.has(line.id) || survives(line.provenance)) live.add(line.id);
 	}
 
-	// 2. Node lines. Per-line (each line is ONE extraction run's append, so
-	//    per-session alias provenance exists at line granularity):
-	//      dead node            every line dies
-	//      untouched line        kept verbatim
-	//      partially-deleted     kept with the chat's points stripped
-	//                           (defensive — single-run lines never mix chats)
-	//      all points deleted    CREATE line: identity survives, aliases
-	//                           stripped (owner ruling 2026-09-23), points
-	//                           empty / LINK line: dies with its phrasings
+	// 2. Líneas de nodo. Por línea (cada línea es el añadido de UNA ejecución de
+	//    extracción, así que la procedencia de alias por sesión existe a nivel de línea):
+	//      nodo muerto           muere cada línea
+	//      línea no tocada       se conserva literal
+	//      borrada en parte      se conserva sin los puntos del chat
+	//                           (defensivo — las líneas de una ejecución no mezclan chats)
+	//      todos los puntos      línea CREATE: la identidad sobrevive, alias
+	//      borrados             eliminados (decisión del 2026-09-23), puntos
+	//                           vacíos / línea LINK: muere con sus formulaciones
 	const outNodes: GraphNode[] = [];
 	const seenIds = new Set<string>();
 	for (const line of nodeLines) {
-		if (!live.has(line.id)) continue; // the whole node dies
+		if (!live.has(line.id)) continue; // muere el nodo entero
 		const first = !seenIds.has(line.id);
 		seenIds.add(line.id);
 		const points = line.provenance.filter((pt) => !sourceIds.has(pt.chatId));
 		if (points.length === line.provenance.length) {
-			outNodes.push(line); // untouched by this chat
+			outNodes.push(line); // este chat no la tocó
 			continue;
 		}
 		if (points.length > 0) {
@@ -182,29 +192,29 @@ export function deleteSourcesTraces(graphStore: GraphStore, sourceIds: ReadonlyS
 			continue;
 		}
 		if (first) {
-			// The create line of a surviving node the deleted chat minted:
-			// name/statement/createdAt are the shared identity other
-			// sessions recognized — they stay; the session's phrasings and
-			// provenance die (all traces, owner 2026-09-23).
+			// La línea de creación de un nodo superviviente que acuñó el chat borrado:
+			// name/statement/createdAt son la identidad compartida que reconocieron otras
+			// sesiones — se quedan; las formulaciones y la procedencia de la sesión
+			// mueren (todos los rastros, responsable 2026-09-23).
 			outNodes.push({ ...line, provenance: [], aliases: [] });
 		}
-		// else: the deleted chat's link line — dies with its phrasings.
+		// si no: la línea de enlace del chat borrado — muere con sus formulaciones.
 	}
 
-	// 3. Chains: strip the chat's points; an assertion dies when its
-	//    provenance empties or ANY member node (premise or conclusion)
-	//    died IN THIS DELETION. (Only nodes that existed and died count —
-	//    a chain whose members never resolved as nodes is foreign data the
-	//    deletion leaves alone: destructive rewriting may not exceed the
-	//    deleted chat's blast radius.)
+	// 3. Cadenas: se quitan los puntos del chat; una afirmación muere cuando su
+	//    procedencia se vacía o CUALQUIER nodo miembro (premisa o conclusión)
+	//    murió EN ESTE BORRADO. (Solo cuentan los nodos que existían y murieron —
+	//    una cadena cuyos miembros nunca se resolvieron como nodos son datos
+	//    ajenos que el borrado deja en paz: la reescritura destructiva no puede
+	//    exceder el radio de acción del chat borrado.)
 	const deadNodes = new Set([...new Set(nodeLines.map((line) => line.id))].filter((id) => !live.has(id)));
 	const outChains: GraphChain[] = [];
 	for (const line of chainLines) {
 		if (deadNodes.has(line.conclusion) || line.premises.some((premise) => deadNodes.has(premise))) continue;
 		const points = line.provenance.filter((pt) => !sourceIds.has(pt.chatId));
-		// An assertion dies when THIS deletion empties its provenance — a
-		// line that already had no points is foreign/legacy data, not this
-		// chat's trace; it rides untouched.
+		// Una afirmación muere cuando ESTE borrado vacía su procedencia — una línea que
+		// ya no tenía puntos son datos ajenos o heredados, no un rastro de este chat;
+		// se queda intacta.
 		if (line.provenance.length > 0 && points.length === 0) continue;
 		outChains.push(points.length === line.provenance.length ? line : { ...line, provenance: points });
 	}
@@ -219,10 +229,10 @@ export function deleteSourcesTraces(graphStore: GraphStore, sourceIds: ReadonlyS
 		checkpoints,
 	});
 
-	// 4. Positions: prune dead nodes AND dead chains (an argument's derived
-	//    implication node carries the chain's arg_ id — stale resting spots
-	//    would pin nothing; pruning keeps the ledger honest and the
-	//    revision moving for exactly the right reason).
+	// 4. Posiciones: se podan los nodos muertos Y las cadenas muertas (el nodo de
+	//    implicación derivado de un argumento lleva el id arg_ de la cadena — unos
+	//    puntos de reposo obsoletos no fijarían nada; podar mantiene honesto el
+	//    registro y la revisión avanzando exactamente por el motivo correcto).
 	const deadChainIds = new Set(
 		chainLines
 			.filter((line) => !outChains.includes(line))
@@ -242,41 +252,43 @@ export function deleteSourcesTraces(graphStore: GraphStore, sourceIds: ReadonlyS
 	return stats;
 }
 
-// ─── single-node deletion (node interlude, owner-locked full-death) ───────────
+// ─── borrado de un solo nodo (interludio de nodos, muerte total del responsable) ─
 
 /**
- * FULL DEATH for one node, by id (owner ruling 2026-09-23): the user
- * pointing at the node IS the intent — references from other sessions do
- * NOT preserve it. The remedy for undeletable nodes (preserve-graph
- * orphans from session deletion; notes-import nodes with no chat behind
- * them), and the deliberate inverse of the chat cascade above: that one
- * deletes a SESSION and lets nodes survive on foreign references; this
- * one deletes a NODE and takes its every trace —
+ * MUERTE TOTAL de un nodo, por id (decisión del responsable del 2026-09-23):
+ * que el usuario señale el nodo ES la intención — las referencias de otras
+ * sesiones NO lo preservan. Es el remedio para los nodos imborrables
+ * (huérfanos de preserve-graph tras borrar sesiones; nodos importados de
+ * notas sin chat detrás) y el inverso deliberado de la cascada de chats de
+ * arriba: aquella borra una SESIÓN y deja sobrevivir los nodos por
+ * referencias ajenas; esta borra un NODO y se lleva todos sus rastros —
  *
- *   - every line of the node (create + link lines)
- *   - every CHAIN referencing it (as premise or conclusion), whatever
- *     session asserted it — a chain with a dead member is not a chain
- *   - its resting position (and every dead chain's)
+ *   - todas las líneas del nodo (líneas de creación + de enlace)
+ *   - todas las CADENAS que lo referencian (como premisa o conclusión),
+ *     la afirmara la sesión que fuera — una cadena con un miembro muerto no
+ *     es una cadena
+ *   - su posición de reposo (y la de cada cadena muerta)
  *
- * An ARGUMENT deletion is the same call with an arg_-prefixed id (owner,
- * 2026-09-30: the chain table's fenced delete kills chains): the "node"
- * is the derived implication node whose id IS the chain's id.
+ * Borrar un ARGUMENTO es la misma llamada con un id con prefijo arg_
+ * (responsable, 2026-09-30: el borrado protegido de la tabla de cadenas mata
+ * cadenas): el «nodo» es el nodo de implicación derivado cuyo id ES el id de
+ * la cadena.
  *
- * The blast radius is exactly the rows naming the id: other nodes'
- * provenance, aliases, and sessions are untouched (full death is
- * NODE-scoped, not session-scoped), and the source records of notes
- * imports stay (the import's bookkeeping; deleting one proposition is not
- * deleting the file). Derived data needs no pruning: the birth partition
- * derives on read (the cluster shrinks below MIN_CLUSTER_SIZE and stops
- * rendering — fine), and no other consumer indexes nodes by id across
- * ledgers.
+ * El radio de acción son exactamente las filas que nombran el id: la
+ * procedencia, los alias y las sesiones de otros nodos quedan intactos (la
+ * muerte total tiene ámbito de NODO, no de sesión), y los registros de fuente
+ * de las importaciones de notas se quedan (la contabilidad de la
+ * importación; borrar una proposición no es borrar el fichero). Los datos
+ * derivados no necesitan poda: la partición por nacimiento se deriva al leer
+ * (el clúster baja de MIN_CLUSTER_SIZE y deja de mostrarse — está bien), y
+ * ningún otro consumidor indexa nodos por id entre registros.
  *
- * Synchronous, one rewriteLedgers call, no awaits (the same atomicity
- * argument as the chat cascade); idempotent in the wave-6 sense — a
- * second run finds no lines and changes nothing.
+ * Síncrono, una llamada a rewriteLedgers, sin awaits (el mismo argumento de
+ * atomicidad que la cascada de chats); idempotente en el sentido de la
+ * oleada 6 — una segunda ejecución no encuentra líneas y no cambia nada.
  */
 export interface NodeDeletionStats {
-	/** Chain assertion LINES removed (every chain referencing the node). */
+	/** LÍNEAS de afirmación de cadena eliminadas (todas las cadenas que referencian el nodo). */
 	chainsRemoved: number;
 }
 
@@ -289,20 +301,21 @@ function chainLinesOf(graphStore: GraphStore, chainId: string): GraphChain[] {
 }
 
 /**
- * Full-death one node (or one argument, by its arg_ id). Returns null
- * when no such node/chain exists (the orchestration maps that to 404);
- * rewrites only the ledgers that changed (unchanged files keep their
- * mtimes — the version stamp moves only when something really did).
+ * Muerte total de un nodo (o de un argumento, por su id arg_). Devuelve null
+ * cuando no existe ese nodo/cadena (la orquestación lo traduce a 404); solo
+ * reescribe los registros que cambiaron (los ficheros sin cambios conservan
+ * sus mtimes — el sello de versión solo se mueve cuando algo cambió de
+ * verdad).
  */
 export function deleteNodeTraces(graphStore: GraphStore, nodeId: string): NodeDeletionStats | null {
 	const chainLines = graphStore.readChains();
 
-	// The argument branch: an arg_ id names a CHAIN, not a proposition —
-	// its lines die, and that is the whole death (the member propositions
-	// survive: deleting an argument spares its premises/conclusion).
+	// La rama del argumento: un id arg_ nombra una CADENA, no una proposición —
+	// mueren sus líneas, y esa es toda la muerte (las proposiciones miembro
+	// sobreviven: borrar un argumento respeta sus premisas/conclusión).
 	if (nodeId.startsWith("arg_")) {
 		const outChains = chainLines.filter((line) => line.id !== nodeId);
-		if (outChains.length === chainLines.length) return null; // unknown argument
+		if (outChains.length === chainLines.length) return null; // argumento desconocido
 		graphStore.rewriteLedgers({ chains: outChains });
 		const positions = graphStore.readPositions();
 		if (positions[nodeId] !== undefined) {
@@ -319,15 +332,15 @@ export function deleteNodeTraces(graphStore: GraphStore, nodeId: string): NodeDe
 		(line) => line.conclusion !== nodeId && !line.premises.includes(nodeId),
 	);
 
-	// Only the touched ledgers: the node's own lines always die (its file
-	// must move), everything else rewrites only when rows actually drop.
+	// Solo los registros tocados: las líneas propias del nodo siempre mueren (su fichero
+	// debe cambiar); lo demás solo se reescribe cuando de verdad se descartan filas.
 	const outNodes = graphStore.readNodes().filter((line) => line.id !== nodeId);
 	graphStore.rewriteLedgers({
 		nodes: outNodes,
 		...(outChains.length !== chainLines.length ? { chains: outChains } : {}),
 	});
 
-	// The resting positions die with the node and every dead chain.
+	// Las posiciones de reposo mueren con el nodo y con cada cadena muerta.
 	const deadChainIds = new Set(chainLines.filter((line) => !outChains.includes(line)).map((line) => line.id));
 	const positions = graphStore.readPositions();
 	const prunedPositions = Object.fromEntries(

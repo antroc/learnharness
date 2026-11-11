@@ -4,24 +4,26 @@ import { attachImpToCommunities, birthSessionPartition } from "./session-cluster
 import { deriveView, getGraph } from "./graph.ts";
 
 /**
- * The merge-time settle: recompute the resting layout from the CURRENT
- * graph + the positions ledger, and replace the ledger. Called by the
- * extraction pipeline after every merge (the sole writer) and by the
- * positions-commit endpoint when the graph grew under a live-physics
- * commit (client positions become the anchor set). Synchronous — it must
- * finish before the next /api/graph fetch reflects the change.
+ * El asentamiento al fusionar: recalcula la disposición de reposo a partir
+ * del grafo ACTUAL + el registro de posiciones, y sustituye el registro. Lo
+ * llama el proceso de extracción tras cada fusión (el único escritor) y el
+ * endpoint de confirmación de posiciones cuando el grafo creció durante una
+ * confirmación con física en vivo (las posiciones del cliente pasan a ser el
+ * conjunto de anclas). Síncrono — debe terminar antes de que la siguiente
+ * petición a /api/graph refleje el cambio.
  *
- * CHAINS-PRIMARY (owner, 2026-09-30): the settle lays out the DERIVED
- * view — propositions AND the derived implication nodes (one per chain,
- * arg_ ids) over the derived untyped arrows — so positions exist for
- * every node the canvas renders. Implication nodes participate in the
- * physics as regular nodes (rendering specialization comes later).
+ * CADENAS PRIMERO (responsable, 2026-09-30): el asentamiento dispone la vista
+ * DERIVADA — las proposiciones Y los nodos de implicación derivados (uno por
+ * cadena, ids arg_) sobre las flechas derivadas sin tipo — para que existan
+ * posiciones para cada nodo que dibuja el lienzo. Los nodos de implicación
+ * participan en la física como nodos normales (la especialización del
+ * renderizado llega después).
  *
- * SPLIT FROM layout.ts deliberately (2026-09-13): layout.ts is in the
- * browser barrel, and the settle needs the cluster partition for the
- * cluster centroid pull — this module must not ship in the client bundle.
- * Server code imports it DIRECTLY; it is never re-exported through
- * src/core/index.ts.
+ * SEPARADO DE layout.ts a propósito (2026-09-13): layout.ts está en el barrel
+ * del navegador, y el asentamiento necesita la partición en clústeres para la
+ * atracción hacia el centroide del clúster — este módulo no debe acabar en el
+ * bundle del cliente. El código del servidor lo importa DIRECTAMENTE; nunca
+ * se reexporta a través de src/core/index.ts.
  */
 export function settleGraphLayout(graphStore: {
 	readNodes(): GraphNode[];
@@ -33,17 +35,17 @@ export function settleGraphLayout(graphStore: {
 	if (graph.nodes.length === 0) return;
 	const view = deriveView(graph);
 	const previous = new Map(Object.entries(graphStore.readPositions()));
-	// The cluster partition for the centroid pull: the SAME birth-session
-	// partition the snapshot renders (derived from provenance on read —
-	// core/session-clusters.ts, wave 7) — one cluster concept everywhere.
-	// PROPOSITIONS ONLY (owner, 2026-09-30): implication nodes never
-	// partition; the stored world clusters, its image follows.
+	// La partición en clústeres para la atracción al centroide: la MISMA partición por
+	// sesión de nacimiento que muestra la instantánea (derivada de la procedencia al leer —
+	// core/session-clusters.ts, oleada 7) — un único concepto de clúster en todas partes.
+	// SOLO PROPOSICIONES (responsable, 2026-09-30): los nodos de implicación nunca
+	// se reparten; el mundo guardado se agrupa y su imagen lo sigue.
 	const communities = birthSessionPartition(graph.nodes);
-	// The SAME imp-node assignment the snapshot renders (majority among
-	// premises' births — core/session-clusters.ts): the resting ledger and
-	// the live sim must agree on where bundles belong, or the first live
-	// tick would fight the settle. Unfiltered here (settle pulls every
-	// community, hulls are a canvas-only concern).
+	// La MISMA asignación de nodos imp que muestra la instantánea (mayoría entre los
+	// nacimientos de las premisas — core/session-clusters.ts): el registro de reposo y la
+	// simulación en vivo deben coincidir en dónde van los haces, o el primer tick en vivo
+	// lucharía contra el asentamiento. Aquí sin filtrar (el asentamiento atrae a todas
+	// las comunidades; las envolventes son cosa solo del lienzo).
 	attachImpToCommunities(communities, graph.nodes, graph.chains);
 	const next = incrementalLayout(view.nodes, view.edges, previous, {
 		clusters: communities,

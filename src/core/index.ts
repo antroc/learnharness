@@ -1,18 +1,21 @@
 /**
- * THE CORE PUBLIC API — the only module the shell (app/, components/) may
- * import. Everything exported here is browser-safe: pure logic + types,
- * no node builtins, no fs, no network.
+ * LA API PÚBLICA DEL NÚCLEO — el único módulo que puede importar el armazón
+ * (app/, components/). Todo lo que se exporta aquí es seguro para el
+ * navegador: lógica pura + tipos, sin módulos integrados de node, sin fs, sin
+ * red.
  *
- * Server-side surfaces (chat streaming, store reads) live behind
- * src/server's barrel instead — the import law (eslint.config.mjs):
+ * Las superficies del lado del servidor (streaming del chat, lecturas de
+ * stores) viven en cambio tras el barrel de src/server — la ley de
+ * importación (eslint.config.mjs):
  *
- *   components/**  →  "@/src/core"        (this barrel, ONLY)
+ *   components/**  →  "@/src/core"        (este barrel, SOLO)
  *   app/**         →  "@/src/core" + "@/src/server"
  *
- * Server-only core modules (core/graph.ts emission/derivation) are pure
- * but need storage ports passed in by a server caller, so they are
- * deliberately NOT re-exported here — the server imports them directly.
- * The storage PORT TYPES are types-only and browser-safe, hence re-exported.
+ * Los módulos del núcleo solo de servidor (emisión/derivación de
+ * core/graph.ts) son puros pero necesitan que un llamador del servidor les
+ * pase puertos de almacenamiento, así que a propósito NO se reexportan aquí —
+ * el servidor los importa directamente. Los TIPOS DE PUERTO de almacenamiento
+ * son solo tipos y seguros para el navegador, por eso se reexportan.
  */
 
 export * from "./contracts.ts";
@@ -25,24 +28,24 @@ export * from "./source-label.ts";
 export * from "./render-settings.ts";
 
 export * from "./question-core.ts";
-// The event bus (push architecture, 2026-10-02): vocabulary + emit/subscribe
-// for every layer; the browser shell consumes the types + the runtime names
-// through this barrel (shell law: pure core via @/src/core only).
+// El bus de eventos (arquitectura push, 2026-10-02): vocabulario + emit/subscribe
+// para cada capa; el armazón del navegador consume los tipos + los nombres en tiempo
+// de ejecución a través de este barrel (ley del armazón: núcleo puro solo vía @/src/core).
 export * from "./events.ts";
-// clusters.ts (Louvain) is deliberately NOT re-exported: nothing in the
-// shell runs community detection — the snapshot carries the partition
-// from the server. Keeping it out keeps the heavy clustering deps out of the
-// client bundle (verified 2026-09-13: chunks contained it while this
-// line existed). Same logic as layout-settle.ts below.
+// clusters.ts (Louvain) NO se reexporta a propósito: nada del armazón ejecuta
+// detección de comunidades — la instantánea trae la partición del servidor.
+// Dejarlo fuera mantiene las pesadas dependencias de clustering fuera del bundle
+// del cliente (verificado el 2026-09-13: los chunks lo contenían mientras existía
+// esta línea). La misma lógica que layout-settle.ts más abajo.
 export * from "./layout.ts";
 export * from "./plan-tree.ts";
 export * from "./phases.ts";
 export * from "./pending.ts";
 export * from "./prompt-segments.ts";
 export * from "./math-delims.ts";
-// Wave B (owner-approved 2026-09-26): the native record (LhMessage), the
-// and the input-events contract — all
-// pure logic, browser-safe.
+// Oleada B (aprobada por el responsable el 2026-09-26): el registro nativo
+// (LhMessage), el y el contrato de input-events — todo
+// lógica pura, seguro para el navegador.
 export * from "./native-messages.ts";
 export { copyImmutableData } from "./immutable-data.ts";
 export * from "./compaction.ts";
@@ -52,9 +55,9 @@ export type { FilePathPart } from "./file-paths.ts";
 export * from "./citations.ts";
 export { parseComposerTokens } from "./composer-tokens.ts";
 export type { ComposerToken } from "./composer-tokens.ts";
-// Wave D (owner-approved 2026-09-26): the client view model — the grouping
-// canon (one continuous assistant document, step separators) ported from
-// the deleted server projection to the client side. Pure, browser-safe.
+// Oleada D (aprobada por el responsable el 2026-09-26): el modelo de vista del
+// cliente — el canon de agrupación (un documento continuo del asistente, separadores de
+// pasos) portado de la proyección del servidor ya eliminada al lado del cliente. Puro.
 export * from "./view.ts";
 export * from "./tool-parts.ts";
 export * from "./answer-presentation.ts";
@@ -66,40 +69,40 @@ export type { NativeSubscriptionProviderId, NativeSubscriptionLogicalId, NativeS
 export * from "./cost-summary.ts";
 export { CLAUDE_CODE_PROVIDER, CLAUDE_CODE_MINIMUM_VERSION, type ClaudeCodeStatus } from "./contracts/claude-code.ts";
 export * from "./fuzzy.ts";
-// settings.ts + settings-resolution.ts (settings-storage wave, 2026-09-19):
-// the user-settings record's shape/sanitizer (pure) and its fully-resolved
-// view. Browser-safe — the Wave-4 panel imports these directly.
+// settings.ts + settings-resolution.ts (oleada de almacenamiento de ajustes, 2026-09-19):
+// la forma/saneador del registro de ajustes del usuario (puro) y su vista totalmente
+// resuelta. Seguros para el navegador — el panel de la oleada 4 los importa directamente.
 export * from "./settings.ts";
 export * from "./file-access.ts";
-// themes.ts (theme wave, 2026-11-04): the 12-color theme vocabulary, the
-// presets and the theme → CSS-token adapter — pure, shared by the layout,
-// the provider, Settings and the themes API.
+// themes.ts (oleada de temas, 2026-11-04): el vocabulario de temas de 12 colores, los
+// preajustes y el adaptador tema → tokens CSS — puro, compartido por el layout, el
+// provider, Ajustes y la API de temas.
 export * from "./themes.ts";
 export * from "./dictation.ts";
-// graph-deletion.ts (wave 6): the whole module is PURE but storage-port
-// driven — the deletion RUNS server-side only. The shell needs exactly one
-// two type-only things from it: the ChatDeleteMode union (the delete
-// dialog's two-option design + the DELETE query param) and the stats
-// shape its success line describes, hence this type-only re-export.
+// graph-deletion.ts (oleada 6): todo el módulo es PURO pero dirigido por puertos de
+// almacenamiento — el borrado solo SE EJECUTA en el servidor. El armazón necesita
+// exactamente dos cosas solo de tipos: la unión ChatDeleteMode (el diseño de dos
+// opciones del diálogo de borrado + el parámetro de DELETE) y la forma de las
+// estadísticas que describe su línea de éxito; de ahí esta reexportación solo de tipos.
 export type { ChatDeleteMode, ChatDeletionStats } from "./graph-deletion.ts";
 export * from "./settings-resolution.ts";
-export * from "./search.ts"; // search port (search wave, 2026-09-20)
+export * from "./search.ts"; // puerto de búsqueda (oleada de búsqueda, 2026-09-20)
 export * from "./session-find.ts";
 export * from "./session-navigation.ts";
-// auth-keys.ts (auth-keys wave, 2026-09-19): the curated key catalog +
-// shape rules + masking — pure, browser-safe (the auth page binds to the
-// /api/keys routes built on it).
+// auth-keys.ts (oleada de claves de autenticación, 2026-09-19): el catálogo curado de
+// claves + reglas de forma + enmascarado — puro, seguro para el navegador (la página de
+// autenticación se enlaza con las rutas /api/keys construidas sobre él).
 export * from "./auth-keys.ts";
-// keyboard.ts: the shortcut registry + binding normalization (pure, browser-safe).
+// keyboard.ts: el registro de atajos + normalización de combinaciones (puro, seguro para el navegador).
 export * from "./keyboard.ts";
 export * from "./plugin-shortcuts.ts";
 export * from "./coverage.ts";
-// session-markdown.ts (2026-09-27 engine; first consumer 2026-10-06): the
-// ONE session→markdown formatter — the extractor's view and the user-facing
-// export share it. Pure, browser-safe.
+// session-markdown.ts (motor del 2026-09-27; primer consumidor el 2026-10-06): el
+// ÚNICO formateador sesión→markdown — lo comparten la vista del extractor y la
+// exportación de cara al usuario. Puro, seguro para el navegador.
 export * from "./session-markdown.ts";
-// side-chat.ts (shared side conversations): ask-input validation,
-// thread lookup and the side model's lesson document. Pure, browser-safe.
+// side-chat.ts (conversaciones laterales compartidas): validación de la entrada de
+// preguntas, búsqueda de hilos y el documento de lección del modelo lateral. Puro.
 export * from "./side-chat.ts";
 export * from "./plugins.ts";
 export * from "./plugin-questions.ts";

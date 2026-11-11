@@ -1,15 +1,17 @@
 import { Format } from "typebox/format";
 import { Settings } from "typebox/system";
 
-// Only copies created here carry this proof. An arbitrary plugin object, even
-// a frozen one, is not evidence of ownership or stable reads (e.g. proxies).
+// Solo las copias creadas aquí llevan esta prueba. Un objeto arbitrario de un plugin,
+// aunque esté congelado, no prueba propiedad ni lecturas estables (p. ej., proxies).
 const immutable = new WeakSet<object>();
 const container = (value: object) => Array.isArray(value) || Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null;
 const immutableValue = (value: unknown): boolean => value === null || (typeof value === "object" ? immutable.has(value) : typeof value !== "function");
 
-/** Detach host history at ingress, preserving undefined, sparse/malformed data
- * and TypeBox metadata for the existing parsers to judge. Never invoke getters
- * or freeze a caller's objects. Already owned subtrees retain their identity. */
+/** Desvincula el historial del host a la entrada, conservando undefined, los
+ * datos dispersos o mal formados y los metadatos de TypeBox para que los
+ * juzguen los analizadores existentes. Nunca invoca getters ni congela los
+ * objetos de quien llama. Los subárboles que ya son propios conservan su
+ * identidad. */
 export function copyImmutableData<T>(value: T): T {
 	const copies = new WeakMap<object, object>();
 	function copy(item: unknown): unknown {
@@ -36,12 +38,12 @@ export function copyImmutableData<T>(value: T): T {
 		return result;
 	}
 	try { return copy(value) as T; }
-	catch { return value; } // Unsupported runtime data must still reach the fail-closed readers.
+	catch { return value; } // Los datos de ejecución no admitidos deben llegar igualmente a los lectores que fallan cerrados.
 }
 
-// A compiled/parsed result must not outlive a change to TypeBox's validation
-// policy or format functions. Keep one current environment, not a registry of
-// epochs. Reading entries also notices changes made outside the host's API.
+// Un resultado compilado/analizado no debe sobrevivir a un cambio en la política de
+// validación o en las funciones de formato de TypeBox. Se guarda un entorno actual, no un
+// registro de épocas. Leer las entradas detecta también cambios hechos fuera de la API del host.
 let formats = Format.Entries();
 let settings = Object.entries(Settings.Get());
 let epoch = {};
@@ -54,9 +56,10 @@ function validationEpoch(): object {
 	return epoch;
 }
 
-/** Internal identity cache for reads of host-owned immutable data. One context
- * per weak key, with no strong history retention, global content keys or capacity
- * policy. Unowned inputs/contexts always take the original validation path. */
+/** Caché interna de identidad para lecturas de datos inmutables propiedad del
+ * host. Un contexto por clave débil, sin retención fuerte del historial, sin
+ * claves globales de contenido ni política de capacidad. Las entradas o
+ * contextos ajenos siempre siguen el camino de validación original. */
 export class ImmutableReadCache<T> {
 	private entries = new WeakMap<object, { context: unknown; epoch: object; value: T }>();
 	read(input: unknown, context: unknown, compute: () => T): T {
