@@ -20,7 +20,7 @@ function desktopConnected(): boolean {
 	return process.env.LH_DESKTOP_SERVER === "1" && (process.env.LH_DESKTOP_API_SECRET?.length ?? 0) >= 64 && typeof process.send === "function" && process.connected === true;
 }
 function runtimeConnected(): boolean { return desktopConnected() || webSubscriptionsEnabled(); }
-function notify(state: State) { for (const listener of state.listeners) { try { listener(); } catch { /* observer isolation */ } } }
+function notify(state: State) { for (const listener of state.listeners) { try { listener(); } catch { /* aislamiento del observador */ } } }
 function invalidate(state: State, providerId?: NativeSubscriptionProviderId) {
 	for (const [controller, owner] of state.controllers) if (!providerId || owner.providerId === providerId) controller.abort("all");
 	if (providerId) { state.models.delete(providerId); state.statuses.delete(providerId); }
@@ -111,7 +111,7 @@ export function subscriptionScope(providerId: NativeSubscriptionProviderId, sele
 export function subscriptionScopeCurrent(scope: NativeSubscriptionScope): boolean {
 	try { return JSON.stringify(subscriptionScope(scope.providerId, scope.selectedModelId)) === JSON.stringify(scope); } catch { return false; }
 }
-/** Compatibility shape for the shared admission cycle; accountId is a local connection ID here. */
+/** Forma de compatibilidad para el ciclo de admisión compartido; aquí accountId es un ID de conexión local. */
 export function subscriptionAdmissionScope(scope: NativeSubscriptionScope): AdmissionScope {
 	return { accountId: scope.connectionId, epoch: scope.epoch, authorityRevision: scope.authorityRevision, selectedModelId: scope.selectedModelId };
 }

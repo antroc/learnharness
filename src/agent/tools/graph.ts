@@ -7,25 +7,25 @@ import type { ChatStore, GraphStore } from "../../core/ports.ts";
 import { createPropositionCandidateSearch, propositionCandidateBatch, type CandidateBatch, type CandidateProposition, type CandidateRequest } from "../../core/proposition-candidates.ts";
 
 /**
- * THE PROBER'S GRAPH TOOLS (wave 7, owner-locked 2026-09-23): context
- * injection is dead — zero configuration beyond chat models. The prober
- * reads the learner's persistent knowledge map through two tools instead,
- * replacing the old injected block with on-demand eyes.
+ * LAS HERRAMIENTAS DE GRAFO DEL SONDEADOR (oleada 7, fijado por el responsable 2026-09-23): la
+ * inyección de contexto ha muerto: cero configuración más allá de los modelos de chat. El sondeador
+ * lee en su lugar el mapa de conocimiento persistente del alumno mediante dos herramientas,
+ * sustituyendo el antiguo bloque inyectado por ojos bajo demanda.
  *
- * Names + levels + dating ONLY — no statement text, no session contents
- * (owner ruling: the map's ORGANIZATION is the prober's business, its
- * prose is not). The data comes from Platform's pure core seams
- * (graphSessionIndex / graphSessionPropositions) over the same ports the
- * snapshot reads, so the prober and the learner's graph view can never
- * disagree.
+ * SOLO nombres + niveles + fechas: nada de texto de enunciados ni contenido de sesiones
+ * (decisión del responsable: la ORGANIZACIÓN del mapa es asunto del sondeador, su
+ * prosa no). Los datos vienen de las fronteras puras de core de Platform
+ * (graphSessionIndex / graphSessionPropositions) sobre los mismos puertos que lee la
+ * instantánea, así que el sondeador y la vista del grafo del alumno nunca pueden
+ * discrepar.
  *
- * Registered on the prober ONLY when the settings gate opens
- * (graphToolsEnabled — the graph master switch AND the agent.graphTools
- * toggle); the composition root decides, the factory just receives the
- * store (absent = the gate is closed, no map tools — tests drive this).
+ * Se registran en el sondeador SOLO cuando se abre la barrera de ajustes
+ * (graphToolsEnabled: el interruptor general del grafo Y el interruptor
+ * agent.graphTools); decide la raíz de composición, la factoría solo recibe el
+ * almacén (ausente = la barrera está cerrada, sin herramientas de mapa; las pruebas conducen esto).
  */
 
-/** What the graph tools close over: the stores the session views read. */
+/** Sobre qué se cierran las herramientas de grafo: los almacenes que leen las vistas de sesión. */
 export interface GraphToolContext {
 	chatStore: ChatStore;
 	graphStore: GraphStore;
@@ -80,24 +80,24 @@ export function proberGraphTools(ctx: GraphToolContext): Record<string, AgentToo
 	};
 }
 
-// ─── the auditor's graph tools (2026-09-27 relink) ───────────────────────────
+// ─── las herramientas de grafo del auditor (reenlazado del 2026-09-27) ───────────
 
 /**
- * THE AUDITOR'S TOOLSET — the extraction auditor explores the graph to
- * place new propositions instead of receiving it injected (owner ruling
- * 2026-09-27: a full-graph dump bloats context as the graph grows; the
- * auditor looks up identity candidates itself). Auditor-specific
- * versions, deliberately different from the prober's:
+ * EL CONJUNTO DE HERRAMIENTAS DEL AUDITOR: el auditor de extracción explora el grafo para
+ * colocar las proposiciones nuevas en lugar de recibirlo inyectado (decisión del responsable
+ * 2026-09-27: un volcado del grafo completo hincha el contexto a medida que crece el grafo; el
+ * auditor busca él mismo los candidatos de identidad). Versiones específicas
+ * del auditor, deliberadamente distintas de las del sondeador:
  *
- *   find_candidates   batched, ranked lexical lookup using the proposed
- *                     findings themselves; five candidates per finding,
- *                     explicit pagination, full statements and matched
- *                     aliases, deduplicated within the returned batch.
- *   list_sessions     the birth-session index, no timestamps.
- *   list_propositions full proposition text (optional exploration fallback).
+ *   find_candidates   búsqueda léxica por lotes y ordenada usando los propios
+ *                     hallazgos propuestos; cinco candidatos por hallazgo,
+ *                     paginación explícita, enunciados completos y alias
+ *                     coincidentes, sin duplicados dentro del lote devuelto.
+ *   list_sessions     el índice de sesiones de nacimiento, sin marcas de tiempo.
+ *   list_propositions texto completo de las proposiciones (respaldo opcional de exploración).
  *
- * No timestamps anywhere: identity work needs content, not chronology.
- * Read-only, pure core seams, same ports the snapshot reads.
+ * Sin marcas de tiempo en ningún sitio: el trabajo de identidad necesita contenido, no cronología.
+ * Solo lectura, fronteras puras de core, los mismos puertos que lee la instantánea.
  */
 
 export interface AuditorCandidateBatch {
@@ -111,10 +111,10 @@ interface CandidateLookup {
 	cursor?: string;
 }
 
-/** Prepare the first page in code, and keep all continuations bound to this
- * audit's immutable queries. A new search cannot accidentally inherit an old
- * offset. Tokens are opaque, per-audit and stable when a request is repeated;
- * none of this suppresses previously returned records. */
+/** Prepara la primera página en código y mantiene todas las continuaciones ligadas a las
+ * consultas inmutables de esta auditoría. Una búsqueda nueva no puede heredar por accidente un
+ * desplazamiento antiguo. Los tokens son opacos, por auditoría y estables cuando se repite una petición;
+ * nada de esto suprime registros devueltos antes. */
 export function prepareAuditorReview(ctx: GraphToolContext, propositions: readonly CandidateProposition[] = []): {
 	initialCandidates: AuditorCandidateBatch;
 	tools: Record<string, AgentTool<any>>;

@@ -1,10 +1,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-/** Learner-source policy seam, based on lickbot's #157. The server supplies
- * current preferences per operation; agents never import the settings store.
- * Mandatory sensitive/credential denials remain in fs-shared, independently
- * of this OPTIONAL boundary. Empty is closed only when restricted is true. */
+/** Frontera de política de fuentes del alumno, basada en el #157 de lickbot. El servidor proporciona
+ * las preferencias actuales por operación; los agentes nunca importan el almacén de ajustes.
+ * Las denegaciones obligatorias de rutas sensibles/credenciales siguen en fs-shared, con independencia
+ * de este límite OPCIONAL. Vacío solo significa cerrado cuando restricted es true. */
 export interface FileAccessPolicy {
 	restricted: boolean;
 	folders: readonly string[];
@@ -32,8 +32,8 @@ export function fileAccessPolicy(): FileAccessPolicy {
 	return policy;
 }
 
-/** Comparison only: preserve the accepted #421 Windows namespace/ADS
- * semantics. The returned spelling is never used for opening a file. */
+/** Solo para comparar: conserva la semántica aceptada en #421 de espacios de nombres/ADS de
+ * Windows. La forma devuelta nunca se usa para abrir un fichero. */
 export function comparisonPath(absolute: string): string {
 	let normalized = path.resolve(absolute);
 	if (process.platform === "win32") {
@@ -46,8 +46,8 @@ export function comparisonPath(absolute: string): string {
 	return normalized;
 }
 
-/** Segment-aware containment; ignoreCase is ONLY for the existing home
- * denylist. Do not globally casefold configured allowed folders. */
+/** Contención consciente de segmentos; ignoreCase es SOLO para la lista de denegación existente
+ * de home. No pliegues globalmente a minúsculas las carpetas permitidas configuradas. */
 export function isWithin(absolute: string, root: string, ignoreCase = false): boolean {
 	let child = comparisonPath(absolute);
 	let parent = comparisonPath(root);
@@ -56,8 +56,8 @@ export function isWithin(absolute: string, root: string, ignoreCase = false): bo
 	return rel === "" || (rel !== ".." && !rel.startsWith(`..${path.sep}`) && !path.isAbsolute(rel));
 }
 
-/** The accepted strict canonical resolver, including missing descendants.
- * Loops/permissions must not turn a source into an unchecked lexical path. */
+/** El resolvedor canónico estricto aceptado, incluidos los descendientes que faltan.
+ * Los bucles/permisos no deben convertir una fuente en una ruta léxica sin comprobar. */
 export function realSourcePath(absolute: string): string {
 	try { return fs.realpathSync.native(/* turbopackIgnore: true */ absolute); }
 	catch (error) {
@@ -68,8 +68,8 @@ export function realSourcePath(absolute: string): string {
 	}
 }
 
-/** One snapshot per tool call, shared by every root in a multi-root search.
- * Unmounted/unreadable roots never become a default-home fallback. */
+/** Una instantánea por llamada a herramienta, compartida por todas las raíces de una búsqueda multirraíz.
+ * Las raíces desmontadas/ilegibles nunca pasan a ser un respaldo por defecto a home. */
 export function resolvePolicy(policy: FileAccessPolicy = fileAccessPolicy()): ResolvedFileAccessPolicy {
 	if (policy.error) throw new Error(policy.error);
 	if (!policy.restricted) return { restricted: false, folders: [], unavailable: [] };
@@ -88,9 +88,9 @@ export function resolvePolicy(policy: FileAccessPolicy = fileAccessPolicy()): Re
 	return { restricted: true, folders, unavailable };
 }
 
-/** Accept only canonical source locations contained by the snapshot. Source
- * symlinks resolve before containment; a link cannot escape the chosen roots.
- * fs-shared runs its mandatory named AND canonical denials before this gate. */
+/** Acepta solo ubicaciones de fuente canónicas contenidas en la instantánea. Los enlaces
+ * simbólicos de las fuentes se resuelven antes de la contención; un enlace no puede escapar de las raíces elegidas.
+ * fs-shared aplica sus denegaciones obligatorias por nombre Y canónicas antes de esta barrera. */
 export function guardSourcePath(absolute: string, policy: ResolvedFileAccessPolicy = resolvePolicy()): string {
 	const real = realSourcePath(absolute);
 	if (policy.restricted && !policy.folders.some((folder) => isWithin(real, folder))) {

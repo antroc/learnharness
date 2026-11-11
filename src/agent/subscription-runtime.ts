@@ -1,5 +1,5 @@
-/** Server-injected private web transport. The agent layer never imports a
- * filesystem owner or server composition root. Desktop IPC remains separate. */
+/** Transporte web privado inyectado por el servidor. La capa del agente nunca importa
+ * un propietario del sistema de ficheros ni la raíz de composición del servidor. El IPC de escritorio sigue aparte. */
 export type SubscriptionRuntimeChannel = "lh:chatgpt" | "lh:subscriptions";
 export type SubscriptionRuntimePacket = Record<string, unknown>;
 interface Runtime {
@@ -21,7 +21,7 @@ export function onWebSubscriptionPacket(channel: SubscriptionRuntimeChannel, lis
 }
 export function publishWebSubscriptionPacket(channel: SubscriptionRuntimeChannel, packet: SubscriptionRuntimePacket): void {
 	for (const listener of runtime().listeners.get(channel) ?? []) {
-		try { listener(packet); } catch { /* observer isolation */ }
+		try { listener(packet); } catch { /* aislamiento del observador */ }
 	}
 }
 export function webSubscriptionRequest<T>(channel: SubscriptionRuntimeChannel, op: string, fields: Record<string, unknown>): Promise<T> {

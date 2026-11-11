@@ -31,40 +31,40 @@ export { jobTools };
 export type { ProbeDoneContext } from "./tools/probe.ts";
 
 /**
- * The agent-split tool composition (docs/archive/probe-teach-split.md §1): the
- * PROBER and the TEACHER are different agents with different tool sets.
- * The question tools share a NAME but are genuinely DIFFERENT tools —
- * the prober's quiz has NO nodeId field at all (its declaration is built
- * from quizInputBase; the model's schema never mentions nodeId), the
- * teacher's carries the validated position field.
+ * La composición de herramientas por agente (docs/archive/probe-teach-split.md §1): el
+ * SONDEADOR y el PROFESOR son agentes distintos con conjuntos de herramientas distintos.
+ * Las herramientas de preguntas comparten NOMBRE pero son herramientas realmente DISTINTAS:
+ * el quiz del sondeador NO tiene campo nodeId en absoluto (su declaración se construye
+ * a partir de quizInputBase; el esquema del modelo nunca menciona nodeId), y el del
+ * profesor lleva el campo de posición validado.
  *
- * - Question tools (quiz / ask_user_question): CLIENT-ANSWERED. Their
- *   execute validates the authoring refinements (the cross-field rules no
- *   schema carries — quizInputProblems / askOptionProblems; a failure
- *   throws ToolInputError, which pi's loop converts to an error tool
- *   result the model retries on), then returns the synthetic
- *   "question posed" placeholder (questionResult: terminate: true — the
- *   turn ends; the call streams to the browser in `input-available`
- *   state; the learner answers in the dock; the client grades and sends
- *   the verdict with addToolOutput). Input schemas live in
- *   core/question-core. Question tools opt into SEQUENTIAL execution so
- *   parallel calls resolve in the model's call order (the dock's subject
- *   can never flip mid-turn).
- * - probe_done (src/agent/tools/probe.ts): SERVER-SIDE seam tool.
- * - planTools (src/agent/tools/plan.ts): SERVER-SIDE — author-once
- *   plan_init. Teacher only.
- * - jobTools (src/agent/tools/jobs.ts): SERVER-EXECUTED dispatch. Teacher
- *   only.
+ * - Herramientas de preguntas (quiz / ask_user_question): RESPONDIDAS POR EL CLIENTE. Su
+ *   execute valida los refinamientos de autoría (las reglas entre campos que ningún
+ *   esquema expresa: quizInputProblems / askOptionProblems; un fallo
+ *   lanza ToolInputError, que el bucle de pi convierte en un resultado de herramienta de error
+ *   sobre el que el modelo reintenta) y después devuelve el marcador provisional sintético
+ *   "question posed" (questionResult: terminate: true; el
+ *   turno termina; la llamada llega por streaming al navegador en estado `input-available`;
+ *   el alumno responde en el dock; el cliente corrige y envía
+ *   el veredicto con addToolOutput). Los esquemas de entrada viven en
+ *   core/question-core. Las herramientas de preguntas optan por la ejecución SECUENCIAL para que
+ *   las llamadas paralelas se resuelvan en el orden de llamada del modelo (el sujeto del dock
+ *   nunca puede cambiar a mitad de turno).
+ * - probe_done (src/agent/tools/probe.ts): herramienta de frontera DEL LADO DEL SERVIDOR.
+ * - planTools (src/agent/tools/plan.ts): DEL LADO DEL SERVIDOR; plan_init de autoría
+ *   única. Solo el profesor.
+ * - jobTools (src/agent/tools/jobs.ts): despacho EJECUTADO EN EL SERVIDOR. Solo el
+ *   profesor.
  */
 
-/** GLM wobble guard (owner-approved, 2026-09-26): models sometimes emit
- *  `options` as a JSON-encoded string instead of an array; pi runs this
- *  BEFORE schema validation, so a double-encoded call lands instead of
- *  bouncing back as a validation error + wasted retry turn. NOTE: pi
- *  persists the tool call with its RAW arguments — the client coerces
- *  again in normalizeOptions (question-core), the same parseOptionsIfString.
- *  Anything unparseable passes through untouched: validation then reports
- *  honestly and the agent retries with a real error to learn from. */
+/** Guarda contra el titubeo de GLM (aprobada por el responsable, 2026-09-26): los modelos a veces emiten
+ *  `options` como string codificado en JSON en lugar de un array; pi ejecuta esto
+ *  ANTES de la validación del esquema, así que una llamada doblemente codificada llega en lugar de
+ *  rebotar como error de validación + turno de reintento desperdiciado. NOTA: pi
+ *  persiste la llamada a la herramienta con sus argumentos CRUDOS: el cliente vuelve a convertir
+ *  en normalizeOptions (question-core), con el mismo parseOptionsIfString.
+ *  Lo que no se pueda parsear pasa sin tocar: la validación informa entonces
+ *  con honestidad y el agente reintenta con un error real del que aprender. */
 function prepareQuestionArguments<T extends object>(args: unknown): T {
 	if (args && typeof args === "object" && !Array.isArray(args)) {
 		const o = args as { options?: unknown };
@@ -95,36 +95,36 @@ export const askUserQuestionTool: AgentTool<typeof askInputSchema> = {
 	},
 };
 
-// ─── the question tools ───────────────────────────────────────────────────────
+// ─── las herramientas de preguntas ───────────────────────────────────────────────
 //
-// MECHANICAL DESCRIPTIONS ONLY (owner 2026-10-03): a tool's description
-// carries what the tool DOES and how its fields work — nothing about what
-// the questions should BE. The craft (option-building, free-recall
-// grading, question roles) lives in the system prompt — a single-sourced
-// chunk both agents compose (prompts/shared/20-question-tools.md and the
-// teacher's question fragments), reversing the 2026-09-27 placement now
-// that the question family has grown (predict/check roles, future
-// quiz variants): duplicates stay honest by sharing SCHEMA ATOMS
-// (question-core) + PROMPT CHUNKS, and each tool declares only its
-// mechanical delta.
+// SOLO DESCRIPCIONES MECÁNICAS (responsable 2026-10-03): la descripción de una herramienta
+// dice lo que la herramienta HACE y cómo funcionan sus campos, nada sobre cómo
+// deben SER las preguntas. El oficio (construcción de opciones, corrección del
+// recuerdo libre, roles de las preguntas) vive en el prompt de sistema: un fragmento
+// de fuente única que componen ambos agentes (prompts/shared/20-question-tools.md y los
+// fragmentos de preguntas del profesor), revirtiendo la ubicación del 2026-09-27 ahora
+// que la familia de preguntas ha crecido (roles predict/check, futuras
+// variantes de quiz): los duplicados se mantienen honestos compartiendo ÁTOMOS DE ESQUEMA
+// (question-core) + FRAGMENTOS DE PROMPT, y cada herramienta declara solo su
+// diferencia mecánica.
 //
-// ONE sanctioned exception (owner, 2026-10-12): each quiz tool's
-// description ends with a COMPLETE example call — compact, phase-correct
-// (probe carries no phase metadata; quiz leads with type+nodeId), doubling
-// as the JSON-escaping exemplar (LaTeX backslashes double inside JSON
-// strings). Placement ruling: WITH THE TOOL, beside its exact schema — a
-// shared-prompt example is phase-ambiguous (the models fumbled exactly
-// these metadata fields), per-agent prompt copies would drift. Serialized
-// from ONE canonical body so the variants cannot disagree; craft doctrine
-// stays in the prompts.
+// UNA excepción autorizada (responsable, 2026-10-12): la descripción de cada herramienta de quiz
+// termina con un ejemplo de llamada COMPLETO: compacto, correcto para la fase
+// (probe no lleva metadatos de fase; quiz empieza con type+nodeId), que sirve también
+// de ejemplo de escape en JSON (las barras invertidas de LaTeX se duplican dentro de los strings
+// JSON). Decisión de ubicación: CON LA HERRAMIENTA, junto a su esquema exacto; un
+// ejemplo en el prompt compartido es ambiguo respecto a la fase (los modelos fallaban justo en
+// estos campos de metadatos) y las copias por agente divergirían. Serializado
+// a partir de UN cuerpo canónico para que las variantes no puedan discrepar; la doctrina del oficio
+// se queda en los prompts.
 
-/** The canonical example body (owner-approved content, 2026-10-12): a
- *  compact applied question whose fields exercise the escaping hazards —
- *  braced commands (\frac, \cos), inline and display math, newlines —
- *  while doubling as an exemplar of good craft: uniform options, stable
- *  values, reasoning (explanation) committed before correctAnswer.
- *  JSON.stringify renders the wire text, so the escaping the model sees
- *  is by construction the correct one. Exported for the description pins. */
+/** El cuerpo canónico del ejemplo (contenido aprobado por el responsable, 2026-10-12): una
+ *  pregunta aplicada compacta cuyos campos ejercitan los riesgos de escape
+ *  (comandos con llaves como \frac y \cos, matemáticas en línea y en bloque, saltos de línea)
+ *  y que sirve también de ejemplo de buen oficio: opciones uniformes, valores
+ *  estables, razonamiento (explanation) comprometido antes de correctAnswer.
+ *  JSON.stringify genera el texto que viaja, así que el escape que ve el modelo
+ *  es por construcción el correcto. Exportado para fijar las descripciones en las pruebas. */
 export const quizExampleBody = {
 	question: "A signal is $y=\\sin(2x)$ and $\\frac{dx}{dt}=3$. What is $\\frac{dy}{dt}$?",
 	options: [
@@ -137,10 +137,10 @@ export const quizExampleBody = {
 	correctAnswer: "a",
 };
 
-/** The quiz mechanics every variant shares; `delta` appends the variant's
- *  own fields (its NAME among them — the probe-phase tools self-reference
- *  as probe/recall, owner 2026-10-09). All mechanics, zero doctrine — plus
- *  the one sanctioned example (above). */
+/** La mecánica de quiz que comparten todas las variantes; `delta` añade los campos
+ *  propios de la variante (entre ellos su NOMBRE: las herramientas de la fase de sondeo se
+ *  refieren a sí mismas como probe/recall, responsable 2026-10-09). Toda mecánica, cero doctrina,
+ *  más el único ejemplo autorizado (arriba). */
 function quizDescription(delta: { name: "quiz" | "probe"; nodeId: boolean; types: boolean }): string {
 	const base =
 		"Ask the learner a GRADED question with a known correct answer, then instantly grade and give feedback. " +
@@ -161,9 +161,9 @@ function quizDescription(delta: { name: "quiz" | "probe"; nodeId: boolean; types
 		"ONE question per turn: call a single " +
 		delta.name +
 		", then end your turn — his answer determines the next.";
-	// Phase-correct shape: the teach example LEADS with the required pair
-	// (type, nodeId — the 2026-10-09 drop-order ruling); the probe example
-	// carries no phase metadata at all, exactly like the probe schema.
+	// Forma correcta para la fase: el ejemplo de enseñanza EMPIEZA con el par obligatorio
+	// (type, nodeId: la decisión de orden de descarte del 2026-10-09); el ejemplo de sondeo
+	// no lleva ningún metadato de fase, exactamente igual que el esquema de sondeo.
 	const example = delta.nodeId ? { type: "check" as const, nodeId: "chain-rule", ...quizExampleBody } : quizExampleBody;
 	return (
 		base +
@@ -174,11 +174,11 @@ function quizDescription(delta: { name: "quiz" | "probe"; nodeId: boolean; types
 	);
 }
 
-/** The explain mechanics (free-recall quizzing): the commitment rule is
- *  the GRADING CONTRACT — mechanics, not doctrine. The softer doctrine
- *  (near-miss reading, genuine gaps) lives in the shared prompt chunk.
- *  `name`: the teach tool self-references as explain, the probe variant
- *  as recall (owner 2026-10-09). */
+/** La mecánica de explain (quiz de recuerdo libre): la regla de compromiso es
+ *  el CONTRATO DE CORRECCIÓN: mecánica, no doctrina. La doctrina más blanda
+ *  (lectura de casi aciertos, lagunas reales) vive en el fragmento de prompt compartido.
+ *  `name`: la herramienta de enseñanza se refiere a sí misma como explain, y la variante de sondeo
+ *  como recall (responsable 2026-10-09). */
 function explainDescription(name: "explain" | "recall", nodeId: boolean): string {
 	return (
 		"Ask the learner to EXPLAIN something in his own words — a graded check with NO options: he types a free-text " +
@@ -195,14 +195,14 @@ function explainDescription(name: "explain" | "recall", nodeId: boolean): string
 	);
 }
 
-/** The prober's multiple-choice quizzing tool — named `probe`, not
- *  `quiz` (owner, 2026-10-09): the probe and teach schemas differ
- *  (neither `type` nor `nodeId` exists while probing), and a shared name
- *  invited the model to carry its probe-phase call shape into teaching
- *  — the first teach quiz after plan_init dropped `nodeId` on exactly
- *  that habit (the tools_fails_2 incident). Distinct names make the
- *  phase boundary visible in the transcript itself: history written by
- *  `probe` never lies about what `quiz` requires. */
+/** La herramienta de quiz de opción múltiple del sondeador: se llama `probe`, no
+ *  `quiz` (responsable, 2026-10-09): los esquemas de sondeo y de enseñanza difieren
+ *  (ni `type` ni `nodeId` existen durante el sondeo), y un nombre compartido
+ *  invitaba al modelo a llevar la forma de llamada de la fase de sondeo a la enseñanza:
+ *  el primer quiz de enseñanza tras plan_init omitió `nodeId` justo por
+ *  esa costumbre (el incidente tools_fails_2). Los nombres distintos hacen visible el
+ *  límite de fase en el propio transcript: el historial escrito por
+ *  `probe` nunca miente sobre lo que exige `quiz`. */
 export const probeQuizTool: AgentTool<typeof probeQuizInputSchema> = {
 	name: "probe",
 	label: "probe",
@@ -217,8 +217,8 @@ export const probeQuizTool: AgentTool<typeof probeQuizInputSchema> = {
 	},
 };
 
-/** The teacher's free-recall variant (nodeId-validated, same seam as the
- *  teach quiz — phases/plan recognize BOTH tool names). */
+/** La variante de recuerdo libre del profesor (con nodeId validado, misma frontera que el
+ *  quiz de enseñanza: phases/plan reconocen AMBOS nombres de herramienta). */
 export function teachExplainToolFor(
 	ctx: Pick<PlanToolContext, "chatId" | "chatStore">,
 ): AgentTool<typeof explainInputObject> {
@@ -239,14 +239,14 @@ export function teachExplainToolFor(
 	};
 }
 
-/** The prober's free-recall variant (no nodeId — same pattern as the
- *  probe quiz). */
-/** The prober's free-recall variant — named `recall`, not `explain`
- *  (owner, 2026-10-09), for the same phase-boundary reason as `probe`:
- *  the teach explain adds `type` and `nodeId`; a shared name carried the
- *  probe call shape into teaching. Old probe-phase records keep the
- *  `explain` name and parse identically (the display seam accepts
- *  both). */
+/** La variante de recuerdo libre del sondeador (sin nodeId: el mismo patrón que el
+ *  quiz de sondeo). */
+/** La variante de recuerdo libre del sondeador: se llama `recall`, no `explain`
+ *  (responsable, 2026-10-09), por el mismo motivo de límite de fase que `probe`:
+ *  el explain de enseñanza añade `type` y `nodeId`; un nombre compartido llevaba la
+ *  forma de llamada del sondeo a la enseñanza. Los registros antiguos de la fase de sondeo conservan el
+ *  nombre `explain` y se parsean igual (la frontera de visualización acepta
+ *  ambos). */
 export const probeExplainTool: AgentTool<typeof explainInputBase> = {
 	name: "recall",
 	label: "recall",
@@ -261,82 +261,82 @@ export const probeExplainTool: AgentTool<typeof explainInputBase> = {
 	},
 };
 
-/** The prober's registry context: the probe's own needs (probe_done —
- *  ProbeDoneContext) PLUS the job-dispatch wiring, since the owner ruling
- *  (2026-09-20) puts research + pdf in the probe phase's registry too. */
+/** El contexto del registro del sondeador: las necesidades propias del sondeo (probe_done:
+ *  ProbeDoneContext) MÁS la conexión del despacho de tareas, ya que la decisión del responsable
+ *  (2026-09-20) pone también research + pdf en el registro de la fase de sondeo. */
 export interface ProberToolContext extends ProbeDoneContext {
-	/** Creates the job record (deduped by toolCallId). */
+	/** Crea el registro de la tarea (sin duplicados por toolCallId). */
 	jobStore: JobStore;
-	/** Fire the background runner for a freshly created job. */
+	/** Lanza el ejecutor en segundo plano para una tarea recién creada. */
 	spawn: (job: JobRecord, input: ResearchInput | DemoInput | VisualInput | PdfInput) => void;
-	/** Retained search-status seam; research dispatch is available keylessly. */
+	/** Frontera de estado de búsqueda que se conserva; el despacho de research está disponible sin clave. */
 	searchAvailable?: () => boolean;
-	/** The prober's graph-map reader (wave 7): present = the two map tools
-	 *  (list_sessions / list_propositions) are registered. The composition
-	 *  root passes it only when graphToolsEnabled(effective) — the graph
-	 *  master switch AND the agent.graphTools toggle (settings-resolution).
-	 *  Absent = the gate is closed, no map tools (tests drive this seam). */
+	/** El lector del mapa del grafo del sondeador (oleada 7): presente = las dos herramientas de mapa
+	 *  (list_sessions / list_propositions) están registradas. La raíz de composición
+	 *  lo pasa solo cuando graphToolsEnabled(effective): el interruptor general del grafo
+	 *  Y el interruptor agent.graphTools (settings-resolution).
+	 *  Ausente = la barrera está cerrada, sin herramientas de mapa (las pruebas conducen esta frontera). */
 	graphStore?: GraphStore;
 }
 
-/** The prober's tool set: probe quiz (no nodeId) + ask + the learner-fs
- *  set + probe_done + the two phase-omnipresent job dispatch tools +
- *  (wave 7, gated) the graph-map reader. `enabled` is the resolved
- *  settings seam (core/pending.ts): any tool explicitly false is dropped
- *  from the registry. probe_done stays always-on regardless — it is how
- *  the phase ENDS; a prober that can never conclude is a lockout. */
+/** El conjunto de herramientas del sondeador: quiz de sondeo (sin nodeId) + ask + el conjunto
+ *  learner-fs + probe_done + las dos herramientas de despacho de tareas presentes en todas las fases +
+ *  (oleada 7, con barrera) el lector del mapa del grafo. `enabled` es la frontera de ajustes
+ *  resuelta (core/pending.ts): toda herramienta explícitamente false se elimina
+ *  del registro. probe_done sigue siempre activa pase lo que pase: es como
+ *  TERMINA la fase; un sondeador que nunca puede concluir es un bloqueo. */
 export function createProberTools(
 	ctx: ProberToolContext,
 	enabled?: EnabledTools,
 ): Record<string, AgentTool<any>> {
-	// probe_done is re-added AFTER the filter, always-on by construction — it
-	// is how the phase ENDS; a prober that can never conclude is a lockout.
+	// probe_done se vuelve a añadir DESPUÉS del filtro, siempre activa por construcción: es
+	// como TERMINA la fase; un sondeador que nunca puede concluir es un bloqueo.
 	const done = probeDoneTool(ctx);
-	// The job tools build over the SAME context/gates as the teacher's
-	// (one builder, one gating semantic); the prober carries a SUBSET:
+	// Las herramientas de tareas se construyen sobre el MISMO contexto/barreras que las del profesor
+	// (un constructor, una semántica de barreras); el sondeador lleva un SUBCONJUNTO:
 	const jobs = jobTools({
 		chatId: ctx.chatId,
 		jobStore: ctx.jobStore,
 		spawn: ctx.spawn,
 		searchAvailable: ctx.searchAvailable,
 	});
-	// Quizzing mechanics (owner 2026-09-27): free-recall swaps the probe
-	// quiz for the probe explain — one quizzing tool at a time, whichever
-	// the settings arm. ask stays always-on. The registry keys are the
-	// PHASE names (probe/recall, owner 2026-10-09) — distinct from the
-	// teach tools so the schema boundary is visible to the model.
+	// Mecánica de quiz (responsable 2026-09-27): el recuerdo libre cambia el quiz de sondeo
+	// por el explain de sondeo: una herramienta de quiz cada vez, la que
+	// activen los ajustes. ask sigue siempre activa. Las claves del registro son los nombres
+	// de FASE (probe/recall, responsable 2026-10-09), distintos de las herramientas de
+	// enseñanza para que el límite del esquema sea visible para el modelo.
 	const mechanics = quizMechanics(enabled);
-	// The armed quizzing tool, widened to the registry's heterogeneous
-	// AgentTool record BEFORE the filter (a conditional spread of two
-	// differently-typed literals makes the whole object's type a union —
-	// unusable as Record<string, AgentTool<any>> downstream).
+	// La herramienta de quiz activada, ensanchada al registro heterogéneo de
+	// AgentTool ANTES del filtro (un spread condicional de dos literales con tipos
+	// distintos convierte el tipo de todo el objeto en una unión,
+	// inservible como Record<string, AgentTool<any>> más adelante).
 	const quizzing: Record<string, AgentTool<any>> =
 		mechanics === "free" ? { recall: probeExplainTool } : { probe: probeQuizTool };
-	// healToolRecord (owner, 2026-10-09 — the whitehead generalization):
-	// the standard argument heal over the WHOLE registry — every tool,
-	// not just the one the latest wobble incident landed on.
+	// healToolRecord (responsable, 2026-10-09: la generalización de whitehead):
+	// la reparación estándar de argumentos sobre TODO el registro: cada herramienta,
+	// no solo aquella en la que cayó el último incidente de titubeo.
 	return healToolRecord({
 		...filterEnabledTools(
 			{
 				...quizzing,
 				ask_user_question: askUserQuestionTool,
-				// The learner-filesystem set is always-on (user-decided 2026-09,
-				// sources v1): the prober inspects and LOCATES learner-referenced
-				// files while assessing the edge. Read-only by construction.
+				// El conjunto del sistema de ficheros del alumno está siempre activo (decidido por el usuario 2026-09,
+				// sources v1): el sondeador inspecciona y LOCALIZA los ficheros que menciona el alumno
+				// mientras evalúa el borde. Solo lectura por construcción.
 				read: readTool,
 				ls: lsTool,
 				find: findTool,
 				grep: grepTool,
-				// Job dispatch in the probe phase (owner ruling, 2026-09-20):
-				// research + pdf are ALWAYS available in every phase — the
-				// prober can verify facts or read learner PDFs while assessing.
-				// demo/visual stay teach-phase-only (they need the lesson's plan
-				// context). Same user-toggle filtering as the teacher; research
-				// remains available without a search-provider key.
+				// Despacho de tareas en la fase de sondeo (decisión del responsable, 2026-09-20):
+				// research + pdf están SIEMPRE disponibles en todas las fases: el
+				// sondeador puede verificar hechos o leer PDF del alumno mientras evalúa.
+				// demo/visual siguen siendo solo de la fase de enseñanza (necesitan el contexto
+				// del plan de la lección). El mismo filtrado por interruptores del usuario que el profesor; research
+				// sigue disponible sin clave de proveedor de búsqueda.
 				...(jobs.research ? { research: jobs.research } : {}),
 				pdf: jobs.pdf!,
-				// The map reader (wave 7): present only when the settings gate
-				// opened.
+				// El lector del mapa (oleada 7): presente solo cuando la barrera de ajustes
+				// se abrió.
 				...(ctx.graphStore
 					? proberGraphTools({ chatStore: ctx.chatStore, graphStore: ctx.graphStore })
 					: {}),
@@ -348,10 +348,10 @@ export function createProberTools(
 		});
 }
 
-// ─── the teacher's question tools (quiz carries the position field) ──────────
+// ─── las herramientas de preguntas del profesor (quiz lleva el campo de posición) ─
 
-/** The nodeId-against-live-tree check the teacher's quiz chains after the
- *  shared authoring contract (the old superRefine, verbatim). */
+/** La comprobación de nodeId contra el árbol vivo que el quiz del profesor encadena tras el
+ *  contrato de autoría compartido (el antiguo superRefine, literal). */
 function nodeIdProblem(ctx: Pick<PlanToolContext, "chatId" | "chatStore">, nodeId: string): string | null {
 	const record = ctx.chatStore.getChat(ctx.chatId);
 	const known = record?.tree?.nodes.map((n) => n.id) ?? [];
@@ -366,13 +366,13 @@ function nodeIdProblem(ctx: Pick<PlanToolContext, "chatId" | "chatStore">, nodeI
 	return null;
 }
 
-/** Build the teach-side quiz tool for one request (exported for tests): the authoring contract
- *  + the per-session plan-nodeId validation (both run in execute — the
- *  grading contract is untouched). Reads the LIVE chat record, so rewrites
- *  mid-turn are honored, and with no tree yet every nodeId is rejected.
- *  nodeId is REQUIRED (owner ruling 2026-09-26): the untagged ad-hoc quiz is
- *  gone — off-map checks route through ask_user_question, and the teach
- *  seam (first tagged quiz) is structurally guaranteed. */
+/** Construye la herramienta quiz del lado de la enseñanza para una petición (exportada para las pruebas): el contrato de autoría
+ *  + la validación del nodeId del plan por sesión (ambos se ejecutan en execute; el
+ *  contrato de corrección queda intacto). Lee el registro VIVO del chat, así que las reescrituras
+ *  a mitad de turno se respetan, y sin árbol todavía se rechaza cualquier nodeId.
+ *  nodeId es OBLIGATORIO (decisión del responsable 2026-09-26): el quiz improvisado sin etiqueta ha
+ *  desaparecido; las comprobaciones fuera del mapa van por ask_user_question, y la frontera
+ *  de enseñanza (el primer quiz etiquetado) está garantizada estructuralmente. */
 export function teachQuizToolFor(ctx: Pick<PlanToolContext, "chatId" | "chatStore">): AgentTool<typeof quizInputObject> {
 	return {
 		name: "quiz",
@@ -392,40 +392,40 @@ export function teachQuizToolFor(ctx: Pick<PlanToolContext, "chatId" | "chatStor
 }
 
 export interface TeacherToolContext extends PlanToolContext {
-	/** Job-tool wiring (sub-agent dispatch): the job store + the runner's
-	 *  spawn seam. The composition root injects both. */
+	/** Conexión de las herramientas de tareas (despacho a subagentes): el almacén de tareas + la
+	 *  frontera de lanzamiento del ejecutor. La raíz de composición inyecta ambos. */
 	jobStore: JobStore;
-	/** Fire the background runner for a freshly created job. The tool input
-	 *  rides along — the spawn fires mid-stream, before the tool part is
-	 *  persisted to the transcript (a transcript scan would race it). */
+	/** Lanza el ejecutor en segundo plano para una tarea recién creada. La entrada de la herramienta
+	 *  va con ella: el lanzamiento se dispara a mitad de stream, antes de que la parte de herramienta se
+	 *  persista en el transcript (un recorrido del transcript competiría con él). */
 	spawn: (job: JobRecord, input: ResearchInput | DemoInput | VisualInput | PdfInput) => void;
-	/** Retained search-status seam; research dispatch is available keylessly. */
+	/** Frontera de estado de búsqueda que se conserva; el despacho de research está disponible sin clave. */
 	searchAvailable?: () => boolean;
 }
 
 /**
- * Per-request teacher tool registry: teach questions (validated nodeId) +
- * plan tools + job tools, all closing over the ctx.
+ * Registro de herramientas del profesor por petición: preguntas de enseñanza (nodeId validado) +
+ * herramientas de plan + herramientas de tareas, todas cerradas sobre el ctx.
  *
- * `enabled` is the resolved settings seam (core/pending.ts EnabledTools —
- * Platform's chat-handler wiring passes it through from settings). Today
- * only the sub-agent tools (research/demo/visual) are user-toggleable, but
- * the filtering is GENERIC: any name explicitly false is dropped, so
- * future toggleables (question-tool variants, …) need no change here.
- * Absent/undefined = enabled — tests and old records see today's set.
+ * `enabled` es la frontera de ajustes resuelta (EnabledTools de core/pending.ts: la
+ * conexión del chat-handler de Platform lo pasa desde los ajustes). Hoy
+ * solo las herramientas de subagentes (research/demo/visual) son activables por el usuario, pero
+ * el filtrado es GENÉRICO: todo nombre explícitamente false se elimina, así que
+ * futuras herramientas activables (variantes de herramientas de preguntas, …) no necesitan cambios aquí.
+ * Ausente/undefined = activada: las pruebas y los registros antiguos ven el conjunto actual.
  */
-/** The quizzing mechanics (owner 2026-09-27): `tools.explain === true` in
- *  the resolved settings ⇒ free-recall checks (explain armed, quiz dropped)
- *  — anything else ⇒ multiple choice, exactly today's set. Mechanics-
- *  managed, NOT individually toggleable: quiz/explain never pass through
- *  filterEnabledTools (the 2026-09-19 wedge ruling stands — a quiz-less
- *  prober collapses its assessment flow). */
+/** La mecánica de quiz (responsable 2026-09-27): `tools.explain === true` en
+ *  los ajustes resueltos ⇒ comprobaciones de recuerdo libre (explain activado, quiz eliminado);
+ *  cualquier otra cosa ⇒ opción múltiple, exactamente el conjunto actual. Gestionado por la
+ *  mecánica, NO activable individualmente: quiz/explain nunca pasan por
+ *  filterEnabledTools (la decisión del bloqueo del 2026-09-19 sigue en pie: un sondeador
+ *  sin quiz hunde su flujo de evaluación). */
 export function quizMechanics(enabled?: EnabledTools): "choice" | "free" {
 	return enabled?.explain === true ? "free" : "choice";
 }
 
-/** Strip the mechanics keys so filterEnabledTools can never drop the
- *  quizzing tools (the derivation above is their only switch). */
+/** Quita las claves de mecánica para que filterEnabledTools nunca pueda eliminar las
+ *  herramientas de quiz (la derivación de arriba es su único interruptor). */
 function withoutMechanics(enabled?: EnabledTools): EnabledTools | undefined {
 	if (!enabled) return undefined;
 	const { explain: _e, quiz: _q, ...rest } = enabled;
@@ -436,30 +436,30 @@ export function createTeacherTools(
 	ctx: TeacherToolContext,
 	enabled?: EnabledTools,
 ): Record<string, AgentTool<any>> {
-	// Quizzing mechanics (owner 2026-09-27): free-recall swaps the teach
-	// quiz for the teach explain — one quizzing tool at a time, whichever
-	// the settings arm. ask stays always-on.
+	// Mecánica de quiz (responsable 2026-09-27): el recuerdo libre cambia el quiz
+	// de enseñanza por el explain de enseñanza: una herramienta de quiz cada vez, la que
+	// activen los ajustes. ask sigue siempre activa.
 	const mechanics = quizMechanics(enabled);
-	// Same widening as the prober's (see above) — the conditional spread of
-	// two differently-typed literals collapses into an unusable union type.
+	// El mismo ensanchamiento que en el del sondeador (ver arriba): el spread condicional de
+	// dos literales con tipos distintos se colapsa en un tipo unión inservible.
 	const quizzing: Record<string, AgentTool<any>> =
 		mechanics === "free" ? { explain: teachExplainToolFor(ctx) } : { quiz: teachQuizToolFor(ctx) };
-	// healToolRecord — same standard as the prober's registry (above).
+	// healToolRecord: el mismo estándar que el registro del sondeador (arriba).
 	return healToolRecord(
 		filterEnabledTools(
 			{
 			...quizzing,
 			ask_user_question: askUserQuestionTool,
-			// The learner-filesystem set is always-on (user-decided 2026-09,
-			// sources v1): the teacher locates and reads learner-referenced
-			// files on its own terms — nothing auto-injects. Read-only by
-			// construction (fs-shared.ts).
+			// El conjunto del sistema de ficheros del alumno está siempre activo (decidido por el usuario 2026-09,
+			// sources v1): el profesor localiza y lee los ficheros que menciona el alumno
+			// en sus propios términos; nada se inyecta automáticamente. Solo lectura por
+			// construcción (fs-shared.ts).
 			read: readTool,
 			ls: lsTool,
 			find: findTool,
 			grep: grepTool,
-			// The learner-image display twin of read (issue #363): teacher
-			// only, always on — it shows the learner their own file.
+			// El gemelo de read para mostrar imágenes del alumno (issue #363): solo el profesor,
+			// siempre activo; muestra al alumno su propio fichero.
 			show_image: createShowImageTool(ctx),
 			...planTools(ctx),
 			...jobTools({ chatId: ctx.chatId, jobStore: ctx.jobStore, spawn: ctx.spawn, searchAvailable: ctx.searchAvailable }),

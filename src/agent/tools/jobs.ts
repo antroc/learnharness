@@ -7,27 +7,27 @@ import { checkLearnerImage } from "./learner-image.ts";
 import { resolveSourcePath } from "./fs-shared.ts";
 
 /**
- * Async sub-agent job tools (vision §2.5; W2/W6 kinds + the pi-model
- * protocol). SERVER-EXECUTED: each call creates the job record, fires the
- * background runner (via the injected spawn seam — the agent layer never
- * imports one), and resolves IMMEDIATELY with a fire-and-forget ack. The
- * teacher's turn does NOT end at the call; the result arrives later as a
- * steer message that wakes the teacher in a new turn. See contracts.ts
+ * Herramientas de tareas asíncronas de subagentes (visión §2.5; tipos W2/W6 + el protocolo
+ * de modelo de pi). EJECUTADAS EN EL SERVIDOR: cada llamada crea el registro de la tarea, lanza el
+ * ejecutor en segundo plano (mediante la frontera de lanzamiento inyectada: la capa del agente nunca
+ * importa uno) y se resuelve INMEDIATAMENTE con un acuse de disparar y olvidar. El
+ * turno del profesor NO termina en la llamada; el resultado llega más tarde como un
+ * mensaje de reorientación que despierta al profesor en un turno nuevo. Ver contracts.ts,
  * "THE ASYNC PROTOCOL".
  */
 
-/** What the job tools need at execute time (injected by the composition root). */
+/** Lo que necesitan las herramientas de tareas al ejecutarse (inyectado por la raíz de composición). */
 export interface JobToolContext {
 	chatId: string;
-	/** Creates the job record (deduped by toolCallId). */
+	/** Crea el registro de la tarea (sin duplicados por toolCallId). */
 	jobStore: JobStore;
-	/** Fire the background runner for a fresh job — fire-and-forget. The
-	 *  input rides along because the spawn happens MID-STREAM, before
-	 *  onFinish persists the tool part — a transcript scan would race it. */
+	/** Lanza el ejecutor en segundo plano para una tarea nueva: disparar y olvidar. La
+	 *  entrada va con ella porque el lanzamiento ocurre A MITAD DE STREAM, antes de que
+	 *  onFinish persista la parte de herramienta: un recorrido del transcript competiría con él. */
 	spawn: (job: JobRecord, input: ResearchInput | DemoInput | VisualInput | PdfInput) => void;
-	/** Search-provider availability, retained for existing composition seams.
-	 *  Research dispatch does not depend on it: web_fetch is keyless and
-	 *  web_search reports a missing provider as a recoverable tool result. */
+	/** Disponibilidad del proveedor de búsqueda, conservada para las fronteras de composición existentes.
+	 *  El despacho de research no depende de ella: web_fetch no necesita clave y
+	 *  web_search informa de la falta de proveedor como un resultado de herramienta recuperable. */
 	searchAvailable?: () => boolean;
 }
 
@@ -77,8 +77,8 @@ export const pdfInputSchema = Type.Object({
 });
 
 /**
- * The per-call dispatch: create the job (idempotent by toolCallId), fire the
- * runner, and return the ack. Shared by all three tools — only kind differs.
+ * El despacho por llamada: crea la tarea (idempotente por toolCallId), lanza el
+ * ejecutor y devuelve el acuse. Compartido por las tres herramientas: solo cambia el tipo.
  */
 function dispatch(
 	ctx: JobToolContext,
@@ -132,12 +132,12 @@ const PDF_DESCRIPTION =
 	"directly instead of dispatching. Local PDF paths follow File access settings; use ls to discover allowed folders.";
 
 /**
- * Per-request job tool registry: each tool closes over the composition root's
- * context (chatId + jobStore + the spawn seam), so concurrent chats never
- * share state. chat-handler wires it each turn; tests wire their own.
+ * Registro de herramientas de tareas por petición: cada herramienta se cierra sobre el contexto
+ * de la raíz de composición (chatId + jobStore + la frontera de lanzamiento), así que los chats
+ * concurrentes nunca comparten estado. chat-handler lo conecta en cada turno; las pruebas conectan el suyo.
  *
- * Research remains available without a search-provider key; the role's
- * existing user-toggle filtering still applies outside this registry.
+ * Research sigue disponible sin clave de proveedor de búsqueda; el filtrado existente
+ * por interruptores del usuario del rol sigue aplicándose fuera de este registro.
  */
 export function jobTools(ctx: JobToolContext): Record<string, AgentTool<any>> {
 	return {
@@ -162,8 +162,8 @@ export function jobTools(ctx: JobToolContext): Record<string, AgentTool<any>> {
 			label: "visual",
 			description: VISUAL_DESCRIPTION,
 			parameters: visualInputSchema,
-			// An unusable image path fails the CALL (no job is created), so the
-			// teacher corrects the path in the same turn.
+			// Una ruta de imagen inservible hace fallar la LLAMADA (no se crea ninguna tarea), así que el
+			// profesor corrige la ruta en el mismo turno.
 			execute: serverExecute("visual", visualInputSchema, async (input, { toolCallId, signal }) => {
 				if (!ctx.jobStore.findJobByToolCallId(ctx.chatId, toolCallId) && input.image !== undefined) await checkLearnerImage(input.image);
 				signal?.throwIfAborted();
@@ -176,8 +176,8 @@ export function jobTools(ctx: JobToolContext): Record<string, AgentTool<any>> {
 			description: PDF_DESCRIPTION,
 			parameters: pdfInputSchema,
 			execute: serverExecute("pdf", pdfInputSchema, (input, { toolCallId }) => {
-				// Admission uses the current boundary; the queued reader checks
-				// again at job start. Preserve raw args/history and replay IDs.
+				// La admisión usa el límite actual; el lector en cola vuelve a comprobar
+				// al empezar la tarea. Conserva los argumentos/historial crudos y los ID de reproducción.
 				if (!ctx.jobStore.findJobByToolCallId(ctx.chatId, toolCallId)) resolveSourcePath(input.path);
 				return dispatch(ctx, "pdf", toolCallId, PDF_ACK, input);
 			}),

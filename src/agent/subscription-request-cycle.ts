@@ -7,7 +7,7 @@ export type NoDispatchKind = "background" | "all" | "other";
 const USAGE_KEY = Symbol.for("lh.subscription.unadmittedUsage");
 const usageGlobal = globalThis as typeof globalThis & { [USAGE_KEY]?: WeakSet<object> };
 const unadmittedUsage = usageGlobal[USAGE_KEY] ??= new WeakSet<object>();
-/** Transient identity only: no new provenance field enters saved native messages. */
+/** Solo identidad transitoria: ningún campo de procedencia nuevo entra en los mensajes nativos guardados. */
 export function markUnadmittedUsage(usage: object): void { unadmittedUsage.add(usage); }
 export function usageWasAdmitted(usage: object): boolean { return !unadmittedUsage.has(usage); }
 export interface SubscriptionDispatchLifecycle {
@@ -25,7 +25,7 @@ interface CycleOptions {
  restoreAutomatic: (automaticIds: ReadonlySet<string>, retainedIds: ReadonlySet<string>) => void;
 }
 const idOf = (m: AgentMessage) => (m as { id?: string }).id;
-/** One logical turn, not an SDK loop. No credentials, persisted provenance or wire protocol. */
+/** Un turno lógico, no un bucle del SDK. Sin credenciales, procedencia persistida ni protocolo de red. */
 export class SubscriptionRequestCycle implements SubscriptionDispatchLifecycle {
  private release?: (event: AgentEvent) => void;
  private held: AgentEvent[] = [];
@@ -57,9 +57,9 @@ export class SubscriptionRequestCycle implements SubscriptionDispatchLifecycle {
  get dispatched(): boolean { return this.anyDispatch; }
  get deniedBeforeDispatch(): boolean { return this.denied !== undefined; }
  get locallyRejected(): boolean { return this.localRejection; }
- /** A local context refusal is not provider admission or an authorization
-  * denial. Restore automatic cargo, retain the SDK error/progress, and end
-  * without the background-denial foreground retry. */
+ /** Un rechazo de contexto local no es una admisión del proveedor ni una denegación
+  * de autorización. Restaura la carga automática, conserva el error/progreso del SDK y
+  * termina sin el reintento en primer plano propio de la denegación en segundo plano. */
  rejectLocalRequest(contextIds: ReadonlySet<string> = new Set()): void {
   this.localRejection = true;
   for (const id of contextIds) this.rejectedContextIds.add(id);
@@ -82,10 +82,10 @@ export class SubscriptionRequestCycle implements SubscriptionDispatchLifecycle {
  }
  hold(event: AgentEvent): boolean {
   if (event.type === "agent_start") { if (this.started) return true; this.started = true; return false; }
-  if (event.type === "agent_end") return true; // settle only after native activeRun is cleared
+  if (event.type === "agent_end") return true; // resolver solo después de que se limpie el activeRun nativo
   if (event.type === "turn_start") {
    this.committed = false; this.denied = undefined; this.scope = undefined;
-   // A retained learner batch from the denied cycle already owns its turn_start.
+   // Un lote retenido del alumno del ciclo denegado ya tiene su propio turn_start.
    if (!this.held.some((e) => e.type === "turn_start")) this.held.push(event);
    return true;
   }
@@ -100,7 +100,7 @@ export class SubscriptionRequestCycle implements SubscriptionDispatchLifecycle {
  beforeDispatch(scope: AdmissionScope): void {
   if (this.userAborted || this.denied || this.committed || !this.scope || JSON.stringify(scope) !== JSON.stringify(this.scope) || !this.options.scopeCurrent(scope)) throw new Error("Subscription admission cancelled");
   if (!this.stagedCommitted && (this.options.staged?.length ?? 0) > 0) {
-   this.options.commitStaged?.(); // synchronous durable prefix, before visibility and fetch
+   this.options.commitStaged?.(); // prefijo duradero síncrono, antes de la visibilidad y del fetch
    this.stagedCommitted = true;
    const stagedEvents: AgentEvent[] = this.options.staged!.flatMap((message) => [{ type: "message_start" as const, message }, { type: "message_end" as const, message }]);
    const boundary = this.held.findIndex((event) => event.type === "turn_start");
@@ -134,14 +134,14 @@ export class SubscriptionRequestCycle implements SubscriptionDispatchLifecycle {
   const messages = this.snapshot.filter((m) => !this.automatic.has(idOf(m) ?? ""));
   const retainedIds = new Set(messages.map(idOf).filter((id): id is string => !!id));
   this.options.restoreAutomatic(this.automatic, retainedIds);
-  this.resolveFirst(false); // queue deferral is installed before initial fire cargo returns
+  this.resolveFirst(false); // el aplazamiento en cola se instala antes de que vuelva la carga inicial del disparo
   this.held = this.held.filter((e) => (e.type === "turn_start") || ((e.type === "message_start" || e.type === "message_end") && e.message.role !== "assistant" && !this.automatic.has(idOf(e.message) ?? "")));
   const retry = this.denied === "background" && !this.userAborted && !this.resumed && this.foregroundOwed && !!this.scope && this.options.scopeCurrent(this.scope);
   if (retry) {
    this.resumed = true; this.options.purpose.background = false;
    this.seen = retainedIds;
    this.denied = undefined;
-   // Staged automatic input must not be resurrected on foreground recovery.
+   // La entrada automática preparada no debe resucitar en la recuperación en primer plano.
    this.options.staged = undefined;
    return { action: "resumeForeground", messages };
   }

@@ -1,25 +1,25 @@
 /**
- * THE UNIVERSAL ARGUMENT HEAL — the agent-boundary wiring (owner,
- * 2026-10-09 — generalize the 2026-10-04 practice heal).
+ * LA REPARACIÓN UNIVERSAL DE ARGUMENTOS: la conexión en la frontera del agente (responsable,
+ * 2026-10-09: generalizar la reparación de práctica del 2026-10-04).
  *
- * Every weak-model argument wobble incident produced a heal wired ONLY
- * to the tool where it landed — parseOptionsIfString (questions,
- * 2026-09-26), healStringifiedArrays (extraction),
- * healEncodedArguments (practice, 2026-10-04) — and the whitehead death
- * loop (2026-10-09: quiz `type: "\"predict\""` rejected ten times,
- * byte-identical, in a session the lesson never reached) happened
- * precisely because the practice heal never reached the quiz tools. The
- * owner ruling: this is ONE standard pattern, applied at EVERY tool —
- * heal what is mechanically recognizable (a JSON-encoded stand-in for
- * the schema-expected shape; the membership-value debris strip lives in
- * core/value-debris), let validation reject the rest honestly.
+ * Cada incidente de titubeo de argumentos de un modelo débil produjo una reparación conectada SOLO
+ * a la herramienta en la que cayó (parseOptionsIfString (preguntas,
+ * 2026-09-26), healStringifiedArrays (extracción),
+ * healEncodedArguments (práctica, 2026-10-04)), y el bucle mortal de
+ * whitehead (2026-10-09: quiz `type: "\"predict\""` rechazado diez veces,
+ * idéntico byte a byte, en una sesión que nunca llegó a la lección) ocurrió
+ * precisamente porque la reparación de práctica nunca llegó a las herramientas de quiz. La
+ * decisión del responsable: es UN patrón estándar, aplicado en TODAS las herramientas:
+ * reparar lo que es mecánicamente reconocible (un sustituto codificado en JSON de
+ * la forma que espera el esquema; la limpieza de restos de valores de pertenencia vive en
+ * core/value-debris) y dejar que la validación rechace el resto con honestidad.
  *
- * The pure function lives in core/argument-heal (the display seam needs
- * it too — the tool-parts law); this module is the per-tool/registry
- * wiring at pi's prepareArguments seam — BEFORE TypeBox validation.
- * Well-formed args pass through UNTOUCHED (same reference); heals are
- * idempotent, so a per-tool heal composed under the record-level
- * wrapper is a harmless second pass.
+ * La función pura vive en core/argument-heal (la frontera de visualización también la
+ * necesita: la ley de las tool-parts); este módulo es la conexión por herramienta/registro
+ * en la frontera prepareArguments de pi, ANTES de la validación TypeBox.
+ * Los argumentos bien formados pasan SIN TOCAR (la misma referencia); las reparaciones son
+ * idempotentes, así que una reparación por herramienta compuesta bajo el envoltorio
+ * a nivel de registro es una segunda pasada inofensiva.
  */
 
 import type { AgentTool } from "@earendil-works/pi-agent-core";
@@ -27,10 +27,10 @@ import { healEncodedArguments } from "../../core/argument-heal.ts";
 
 export { healEncodedArguments };
 
-/** Wrap ONE tool with the standard heal: the tool's own prepareArguments
- *  (options-unwrap, target normalization, …) runs first, then the heal
- *  against the tool's declared schema. Spread-safe (these are plain
- *  object literals) and idempotent. */
+/** Envuelve UNA herramienta con la reparación estándar: primero se ejecuta el prepareArguments
+ *  propio de la herramienta (desempaquetado de options, normalización de target, …) y después la reparación
+ *  contra el esquema declarado de la herramienta. Segura frente a spread (son literales de objeto
+ *  simples) e idempotente. */
 export function withArgumentHeal(tool: AgentTool<any>): AgentTool<any> {
 	const inner = tool.prepareArguments;
 	return {
@@ -39,10 +39,10 @@ export function withArgumentHeal(tool: AgentTool<any>): AgentTool<any> {
 	};
 }
 
-/** The registry-wide form (the owner's "standard pattern everywhere"):
- *  wrap every tool in a tool record. Applied at the registry-assembly
- *  points — createProberTools, createTeacherTools, practiceTools,
- *  bareQuestionTools, the subagent sets — so no tool can ship unwrapped. */
+/** La forma para todo el registro (el «patrón estándar en todas partes» del responsable):
+ *  envuelve cada herramienta de un registro de herramientas. Se aplica en los puntos de montaje
+ *  del registro (createProberTools, createTeacherTools, practiceTools,
+ *  bareQuestionTools, los conjuntos de subagentes) para que ninguna herramienta salga sin envolver. */
 export function healToolRecord(tools: Record<string, AgentTool<any>>): Record<string, AgentTool<any>> {
 	return Object.fromEntries(Object.entries(tools).map(([name, tool]) => [name, withArgumentHeal(tool)]));
 }

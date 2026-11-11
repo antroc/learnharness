@@ -7,7 +7,7 @@ export function subscriptionConnected(provider: string): boolean {
 	if (provider === "chatgpt") return chatGPTConnected();
 	const native = nativeSubscriptionId(provider); return !!native && nativeSubscriptionConnected(native);
 }
-/** Ordinary API connections have no subscription background-consent gate. */
+/** Las conexiones de API normales no tienen la barrera de consentimiento en segundo plano de las suscripciones. */
 export function connectionBackgroundAllowed(provider: string | undefined): boolean {
 	if (provider === "chatgpt") return chatGPTBackgroundAllowed();
 	const native = provider ? nativeSubscriptionId(provider) : undefined;

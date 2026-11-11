@@ -3,53 +3,53 @@ import type { Static, TSchema } from "typebox";
 import { CONCLUDE_ACK_TEXT } from "../core/contracts/chat.ts";
 
 /**
- * tool-execute — the execution machinery every server-side lh tool shares,
- * expressed natively (Wave A of the pi-native migration, 2026-09-26): tools
- * are authored as pi-agent-core AgentTools (TypeBox parameters, native
- * execute), and this module owns the semantics the old LhTool wrapper
- * (lh-tool.ts, deleted) used to add around every execute:
+ * tool-execute: la maquinaria de ejecución que comparten todas las herramientas lh del lado del servidor,
+ * expresada de forma nativa (Oleada A de la migración nativa a pi, 2026-09-26): las herramientas
+ * se escriben como AgentTools de pi-agent-core (parámetros TypeBox, execute
+ * nativo), y este módulo es dueño de la semántica que el antiguo envoltorio LhTool
+ * (lh-tool.ts, eliminado) añadía alrededor de cada execute:
  *
- * - the system-level per-call timeout + abort cascade (runWithAbortGuard),
- * - the authoring-refinement failure shape (invalidInputResult —
- *   returned from execute as an isError result; pi 1.0's convention, the
- *   model sees the same retryable problem list it always did, and
- *   `details` keeps the problems as data),
- * - the result mapping (string verbatim / object JSON / image results to
- *   native content parts; details carries the record-facing value),
- * - the question-tool placeholder (quiz / ask_user_question): a synthetic
- *   "question posed" result that is NEVER persisted — the record keeps the
- *   tool part output-less until the client answers; the learner's answer
- *   re-enters the next turn as this call's result. terminate: true (owner
- *   Option A, 2026-09-25) ends single-question batches natively; the slim
- *   shouldStopAfterTurn stopper (teacher-agent.ts) holds the belt-and-
- *   suspenders rule for mixed batches.
+ * - el tiempo límite por llamada a nivel de sistema + la cascada de abortos (runWithAbortGuard),
+ * - la forma del fallo de refinamiento de autoría (invalidInputResult:
+ *   devuelto desde execute como resultado isError; la convención de pi 1.0, el
+ *   modelo ve la misma lista de problemas reintentables de siempre y
+ *   `details` conserva los problemas como datos),
+ * - la correspondencia de resultados (string tal cual / objeto en JSON / resultados de imagen a
+ *   partes de contenido nativas; details lleva el valor de cara al registro),
+ * - el marcador provisional de las herramientas de preguntas (quiz / ask_user_question): un resultado
+ *   sintético "question posed" que NUNCA se persiste: el registro mantiene la
+ *   parte de herramienta sin salida hasta que el cliente responde; la respuesta del alumno
+ *   vuelve a entrar en el siguiente turno como el resultado de esta llamada. terminate: true (opción A
+ *   del responsable, 2026-09-25) termina de forma nativa los lotes de una sola pregunta; el ligero
+ *   detenedor shouldStopAfterTurn (teacher-agent.ts) mantiene la regla de cinturón y
+ *   tirantes para los lotes mixtos.
  *
- * Structural validation is NOT here: pi's loop validates arguments against
- * the tool's TypeBox parameters before execute ever runs (pi-ai's
- * validateToolArguments — the fast TypeBox path). Refinements that no
- * schema can carry (quizInputProblems, the live-tree nodeId check) run at
- * the top of the tool's own execute and throw ToolInputError.
+ * La validación estructural NO está aquí: el bucle de pi valida los argumentos contra
+ * los parámetros TypeBox de la herramienta antes de que se ejecute execute (el
+ * validateToolArguments de pi-ai: el camino rápido de TypeBox). Los refinamientos que ningún
+ * esquema puede expresar (quizInputProblems, la comprobación de nodeId contra el árbol vivo) se ejecutan al
+ * principio del propio execute de la herramienta y lanzan ToolInputError.
  */
 
 /**
- * System-level per-call timeout (2026-09-19, the abort-cascade fix): pi
- * passes every run's AbortSignal to tool execute, but the signal only
- * lands at a step boundary — so a long-running local tool (the grep that
- * outlived its turn by minutes) could hold the turn hostage until the dev
- * server's memory restart killed the run mid-tool, freezing the record at
- * its write-ahead state (the "went back in time" rollback). The guard
- * races every execute against (a) the run's signal and (b) this timeout,
- * rejecting with pi's own wording ("Operation aborted") on abort and a
- * clear timeout message otherwise — pi turns the throw into an error tool
- * result the model can see.
+ * Tiempo límite por llamada a nivel de sistema (2026-09-19, el arreglo de la cascada de abortos): pi
+ * pasa la AbortSignal de cada ejecución al execute de la herramienta, pero la señal solo
+ * llega en un límite de paso, así que una herramienta local de larga duración (el grep que
+ * sobrevivió a su turno durante minutos) podía tener el turno como rehén hasta que el reinicio
+ * por memoria del servidor de desarrollo mataba la ejecución a mitad de herramienta, congelando el
+ * registro en su estado de escritura anticipada (la marcha atrás de «volvió atrás en el tiempo»). La
+ * guarda enfrenta cada execute con (a) la señal de la ejecución y (b) este tiempo límite,
+ * rechazando con la propia redacción de pi ("Operation aborted") al abortar y con un
+ * mensaje claro de tiempo agotado en otro caso: pi convierte el throw en un resultado de herramienta
+ * de error que el modelo puede ver.
  */
 const TOOL_TIMEOUT_MS = 30_000;
-/** Test seam (runner.ts's pdfModelOverride idiom). */
+/** Punto de inyección para pruebas (el patrón pdfModelOverride de runner.ts). */
 export const toolTimeoutMs = { current: TOOL_TIMEOUT_MS };
 
-/** How long an aborted/timed-out call may take to settle on its own before
- *  the hard reject lands — cooperative tools poll the signal and return
- *  partial results within a tick or two (the fs tools check per file). */
+/** Cuánto puede tardar una llamada abortada/sin tiempo en resolverse por sí sola antes
+ *  de que llegue el rechazo forzoso: las herramientas cooperativas sondean la señal y devuelven
+ *  resultados parciales en uno o dos ticks (las herramientas de fs comprueban por fichero). */
 const TOOL_ABORT_GRACE_MS = 250;
 
 function runWithAbortGuard<T>(
@@ -79,11 +79,11 @@ function runWithAbortGuard<T>(
 			fn();
 		};
 		const onAbort = () => {
-			// Cooperative tools poll the signal and settle with partial
-			// results within a tick or two (the fs tools check per file) —
-			// give them a brief grace to deliver those before the hard
-			// reject, so abort KILLS a stuck tool without racing away a
-			// graceful one's partial result.
+			// Las herramientas cooperativas sondean la señal y se resuelven con resultados
+			// parciales en uno o dos ticks (las herramientas de fs comprueban por fichero):
+			// se les da un breve margen para entregarlos antes del rechazo
+			// forzoso, de modo que el aborto MATA una herramienta atascada sin
+			// adelantarse al resultado parcial de una que termina con elegancia.
 			graceTimer = setTimeout(
 				() =>
 					reject(
@@ -97,7 +97,7 @@ function runWithAbortGuard<T>(
 			);
 		};
 		controller.signal.addEventListener("abort", onAbort, { once: true });
-		if (controller.signal.aborted) onAbort(); // an already-aborted signal never fires listeners
+		if (controller.signal.aborted) onAbort(); // una señal ya abortada nunca dispara los listeners
 		Promise.resolve()
 			.then(() => run(controller.signal))
 			.then(
@@ -108,12 +108,12 @@ function runWithAbortGuard<T>(
 		.finally(cleanup);
 }
 
-/** The 1.0-native authoring-failure result (pi convention, agent-core
- *  1.0): return an isError result instead of throwing — the model sees the
- *  same retryable problem list it always did (pi minted exactly this shape
- *  from a thrown ToolInputError), but `details` now keeps the problems as
- *  DATA for the record and the UI instead of the throw path's empty {}.
- *  Content text is byte-identical to the old thrown message. */
+/** El resultado de fallo de autoría nativo de 1.0 (convención de pi, agent-core
+ *  1.0): devolver un resultado isError en lugar de lanzar; el modelo ve la
+ *  misma lista de problemas reintentables de siempre (pi generaba exactamente esta forma
+ *  a partir de un ToolInputError lanzado), pero `details` conserva ahora los problemas como
+ *  DATOS para el registro y la interfaz en lugar del {} vacío del camino del throw.
+ *  El texto del contenido es idéntico byte a byte al antiguo mensaje lanzado. */
 export function invalidInputResult(
 	toolName: string,
 	problems: string[],
@@ -131,18 +131,18 @@ export function invalidInputResult(
 }
 
 /**
- * Rich tool-result escape hatch (2026-09 sources v0): a tool whose result
- * includes IMAGES (the read tool reading an image file) returns this shape
- * instead of a plain value — toToolResult maps it to pi's native
- * tool-result content parts (TextContent | ImageContent)[] so the
- * vision-capable model actually SEES the image. `images` carries base64
- * data + mimeType, exactly as pi's ImageContent wants. `details` rides
- * through to the record untouched.
+ * Vía de escape para resultados de herramienta ricos (sources v0, 2026-09): una herramienta cuyo resultado
+ * incluye IMÁGENES (la herramienta read leyendo un fichero de imagen) devuelve esta forma
+ * en lugar de un valor simple: toToolResult la convierte en las partes de contenido
+ * nativas de resultado de herramienta de pi (TextContent | ImageContent)[] para que el
+ * modelo con visión VEA de verdad la imagen. `images` lleva los datos en base64
+ * + mimeType, exactamente como los quiere el ImageContent de pi. `details` pasa
+ * al registro sin tocar.
  */
 export interface ImageFileResult {
 	text: string;
 	images?: { data: string; mimeType: string }[];
-	/** The record-facing result (client rendering / persistence). */
+	/** El resultado de cara al registro (renderizado en el cliente / persistencia). */
 	details?: unknown;
 }
 
@@ -153,11 +153,11 @@ function isImageResult(v: unknown): v is ImageFileResult {
 }
 
 /**
- * Map a tool body's return to the native AgentToolResult — the parity the
- * old toPiTool tail owned: string results pass verbatim to the model,
- * objects as JSON; `details` carries the RAW value (the record's tool part
- * output reads it, ui-stream), and image results become native content
- * parts with details ?? null.
+ * Convierte el valor devuelto por el cuerpo de una herramienta en el AgentToolResult nativo: la
+ * paridad que tenía la antigua cola de toPiTool: los resultados string pasan tal cual al modelo,
+ * los objetos como JSON; `details` lleva el valor CRUDO (la salida de la parte de herramienta del
+ * registro lo lee, ui-stream), y los resultados de imagen se convierten en partes de contenido
+ * nativas con details ?? null.
  */
 export function toToolResult(result: unknown): AgentToolResult<unknown> {
 	if (isImageResult(result)) {
@@ -179,32 +179,32 @@ export function toToolResult(result: unknown): AgentToolResult<unknown> {
 	};
 }
 
-/** What a server-executed tool's body receives: the call id + the guard's
- *  combined signal (run abort + per-call timeout) for cooperative polling. */
+/** Lo que recibe el cuerpo de una herramienta ejecutada en el servidor: el id de llamada + la señal
+ *  combinada de la guarda (aborto de la ejecución + tiempo límite por llamada) para el sondeo cooperativo. */
 export interface ToolExecuteContext {
 	toolCallId: string;
 	signal?: AbortSignal;
 }
 
 /**
- * Build a native AgentTool execute from a tool body — the guard (timeout +
- * abort cascade) plus the shared result mapping, byte-identical to the old
- * toPiTool pipeline for every server-side tool. Question tools do NOT use
- * this: their placeholder is instant (questionResult below) and their
- * refinement checks run before it.
+ * Construye un execute nativo de AgentTool a partir del cuerpo de una herramienta: la guarda (tiempo límite +
+ * cascada de abortos) más la correspondencia de resultados compartida, idéntica byte a byte a la antigua
+ * canalización toPiTool para toda herramienta del lado del servidor. Las herramientas de preguntas NO usan
+ * esto: su marcador provisional es instantáneo (questionResult, más abajo) y sus
+ * comprobaciones de refinamiento se ejecutan antes.
  */
 export function serverExecute<P extends TSchema>(
 	toolName: string,
 	schema: P,
 	run: (input: Static<P>, ctx: ToolExecuteContext) => unknown,
 ): AgentTool<any>["execute"] {
-	// The returned execute is deliberately typed loose (params: unknown) so
-	// it satisfies every AgentTool slot — heterogeneous registries type
-	// AgentTool<any>, whose Static is unknown, and strictFunctionTypes
-	// rejects a params-narrower function against it. The loop has already
-	// validated arguments against `schema` (runtime) and `run` keeps the
-	// precise Static<P> input; `schema` exists in the signature precisely so
-	// P infers from the call site, not the loose surface.
+	// El execute devuelto se tipa laxo a propósito (params: unknown) para que
+	// encaje en cualquier hueco de AgentTool: los registros heterogéneos tipan
+	// AgentTool<any>, cuyo Static es unknown, y strictFunctionTypes
+	// rechaza contra él una función con params más estrechos. El bucle ya ha
+	// validado los argumentos contra `schema` (en tiempo de ejecución) y `run` conserva la
+	// entrada Static<P> precisa; `schema` está en la firma precisamente para que
+	// P se infiera desde el punto de llamada, no desde la superficie laxa.
 	return async (toolCallId, input: unknown, signal) =>
 		toToolResult(
 			await runWithAbortGuard(toolName, (toolSignal) => run(input as Static<P>, { toolCallId, signal: toolSignal }), signal),
@@ -212,12 +212,12 @@ export function serverExecute<P extends TSchema>(
 }
 
 /**
- * The synthetic question-tool result (in-memory only; the record's tool
- * part keeps no output until the learner answers). terminate: true ends
- * the batch natively — pi stops the loop when every finalized result in
- * the batch terminates; the shouldStopAfterTurn stopper covers the mixed
- * batch (question + other calls in one message) that terminate-only
- * semantics would let run on (owner Option A, 2026-09-25).
+ * El resultado sintético de las herramientas de preguntas (solo en memoria; la parte de
+ * herramienta del registro no guarda salida hasta que el alumno responde). terminate: true termina
+ * el lote de forma nativa: pi detiene el bucle cuando todos los resultados finalizados del
+ * lote terminan; el detenedor shouldStopAfterTurn cubre el lote
+ * mixto (pregunta + otras llamadas en un mensaje) que la semántica de solo terminate
+ * dejaría seguir (opción A del responsable, 2026-09-25).
  */
 export function questionResult(): AgentToolResult<null> {
 	return {
@@ -232,11 +232,11 @@ export function questionResult(): AgentToolResult<null> {
 	};
 }
 
-/** The practice pose's ack (practice sessions, owner 2026-10-04): unlike
- *  a question, this result is FINAL — it persists (persistTurn filters
- *  only QUESTION_TOOLS placeholders), because the learner's submissions
- *  arrive as MESSAGES, never as this call's result. terminate: true ends
- *  the turn at the pose; the commitment rides the call's arguments. */
+/** El acuse del planteamiento de práctica (sesiones de práctica, responsable 2026-10-04): a diferencia
+ *  de una pregunta, este resultado es FINAL: se persiste (persistTurn filtra
+ *  solo los marcadores provisionales de QUESTION_TOOLS), porque los envíos del alumno
+ *  llegan como MENSAJES, nunca como el resultado de esta llamada. terminate: true termina
+ *  el turno en el planteamiento; el compromiso va en los argumentos de la llamada. */
 export function problemResult(): AgentToolResult<null> {
 	return {
 		content: [
@@ -250,9 +250,9 @@ export function problemResult(): AgentToolResult<null> {
 	};
 }
 
-/** The conclude ack: NOT terminate — the turn continues so the same reply
- *  can reveal + pose the next problem. Text single-sourced in contracts
- *  (CONCLUDE_ACK_TEXT — shared with the dismissal-synthesized pair). */
+/** El acuse de conclude: NO terminate; el turno continúa para que la misma respuesta
+ *  pueda revelar + plantear el siguiente problema. Texto de fuente única en contracts
+ *  (CONCLUDE_ACK_TEXT, compartido con el par sintetizado al descartar). */
 export function concludeResult(): AgentToolResult<null> {
 	return {
 		content: [{ type: "text", text: CONCLUDE_ACK_TEXT }],

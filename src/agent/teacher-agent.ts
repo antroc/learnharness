@@ -29,61 +29,61 @@ import { usageWasAdmitted } from "./subscription-request-cycle.ts";
 import { PluginQuestionLedger, type NativePluginQuestionContribution } from "./plugin-question-tools.ts";
 
 /**
- * The two teaching-side agents (docs/archive/probe-teach-split.md): the PROBER and
- * the TEACHER. Same transcript, different prompts and tool sets; the
- * chat-handler constructs ONE per request off the transcript's seam
- * (probe_done = teacher) — the STATELESS per-turn engine (docs/
- * docs/archive/pi-engine-swap.md §2): the persisted record is the source of truth, the
- * agent is rebuilt from it every POST and discarded at turn end.
+ * Los dos agentes del lado de la enseñanza (docs/archive/probe-teach-split.md): el SONDEADOR y
+ * el PROFESOR. Mismo transcript, distintos prompts y conjuntos de herramientas; el
+ * chat-handler construye UNO por petición a partir de la frontera del transcript
+ * (probe_done = profesor): el motor SIN ESTADO por turno (docs/
+ * docs/archive/pi-engine-swap.md §2): el registro persistido es la fuente de verdad, el
+ * agente se reconstruye a partir de él en cada POST y se descarta al final del turno.
  *
- * Engines are injectable so tests can pass a scripted faux engine and drive
- * deterministic lessons (see tests/chat-flow.test.ts).
+ * Los motores son inyectables para que las pruebas puedan pasar un motor falso con guion y
+ * conducir lecciones deterministas (ver tests/chat-flow.test.ts).
  *
- * System prompts are COMPOSED per agent: system-prompt.md (the shared base:
- * agent, voice, philosophy, accuracy) + every numeric-prefix fragment in
- * that agent's directory (src/agent/prompts/prober/ or
- * src/agent/prompts/teacher/), in sorted filename order, then the shared/
- * fragments as a trailing appendix (question tools, learner files,
- * formatting) — the 2026-09-27 reorder: the agent's job and method lead,
- * the mechanics trail. Joined with `---` separators.
+ * Los prompts de sistema se COMPONEN por agente: system-prompt.md (la base compartida:
+ * agente, voz, filosofía, precisión) + cada fragmento con prefijo numérico del
+ * directorio de ese agente (src/agent/prompts/prober/ o
+ * src/agent/prompts/teacher/), por orden de nombre de fichero, y después los fragmentos de
+ * shared/ como apéndice final (herramientas de preguntas, ficheros del alumno,
+ * formato): la reordenación del 2026-09-27: primero el trabajo y el método del agente,
+ * al final la mecánica. Unidos con separadores `---`.
  *
- * ONLY numeric-prefix files load — the loader enforces the convention, so
- * non-fragment documentation (README.md, …) can live in the directories
- * without ever leaking into the model's prompt.
+ * SOLO se cargan los ficheros con prefijo numérico: el cargador impone la convención, así que
+ * la documentación que no es fragmento (README.md, …) puede vivir en los directorios
+ * sin colarse nunca en el prompt del modelo.
  */
 
-/** Which agent's prompt directory to compose. Practice (2026-10-04)
- *  composes ONLY its own directory — see prompt-segments.ts. */
+/** Qué directorio de prompts de agente se compone. La práctica (2026-10-04)
+ *  compone SOLO su propio directorio: ver prompt-segments.ts. */
 export type AgentKind = "prober" | "teacher" | "practice";
 
-/** Reserve conversation builtins even when role/mechanics/settings gates hide them.
- * New builtin names must join this catalog; actual turn tools are reserved too. */
+/** Reserva los builtins de conversación aunque las barreras de rol/mecánica/ajustes los oculten.
+ * Los nombres de builtins nuevos deben entrar en este catálogo; las herramientas reales del turno también se reservan. */
 export const CONVERSATION_TOOL_NAMES = Object.freeze([
 	...QUESTION_TOOLS, ...TOGGLEABLE_TOOLS, "probe_done", "read", "ls", "find", "grep",
 	"plan_init", "list_sessions", "list_propositions", "problem", "conclude", sendToUserTool.name,
 ] as const);
 
-// P2 (2026-09-19): segment discovery + override resolution live in ONE
-// canonical place now — src/store/prompt-overrides.ts (listSourceSegments
-// mirrors this loader's rules, shared/ included). The agent imports it for
-// the static-file seam; the local fragment discovery helpers are retired.
+// P2 (2026-09-19): el descubrimiento de segmentos + la resolución de sustituciones viven ahora
+// en UN lugar canónico: src/store/prompt-overrides.ts (listSourceSegments
+// refleja las reglas de este cargador, shared/ incluido). El agente lo importa para
+// la frontera de ficheros estáticos; los helpers locales de descubrimiento de fragmentos se retiran.
 
-/** Exported for tests: assert what composes into the model's prompt.
- *  Composition order: shared base → shared/ fragments (both agents, the
- *  sources-v1 seam for cross-agent doctrine) → the agent's own fragments.
+/** Exportado para las pruebas: comprueba qué se compone en el prompt del modelo.
+ *  Orden de composición: base compartida → fragmentos de shared/ (ambos agentes, la
+ *  frontera sources-v1 para la doctrina común a agentes) → los fragmentos propios del agente.
  *
- *  P2 reconciliation (2026-09-19): composition is DELEGATED to the store
- *  module's effectivePromptSegments — one canonical segment-discovery
- *  rule (its listSourceSegments mirrors this loader's, now including
- *  shared/) — so per-segment OVERRIDES ride the same path: a segment
- *  whose switch is ON and whose override file exists composes the
- *  override text instead of the source. `switches` is the settings
- *  record's agent.prompts map (absent key = off), threaded per turn via
- *  AgentBuildOptions.promptSwitches; a switches-less call composes pure
- *  source (byte-identical to the pre-refactor loader — pinned in
- *  tests/prompt-overrides.test.ts). Overrides are a static-file read
- *  through config paths, not request state — the store import carries no
- *  chat/job machinery. */
+ *  Reconciliación P2 (2026-09-19): la composición se DELEGA en
+ *  effectivePromptSegments del módulo de store: una regla canónica de descubrimiento de
+ *  segmentos (su listSourceSegments refleja la de este cargador, ahora incluyendo
+ *  shared/), de modo que las SUSTITUCIONES por segmento van por el mismo camino: un segmento
+ *  cuyo interruptor está ACTIVADO y cuyo fichero de sustitución existe compone el
+ *  texto sustituto en lugar del original. `switches` es el mapa agent.prompts del registro
+ *  de ajustes (clave ausente = desactivado), pasado por turno mediante
+ *  AgentBuildOptions.promptSwitches; una llamada sin switches compone el original
+ *  puro (idéntico byte a byte al cargador anterior a la refactorización, fijado en
+ *  tests/prompt-overrides.test.ts). Las sustituciones son una lectura de fichero estático
+ *  por las rutas de configuración, no estado de la petición: la importación de store no
+ *  arrastra maquinaria de chats ni tareas. */
 export function composeInstructions(kind: AgentKind, switches?: Record<string, boolean>): string {
 	const segments = effectivePromptSegments(kind, switches ?? {});
 	return segments
@@ -93,91 +93,91 @@ export function composeInstructions(kind: AgentKind, switches?: Record<string, b
 		.join("\n\n---\n\n");
 }
 
-// The switch-free source composition, cached per kind (module-load once).
-// With promptSwitches provided, baseAgentOptions composes FRESH per turn —
-// an override file written while its switch is ON must flip the next
-// turn's composition; the cache serves only the switches-less path.
+// La composición original sin interruptores, en caché por tipo (una vez al cargar el módulo).
+// Con promptSwitches, baseAgentOptions compone DE NUEVO en cada turno:
+// un fichero de sustitución escrito con su interruptor ACTIVADO debe cambiar la composición
+// del turno siguiente; la caché solo sirve al camino sin interruptores.
 const composedInstructions: Record<AgentKind, string> = {
 	prober: composeInstructions("prober"),
 	teacher: composeInstructions("teacher"),
 	practice: composeInstructions("practice"),
 };
 
-// Money channel (wave 4): the chat-handler passes a per-turn collector;
-// every model call's usage lands in the chat record's turns log
-// (ChatStore.appendTurnUsage). The narrow param keeps the seam honest.
+// Canal del dinero (oleada 4): el chat-handler pasa un recolector por turno;
+// el uso de cada llamada al modelo acaba en el registro de turnos del chat
+// (ChatStore.appendTurnUsage). El parámetro estrecho mantiene honesta la frontera.
 export type StepUsageCollector = (usage: Usage) => void;
 
-/** Per-request construction options (the handler wires all of these). */
+/** Opciones de construcción por petición (el handler las conecta todas). */
 export interface AgentBuildOptions {
-	/** Model + stream function — tests inject a scripted faux engine. */
+	/** Modelo + función de stream: las pruebas inyectan un motor falso con guion. */
 	engine?: PiEngine;
 	callPurpose?: { background: boolean };
 	requestCycle?: ChatGPTRequestCycle;
-	/** The initial transcript, as pi messages (the record IS agent state). */
+	/** El transcript inicial, como mensajes de pi (el registro ES el estado del agente). */
 	messages?: AgentMessage[];
-	/** Money channel: one call per model request. */
+	/** Canal del dinero: una llamada por petición al modelo. */
 	onUsage?: StepUsageCollector;
-	/** Append-only reference updates before each already-scheduled internal
-	 * model call. Does not schedule an extra call or interrupt live output. */
+	/** Actualizaciones de referencia solo de anexado antes de cada llamada interna al modelo
+	 * ya programada. No programa una llamada extra ni interrumpe la salida en curso. */
 	contextUpdates?: (messages: readonly AgentMessage[]) => AgentMessage[];
-	/** Validate the actual selected context after prepared/queued messages
-	 * join, before dispatch. Throws through the SDK's normal failed-response
-	 * lifecycle, never through the conversion seam. */
+	/** Valida el contexto realmente seleccionado después de que se unan los mensajes
+	 * preparados/en cola, antes del envío. Lanza a través del ciclo de vida normal de
+	 * respuesta fallida del SDK, nunca a través de la frontera de conversión. */
 	validateContext?: (messages: readonly AgentMessage[]) => void;
-	/** Tests may pass a bare tool registry to drive deterministic flows.
-	 *  An explicit registry is NEVER toggle-filtered — the caller owns it. */
+	/** Las pruebas pueden pasar un registro de herramientas desnudo para conducir flujos deterministas.
+	 *  Un registro explícito NUNCA se filtra por interruptores: es del llamador. */
 	tools?: Record<string, AgentTool<any>>;
-	/** Server-owned per-turn resolver. Additive only; explicit tools test overrides
-	 * bypass contributions entirely. No conversation identity means no factory call. */
+	/** Resolvedor por turno propiedad del servidor. Solo aditivo; las sustituciones explícitas
+	 * de herramientas de las pruebas se saltan las contribuciones. Sin identidad de conversación no se llama a la factoría. */
 	pluginContributions?: (context: PluginToolContext, reservedToolNames: readonly string[]) => {
 		instructions: readonly string[];
 		tools: readonly AgentTool<any>[];
 		questionTypes?: readonly NativePluginQuestionContribution[];
 		problemTypes?: readonly NativePluginProblemContribution[];
 	};
-	/** The resolved per-user tool toggles (core/pending EnabledTools — the
-	 *  2026-09-19 P2 bridge: Platform's chat-handler passes
-	 *  effective.agent.tools; the factories drop any tool explicitly false.
-	 *  THE DEFINITIVE toggleable set is TOGGLEABLE_TOOLS (job tools only);
-	 *  the filtering is generic, but writes validate against the list). */
+	/** Los interruptores de herramientas resueltos por usuario (EnabledTools de core/pending: el
+	 *  puente P2 del 2026-09-19: el chat-handler de Platform pasa
+	 *  effective.agent.tools; las factorías descartan toda herramienta explícitamente false.
+	 *  EL conjunto DEFINITIVO activable es TOGGLEABLE_TOOLS (solo herramientas de tareas);
+	 *  el filtrado es genérico, pero las escrituras se validan contra la lista). */
 	toolToggles?: EnabledTools;
-	/** Per-segment system-prompt override SWITCHES (the settings record's
-	 *  agent.prompts map, absent key = off — same keys the settings routes
-	 *  and effectivePromptSegments use). Provided → the prompt composes
-	 *  fresh per turn, honoring enabled overrides (switch on + file
-	 *  exists); absent → the cached pure-source composition. */
+	/** INTERRUPTORES de sustitución del prompt de sistema por segmento (el mapa
+	 *  agent.prompts del registro de ajustes, clave ausente = desactivado: las mismas claves que
+	 *  usan las rutas de ajustes y effectivePromptSegments). Si se pasan → el prompt se compone
+	 *  de nuevo en cada turno, respetando las sustituciones activadas (interruptor activado + el
+	 *  fichero existe); si no → la composición original pura en caché. */
 	promptSwitches?: Record<string, boolean>;
-	/** Native conversation identity: the existing persisted chat id, reused
-	 * across reconstructed prober, teacher, and practice Agents.
-	 * Debug: when set AND LH_PROVIDER_EVENTS=1, raw provider stream events
-	 *  (pre-normalization) append to data/debug/provider-events/
-	 *  <chatId>.jsonl via providerEventObserver — the GLM-truncation /
-	 *  DeepSeek-id incident layer. Absent or env-off → no observer. */
+	/** Identidad nativa de la conversación: el id de chat persistido existente, reutilizado
+	 * en los agentes sondeador, profesor y de práctica reconstruidos.
+	 * Depuración: si está definido Y LH_PROVIDER_EVENTS=1, los eventos crudos del stream del proveedor
+	 *  (antes de normalizar) se añaden a data/debug/provider-events/
+	 *  <chatId>.jsonl mediante providerEventObserver: la capa de incidentes del truncado de GLM /
+	 *  los ids de DeepSeek. Ausente o variable de entorno desactivada → sin observador. */
 	chatId?: string;
 }
 
 /**
- * The turn's question-stop rule (docs/archive/pi-engine-swap.md §2; Wave A
- * 2026-09-26, owner Option A): a question tool call (quiz /
- * ask_user_question) that RESOLVED — its synthetic "question posed" result
- * is not an error — ends the run: the learner's answer arrives as the next
- * POST. A call that FAILED authoring validation (error result) must NOT
- * stop the run — the model retries within the same turn, exactly the old
- * InvalidToolInputError semantics.
+ * La regla de parada por pregunta del turno (docs/archive/pi-engine-swap.md §2; Oleada A
+ * 2026-09-26, opción A del responsable): una llamada a una herramienta de preguntas (quiz /
+ * ask_user_question) que se RESOLVIÓ (su resultado sintético "question posed"
+ * no es un error) termina la ejecución: la respuesta del alumno llega como el siguiente
+ * POST. Una llamada que FALLÓ la validación de autoría (resultado de error) NO debe
+ * detener la ejecución: el modelo reintenta dentro del mismo turno, exactamente la antigua
+ * semántica de InvalidToolInputError.
  *
- * Question results also carry terminate: true (tool-execute's
- * questionResult), so single-question batches stop natively at the pi
- * loop's own batch check; this finishTurn hook (0.87.1 rename of
- * shouldStopAfterTurn) is the
- * belt-and-suspenders HALF for the mixed batch (a question + other calls
- * in one message) that terminate-only semantics would let run on — the
- * learner cannot answer while a turn is in flight (per-chat 409), so a
- * cleanly-posed question MUST always end the turn. Practice's problem pose
- * has the same wait-for-the-learner contract, including mixed output/problem
- * batches; failed poses must still retry. maxTurns is gone
- * (owner ruling 2026-09-25: no maximum-agent-turns net on the teaching
- * turn).
+ * Los resultados de preguntas también llevan terminate: true (questionResult de
+ * tool-execute), así que los lotes de una sola pregunta se detienen de forma nativa en la
+ * comprobación de lote del propio bucle de pi; este hook finishTurn (renombrado en 0.87.1 desde
+ * shouldStopAfterTurn) es la
+ * MITAD de cinturón y tirantes para el lote mixto (una pregunta + otras llamadas
+ * en un mismo mensaje) que la semántica de solo terminate dejaría seguir: el
+ * alumno no puede responder mientras hay un turno en curso (409 por chat), así que una
+ * pregunta planteada limpiamente SIEMPRE debe terminar el turno. El planteamiento de problema de
+ * la práctica tiene el mismo contrato de esperar al alumno, incluidos los lotes mixtos de
+ * salida/problema; los planteamientos fallidos deben seguir reintentándose. maxTurns ha desaparecido
+ * (decisión del responsable del 2026-09-25: ninguna red de máximo de turnos del agente en el
+ * turno de enseñanza).
  */
 function makeQuestionStopper(kind: AgentKind) {
 	return (context: {
@@ -193,7 +193,7 @@ function makeQuestionStopper(kind: AgentKind) {
 				.map((c) => c.id!),
 		);
 		if (called.size === 0) return false;
-		// Stop only when every question/problem pose resolved cleanly.
+		// Detenerse solo cuando todos los planteamientos de pregunta/problema se resolvieron limpiamente.
 		for (const result of context.toolResults) {
 			if (called.has(result.toolCallId) && result.isError) return false;
 		}
@@ -203,10 +203,10 @@ function makeQuestionStopper(kind: AgentKind) {
 
 function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: AgentTool<any, any>[], nodeExists?: (nodeId: string) => boolean,
 	practice?: { gate: PracticeGate; graphNodes: PracticeToolContext["graphNodes"] }) {
-	// Practice never reaches the role fallback (the handler ALWAYS injects
-	// the session's conversation engine — practice rides the same
-	// conversation-spec resolution as teaching); the cast keeps AgentKind
-	// ("practice" is not a ModelRole) honest about that.
+	// La práctica nunca llega al respaldo por rol (el handler SIEMPRE inyecta
+	// el motor de conversación de la sesión: la práctica usa la misma
+	// resolución de conversation-spec que la enseñanza); el cast mantiene honesto a AgentKind
+	// ("practice" no es un ModelRole) al respecto.
 	const engine = opts.engine ?? piEngineFor(kind as "prober" | "teacher");
 	const stopper = makeQuestionStopper(kind);
 	const narrationGuard = narrationGuardApplies(kind, engine.model, opts.tools !== undefined);
@@ -215,8 +215,8 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 		? composeInstructions(kind, opts.promptSwitches)
 		: composedInstructions[kind]!;
 	const builtinPrompt = narrationGuard ? `${composedPrompt}\n\n---\n\n${SEND_TO_USER_DELIVERY_RULE}` : composedPrompt;
-	// Bind native read and preserve the kind/model-aware Claude output gate
-	// before resolving additive plugins. Explicit registries remain caller-owned.
+	// Vincula el read nativo y conserva la barrera de salida de Claude sensible al tipo/modelo
+	// antes de resolver los plugins aditivos. Los registros explícitos siguen siendo del llamador.
 	const builtinTools = [
 		...tools.map((tool) => tool.name === "read" && tool.execute === readTool.execute
 			? { ...tool, execute: createReadTool(engine.model).execute as AgentTool<any>["execute"] }
@@ -232,13 +232,13 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 		? new PluginQuestionLedger(contributions.questionTypes, opts.chatId, nodeExists) : undefined;
 	const problemTools = kind === "practice" && practice && opts.chatId
 		? pluginProblemTools(contributions?.problemTypes ?? [], opts.chatId, practice.gate, practice.graphNodes) : [];
-	// Never replace the builtin prompt or tools, or mutate an already-running Agent.
+	// Nunca sustituir el prompt ni las herramientas builtin, ni mutar un Agent ya en ejecución.
 	const systemPrompt = contributions?.instructions.length
 		? [builtinPrompt, ...contributions.instructions].join("\n\n---\n\n")
 		: builtinPrompt;
-	// Debug recorder (owner, 2026-10-04): raw provider events when
-	// LH_PROVIDER_EVENTS=1 and the caller handed a chatId; undefined is
-	// the normal no-observer path (tests, env-off).
+	// Grabador de depuración (responsable, 2026-10-04): eventos crudos del proveedor cuando
+	// LH_PROVIDER_EVENTS=1 y el llamador pasó un chatId; undefined es
+	// el camino normal sin observador (pruebas, variable de entorno desactivada).
 	const providerEvents = opts.chatId ? providerEventObserver(opts.chatId, kind) : undefined;
 	const seenInputs = new Set((opts.messages ?? []).map((m) => (m as { id?: string }).id).filter(Boolean));
 	const agent = new Agent({
@@ -253,8 +253,8 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 		},
 		streamFn: engine.streamFn,
 		...(providerEvents ? { onProviderStreamEvent: providerEvents } : {}),
-		// Both policies share the SDK hook: preserve delivered-prose tracking
-		// and exact plugin occurrence binding rather than overwriting either.
+		// Ambas políticas comparten el hook del SDK: conservar el seguimiento de la prosa entregada
+		// y la vinculación exacta de ocurrencias de plugins en lugar de sobrescribir cualquiera de ellos.
 		...(questionLedger || narrationHooks ? {
 			...narrationHooks,
 			beforeToolCall: async (context: import("@earendil-works/pi-agent-core").BeforeToolCallContext) => {
@@ -264,26 +264,26 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 				return undefined;
 			},
 		} : {}),
-		// 0.87.1: shouldStopAfterTurn → finishTurn. Same call point (after
-		// tool results attach, before turn_end) and `{ action: "end" }` still
-		// exits BEFORE the steering poll — the parked-marker stranding our
-		// Wave C registerLiveAgent-before-runPiTurn design depends on.
-		// undefined preserves normal scheduling (the old boolean false).
+		// 0.87.1: shouldStopAfterTurn → finishTurn. Mismo punto de llamada (después de
+		// adjuntar los resultados de herramientas, antes de turn_end) y `{ action: "end" }` sigue
+		// saliendo ANTES del sondeo de reorientación: el abandono del marcador aparcado del que
+		// depende nuestro diseño de la Oleada C (registerLiveAgent antes de runPiTurn).
+		// undefined conserva la programación normal (el antiguo booleano false).
 		finishTurn: (turn) => (turn.toolResults.some(result => questionLedger?.isAcknowledgment(result) || (kind === "practice" && isPluginProblemPoseAcknowledgment(result))) || stopper(turn) ? { action: "end" } : undefined),
-		// Wave C (2026-09-26, owner correction same day): markers handed to a
-		// live run drain from pi's STEERING queue — the lesson loop is one
-		// continuous teach→quiz→teach run, so delivery must inject at turn
-		// boundaries INSIDE the run, not wait for it to stop (follow-ups).
-		// "all" joins every handed marker at one boundary, matching the idle
-		// wake's carry-everything semantics (the default "one-at-a-time"
-		// would spend one teacher turn per marker).
+		// Oleada C (2026-09-26, corrección del responsable el mismo día): los marcadores entregados a
+		// una ejecución en vivo se vacían desde la cola de REORIENTACIÓN de pi: el bucle de la lección es una
+		// ejecución continua enseñar→quiz→enseñar, así que la entrega debe inyectarse en los límites de
+		// turno DENTRO de la ejecución, no esperar a que se detenga (follow-ups).
+		// "all" une todos los marcadores entregados en un mismo límite, igual que la semántica
+		// de llevarlo todo del despertar en reposo (el "one-at-a-time" por defecto
+		// gastaría un turno del profesor por marcador).
 		steeringMode: "all",
-		// Wave B (owner-approved 2026-09-26): the model-facing conversion is
-		// THE app seam — markers flatten to their canonical user text
-		// (HANDOFF_TEXT / steer text, all single-sourced),
-		// UI-only markers (plan-block) drop, the app's id fields strip, and
-		// an abort's dangling question call gets its INTERRUPTED result. It
-		// must never throw (pi's convertToLlm contract).
+		// Oleada B (aprobada por el responsable el 2026-09-26): la conversión de cara al modelo es
+		// LA frontera de la app: los marcadores se aplanan a su texto de usuario canónico
+		// (HANDOFF_TEXT / texto de reorientación, todo de fuente única),
+		// los marcadores solo de interfaz (plan-block) se descartan, los campos de id de la app se quitan y
+		// la llamada de pregunta colgada de un aborto recibe su resultado INTERRUPTED.
+		// Nunca debe lanzar (el contrato convertToLlm de pi).
 		convertToLlm: toLlmMessages,
 		...(opts.contextUpdates ? { prepareNextTurnWithContext: ({ context }: { context: { messages: AgentMessage[] } }) => {
 			const messages = opts.contextUpdates!(context.messages);
@@ -300,7 +300,7 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 					if (id && seenInputs.has(id)) continue;
 					if (id) seenInputs.add(id);
 					if (cause === "learner" && id) learner = true;
-					else automatic = true; // missing/unrecognized identity never grants foreground
+					else automatic = true; // una identidad ausente/no reconocida nunca concede el primer plano
 				}
 				if (automatic) opts.callPurpose.background = true;
 				else if (learner) opts.callPurpose.background = false;
@@ -317,8 +317,8 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 	if (opts.onUsage) {
 		agent.subscribe((event: AgentEvent) => {
 			if (event.type === "message_end" && event.message.role === "assistant" && "usage" in event.message) {
-				// A cancelled call is not a billed step (partial/estimated
-				// usage on an aborted message is not money spent).
+				// Una llamada cancelada no es un paso facturado (el uso parcial/estimado
+				// de un mensaje abortado no es dinero gastado).
 				if (event.message.stopReason === "aborted" || !usageWasAdmitted(event.message.usage) || (opts.requestCycle && !opts.requestCycle.acceptsUsage(event.message))) return;
 				opts.onUsage!(event.message.usage);
 			}
@@ -328,27 +328,27 @@ function baseAgentOptions(kind: AgentKind, opts: AgentBuildOptions, tools: Agent
 }
 
 /**
- * The PROBER (agent A): the quizzing tool (quiz, or explain under free
- * recall — no nodeId either way) + ask + probe_done, lean on
- * probing doctrine. Its whole job is bracketing the learner's edge and
- * concluding with the assessment (probe_done) — which also queues the
- * handoff wake (see tools/probe.ts) and is the transcript seam the
- * handler keys teacher construction on.
+ * El SONDEADOR (agente A): la herramienta de quiz (quiz, o explain en
+ * recuerdo libre; sin nodeId en ningún caso) + ask + probe_done, apoyado en la
+ * doctrina de sondeo. Todo su trabajo es acotar el borde del alumno y
+ * concluir con la evaluación (probe_done), que además pone en cola el
+ * despertar de traspaso (ver tools/probe.ts) y es la frontera del transcript en la que el
+ * handler basa la construcción del profesor.
  */
 export function createProberAgent(ctx: ProberToolContext, opts: AgentBuildOptions = {}) {
 	return baseAgentOptions("prober", opts, Object.values(createProberTools(ctx, opts.toolToggles)));
 }
 
 /**
- * The TEACHER (agent B): enters at planning (the probe is already
- * concluded — its assessment is in the transcript), owns plan_init and the
- * full toolset (teach questions with validated nodeId, the map, research,
- * demos).
+ * El PROFESOR (agente B): entra en la planificación (el sondeo ya ha
+ * concluido: su evaluación está en el transcript), es dueño de plan_init y del
+ * conjunto completo de herramientas (preguntas de enseñanza con nodeId validado, el mapa,
+ * investigación, demos).
  */
 export function createTeacherAgent(
-	// Optional so tests can construct a bare mock-driven agent (no storage
-	// wiring): without ctx the tools fall back to the validation-free
-	// question set. The handler ALWAYS passes ctx (the composition root).
+	// Opcional para que las pruebas puedan construir un agente desnudo dirigido por mocks (sin
+	// conexión con el almacenamiento): sin ctx, las herramientas recurren al conjunto de preguntas
+	// sin validación. El handler SIEMPRE pasa ctx (la raíz de composición).
 	ctx?: TeacherToolContext,
 	opts: AgentBuildOptions = {},
 ) {
@@ -358,15 +358,15 @@ export function createTeacherAgent(
 		: undefined);
 }
 
-/** The bare teach question set (tests, bare agents): quiz with the shared
- *  authoring refinement (quizInputProblems, run in execute — returns an
- *  invalidInputResult isError result the model retries on, pi 1.0
- *  convention) but NO per-session nodeId check (no record to read),
- *  plus ask. */
+/** El conjunto desnudo de preguntas de enseñanza (pruebas, agentes desnudos): quiz con el
+ *  refinamiento de autoría compartido (quizInputProblems, ejecutado en execute: devuelve un
+ *  resultado isError de invalidInputResult sobre el que el modelo reintenta, convención de
+ *  pi 1.0) pero SIN la comprobación de nodeId por sesión (no hay registro que leer),
+ *  más ask. */
 export function bareQuestionTools(): Record<string, AgentTool<any>> {
-	// A typed const (not an inline literal): the specific AgentTool typing
-	// gives execute its precise Static input; heterogeneous records take
-	// AgentTool<any>, whose loose Static would smudge it to unknown.
+	// Una const tipada (no un literal en línea): el tipado concreto de AgentTool
+	// da a execute su entrada Static precisa; los registros heterogéneos usan
+	// AgentTool<any>, cuyo Static laxo la difuminaría a unknown.
 	const quiz: AgentTool<typeof quizInputObject> = {
 		name: "quiz",
 		label: "quiz",
@@ -379,9 +379,9 @@ export function bareQuestionTools(): Record<string, AgentTool<any>> {
 			return questionResult();
 		},
 	};
-	// healToolRecord (owner, 2026-10-09 — the whitehead generalization):
-	// the bare quiz carried NO prepareArguments at all — not even the
-	// options-unwrap; now it gets the full standard heal like every tool.
+	// healToolRecord (responsable, 2026-10-09: la generalización de whitehead):
+	// el quiz desnudo NO llevaba prepareArguments en absoluto, ni siquiera el
+	// desempaquetado de options; ahora recibe la reparación estándar completa como toda herramienta.
 	return healToolRecord({
 		quiz,
 		ask_user_question: askUserQuestionTool,
@@ -389,17 +389,17 @@ export function bareQuestionTools(): Record<string, AgentTool<any>> {
 }
 
 /**
- * The PRACTITIONER (practice sessions, owner design 2026-10-04): built
- * from turn 1 of a kind:"practice" session — no prober→teacher split,
- * no plan tools, no question tools. Its ENTIRE registry is
- * problem + conclude (tools/practice.ts); the doctrine prompt
- * (prompts/practice/) carries the method. A successful problem pose ends
- * the run, natively for a problem-only batch and via the shared stop hook
- * for a mixed batch (including caller-injected legacy output tools).
- * Practice uses ordinary final prose, not the explicit output tool.
+ * El PRACTICANTE (sesiones de práctica, diseño del responsable del 2026-10-04): se construye
+ * desde el turno 1 de una sesión kind:"practice": sin división sondeador→profesor,
+ * sin herramientas de plan, sin herramientas de preguntas. TODO su registro es
+ * problem + conclude (tools/practice.ts); el prompt de doctrina
+ * (prompts/practice/) lleva el método. Un planteamiento de problema correcto termina
+ * la ejecución, de forma nativa en un lote solo de problema y mediante el hook de parada compartido
+ * en un lote mixto (incluidas las herramientas de salida heredadas inyectadas por el llamador).
+ * La práctica usa prosa final normal, no la herramienta de salida explícita.
  */
 export function createPracticeAgent(ctx: PracticeToolContext, opts: AgentBuildOptions = {}) {
-	// Explicit test registries bypass all builtin construction and contributions.
+	// Los registros explícitos de prueba se saltan toda la construcción builtin y las contribuciones.
 	if (opts.tools !== undefined) return baseAgentOptions("practice", opts, Object.values(opts.tools));
 	const gate = createPracticeGate(ctx);
 	return baseAgentOptions("practice", opts, Object.values(practiceTools(ctx, gate)), undefined, { gate, graphNodes: ctx.graphNodes });

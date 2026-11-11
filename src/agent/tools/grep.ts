@@ -18,14 +18,14 @@ import {
 import { resolvePolicy } from "./file-access.ts";
 
 /**
- * The grep tool — sources v1 (2026-09-19): pi's dist/core/tools/grep.js
- * ported to a pure-Node scan (pi shells out to rg). Schemas and output
- * formats are pi-verbatim — `relative/path:LINE: text` matches,
- * `relative/path-LINE- text` context lines, the 500-char line cap, the
- * "use read to see full lines" notice. Deltas: home-anchored default,
- * .gitignore replaced by hard noise exclusions, binary detection via NUL
- * sniff, a 2MB file cap, and a wall-clock timeout with partial results.
- * Read-only by construction.
+ * La herramienta grep: sources v1 (2026-09-19): el dist/core/tools/grep.js de pi
+ * portado a un escaneo en Node puro (pi llama a rg por shell). Los esquemas y formatos
+ * de salida son literales de pi: coincidencias `relative/path:LINE: text`,
+ * líneas de contexto `relative/path-LINE- text`, el límite de 500 caracteres por línea, el
+ * aviso "use read to see full lines". Diferencias: home como ancla por defecto,
+ * .gitignore sustituido por exclusiones fijas de ruido, detección de binarios olfateando
+ * NUL, un límite de 2 MB por fichero y un tiempo límite real con resultados parciales.
+ * Solo lectura por construcción.
  */
 
 const DEFAULT_LIMIT = 100;
@@ -64,7 +64,7 @@ export const grepTool: AgentTool<typeof grepInput> = {
 		const contextValue = input.context && input.context > 0 ? input.context : 0;
 		const effectiveLimit = Math.max(1, input.limit ?? DEFAULT_LIMIT);
 
-		// One collection budget for the entire union, not 10s per root.
+		// Un único presupuesto de recolección para toda la unión, no 10 s por raíz.
 		const files: { filePath: string; searchPath: string; isDirectory: boolean }[] = [];
 		const deadline = Date.now() + WALK_TIMEOUT_MS;
 		let timedOut = false;
@@ -91,10 +91,10 @@ export const grepTool: AgentTool<typeof grepInput> = {
 		let matchCount = 0;
 		let limitReached = false;
 		let linesTruncated = false;
-		// The scan phase is bounded too (2026-09-19): the walk's 10s deadline
-		// bounds COLLECTION, but reading every collected file was unbounded —
-		// the grep that outlived its turn by minutes. Same budget, checked per
-		// file; abort lands mid-scan with partial results.
+		// La fase de escaneo también está acotada (2026-09-19): el plazo de 10 s del recorrido
+		// acota la RECOLECCIÓN, pero leer cada fichero recogido no tenía límite:
+		// el grep que sobrevivió a su turno durante minutos. Mismo presupuesto, comprobado por
+		// fichero; el aborto llega a mitad de escaneo con resultados parciales.
 		const scanDeadline = Date.now() + WALK_TIMEOUT_MS;
 		let scanTimedOut = false;
 
@@ -117,7 +117,7 @@ export const grepTool: AgentTool<typeof grepInput> = {
 			} catch {
 				continue;
 			}
-			if (fileStat.size > MAX_FILE_BYTES) continue; // rg-style silent skip of huge files
+			if (fileStat.size > MAX_FILE_BYTES) continue; // salto silencioso de ficheros enormes al estilo de rg
 			if (await isBinaryFile(filePath).catch(() => true)) continue;
 
 			let content: string;
@@ -143,7 +143,7 @@ export const grepTool: AgentTool<typeof grepInput> = {
 					for (let current = start; current <= end; current++) {
 						const { text, wasTruncated } = truncateGrepLine(lines[current - 1] ?? "");
 						if (wasTruncated) linesTruncated = true;
-						// pi's format: ':' for match lines, '-' for context lines.
+						// Formato de pi: ':' en las líneas de coincidencia, '-' en las de contexto.
 						outLines.push(current === i + 1 ? `${rel}:${current}: ${text}` : `${rel}-${current}- ${text}`);
 					}
 				}

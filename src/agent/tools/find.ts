@@ -6,9 +6,9 @@ import { serverExecute } from "../tool-execute.ts";
 import { capOutput, formatSize, MAX_OUTPUT_BYTES, matchGlob, sourceSearchRoots, walkFiles, WALK_TIMEOUT_MS } from "./fs-shared.ts";
 import { resolvePolicy } from "./file-access.ts";
 
-/** Pure-Node pi/fd-style search: no shell, no symlink following, mandatory
- * source denials. Restricted default searches share ONE budget/limit across
- * all allowed roots; explicit paths keep their HOME-relative meaning. */
+/** Búsqueda en Node puro al estilo de pi/fd: sin shell, sin seguir enlaces simbólicos, con
+ * denegaciones obligatorias de fuentes. Las búsquedas restringidas por defecto comparten UN presupuesto/límite
+ * entre todas las raíces permitidas; las rutas explícitas conservan su significado relativo a HOME. */
 const DEFAULT_LIMIT = 1000;
 const findInput = Type.Object({
 	pattern: Type.String({ minLength: 1, description: "Glob pattern, e.g. '*.ts', '**/*.json', or 'src/**/*.spec.ts'; matched relative to each search root" }),
