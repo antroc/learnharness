@@ -1,12 +1,12 @@
 /**
- * Server-side persistence for the graph render settings (the settings-panel
- * controls): data/render-settings.json — read-modify-write, NOT a ledger.
+ * Persistencia del lado del servidor de los ajustes de renderizado del grafo (los controles del
+ * panel de ajustes): data/render-settings.json, de lectura-modificación-escritura, NO un registro de solo anexado.
  *
- * The shape, defaults, and sanitizer live in src/core/render-settings.ts
- * (pure, shared with the client); this module only moves bytes. Whatever
- * comes off disk is sanitized by the caller on load — and we sanitize on
- * write too, so the file can never hold an out-of-range value that would
- * silently shift a slider.
+ * La forma, los valores por defecto y el saneador viven en src/core/render-settings.ts
+ * (puro, compartido con el cliente); este módulo solo mueve bytes. Lo que
+ * sale del disco lo sanea el llamador al cargar, y nosotros también saneamos al
+ * escribir, para que el fichero nunca pueda contener un valor fuera de rango que
+ * desplace en silencio un deslizador.
  */
 
 import fs from "node:fs";
@@ -16,27 +16,27 @@ import { DEFAULT_RENDER_SETTINGS, sanitizeRenderSettings, type GraphRenderSettin
 import { assertGraphFormat, ensureGraphFormat } from "./graph-format.ts";
 import { writeFileAtomicSync } from "./atomic-write.ts";
 
-/** The persisted settings, or null when no file exists yet (first boot). */
+/** Los ajustes persistidos, o null cuando aún no existe el fichero (primer arranque). */
 export function readRenderSettings(): GraphRenderSettings | null {
-	assertGraphFormat(); // honest refusal on a newer-stamped data dir
+	assertGraphFormat(); // rechazo honesto ante un directorio de datos sellado con una versión más nueva
 	let raw: string;
 	try {
 		raw = fs.readFileSync(RENDER_SETTINGS_FILE, "utf-8");
 	} catch {
-		return null; // never booted / unreadable → caller uses defaults
+		return null; // nunca arrancado / ilegible → el llamador usa los valores por defecto
 	}
 	try {
 		return sanitizeRenderSettings(JSON.parse(raw));
 	} catch {
-		return null; // corrupt → defaults, never crash the view
+		return null; // corrupto → valores por defecto, nunca romper la vista
 	}
 }
 
-/** Persist settings (sanitized). Returns what was written. */
+/** Persiste los ajustes (saneados). Devuelve lo que se escribió. */
 export function writeRenderSettings(raw: unknown): GraphRenderSettings {
 	const settings = sanitizeRenderSettings(raw);
 	fs.mkdirSync(path.dirname(RENDER_SETTINGS_FILE), { recursive: true });
-	ensureGraphFormat(); // the lazy format stamp (graph-format.ts)
+	ensureGraphFormat(); // el sello de formato perezoso (graph-format.ts)
 	writeFileAtomicSync(RENDER_SETTINGS_FILE, JSON.stringify(settings, null, "\t"), { allowInPlaceFallback: true });
 	return settings;
 }

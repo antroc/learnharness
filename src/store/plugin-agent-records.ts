@@ -22,14 +22,14 @@ function validate(value: unknown, id: string): PluginAgentRecord {
 	return r;
 }
 
-/** One JSON file per plugin-local session (normally <plugin data>/agents).
- * Atomic replacement and fsync before rename: observers are notified by the
- * service only after this synchronous write returns. No global learner paths,
- * chat store imports, silent read failures, or process-wide singleton state.
- * The host must share one service for this directory; this is not an interprocess
- * lock or a multi-process database. */
+/** Un fichero JSON por sesión local del plugin (normalmente <plugin data>/agents).
+ * Sustitución atómica y fsync antes del renombrado: el servicio notifica a los observadores
+ * solo después de que vuelva esta escritura síncrona. Sin rutas globales del alumno,
+ * importaciones del store de chats, fallos de lectura silenciosos ni estado singleton global del proceso.
+ * El host debe compartir un único servicio para este directorio; no es un bloqueo
+ * entre procesos ni una base de datos multiproceso. */
 export function createPluginAgentRecordStore(directory: string): PluginAgentRecordStore {
-	// Plugin data directories are runtime inputs, never deployment assets.
+	// Los directorios de datos de los plugins son entradas en tiempo de ejecución, nunca recursos de despliegue.
 	const root = path.resolve(/* turbopackIgnore: true */ directory);
 	fs.mkdirSync(root, { recursive: true });
 	const filename = (id: string) => { safeId(id); return path.join(/* turbopackIgnore: true */ root, `${id}.json`); };
@@ -56,8 +56,8 @@ export function createPluginAgentRecordStore(directory: string): PluginAgentReco
 		},
 		save(record) {
 			const file = filename(record.id);
-			// Round-trip and validate before touching disk. Circular/non-JSON values
-			// fail the acceptance barrier rather than corrupting an existing record.
+			// Hacer el viaje de ida y vuelta y validar antes de tocar el disco. Los valores circulares/no JSON
+			// fallan la barrera de aceptación en lugar de corromper un registro existente.
 			const body = `${JSON.stringify(record, null, "\t")}\n`;
 			validate(JSON.parse(body), record.id);
 			const temporary = path.join(root, `.${record.id}.${randomUUID()}.tmp`);

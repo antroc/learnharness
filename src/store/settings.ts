@@ -1,20 +1,20 @@
 /**
- * Server-side persistence for THE user settings record (settings-storage
- * wave, 2026-09-19): data/settings.json (config.SETTINGS_FILE), under the
- * LH_DATA_DIR seam — read-modify-write, NOT a ledger. Non-secret product
- * preferences only; secrets stay in auth.json / .env.local.
+ * Persistencia del lado del servidor del registro de ajustes del usuario (oleada de almacenamiento
+ * de ajustes, 2026-09-19): data/settings.json (config.SETTINGS_FILE), bajo la frontera
+ * LH_DATA_DIR, de lectura-modificación-escritura, NO un registro de solo anexado. Solo preferencias
+ * de producto no secretas; los secretos se quedan en auth.json / .env.local.
  *
- * This adapter OWNS the lazy migrations:
- *  1. schema-version bumps (CURRENT_SETTINGS_VERSION) slot in here — the
- *     chain is empty today (v1 is the first shape); pure additions never
- *     bump, so an up-to-date file is always a no-op pass-through.
- *    (The legacy default-settings.json fold died with the chat section —
- *     per-session models, owner 2026-09-28.)
+ * Este adaptador es DUEÑO de las migraciones perezosas:
+ *  1. los saltos de versión de esquema (CURRENT_SETTINGS_VERSION) se encajan aquí: la
+ *     cadena está vacía hoy (v1 es la primera forma); las simples adiciones nunca
+ *     suben la versión, así que un fichero al día siempre pasa sin cambios.
+ *    (El pliegue del default-settings.json heredado murió con la sección de chat:
+ *     modelos por sesión, responsable 2026-09-28).
  *
- * Everything off disk is sanitized (core/settings.ts) before it reaches a
- * caller; everything written was already validated by the routes
- * (settings-body.ts) and is sanitized here again — the file can never hold
- * a value that would silently shift a knob.
+ * Todo lo que sale del disco se sanea (core/settings.ts) antes de llegar a un
+ * llamador; todo lo que se escribe ya lo validaron las rutas
+ * (settings-body.ts) y aquí se vuelve a sanear: el fichero nunca puede contener
+ * un valor que desplace en silencio un mando.
  */
 
 import fs from "node:fs";
@@ -30,9 +30,9 @@ import { parseFileAccessSettings, type FileAccessSettingsResult } from "../core/
 
 const FILE_ACCESS_ERROR = "File-access configuration cannot be read reliably. Learner-file access is blocked. Repair File access in Settings → Agent → Tools.";
 
-/** Separate strict view: the ordinary settings API keeps its historical
- * null/default behavior, but source access must distinguish absent prefs
- * from existing corrupt/unreadable settings. Never expose raw JSON/errors. */
+/** Vista estricta aparte: la API de ajustes normal mantiene su comportamiento histórico
+ * de null/valores por defecto, pero el acceso a fuentes debe distinguir las preferencias ausentes
+ * de unos ajustes existentes corruptos/ilegibles. Nunca expone JSON crudo ni errores. */
 function fileAccessFromRecord(raw: unknown): FileAccessSettingsResult {
 	if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, error: FILE_ACCESS_ERROR };
 	const agent = (raw as Record<string, unknown>).agent;
@@ -47,8 +47,8 @@ function fileAccessFromRecord(raw: unknown): FileAccessSettingsResult {
 	return parsed;
 }
 
-/** ENOENT from a dangling settings/ancestor symlink is NOT first boot.
- * Find the nearest existing entry and verify its directory is usable. */
+/** Un ENOENT por un enlace simbólico colgado de settings/de un ancestro NO es un primer arranque.
+ * Busca la entrada existente más cercana y verifica que su directorio es utilizable. */
 function settingsAreAbsent(): boolean {
 	let candidate = SETTINGS_FILE;
 	for (;;) {
@@ -81,42 +81,42 @@ export function readFileAccessSettings(): FileAccessSettingsResult {
 	catch { return { ok: false, error: FILE_ACCESS_ERROR }; }
 }
 
-/** The persisted record, or null when none exists (first boot). Runs the
- *  migration chain on every read — cheap: a no-op file check when current. */
+/** El registro persistido, o null cuando no existe ninguno (primer arranque). Ejecuta la
+ *  cadena de migración en cada lectura: barato: una comprobación de fichero que no hace nada si está al día. */
 export function readSettings(): UserSettings | null {
 	let raw: string;
 	try {
 		raw = fs.readFileSync(SETTINGS_FILE, "utf-8");
 	} catch {
-		return null; // no settings.json yet — first boot, all factory defaults
+		return null; // aún no hay settings.json: primer arranque, todo con valores de fábrica
 	}
 	let parsed: unknown;
 	try {
 		parsed = JSON.parse(raw);
 	} catch {
-		return null; // corrupt → first-boot semantics (all factory defaults)
+		return null; // corrupto → semántica de primer arranque (todo con valores de fábrica)
 	}
 	const record = sanitizeUserSettings(parsed);
 	if (!record) return null;
 	if (!fileAccessFromRecord(parsed).ok) {
-		// Unrelated section writes carry this safe placeholder, not a dropped
-		// malformed policy that would silently restore unrestricted reads.
+		// Las escrituras de secciones no relacionadas llevan este marcador seguro, no una política
+		// malformada descartada que restauraría en silencio las lecturas sin restricciones.
 		record.agent = { ...record.agent, fileAccess: { restricted: true, folders: [] } };
 	}
-	// Version chain (empty today): a future v2 migration slots in here —
-	// `if (record.version > CURRENT_SETTINGS_VERSION) …`. Unknown NEWER
-	// versions pass through untouched (the sanitizer preserved unknowns).
+	// Cadena de versiones (vacía hoy): una futura migración a v2 se encaja aquí:
+	// `if (record.version > CURRENT_SETTINGS_VERSION) …`. Las versiones MÁS NUEVAS desconocidas
+	// pasan sin tocar (el saneador conservó lo desconocido).
 	return record;
 }
 
-/** Persist the record (sanitized). Returns what was written. */
+/** Persiste el registro (saneado). Devuelve lo que se escribió. */
 export function writeSettings(raw: unknown): UserSettings {
 	const settings = sanitizeUserSettings(raw);
 	if (!settings) throw new Error("settings record must be a JSON object");
 	if (!readFileAccessSettings().ok && settings.agent?.fileAccess === undefined) {
-		// A whole-file corruption cannot be carried by readSettings (null).
-		// Saving another preference repairs it into a BLOCKED policy unless
-		// the write explicitly supplies a valid file-access preference.
+		// Una corrupción del fichero entero no la puede transportar readSettings (null).
+		// Guardar otra preferencia lo repara convirtiéndolo en una política BLOQUEADA salvo que
+		// la escritura aporte explícitamente una preferencia de acceso a ficheros válida.
 		settings.agent = { ...settings.agent, fileAccess: { restricted: true, folders: [] } };
 	}
 	fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
@@ -124,7 +124,7 @@ export function writeSettings(raw: unknown): UserSettings {
 	return settings;
 }
 
-/** The typed adapter (core/ports.ts SettingsStore), for the composition root. */
+/** El adaptador tipado (SettingsStore de core/ports.ts), para la raíz de composición. */
 export const settingsStore: SettingsStore = {
 	readSettings,
 	writeSettings,

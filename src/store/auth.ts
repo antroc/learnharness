@@ -1,18 +1,18 @@
 /**
- * The AuthStore adapter (auth-keys wave, 2026-09-19): the flat {VAR: value}
- * auth.json map at config.AUTH_FILE — the SAME file the Electron app has
- * always hand-edited (owner decision: option A — same file, env-located,
- * zero migration). 0600, atomic writes, hand-edits keep working (the file
- * is re-read from disk on every access).
+ * El adaptador AuthStore (oleada de claves de autenticación, 2026-09-19): el mapa plano {VAR: value}
+ * de auth.json en config.AUTH_FILE: el MISMO fichero que la app de Electron siempre ha
+ * editado a mano (decisión del responsable: opción A: mismo fichero, ubicado por variable de entorno,
+ * cero migración). 0600, escrituras atómicas, las ediciones a mano siguen funcionando (el fichero
+ * se vuelve a leer del disco en cada acceso).
  *
- * The server (src/server/keys.ts) is the only intended writer: it applies
- * shape validation before setAuthVar and env precedence on top of
- * authVars(). Ordinary reads never throw (absent/corrupt file = {} =
- * "no keys yet"); custom-only pair reads/writes below are deliberately
- * strict so an unreadable private record is never overwritten as {}.
- * Ordinary writes preserve unknown string vars verbatim
- * (forward-compat: future entries — e.g. a plans-login token — ride along
- * untouched until a catalog entry adopts them).
+ * El servidor (src/server/keys.ts) es el único escritor previsto: aplica la
+ * validación de forma antes de setAuthVar y la precedencia de las variables de entorno por encima de
+ * authVars(). Las lecturas normales nunca lanzan (fichero ausente/corrupto = {} =
+ * «aún no hay claves»); las lecturas/escrituras del par solo personalizado de más abajo son deliberadamente
+ * estrictas para que un registro privado ilegible nunca se sobrescriba como {}.
+ * Las escrituras normales conservan literalmente las variables string desconocidas
+ * (compatibilidad futura: entradas futuras, p. ej. un token de inicio de sesión de planes, van
+ * sin tocar hasta que una entrada del catálogo las adopte).
  */
 
 import fs from "node:fs";
@@ -23,7 +23,7 @@ import { CUSTOM_PROVIDER } from "../core/auth-keys.ts";
 import { CUSTOM_AUTH_BINDING, parseCustomAuthBinding, type CustomAuthBinding } from "../core/custom-provider-auth.ts";
 import { writeFileAtomicSync } from "./atomic-write.ts";
 
-/** The flat string→string map, or {} for absent/corrupt/non-object. */
+/** El mapa plano string→string, o {} si es ausente/corrupto/no es objeto. */
 function readMap(): Record<string, string> {
 	try {
 		const raw = JSON.parse(fs.readFileSync(AUTH_FILE, "utf-8"));
@@ -32,14 +32,14 @@ function readMap(): Record<string, string> {
 			Object.entries(raw).filter(([, v]) => typeof v === "string") as [string, string][],
 		);
 	} catch {
-		return {}; // absent or corrupt — the documented state is "no keys yet"
+		return {}; // ausente o corrupto: el estado documentado es «aún no hay claves»
 	}
 }
 
-/** Write the map atomically at mode 0600: a partial write must never
- *  leave a 0644 file (secrets) or a truncated JSON (looks like "no keys").
- *  atomic-write.ts sets the mode on the temp file before the rename, so
- *  the mode never exists relaxed on the final path. */
+/** Escribe el mapa de forma atómica con modo 0600: una escritura parcial nunca debe
+ *  dejar un fichero 0644 (secretos) ni un JSON truncado (parece «no hay claves»).
+ *  atomic-write.ts fija el modo en el fichero temporal antes del renombrado, así que
+ *  el modo nunca existe relajado en la ruta final. */
 function writeMap(map: Record<string, unknown>): void {
 	fs.mkdirSync(path.dirname(AUTH_FILE), { recursive: true });
 	writeFileAtomicSync(AUTH_FILE, `${JSON.stringify(map, null, "\t")}\n`, { mode: 0o600 });
@@ -58,15 +58,15 @@ export const authStore: AuthStore = {
 	deleteAuthVar(name) {
 		assertOrdinaryVar(name);
 		const map = readMap();
-		if (!(name in map)) return; // absent = silent success, idempotent
+		if (!(name in map)) return; // ausente = éxito silencioso, idempotente
 		delete map[name];
 		writeMap(map);
 	},
 };
 
-/** Custom writes must never turn an unreadable/corrupt private file into {}.
- * Other providers retain their existing adapter semantics. Unknown JSON values
- * survive custom-only updates, not just the ordinary string projection. */
+/** Las escrituras personalizadas nunca deben convertir un fichero privado ilegible/corrupto en {}.
+ * Los demás proveedores conservan la semántica de su adaptador existente. Los valores JSON desconocidos
+ * sobreviven a las actualizaciones solo personalizadas, no solo a la proyección de strings normal. */
 function readCustomMap(): Record<string, unknown> {
 	let text: string;
 	try { text = fs.readFileSync(AUTH_FILE, "utf8"); }
@@ -82,12 +82,12 @@ function readCustomMap(): Record<string, unknown> {
 function assertOrdinaryVar(name: string): void {
 	if (name === CUSTOM_AUTH_BINDING || name === CUSTOM_PROVIDER.envVar) throw new Error("Use the custom endpoint editor");
 }
-/** One immutable file snapshot. Keyless callers never invoke fileKey(). */
+/** Una instantánea inmutable del fichero. Los llamadores sin clave nunca invocan fileKey(). */
 export function readCustomAuth() {
 	const map = readCustomMap();
 	return { binding: parseCustomAuthBinding(map[CUSTOM_AUTH_BINDING]), fileKey: () => map[CUSTOM_PROVIDER.envVar] as string | undefined };
 }
-/** Replace just the custom pair in ONE existing atomic record write. */
+/** Sustituye solo el par personalizado en UNA escritura atómica de un registro existente. */
 export function writeCustomAuth(binding: CustomAuthBinding | undefined, fileKey: string | undefined): void {
 	const map = readCustomMap();
 	if (binding && !parseCustomAuthBinding(JSON.stringify(binding))) throw new Error("Invalid custom authorization record");

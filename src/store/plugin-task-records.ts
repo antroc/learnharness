@@ -44,10 +44,10 @@ function validate(value: unknown, expected: string): PluginTaskRecord {
 	return r as unknown as PluginTaskRecord;
 }
 
-/** Atomic one-file-per-task plugin-local records. One writer per directory;
- * this is not an interprocess lock. Never falls back past corrupt JSON. */
+/** Registros locales del plugin, atómicos, un fichero por tarea. Un escritor por directorio;
+ * no es un bloqueo entre procesos. Nunca recurre a nada saltándose un JSON corrupto. */
 export function createPluginTaskRecordStore(directory: string): PluginTaskRecordStore {
-	// Plugin data directories are runtime inputs, never deployment assets.
+	// Los directorios de datos de los plugins son entradas en tiempo de ejecución, nunca recursos de despliegue.
 	const root = path.resolve(/* turbopackIgnore: true */ directory);
 	const filename = (id: string) => { if (!safeId(id)) throw new Error("Invalid plugin task id"); return path.join(/* turbopackIgnore: true */ root, `${id}.json`); };
 	const directoryExists = () => {
@@ -83,8 +83,8 @@ export function createPluginTaskRecordStore(directory: string): PluginTaskRecord
 		},
 		save(record) {
 			const file = filename(record.id);
-			// Serialize first, checking unsupported JSON values instead of silently
-			// dropping a result, coercing NaN, or executing custom toJSON methods.
+			// Serializar primero, comprobando los valores JSON no soportados en lugar de descartar
+			// en silencio un resultado, forzar NaN o ejecutar métodos toJSON personalizados.
 			const seen = new Set<object>();
 			const jsonSafe = (v: unknown): void => {
 				if (v === undefined || v === null || typeof v === "string" || typeof v === "boolean") return;
@@ -121,7 +121,7 @@ function safeTaskDirectory(rootPluginsDirectory: string, pluginId: string, core?
 		let stat: fs.Stats;
 		try { stat = fs.lstatSync(dir); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return null; throw error; }
 		if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error(`Unsafe plugin task directory: ${dir}`);
-		// Installed user data is a runtime lookup, never a build input to trace.
+		// Los datos de usuario instalados son una consulta en tiempo de ejecución, nunca una entrada de build que trazar.
 		const real = fs.realpathSync(/* turbopackIgnore: true */ dir);
 		const relative = path.relative(fs.realpathSync(/* turbopackIgnore: true */ data), real);
 		if (relative.startsWith(`..${path.sep}`) || relative === ".." || path.isAbsolute(relative)) throw new Error("Plugin task directory escapes root");
@@ -129,9 +129,9 @@ function safeTaskDirectory(rootPluginsDirectory: string, pluginId: string, core?
 	return path.join(/* turbopackIgnore: true */ data, "tasks");
 }
 
-/** Recovery-only read: never activates plugin code or creates missing data.
- * taskId is authoritative when present; requestId locates an acceptance whose
- * core-job link was not committed before a crash. Unsafe/corrupt data throws. */
+/** Lectura solo de recuperación: nunca activa código de plugins ni crea datos que falten.
+ * taskId es autoritativo cuando está presente; requestId localiza una aceptación cuyo
+ * vínculo con la tarea de core no se confirmó antes de un cierre inesperado. Los datos inseguros/corruptos lanzan. */
 export function readPluginTaskRecord(rootPluginsDirectory: string, pluginId: string, taskId?: string, requestId?: string, core?: CorePluginDataLocation): PluginTaskRecord | null {
 	if (taskId !== undefined && !safeId(taskId)) throw new Error("Invalid plugin task id");
 	if (requestId !== undefined && (typeof requestId !== "string" || !requestId.length)) throw new Error("Invalid plugin task request id");
@@ -149,9 +149,9 @@ export function readPluginTaskRecord(rootPluginsDirectory: string, pluginId: str
 	return matching[0] ?? null;
 }
 
-/** Exclusive server-bootstrap sweep, before any task services activate. Disabled
- * packages are included. Per-package failures are diagnostic, never rewritten
- * as missing data or allowed to prevent recovery of other valid packages. */
+/** Barrido exclusivo del arranque del servidor, antes de que se active ningún servicio de tareas. Se incluyen
+ * los paquetes desactivados. Los fallos por paquete son diagnósticos; nunca se reescriben
+ * como datos ausentes ni se permite que impidan recuperar otros paquetes válidos. */
 export function recoverPluginTaskRecords(rootPluginsDirectory: string, core?: CorePluginDataLocation): Record<string, string> {
 	const root = path.resolve(/* turbopackIgnore: true */ rootPluginsDirectory);
 	let entries: fs.Dirent[] = [];
@@ -166,8 +166,8 @@ export function recoverPluginTaskRecords(rootPluginsDirectory: string, core?: Co
 		try {
 			const directory = safeTaskDirectory(root, id, core); if (!directory) continue;
 			const store = createPluginTaskRecordStore(directory);
-			// Read/validate the whole package first: corruption must not cause
-			// partially reinterpreted task histories within that package.
+			// Leer/validar primero el paquete entero: la corrupción no debe provocar
+			// historiales de tareas reinterpretados en parte dentro de ese paquete.
 			const records = store.list();
 			const requests = new Set<string>();
 			for (const record of records) { if (requests.has(record.requestId)) throw new Error("Duplicate plugin task request identity"); requests.add(record.requestId); }

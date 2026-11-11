@@ -4,8 +4,8 @@ import { PLUGIN_ID_PATTERN } from "../core/plugins.ts";
 
 export interface CorePluginDataLocation { directory: string; ids: readonly string[] }
 
-/** One origin-aware mapping shared by backend activation and crash recovery.
- * No package code, filesystem fallback, or old core data participates. */
+/** Una única correspondencia consciente del origen compartida por la activación del backend y la recuperación tras cierres inesperados.
+ * No participa ningún código de paquete, respaldo del sistema de ficheros ni datos antiguos de core. */
 export function safePluginDataDirectory(communityDirectory: string, id: string, core?: CorePluginDataLocation, create = false): string | null {
 	if (!PLUGIN_ID_PATTERN.test(id)) throw new Error("Invalid plugin id");
 	const isCore = core?.ids.includes(id) === true;

@@ -1,8 +1,8 @@
 /**
- * The custom-theme STORE (theme wave, 2026-11-04): `<id>.json` files under
- * config.THEMES_DIR behind the core ThemeStore port. Files are re-validated
- * on read (a hand-edited or truncated file is skipped, never thrown), and
- * ids follow the slug grammar so a crafted id cannot leave the directory.
+ * El STORE de temas personalizados (oleada de temas, 2026-11-04): ficheros `<id>.json` bajo
+ * config.THEMES_DIR tras el puerto ThemeStore de core. Los ficheros se vuelven a validar
+ * al leer (un fichero editado a mano o truncado se salta, nunca lanza), y los
+ * ids siguen la gramática de slugs para que un id fabricado no pueda salir del directorio.
  */
 
 import fs from "node:fs";
@@ -26,15 +26,15 @@ function read(id: string): Theme | null {
 	}
 }
 
-/** The disk ThemeStore: one `<id>.json` per imported theme under THEMES_DIR;
- *  unreadable or invalid files are skipped, never thrown. */
+/** El ThemeStore en disco: un `<id>.json` por tema importado bajo THEMES_DIR;
+ *  los ficheros ilegibles o no válidos se saltan, nunca lanzan. */
 export const themeStore: ThemeStore = {
 	listThemes(): Theme[] {
 		let names: string[];
 		try {
 			names = fs.readdirSync(THEMES_DIR);
 		} catch {
-			return []; // no dir yet = no custom themes
+			return []; // aún no hay directorio = no hay temas personalizados
 		}
 		return names
 			.filter((n) => n.endsWith(".json"))

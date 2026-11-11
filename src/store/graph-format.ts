@@ -1,21 +1,21 @@
 /**
- * The graph-family FORMAT STAMP (schema-versioning wave, owner 2026-10-10):
- * data/graph/format.json — one sidecar versioning the whole graph dir
- * family (the four JSONL ledgers, sources.json, render-settings.json).
- * JSONL ledgers can't carry inline stamps without per-line bloat, and the
- * JSON files share the family's fate, so the stamp lives beside them.
- * positions.json is rebuildable (owner ruling) and needs no protection.
+ * El SELLO DE FORMATO de la familia del grafo (oleada de versionado de esquemas, responsable 2026-10-10):
+ * data/graph/format.json: un fichero auxiliar que versiona toda la familia del directorio
+ * del grafo (los cuatro registros JSONL, sources.json, render-settings.json).
+ * Los registros JSONL no pueden llevar sellos en línea sin hincharse línea a línea, y los
+ * ficheros JSON corren la misma suerte que la familia, así que el sello vive a su lado.
+ * positions.json se puede reconstruir (decisión del responsable) y no necesita protección.
  *
- * The contract:
- *  - LAZY v1: NO sidecar = v1 (the pre-stamp world stays valid forever);
- *    the first graph-family WRITE creates it. Reads never write.
- *  - Honest refusal (owner: refuse-honestly ruling): a sidecar stamped
- *    NEWER than this build (the downgrade scenario — user reverted the
- *    app) makes graph-family reads THROW. Read-modify-write stores must
- *    never rewrite what they don't understand; a ledger store must never
- *    silently skip lines it can't interpret as current-format data.
+ * El contrato:
+ *  - v1 PEREZOSA: SIN fichero auxiliar = v1 (el mundo anterior al sello sigue siendo válido para siempre);
+ *    la primera ESCRITURA de la familia del grafo lo crea. Las lecturas nunca escriben.
+ *  - Rechazo honesto (responsable: decisión de rechazar con honestidad): un fichero auxiliar sellado
+ *    con una versión MÁS NUEVA que este build (el escenario de volver a una versión anterior: el usuario revirtió la
+ *    app) hace que las lecturas de la familia del grafo LANCEN. Los stores de lectura-modificación-escritura
+ *    nunca deben reescribir lo que no entienden; un store de registros nunca debe
+ *    saltarse en silencio líneas que no puede interpretar como datos del formato actual.
  *
- * Version constants: contracts/graph.ts CURRENT_GRAPH_FORMAT_VERSION.
+ * Constantes de versión: CURRENT_GRAPH_FORMAT_VERSION de contracts/graph.ts.
  */
 
 import fs from "node:fs";
@@ -29,19 +29,19 @@ function stampedVersion(): number | null {
 	try {
 		raw = fs.readFileSync(GRAPH_FORMAT_FILE, "utf-8");
 	} catch {
-		return null; // no sidecar — the lazy-v1 pre-stamp world
+		return null; // sin fichero auxiliar: el mundo v1 perezoso anterior al sello
 	}
 	try {
 		const parsed = JSON.parse(raw) as { version?: unknown };
 		return typeof parsed.version === "number" && Number.isInteger(parsed.version) ? parsed.version : null;
 	} catch {
-		return null; // corrupt sidecar reads as unstamped (v1), not fatal
+		return null; // un fichero auxiliar corrupto se lee como sin sellar (v1), no es fatal
 	}
 }
 
-/** READ-SIDE GUARD: throws when the data dir was written by a NEWER build.
- *  Called by every graph-family read — never writes (the golden fixtures
- *  pin reads as byte-identical). */
+/** GUARDA DEL LADO DE LECTURA: lanza cuando el directorio de datos lo escribió un build MÁS NUEVO.
+ *  La llama cada lectura de la familia del grafo; nunca escribe (los fixtures de referencia
+ *  fijan las lecturas como idénticas byte a byte). */
 export function assertGraphFormat(): void {
 	const v = stampedVersion();
 	if (v !== null && v > CURRENT_GRAPH_FORMAT_VERSION) {
@@ -52,8 +52,8 @@ export function assertGraphFormat(): void {
 	}
 }
 
-/** WRITE-SIDE STAMP: creates the sidecar on the first graph-family write
- *  (lazy); afterwards a no-op existence-wise. Callers keep their own mkdir. */
+/** SELLO DEL LADO DE ESCRITURA: crea el fichero auxiliar en la primera escritura de la familia del grafo
+ *  (perezoso); después no hace nada en cuanto a existencia. Los llamadores siguen haciendo su propio mkdir. */
 export function ensureGraphFormat(): void {
 	if (stampedVersion() !== null) return;
 	fs.mkdirSync(path.dirname(GRAPH_FORMAT_FILE), { recursive: true });

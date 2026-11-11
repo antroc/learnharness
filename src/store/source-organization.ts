@@ -24,7 +24,7 @@ export const sourceOrganizationStore: SourceOrganizationStore = {
 		fs.mkdirSync(path.dirname(SOURCE_ORGANIZATION_FILE), { recursive: true });
 		ensureGraphFormat();
 		writeFileAtomicSync(SOURCE_ORGANIZATION_FILE, JSON.stringify(valid, null, "\t") + "\n");
-		removeLeftoverTemps(SOURCE_ORGANIZATION_FILE); // crash leftovers could still place deleted sources
+		removeLeftoverTemps(SOURCE_ORGANIZATION_FILE); // los restos de cierres inesperados aún podrían colocar fuentes borradas
 		emit("sources-changed", {});
 	},
 };

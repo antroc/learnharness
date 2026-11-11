@@ -1,35 +1,35 @@
 /**
- * GraphStore — the fs JSONL adapter: the append-only ledgers at
- * config.LEDGER_FILES (contracts.ts "v1 emission").
- *   nodes.jsonl     GraphNode        — one line per node write: the FIRST
- *                                      line for an id defines it; a later
- *                                      line with a REPEATED id is a
- *                                      link-append (session phrasings join
- *                                      aliases, provenance unions); reads
- *                                      merge by id (core/graph.ts getGraph)
- *   chains.jsonl    GraphChain       — one line per chain ASSERTION (a second
- *                                      session asserting the same
- *                                      (premises, conclusion) appends
- *                                      another line; readers merge)
- *   sessions.jsonl  SessionCheckpoint— emission checkpoints (foldedAt)
- *   coverage.jsonl  CoverageEntry    — per-message extraction coverage
+ * GraphStore: el adaptador JSONL de fs: los registros de solo anexado en
+ * config.LEDGER_FILES ("v1 emission" de contracts.ts).
+ *   nodes.jsonl     GraphNode        — una línea por escritura de nodo: la PRIMERA
+ *                                      línea de un id lo define; una línea
+ *                                      posterior con un id REPETIDO es un
+ *                                      anexado de enlace (las formulaciones de la sesión se suman a
+ *                                      los alias, las procedencias se unen); las lecturas
+ *                                      fusionan por id (getGraph de core/graph.ts)
+ *   chains.jsonl    GraphChain       — una línea por AFIRMACIÓN de cadena (una segunda
+ *                                      sesión que afirma las mismas
+ *                                      (premisas, conclusión) anexa
+ *                                      otra línea; los lectores fusionan)
+ *   sessions.jsonl  SessionCheckpoint— puntos de control de emisión (foldedAt)
+ *   coverage.jsonl  CoverageEntry    — cobertura de extracción por mensaje
  *
- * CHAINS-PRIMARY (owner, 2026-09-30): there is NO edges ledger — the edge
- * view (implication nodes + untyped arrows) is derived in core/graph.ts on
- * every read and never persisted. A stale edges.jsonl left by a pre-chains
- * build is deleted once, here, at adapter load (same doctrine as the
- * events-ledger purge below).
+ * LAS CADENAS COMO FUENTE PRIMARIA (responsable, 2026-09-30): NO hay registro de aristas: la
+ * vista de aristas (nodos de implicación + flechas sin tipo) se deriva en core/graph.ts en
+ * cada lectura y nunca se persiste. Un edges.jsonl obsoleto dejado por un build anterior a las cadenas
+ * se borra una vez, aquí, al cargar el adaptador (la misma doctrina que la
+ * purga del registro de eventos de más abajo).
  *
- * Plus config.SOURCES_FILE (sources.json): the imported-notes bookkeeping
- * (NOT a ledger) — one JSON map, src-id → NotesSource, read-modify-write
- * like a chat file. The format-agnostic front door (2026-09-13).
+ * Además config.SOURCES_FILE (sources.json): la contabilidad de las notas importadas
+ * (NO un registro de solo anexado): un mapa JSON, src-id → NotesSource, de lectura-modificación-escritura
+ * como un fichero de chat. La puerta de entrada agnóstica al formato (2026-09-13).
  *
- * Implements core/ports.ts GraphStore. data/graph/* is exclusively this
- * adapter's. Reads are strict against the contracts.ts shapes (the 2026-09-02
- * graph redesign): corrupt lines are skipped, never guessed at — the ledgers
- * are the source of truth and everything else is derived (core/graph.ts,
- * which takes this port as a parameter). Same idioms as src/store/chats.ts:
- * sync fs, no framework.
+ * Implementa el GraphStore de core/ports.ts. data/graph/* pertenece en exclusiva a este
+ * adaptador. Las lecturas son estrictas con las formas de contracts.ts (el rediseño del grafo
+ * del 2026-09-02): las líneas corruptas se saltan, nunca se adivinan: los registros
+ * son la fuente de verdad y todo lo demás se deriva (core/graph.ts,
+ * que recibe este puerto como parámetro). Los mismos patrones que src/store/chats.ts:
+ * fs síncrono, sin framework.
  */
 
 import * as fs from "node:fs";
@@ -49,11 +49,11 @@ import type {
 } from "../core/contracts.ts";
 import type { GraphStore } from "../core/ports.ts";
 
-// ─── JSONL primitives ────────────────────────────────────────────────────────
+// ─── Primitivas JSONL ─────────────────────────────────────────────────────────────
 
 function appendLine<T>(file: string, record: T): void {
 	fs.mkdirSync(path.dirname(file), { recursive: true });
-	ensureGraphFormat(); // the lazy format stamp (graph-format.ts)
+	ensureGraphFormat(); // el sello de formato perezoso (graph-format.ts)
 	fs.appendFileSync(file, `${JSON.stringify(record)}\n`, "utf-8");
 }
 
@@ -62,7 +62,7 @@ function readRawLines(file: string): unknown[] {
 	try {
 		raw = fs.readFileSync(file, "utf-8");
 	} catch {
-		return []; // no ledger yet — nothing has ever been emitted
+		return []; // aún no hay registro: nunca se ha emitido nada
 	}
 	const out: unknown[] = [];
 	for (const line of raw.split("\n")) {
@@ -71,8 +71,8 @@ function readRawLines(file: string): unknown[] {
 		try {
 			out.push(JSON.parse(trimmed));
 		} catch {
-			// Corrupt line: skip rather than fail the whole read — a torn
-			// append must never take the home graph down with it.
+			// Línea corrupta: saltarla en lugar de hacer fallar toda la lectura: un anexado
+			// a medias nunca debe tumbar con él el grafo de inicio.
 		}
 	}
 	return out;
@@ -84,13 +84,13 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 const isString = (v: unknown): v is string => typeof v === "string";
 
-/** Strict shape guards — anything not matching a W4 ledger shape is skipped. */
+/** Guardas de forma estrictas: todo lo que no encaje con una forma de registro W4 se salta. */
 function readValid<T>(file: string, isValid: (v: unknown) => v is T): T[] {
-	assertGraphFormat(); // honest refusal on a newer-stamped data dir
+	assertGraphFormat(); // rechazo honesto ante un directorio de datos sellado con una versión más nueva
 	return readRawLines(file).filter(isValid);
 }
 
-/** Provenance points are (chatId, messageId) pairs — message-granular. */
+/** Los puntos de procedencia son pares (chatId, messageId): granularidad de mensaje. */
 const isProvenancePoint = (v: unknown): v is ProvenancePoint =>
 	isRecord(v) && isString(v.chatId) && isString(v.messageId);
 
@@ -106,10 +106,10 @@ const isGraphNode = (v: unknown): v is GraphNode =>
 	Array.isArray(v.provenance) &&
 	v.provenance.every(isProvenancePoint);
 
-/** A chain line: premises ≥ 1 (a chain IS an argument — bare propositions
- *  ride the node ledger alone), every member a string, conclusion a string.
- *  Endpoint EXISTENCE is the derivation's concern (it drops dangling
- *  chains); the store only shapes. */
+/** Una línea de cadena: premisas ≥ 1 (una cadena ES un argumento: las proposiciones sueltas
+ *  van solo en el registro de nodos), cada miembro un string, la conclusión un string.
+ *  La EXISTENCIA de los extremos es asunto de la derivación (descarta las cadenas
+ *  colgadas); el store solo da forma. */
 const isGraphChain = (v: unknown): v is GraphChain =>
 	isRecord(v) &&
 	isString(v.id) &&
@@ -127,21 +127,21 @@ const isCheckpoint = (v: unknown): v is SessionCheckpoint =>
 const isCoverageEntry = (v: unknown): v is CoverageEntry =>
 	isRecord(v) && isString(v.chatId) && isString(v.fp) && typeof v.tokens === "number" && isString(v.foldedAt);
 
-// ─── the port implementation ────────────────────────────────────────────────
+// ─── la implementación del puerto ─────────────────────────────────────────────────
 
 export const graphStore: GraphStore = {
 	appendNode(node: GraphNode): void {
 		appendLine(LEDGER_FILES.nodes, node);
 	},
-	/** Raw node lines in append order. A node id may appear on more than
-	 *  one line (a later session's LINK-append: phrasings + provenance); the
-	 *  derivation (core/graph.ts getGraph) merges lines by id. */
+	/** Líneas crudas de nodos en orden de anexado. Un id de nodo puede aparecer en más de
+	 *  una línea (el anexado de ENLACE de una sesión posterior: formulaciones + procedencia); la
+	 *  derivación (getGraph de core/graph.ts) fusiona las líneas por id. */
 	readNodes(): GraphNode[] {
 		return readValid(LEDGER_FILES.nodes, isGraphNode);
 	},
 
-	/** Append one chain ASSERTION; readers merge lines by (premises,
-	 *  conclusion). */
+	/** Anexa una AFIRMACIÓN de cadena; los lectores fusionan las líneas por (premisas,
+	 *  conclusión). */
 	appendChain(assertion: GraphChain): void {
 		appendLine(LEDGER_FILES.chains, assertion);
 	},
@@ -163,9 +163,9 @@ export const graphStore: GraphStore = {
 		return readValid(LEDGER_FILES.coverage, isCoverageEntry);
 	},
 
-	// ── imported-notes bookkeeping (config.SOURCES_FILE — a JSON map) ──
+	// ── contabilidad de las notas importadas (config.SOURCES_FILE: un mapa JSON) ──
 
-	/** Upsert: keeps the existing record's usage log when re-importing. */
+	/** Inserta o actualiza: conserva el registro de uso del registro existente al reimportar. */
 	upsertSource(source: NotesSource): void {
 		const all = readSourceMap();
 		const prev = all[source.id];
@@ -182,21 +182,21 @@ export const graphStore: GraphStore = {
 		for (const id of ids) if (Object.hasOwn(all, id)) { delete all[id]; removed++; }
 		if (removed === 0) return 0;
 		writeFileAtomicSync(SOURCES_FILE, JSON.stringify(all, null, "\t"));
-		removeLeftoverTemps(SOURCES_FILE); // crash leftovers would still hold the deleted sources
+		removeLeftoverTemps(SOURCES_FILE); // los restos de cierres inesperados seguirían conteniendo las fuentes borradas
 		return removed;
 	},
-	/** Idempotent per startedAt — same discipline as chats.appendExtractionUsage. */
+	/** Idempotente por startedAt: la misma disciplina que chats.appendExtractionUsage. */
 	appendSourceUsage(id: string, entry: ExtractionRunUsage): void {
 		const all = readSourceMap();
 		const source = all[id];
-		if (!source) return; // no such source — nothing to bill against
+		if (!source) return; // no existe esa fuente: no hay contra qué facturar
 		source.extractions = source.extractions?.some((r) => r.startedAt === entry.startedAt)
 			? source.extractions
 			: [...(source.extractions ?? []), entry];
 		writeSourceMap(all);
 	},
 
-	// ── the layout ledger (config.POSITIONS_FILE — a JSON map) ──
+	// ── el registro de la disposición (config.POSITIONS_FILE: un mapa JSON) ──
 	readPositions(): Record<string, Position> {
 		return readPositionMap();
 	},
@@ -204,11 +204,11 @@ export const graphStore: GraphStore = {
 		writePositionMap(positions);
 	},
 
-	/** THE DESTRUCTIVE SEAM (wave 6 session deletion): atomic full-content
-	 *  replacement per provided ledger (atomic-write.ts: crashes mid-write
-	 *  leave the original ledger and orphan .tmp-* files, never torn
-	 *  ledger). Empty arrays write an empty file — a purged ledger reads
-	 *  as "nothing yet", same as never-emitted. */
+	/** LA FRONTERA DESTRUCTIVA (oleada 6, borrado de sesiones): sustitución atómica del contenido
+	 *  completo de cada registro proporcionado (atomic-write.ts: un cierre inesperado a mitad de escritura
+	 *  deja el registro original y ficheros .tmp-* huérfanos, nunca un registro
+	 *  a medias). Los arrays vacíos escriben un fichero vacío: un registro purgado se lee
+	 *  como «aún nada», igual que uno nunca emitido. */
 	rewriteLedgers(next: {
 		nodes?: GraphNode[];
 		chains?: GraphChain[];
@@ -224,26 +224,26 @@ export const graphStore: GraphStore = {
 		for (const [key, records] of Object.entries(next) as [keyof typeof files, unknown[]][]) {
 			const file = files[key];
 			fs.mkdirSync(path.dirname(file), { recursive: true });
-			// JSONL: one record per line, trailing newline — the reader
-			// must see exactly what appendLine would have written.
+			// JSONL: un registro por línea, con salto de línea final: el lector
+			// debe ver exactamente lo que habría escrito appendLine.
 			const body = records.map((record) => JSON.stringify(record)).join("\n") + (records.length > 0 ? "\n" : "");
 			writeFileAtomicSync(file, body);
-			removeLeftoverTemps(file); // crash leftovers would still hold the purged records
+			removeLeftoverTemps(file); // los restos de cierres inesperados seguirían conteniendo los registros purgados
 		}
 	},
 };
 
-/** positions.json — { positions, updatedAt }. Read-modify-write, NOT
- *  append-only: the settle is a full-graph computation, so it replaces the
- *  whole map. The updatedAt stamp exists for future live-physics conflict
- *  handling (a browser commit must be able to detect "the graph changed
- *  underneath me"); reads just return the map. */
+/** positions.json: { positions, updatedAt }. De lectura-modificación-escritura, NO
+ *  de solo anexado: el settle es un cálculo sobre todo el grafo, así que sustituye
+ *  el mapa entero. El sello updatedAt existe para la futura gestión de conflictos de física
+ *  en vivo (una confirmación del navegador debe poder detectar que «el grafo cambió
+ *  por debajo de mí»); las lecturas solo devuelven el mapa. */
 function readPositionMap(): Record<string, Position> {
 	let raw: string;
 	try {
 		raw = fs.readFileSync(POSITIONS_FILE, "utf-8");
 	} catch {
-		return {}; // no ledger yet — nothing has ever settled
+		return {}; // aún no hay registro: nunca se ha asentado nada
 	}
 	try {
 		const parsed: unknown = JSON.parse(raw);
@@ -266,10 +266,10 @@ function writePositionMap(positions: Record<string, Position>): void {
 const isPosition = (v: unknown): v is Position =>
 	isRecord(v) && typeof v.x === "number" && Number.isFinite(v.x) && typeof v.y === "number" && Number.isFinite(v.y);
 
-/** sources.json — { id: NotesSource }. Read-modify-write, NOT append-only:
- *  the usage log lives inside the record (like a chat's JSON file). */
+/** sources.json: { id: NotesSource }. De lectura-modificación-escritura, NO de solo anexado:
+ *  el registro de uso vive dentro del registro (como el fichero JSON de un chat). */
 function readSourceMap(): Record<string, NotesSource> {
-	assertGraphFormat(); // honest refusal on a newer-stamped data dir
+	assertGraphFormat(); // rechazo honesto ante un directorio de datos sellado con una versión más nueva
 	let raw: string;
 	try {
 		raw = fs.readFileSync(SOURCES_FILE, "utf-8");
@@ -291,17 +291,17 @@ function readSourceMap(): Record<string, NotesSource> {
 
 function writeSourceMap(map: Record<string, NotesSource>): void {
 	fs.mkdirSync(path.dirname(SOURCES_FILE), { recursive: true });
-	ensureGraphFormat(); // the lazy format stamp (graph-format.ts)
+	ensureGraphFormat(); // el sello de formato perezoso (graph-format.ts)
 	writeFileAtomicSync(SOURCES_FILE, JSON.stringify(map, null, "\t"), { allowInPlaceFallback: true });
 }
 
-// ─── one-way purges at adapter load: dead ledgers are exactly the confusion
-// the cleanup removes (owner doctrine — nothing reads them, nothing writes
-// them, a stale file lying around is a lie). ────────────────────────────────
+// ─── purgas de un solo sentido al cargar el adaptador: los registros muertos son justo la confusión
+// que elimina la limpieza (doctrina del responsable: nada los lee, nada los escribe,
+// un fichero obsoleto por ahí es una mentira). ─────────────────────────────────────
 {
 	const graphDir = path.dirname(LEDGER_FILES.nodes);
 	for (const legacy of ["edges.jsonl", "events.jsonl"]) {
-		// Runtime user records are not assets for instrumentation's build trace.
+		// Los registros de usuario en tiempo de ejecución no son recursos para la traza de build de la instrumentación.
 		const file = path.join(/* turbopackIgnore: true */ graphDir, legacy);
 		try {
 			if (fs.existsSync(/* turbopackIgnore: true */ file)) {
