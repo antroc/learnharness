@@ -19,8 +19,9 @@ export function folderEntryCheck(directory: SourceDirectory, id: string, selecte
 	const total = entries.sources.length + entries.folders.length;
 	return { checked: count === total, indeterminate: count > 0 && count < total };
 }
-/** One ordinary tree selection, independent of shared global graph-node IDs.
- * Empty entries count too; practice continues using its separate flat node set. */
+/** Una selección normal del árbol, independiente de los IDs globales compartidos de
+ * los nodos del grafo. Las entradas vacías también cuentan; la práctica sigue usando
+ * su conjunto plano de nodos aparte. */
 export function toggleSourceEntries(directory: SourceDirectory, selected: SourceEntrySelection, kind: "source" | "folder", id: string, checked: boolean): SourceEntrySelection {
 	const sources = new Set(selected.sources), folders = new Set(selected.folders);
 	const apply = (set: Set<string>, ids: string[]) => { for (const id of ids) { if (checked) set.add(id); else set.delete(id); } };
@@ -35,7 +36,7 @@ export function toggleSourceEntries(directory: SourceDirectory, selected: Source
 	for (const folder of [...directory.organization.folders].sort((a, b) => depth(b.id) - depth(a.id))) {
 		const childFolders = directory.organization.folders.filter((f) => f.parentId === folder.id);
 		const childSources = directory.sources.filter((s) => placementOf(directory.organization, s.id)?.folderId === folder.id);
-		if (!childFolders.length && !childSources.length) continue; // empty folders are real selectable entries
+		if (!childFolders.length && !childSources.length) continue; // las carpetas vacías son entradas seleccionables reales
 		if (childFolders.every((f) => folders.has(f.id)) && childSources.every((s) => sources.has(s.id))) folders.add(folder.id);
 		else folders.delete(folder.id);
 	}

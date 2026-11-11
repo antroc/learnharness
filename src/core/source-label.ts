@@ -1,5 +1,5 @@
-/** Display only: the original path remains the source's identity/provenance.
- * Keep spelling and punctuation exactly; remove only the final extension. */
+/** Solo visualización: la ruta original sigue siendo la identidad/procedencia de la
+ * fuente. Conserva exactamente la ortografía y la puntuación; quita solo la extensión final. */
 export function sourceFileLabel(filePath: string): string {
 	const base = filePath.split(/[\\/]/).pop() || filePath;
 	return base.replace(/\.[^.]+$/, "") || base;

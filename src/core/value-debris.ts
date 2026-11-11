@@ -1,26 +1,26 @@
 /**
- * MODEL-VALUE DEBRIS STRIP (owner, 2026-10-09 — the whitehead incident):
- * glm-5.3 emitted `correctAnswer: [":parmenides"]` — the option value with
- * the JSON key-value COLON glued on — across four rejected quiz calls
- * (and `type: "\"predict\""` — the literal with QUOTES baked in — across a
- * ten-retry death loop; see tools/heal.ts for that half). Membership
- * fields (correctAnswer against option values, quiz type against the
- * literal pair, practice targets against proposition ids) are copied by
- * the model from its own context, and the copy picks up surrounding
- * syntax: colons, quotes, backticks, whitespace.
+ * LIMPIEZA DE RESTOS EN LOS VALORES DEL MODELO (responsable, 2026-10-09 — el
+ * incidente whitehead): glm-5.3 emitió `correctAnswer: [":parmenides"]` — el valor de
+ * la opción con los DOS PUNTOS de clave-valor de JSON pegados — en cuatro llamadas a
+ * quiz rechazadas (y `type: "\"predict\""` — el literal con las COMILLAS incluidas —
+ * en un bucle mortal de diez reintentos; ver tools/heal.ts para esa mitad). Los
+ * campos de pertenencia (correctAnswer frente a los valores de las opciones, el tipo
+ * de quiz frente al par de literales, los objetivos de práctica frente a los ids de
+ * las proposiciones) los copia el modelo de su propio contexto, y la copia arrastra
+ * la sintaxis de alrededor: dos puntos, comillas, comillas invertidas, espacios.
  *
- * THE SEAM: strip at every MEMBERSHIP comparison — never on free text
- * (statements, questions, explanations may legitimately carry any of
- * these characters). Pure + browser-safe: shared by the call boundary
- * (quizInputProblems), the display parse (tool-parts), and grading
- * (question-dock) — the three consumers the tool-parts law keeps in
- * lockstep. Idempotent by construction.
+ * LA FRONTERA: se limpia en cada comparación de PERTENENCIA — nunca en texto libre
+ * (los enunciados, las preguntas y las explicaciones pueden llevar legítimamente
+ * cualquiera de estos caracteres). Puro + seguro para el navegador: lo comparten la
+ * frontera de la llamada (quizInputProblems), el análisis de visualización
+ * (tool-parts) y la corrección (question-dock) — los tres consumidores que la ley de
+ * tool-parts mantiene sincronizados. Idempotente por construcción.
  */
 
-/** Strip the copy-syntax debris a model glues onto a membership value:
- * any run of surrounding whitespace, colons, double/single quotes, and
- * backticks, in any interleaving (`":value"`, `: value`, `` `value` ``).
- * The interior is untouched. */
+/** Quita los restos de sintaxis copiada que un modelo pega a un valor de pertenencia:
+ * cualquier secuencia de espacios, dos puntos, comillas dobles/simples y comillas
+ * invertidas que lo rodee, en cualquier combinación (`":value"`, `: value`,
+ * `` `value` ``). El interior no se toca. */
 export function stripModelValueDebris(value: string): string {
 	return value.replace(/^[\s:."'`]+/, "").replace(/[\s:."'`]+$/, "");
 }

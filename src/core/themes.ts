@@ -1,25 +1,25 @@
 /**
- * THEMES (theme wave, 2026-11-04): the color vocabulary the user picks,
- * imports and exports, and its translation into the shadcn tokens the
- * components already consume. Pure and browser-safe: the layout (first
- * paint), the provider, the Settings section and the themes API share it.
+ * TEMAS (oleada de temas, 2026-11-04): el vocabulario de colores que el usuario
+ * elige, importa y exporta, y su traducción a los tokens de shadcn que ya consumen
+ * los componentes. Puro y seguro para el navegador: lo comparten el layout (primer
+ * pintado), el proveedor, la sección de Ajustes y la API de temas.
  *
- * A theme is 12 hex colors plus the variant it renders as (dark/light).
- * Built-in presets live here; custom ones are JSON files under
- * config.THEMES_DIR (the ThemeStore port). The settings record names the
- * active theme by id and carries per-color OVERRIDES that survive every
- * theme switch (owner ruling: losing user config is worse than an odd
- * combination).
+ * Un tema son 12 colores hexadecimales más la variante con la que se renderiza
+ * (oscura/clara). Los preajustes integrados viven aquí; los personalizados son
+ * ficheros JSON en config.THEMES_DIR (el puerto ThemeStore). El registro de ajustes
+ * nombra el tema activo por id y lleva SUSTITUCIONES por color que sobreviven a cada
+ * cambio de tema (decisión del responsable: perder la configuración del usuario es
+ * peor que una combinación rara).
  */
 
 import type { AppearanceSettings } from "./settings.ts";
 
-/** The variant on screen: the `dark`/`light` class on <html>. */
+/** La variante en pantalla: la clase `dark`/`light` en <html>. */
 export type ThemeMode = "dark" | "light";
-/** Kept for the mode-aware renderers (graph canvas, mermaid). */
+/** Se mantiene para los renderizadores que dependen del modo (lienzo del grafo, mermaid). */
 export type RenderedMode = ThemeMode;
 
-/** The 12 theme colors, in the order the Settings grid shows them. */
+/** Los 12 colores del tema, en el orden en que los muestra la cuadrícula de Ajustes. */
 export const THEME_COLOR_KEYS = [
 	"background",
 	"accent",
@@ -35,14 +35,14 @@ export const THEME_COLOR_KEYS = [
 	"warning",
 ] as const;
 
-/** One of the twelve theme colors. */
+/** Uno de los doce colores del tema. */
 export type ThemeColorKey = (typeof THEME_COLOR_KEYS)[number];
-/** A full palette: every key, each a #hex. */
+/** Una paleta completa: todas las claves, cada una un #hex. */
 export type ThemeColors = Record<ThemeColorKey, string>;
 
-/** The keys whose override lives in `appearance.colors` — the other three
- *  keep their pre-theme homes (`background`, `mdRendering.boldColor` and
- *  `mdRendering.italicColor`). */
+/** Las claves cuya sustitución vive en `appearance.colors` — las otras tres conservan
+ * su sitio anterior a los temas (`background`, `mdRendering.boldColor` y
+ * `mdRendering.italicColor`). */
 export const COLOR_OVERRIDE_KEYS = [
 	"surface",
 	"border",
@@ -55,36 +55,37 @@ export const COLOR_OVERRIDE_KEYS = [
 	"warning",
 ] as const;
 
-/** A key whose override lives in `appearance.colors`. */
+/** Una clave cuya sustitución vive en `appearance.colors`. */
 export type ColorOverrideKey = (typeof COLOR_OVERRIDE_KEYS)[number];
-/** `appearance.colors`: hex wins over the theme; null/absent = the theme's color. */
+/** `appearance.colors`: el hexadecimal gana al tema; null/ausente = el color del tema. */
 export type AppearanceColorOverrides = Partial<Record<ColorOverrideKey, string | null>>;
 
-/** The file / JSON shape (import and export). */
+/** La forma del fichero / JSON (importación y exportación). */
 export interface ThemeFile {
 	name: string;
 	mode: ThemeMode;
 	colors: ThemeColors;
 }
 
-/** A theme in the catalog: a preset (`builtin`) or an imported file,
- *  addressed by its slug id. */
+/** Un tema del catálogo: un preajuste (`builtin`) o un fichero importado,
+ * identificado por su id en forma de slug. */
 export interface Theme extends ThemeFile {
 	id: string;
 	builtin: boolean;
 }
 
-/** The theme a record without `appearance.theme` renders. */
+/** El tema que renderiza un registro sin `appearance.theme`. */
 export const DEFAULT_THEME_ID = "default";
 
-/** #rgb / #rrggbb (case-insensitive). Mirrors settings.isHexColor without
- *  importing it (settings.ts imports this module's types). */
+/** #rgb / #rrggbb (sin distinguir mayúsculas). Igual que settings.isHexColor sin
+ * importarlo (settings.ts importa los tipos de este módulo). */
 function isHex(value: unknown): value is string {
 	return typeof value === "string" && /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value);
 }
 
-/** Validate an imported theme: `{ ok: false, error }` names the first bad
- *  field so the import card can say what is wrong. Unknown keys drop. */
+/** Valida un tema importado: `{ ok: false, error }` nombra el primer campo
+ * incorrecto para que la tarjeta de importación pueda decir qué falla. Las claves
+ * desconocidas se descartan. */
 export function parseThemeFile(raw: unknown): { ok: true; theme: ThemeFile } | { ok: false, error: string } {
 	if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, error: "theme must be a JSON object" };
 	const r = raw as Record<string, unknown>;
@@ -103,13 +104,13 @@ export function parseThemeFile(raw: unknown): { ok: true; theme: ThemeFile } | {
 	return { ok: true, theme: { name: r.name.trim(), mode: r.mode, colors } };
 }
 
-/** The sanitizer form: the theme, or null when anything is off. */
+/** La forma del saneador: el tema, o null si algo no cuadra. */
 export function sanitizeThemeFile(raw: unknown): ThemeFile | null {
 	const parsed = parseThemeFile(raw);
 	return parsed.ok ? parsed.theme : null;
 }
 
-/** "Rosé Pine Moon" → "rose-pine-moon". Empty when nothing survives. */
+/** "Rosé Pine Moon" → "rose-pine-moon". Vacío si no sobrevive nada. */
 export function themeIdFromName(name: string): string {
 	return name
 		.normalize("NFD")
@@ -120,7 +121,7 @@ export function themeIdFromName(name: string): string {
 		.replace(/^-+|-+$/g, "");
 }
 
-/** Valid theme ids: the slug grammar themeIdFromName produces. */
+/** Ids de tema válidos: la gramática de slugs que produce themeIdFromName. */
 export function isThemeId(value: unknown): value is string {
 	return typeof value === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value) && value.length <= 64;
 }
@@ -129,18 +130,17 @@ function builtin(name: string, mode: ThemeMode, c: ThemeColors): Theme {
 	return { id: themeIdFromName(name), name, mode, colors: c, builtin: true };
 }
 
-/** The presets, in grid order. Default = the app's original dark palette
- *  (app/globals.css carries it as literals; tests pin the two equal).
- *  Catppuccin: base/surface0/surface1, mauve accent, lavender/pink/peach
- *  emphasis; Latte takes mantle/surface0 instead, because surface0 on a
- *  light page reads as a heavy gray slab, and Frappé's bold is flamingo
- *  (owner, 2026-11-04).
- *  Rosé Pine: base/surface/highlight-med, iris accent, iris/rose/gold
- *  emphasis. Gruvbox Dark: medium (bg0/bg0_s/bg2) with the bright
- *  accents; orange accent, blue/purple/aqua emphasis. Ivory: warm ivory
- *  page, terracotta accent, blue/green/clay emphasis. Pastel: a gray-cream
- *  page with soft green, purple and orange inks. NvChad Onedark: base46's
- *  onedark. */
+/** Los preajustes, en el orden de la cuadrícula. Default = la paleta oscura original
+ * de la app (app/globals.css la lleva como literales; las pruebas fijan que ambas sean
+ * iguales). Catppuccin: base/surface0/surface1, acento mauve, énfasis
+ * lavender/pink/peach; Latte usa en su lugar mantle/surface0, porque surface0 sobre
+ * una página clara se ve como un bloque gris pesado, y la negrita de Frappé es
+ * flamingo (responsable, 2026-11-04).
+ * Rosé Pine: base/surface/highlight-med, acento iris, énfasis iris/rose/gold.
+ * Gruvbox Dark: medium (bg0/bg0_s/bg2) con los acentos brillantes; acento naranja,
+ * énfasis azul/morado/aguamarina. Ivory: página marfil cálida, acento terracota,
+ * énfasis azul/verde/arcilla. Pastel: una página gris crema con tintas suaves verde,
+ * morada y naranja. NvChad Onedark: el onedark de base46. */
 export const BUILTIN_THEMES: readonly Theme[] = [
 	{
 		id: DEFAULT_THEME_ID,
@@ -205,24 +205,24 @@ export const BUILTIN_THEMES: readonly Theme[] = [
 	}),
 ];
 
-/** The app's original dark palette, and the fallback for a missing id. */
+/** La paleta oscura original de la app, y la alternativa cuando falta un id. */
 export const DEFAULT_THEME: Theme = BUILTIN_THEMES[0]!;
 
-/** Preset ids are reserved: imports never take them, DELETE refuses them. */
+/** Los ids de los preajustes están reservados: las importaciones nunca los toman y DELETE los rechaza. */
 export function isBuiltinThemeId(id: string): boolean {
 	return BUILTIN_THEMES.some((t) => t.id === id);
 }
 
-/** The active theme: the record's id among builtins and customs, or
- *  Default when the id is absent or its file is gone. */
+/** El tema activo: el id del registro entre los integrados y los personalizados, o
+ * Default si el id falta o su fichero ha desaparecido. */
 export function resolveTheme(id: string | null | undefined, customs: readonly Theme[] = []): Theme {
 	if (!id) return DEFAULT_THEME;
 	return BUILTIN_THEMES.find((t) => t.id === id) ?? customs.find((t) => t.id === id) ?? DEFAULT_THEME;
 }
 
-/** The single place the two override homes merge onto the theme: the
- *  legacy keys (`background`, `mdRendering.boldColor/italicColor`) and
- *  `colors`. A null/absent override = the theme's color. */
+/** El único sitio donde los dos lugares de sustitución se fusionan sobre el tema: las
+ * claves antiguas (`background`, `mdRendering.boldColor/italicColor`) y `colors`. Una
+ * sustitución null/ausente = el color del tema. */
 export function effectiveColors(theme: ThemeFile, appearance: AppearanceSettings | undefined): ThemeColors {
 	const out: ThemeColors = { ...theme.colors };
 	if (!appearance) return out;
@@ -236,7 +236,7 @@ export function effectiveColors(theme: ThemeFile, appearance: AppearanceSettings
 	return out;
 }
 
-/** Shift every channel by `add`, clamped to 0–255 (always #rrggbb out). */
+/** Desplaza cada canal en `add`, acotado a 0–255 (siempre sale #rrggbb). */
 export function shiftHex(hex: string, add: number): string {
 	const n = hex.length === 4
 		? hex.slice(1).split("").map((c) => parseInt(c + c, 16))
@@ -244,14 +244,14 @@ export function shiftHex(hex: string, add: number): string {
 	return `#${n.map((c) => Math.min(255, Math.max(0, c + add)).toString(16).padStart(2, "0")).join("")}`;
 }
 
-/** The hover surface sits one step off `surface`: lighter on dark,
- *  darker on light (#1c1c1c → #2a2a2a, the original hand-picked hover). */
+/** La superficie de hover queda un paso por encima o por debajo de `surface`: más
+ * clara en oscuro, más oscura en claro (#1c1c1c → #2a2a2a, el hover original elegido a mano). */
 const HOVER_STEP = 14;
 
-/** THE adapter: 12 theme colors → the CSS variables set on <html>.
- *  `--accent` stays the shadcn HOVER surface (derived from `surface`, so
- *  hovers never turn the highlight color); the theme's accent is
- *  `--lh-accent` (ring, toggles, the selected theme card). */
+/** EL adaptador: 12 colores del tema → las variables CSS que se fijan en <html>.
+ * `--accent` sigue siendo la superficie de HOVER de shadcn (derivada de `surface`, así
+ * los hovers nunca adoptan el color de resaltado); el acento del tema es `--lh-accent`
+ * (anillo, interruptores, la tarjeta del tema seleccionado). */
 export function themeVars(c: ThemeColors, mode: ThemeMode): Record<string, string> {
 	return {
 		"--background": c.background,
@@ -283,8 +283,8 @@ export function themeVars(c: ThemeColors, mode: ThemeMode): Record<string, strin
 	};
 }
 
-/** Export: the active theme with every override applied — importing the
- *  file back reproduces exactly what is on screen. */
+/** Exportación: el tema activo con todas las sustituciones aplicadas — volver a
+ * importar el fichero reproduce exactamente lo que hay en pantalla. */
 export function exportThemeFile(theme: ThemeFile, appearance: AppearanceSettings | undefined): ThemeFile {
 	return { name: theme.name, mode: theme.mode, colors: effectiveColors(theme, appearance) };
 }

@@ -1,24 +1,28 @@
 /**
- * SIDE QUESTIONS: #487's durable threads and quoted visible-lesson model
- * context, combined with #451's shared floating companion and selection.
+ * PREGUNTAS LATERALES: los hilos duraderos de #487 y el contexto de modelo con la
+ * lección visible citada, combinados con el acompañante flotante compartido y la
+ * selección de #451.
  *
- * One explanation and its associated question share a tool-less helper
- * conversation. UI history lives in `ChatRecord.sideChats`; main requests
- * append every thread's newly observed exchanges to native history. Published
- * text never changes; later replies and continuations arrive as new entries.
+ * Una explicación y su pregunta asociada comparten una conversación auxiliar sin
+ * herramientas. El historial de la interfaz vive en `ChatRecord.sideChats`; las
+ * peticiones principales añaden al historial nativo los intercambios de cada hilo
+ * observados desde la última vez. El texto publicado nunca cambia; las respuestas y
+ * continuaciones posteriores llegan como entradas nuevas.
  *
- * This module is the pure half: input validation, thread lookup, and the
- * side model's view of the lesson. The lesson is handed over as a QUOTED
- * DOCUMENT inside the first user turn, never as the model's own history —
- * a forked transcript reads the teacher's words as its own and gets
- * role-confused (the 2026-09-27 side-chat ideation finding).
+ * Este módulo es la mitad pura: validación de la entrada, búsqueda de hilos y la
+ * vista de la lección que tiene el modelo lateral. La lección se entrega como un
+ * DOCUMENTO CITADO dentro del primer turno del usuario, nunca como historial propio
+ * del modelo — una transcripción bifurcada lee las palabras del profesor como
+ * propias y se confunde de rol (el hallazgo de la ideación del hilo lateral del
+ * 2026-09-27).
  *
- * SPOILER RULE (owner, 2026-11-02): the open check (an answerable question
- * call with no result) and the active practice problem appear WITHOUT their
- * hidden half — no answer key, explanation, committed answer or model
- * solution. Answered checks and concluded problems appear in full.
+ * REGLA DE LOS SPOILERS (responsable, 2026-11-02): la comprobación abierta (una
+ * llamada a pregunta respondible sin resultado) y el problema de práctica activo
+ * aparecen SIN su mitad oculta — sin clave de respuestas, explicación, respuesta
+ * comprometida ni solución del modelo. Las comprobaciones respondidas y los
+ * problemas concluidos aparecen completos.
  *
- * Browser-safe: pure logic + types, no node builtins.
+ * Seguro para el navegador: lógica pura + tipos, sin módulos integrados de node.
  */
 
 import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai";
@@ -45,14 +49,16 @@ import { QUESTION_TOOLS, toolQuestionKind } from "./pending.ts";
 import { readPluginQuestionMessageAnnotation, readPluginQuestionAnswer, readPluginQuestionCancellation } from "./plugin-questions.ts";
 import { pluginProblemForCall, readPluginProblemSubmission } from "./plugin-problems.ts";
 
-// ─── shared segment identity and main-agent history ──────────────────────────
+// ─── identidad de segmento compartida e historial del agente principal ────────────
 
-/** One explanation and its check share a thread. Native assistant steps and
- * tool traffic do not create new segments; a real learner input does. Side
- * conversation markers are neutral and never split their own source segment. */
-/** Saved occurrence authority, never a current plugin/tool-name guess. This
- * also prevents reused native IDs and unauthenticated results from splitting
- * the helper conversation or supplying another question's Thinking. */
+/** Una explicación y su comprobación comparten un hilo. Los pasos nativos del
+ * asistente y el tráfico de herramientas no crean segmentos nuevos; una entrada real
+ * del alumno sí. Los marcadores de la conversación lateral son neutros y nunca
+ * dividen su propio segmento de origen. */
+/** Autoridad de la aparición guardada, nunca una suposición basada en el nombre
+ * actual del plugin o de la herramienta. Esto también impide que IDs nativos
+ * reutilizados y resultados no autenticados dividan la conversación auxiliar o
+ * aporten el «Thinking» de otra pregunta. */
 function sidePluginQuestions(messages: readonly LhMessage[]) {
 	return messages.flatMap((message, messageIndex) => message.role !== "assistant" ? [] : message.content.flatMap((block, contentIndex) => {
 		if (block.type !== "toolCall") return [];
@@ -64,8 +70,9 @@ function sidePluginQuestions(messages: readonly LhMessage[]) {
 	}));
 }
 
-/** Only a submission of the then-active saved plugin problem supplies common
- * Thinking. Opaque payload/submission/processing data is never rendered. */
+/** Solo un envío del problema de plugin guardado que estaba activo en ese momento
+ * aporta el «Thinking» común. Los datos opacos de contenido, envío o procesamiento
+ * nunca se renderizan. */
 function sidePluginSubmission(messages: readonly LhMessage[], index: number) {
 	const message = messages[index]!;
 	if (message.role !== "custom" || message.customType !== "plugin-problem-submission") return null;
@@ -97,9 +104,9 @@ export function sideSegmentId(messages: readonly LhMessage[], sourceMessageId?: 
 	return sourceMessageId ? segments.byMessage.get(sourceMessageId) ?? null : segments.current;
 }
 
-/** Native answer results do not break the continuous assistant view group.
- * Put one quiet entry at each segment boundary within that group, not merely
- * one at the group's end. The final entry is keyed by parts.length. */
+/** Los resultados nativos de respuesta no rompen el grupo continuo de la vista del
+ * asistente. Pon una entrada discreta en cada límite de segmento dentro de ese
+ * grupo, no solo una al final del grupo. La entrada final se indexa por parts.length. */
 export function sideEntryPoints(messages: readonly LhMessage[], view: readonly LhViewMessage[]): ReadonlyMap<string, ReadonlyMap<number, string>> {
 	const { byMessage } = scanSideSegments(messages);
 	const forParts = (parts: readonly LhViewPart[]) => {
@@ -127,10 +134,11 @@ function replyState(message: SideChatMessage): string {
 	return message.pending ? "pending" : message.stopped ? "stopped" : message.error !== undefined ? "failed" : "complete";
 }
 
-/** Delivery watermarks live IN immutable native entries, not in a mutable
- * UI-thread cutoff. Recording text and its watermark is therefore one atomic
- * write. Full native history survives compaction, so these stay recoverable.
- * Legacy one-shot markers seed the same ledger without rewriting them. */
+/** Las marcas de agua de entrega viven DENTRO de entradas nativas inmutables, no en
+ * un corte mutable del hilo de la interfaz. Por eso registrar el texto y su marca de
+ * agua es una sola escritura atómica. El historial nativo completo sobrevive a la
+ * compactación, así que siguen siendo recuperables. Los antiguos marcadores de un
+ * solo uso siembran el mismo registro sin reescribirlos. */
 function sideDeliveryLedger(messages: readonly LhMessage[]) {
 	const delivered = new Map<string, Map<string, SideChatMessage>>();
 	const revisions = new Map<string, number>();
@@ -152,10 +160,11 @@ function sideDeliveryLedger(messages: readonly LhMessage[]) {
 	return { delivered, revisions };
 }
 
-/** Capture only new raw text/status from ALL side conversations. The caller
- * supplies current helper snapshots, including in-flight text, at a main
- * model-request or dismissal boundary. No helper completion waits and no changes to prior entries.
- * `after` includes newly appended tool results, keeping their adjacency. */
+/** Captura solo el texto/estado en bruto nuevo de TODAS las conversaciones laterales.
+ * El llamador aporta las instantáneas auxiliares actuales, incluido el texto en curso,
+ * en un límite de petición al modelo principal o de descarte. Sin esperar a que
+ * terminen los auxiliares y sin cambios en las entradas anteriores. `after` incluye
+ * los resultados de herramientas recién añadidos, conservando su adyacencia. */
 export function sideConversationEntries(record: Pick<ChatRecord, "messages" | "sideChats">, after: readonly LhMessage[] = record.messages): LhMarkerMessage[] {
 	const { delivered, revisions } = sideDeliveryLedger(after);
 	const present = new Set(after.map((message) => message.id));
@@ -167,8 +176,8 @@ export function sideConversationEntries(record: Pick<ChatRecord, "messages" | "s
 			const old = previous?.get(message.id);
 			if (!old || old.text !== message.text || replyState(old) !== replyState(message)) changes.push({ threadId: thread.id, message, previous: old });
 		}
-		// An already-published partial may outlive its ephemeral run after a
-		// restart/save failure. Mark it incomplete once; never silently drop it.
+		// Un parcial ya publicado puede sobrevivir a su ejecución efímera tras un reinicio o
+		// un fallo al guardar. Se marca como incompleto una vez; nunca se descarta en silencio.
 		for (const old of previous?.values() ?? []) {
 			if (old.pending && !current.has(old.id)) changes.push({ threadId: thread.id, previous: old,
 				message: { ...old, pending: false, error: "Reply interrupted before completion", at: new Date().toISOString() } });
@@ -192,29 +201,29 @@ export function sideConversationEntries(record: Pick<ChatRecord, "messages" | "s
 		return {
 			id, role: "custom", customType: "side-question",
 			content: `Recorded learner–helper conversation update\nConversation: ${threadId}\n\n${quoted ? `${quoted}\n\n` : ""}${label}${kind}:\n${text}${status}\n\nEnd of recorded learner–helper conversation update.`,
-			// Store only the new suffix in the ledger too, not a growing full
-			// reply copy on every request. Old snapshot entries still decode.
+			// En el registro se guarda también solo el sufijo nuevo, no una copia creciente de la
+			// respuesta completa en cada petición. Las entradas de instantánea antiguas se siguen decodificando.
 			details: { threadId, updates: [{ ...message, text, append: extendsPrevious === true }] }, display: false, timestamp: Date.parse(message.at) || 0,
 		};
 	});
 }
 
-// ─── limits ──────────────────────────────────────────────────────────────────
+// ─── límites ──────────────────────────────────────────────────────────────────
 
-/** The longest question the route accepts (characters). */
+/** La pregunta más larga que acepta la ruta (caracteres). */
 export const SIDE_QUESTION_MAX_CHARS = 8_000;
-/** At most this many attached quotes per question. */
+/** Como mucho, este número de citas adjuntas por pregunta. */
 export const SIDE_QUOTES_MAX = 5;
-/** Each attached quote / anchor block is clipped to this many characters. */
+/** Cada cita adjunta o bloque de ancla se recorta a este número de caracteres. */
 export const SIDE_QUOTE_MAX_CHARS = 4_000;
 
-// ─── input ───────────────────────────────────────────────────────────────────
+// ─── entrada ──────────────────────────────────────────────────────────────────
 
 export class SideChatInputError extends Error {}
 
-/** One ask: a follow-up in an existing thread (threadId) OR the first
- *  question of a new thread (anchor) — or a RETRY of a thread's failed
- *  last answer (threadId + retry, no text). */
+/** Una consulta: una continuación en un hilo existente (threadId) O la primera
+ * pregunta de un hilo nuevo (anchor) — o un REINTENTO de la última respuesta fallida
+ * de un hilo (threadId + retry, sin texto). */
 export interface SideAskInput {
 	threadId?: string;
 	anchor?: SideChatAnchor;
@@ -222,9 +231,9 @@ export interface SideAskInput {
 	quotes: string[];
 	quoteCitations?: string[];
 	retry?: boolean;
-	/** Stable across an uncertain POST retry: never generate twice for one ask. */
+	/** Estable ante un reintento incierto del POST: nunca se genera dos veces para una misma consulta. */
 	requestId?: string;
-	/** Current unsubmitted working; reference context, not a submitted answer. */
+	/** El trabajo actual sin enviar; contexto de referencia, no una respuesta enviada. */
 	working?: string;
 }
 
@@ -234,8 +243,8 @@ function clip(text: string, max: number): string {
 	return text.length > max ? `${text.slice(0, max)}…` : text;
 }
 
-/** Validate the anchor shape; the server separately checks it points at
- *  real teacher prose in the record. */
+/** Valida la forma del ancla; el servidor comprueba aparte que apunte a prosa real
+ * del profesor en el registro. */
 export function parseSideAnchor(raw: unknown): SideChatAnchor {
 	if (!raw || typeof raw !== "object") throw new SideChatInputError("anchor must be an object");
 	const a = raw as Record<string, unknown>;
@@ -253,7 +262,7 @@ export function parseSideAnchor(raw: unknown): SideChatAnchor {
 	};
 }
 
-/** Parse the ask route's body. Throws SideChatInputError on bad shapes. */
+/** Analiza el cuerpo de la ruta de consulta. Lanza SideChatInputError si la forma es incorrecta. */
 export function parseSideAskInput(raw: unknown): SideAskInput {
 	if (!raw || typeof raw !== "object") throw new SideChatInputError("body must be an object");
 	const body = raw as Record<string, unknown>;
@@ -291,14 +300,14 @@ export function parseSideAskInput(raw: unknown): SideAskInput {
 	return { anchor: parseSideAnchor(body.anchor), text, quotes: quotes.map((q) => clip(q, SIDE_QUOTE_MAX_CHARS)), ...extra, ...references };
 }
 
-/** Parse the window-state body ({open: boolean}). */
+/** Analiza el cuerpo del estado de la ventana ({open: boolean}). */
 export function parseSideOpenInput(raw: unknown): boolean {
 	const open = (raw as { open?: unknown } | null)?.open;
 	if (typeof open !== "boolean") throw new SideChatInputError("open must be a boolean");
 	return open;
 }
 
-// ─── threads ─────────────────────────────────────────────────────────────────
+// ─── hilos ────────────────────────────────────────────────────────────────────
 
 export function newSideThreadId(): string {
 	return `side_${Date.now().toString(36)}_${crypto.randomUUID().slice(0, 8)}`;
@@ -312,8 +321,8 @@ export function newSideQuestion(text: string, quotes: readonly string[], at = ne
 	return { id: newMessageId(), role: "user", text, ...(quotes.length > 0 ? { quotes: [...quotes] } : {}), at };
 }
 
-/** Is `partId` real, settled teacher prose in this record? The anchor's
- *  message must be a non-failed assistant message with that text part. */
+/** ¿Es `partId` prosa real y asentada del profesor en este registro? El mensaje del
+ * ancla debe ser un mensaje del asistente no fallido con esa parte de texto. */
 export function anchorPointsAtProse(messages: readonly LhMessage[], anchor: SideChatAnchor): boolean {
 	const message = messages.find((m) => m.id === anchor.messageId);
 	if (!message || message.role !== "assistant") return false;
@@ -324,9 +333,9 @@ export function anchorPointsAtProse(messages: readonly LhMessage[], anchor: Side
 	return Number(suffix) < textPartCount(assistant, failedOutputCallIds(messages));
 }
 
-/** How many `-t<n>` text parts projectView mints for this message: every
- *  text block (empty ones too), plus delivered send_to_user prose — the
- *  exact numbering rule of view.ts, so anchors agree with the rendering. */
+/** Cuántas partes de texto `-t<n>` acuña projectView para este mensaje: cada bloque
+ * de texto (también los vacíos), más la prosa entregada con send_to_user — la regla
+ * de numeración exacta de view.ts, para que las anclas coincidan con el renderizado. */
 function textPartCount(assistant: AssistantMessage, failedOutputs: ReadonlySet<string>): number {
 	const failedGeneration = assistant.stopReason === "error" || assistant.stopReason === "aborted";
 	let n = 0;
@@ -340,7 +349,7 @@ function textPartCount(assistant: AssistantMessage, failedOutputs: ReadonlySet<s
 	return n;
 }
 
-// ─── the lesson document (the side model's view of the session) ─────────────
+// ─── el documento de la lección (la vista de la sesión que tiene el modelo lateral) ──
 
 function quizHeading(answer: QuestionAnswerData, tool: string): string {
 	if (tool === "probe") return "Probe";
@@ -350,8 +359,8 @@ function quizHeading(answer: QuestionAnswerData, tool: string): string {
 	return answer.questionType === "predict" ? "Prediction question" : "Check question";
 }
 
-/** An ANSWERED question in full: options with the key, the learner's
- *  answer, the verdict and the explanation/committed answer. */
+/** Una pregunta RESPONDIDA, completa: opciones con la clave, la respuesta del alumno,
+ * el veredicto y la explicación o la respuesta comprometida. */
 function answeredQuestionMarkdown(result: ToolResultMessage, input: Record<string, unknown> | undefined): string | null {
 	const answer = result.details as QuestionAnswerData | undefined;
 	if (!answer || typeof answer !== "object" || typeof answer.questionText !== "string") return null;
@@ -393,7 +402,7 @@ function answeredQuestionMarkdown(result: ToolResultMessage, input: Record<strin
 	return lines.join("\n\n");
 }
 
-/** An OPEN question: the learner-visible half only — never the key. */
+/** Una pregunta ABIERTA: solo la mitad visible para el alumno — nunca la clave. */
 function openQuestionMarkdown(tool: string, input: unknown, toolCallId: string): string | null {
 	if (!input || typeof input !== "object") return null;
 	const args = input as Record<string, unknown>;
@@ -410,8 +419,9 @@ function openQuestionMarkdown(tool: string, input: unknown, toolCallId: string):
 	return lines.join("\n\n");
 }
 
-/** The plugin renderer's answer and grading are opaque, even after submission.
- * The helper gets only the host's common prompt and plain-text Thinking. */
+/** La respuesta y la corrección del renderizador del plugin son opacas, incluso
+ * después del envío. El auxiliar solo recibe el enunciado común del host y el
+ * «Thinking» en texto plano. */
 function sidePluginQuestionMarkdown(question: ReturnType<typeof sidePluginQuestions>[number]): string | null {
 	if (question.annotation.status !== "posed") return null;
 	const snapshot = question.annotation.snapshot;
@@ -427,7 +437,7 @@ function sidePluginQuestionMarkdown(question: ReturnType<typeof sidePluginQuesti
 	return lines.join("\n\n");
 }
 
-/** The practice pose: statement only. Open ⇔ it is the active problem. */
+/** El planteamiento de práctica: solo el enunciado. Abierto ⇔ es el problema activo. */
 function problemMarkdown(args: { statement?: unknown } | undefined, open: boolean): string | null {
 	const statement = typeof args?.statement === "string" ? args.statement.trim() : "";
 	if (!statement) return null;
@@ -437,11 +447,12 @@ function problemMarkdown(args: { statement?: unknown } | undefined, open: boolea
 }
 
 /**
- * The lesson as one markdown document for the side model. Honors the
- * active compaction cut (retained tail, never its private summary).
- * An open assessment is preserved even before the cut. Teacher prose, learner text, practice
- * thinking, answered/open questions and practice problems render; other
- * tool traffic and scaffolding markers do not.
+ * La lección como un único documento markdown para el modelo lateral. Respeta el
+ * corte de compactación activo (la cola conservada, nunca su resumen privado). Una
+ * evaluación abierta se conserva aunque esté antes del corte. Se renderizan la
+ * prosa del profesor, el texto del alumno, el razonamiento de la práctica, las
+ * preguntas respondidas o abiertas y los problemas de práctica; el resto del
+ * tráfico de herramientas y los marcadores de andamiaje, no.
  */
 export function sideChatLessonDocument(messages: readonly LhMessage[]): string {
 	const blocks: string[] = [];
@@ -451,7 +462,7 @@ export function sideChatLessonDocument(messages: readonly LhMessage[]): string {
 		const kept = keptIndexFor(messages, marker);
 		if (kept >= 0) {
 			start = kept;
-			// A model-private summary may contain the open assessment's key.
+			// Un resumen privado del modelo puede contener la clave de la evaluación abierta.
 			blocks.push("### Earlier session history\n\nEarlier history is omitted after compaction; its private summary is not supplied to the helper.");
 		}
 	}
@@ -476,8 +487,8 @@ export function sideChatLessonDocument(messages: readonly LhMessage[]): string {
 	const openQuestions = new Set(questionCallsOf(messages).filter((c) => c.status === "answerable").map((c) => c.toolCallId));
 	const activeProblem = activeProblemOf(messages)?.toolCallId ?? null;
 	const failedOutputs = failedOutputCallIds(messages);
-	// An assessment can outlive the retained tail: keep its visible question
-	// or statement without recovering the private summary or answer key.
+	// Una evaluación puede sobrevivir a la cola conservada: se conserva su pregunta o
+	// enunciado visible sin recuperar el resumen privado ni la clave de respuestas.
 	for (const question of pluginQuestions) {
 		if (!question.result && messages.slice(0, start).some(message => message.id === question.occurrence.messageId)) {
 			const md = sidePluginQuestionMarkdown(question);
@@ -531,7 +542,7 @@ export function sideChatLessonDocument(messages: readonly LhMessage[]): string {
 				const md = problemMarkdown(calls.get(result.toolCallId)?.args, result.toolCallId === activeProblem);
 				if (md) blocks.push(md);
 			} else if (result.toolName === PRACTICE_CONCLUDE_TOOL) {
-				// Concluded: the shared engine reveals the committed solution.
+				// Concluido: el motor compartido revela la solución comprometida.
 				const md = messageMarkdown(m, m.id, false, { messages, calls, failedOutputCalls: failedOutputs });
 				if (md) blocks.push(md);
 			}
@@ -549,10 +560,10 @@ export function sideChatLessonDocument(messages: readonly LhMessage[]): string {
 	return citationsToReadableText(blocks.join("\n\n"));
 }
 
-// ─── the model turns ─────────────────────────────────────────────────────────
+// ─── los turnos del modelo ────────────────────────────────────────────────────
 
-/** One text turn for the side model (the agent layer maps these onto
- *  native user/assistant messages). */
+/** Un turno de texto para el modelo lateral (la capa del agente los traduce a
+ * mensajes nativos de usuario/asistente). */
 export interface SideModelTurn {
 	role: "user" | "assistant";
 	text: string;
@@ -563,10 +574,11 @@ function quoteBlocks(quotes: readonly string[] | undefined): string {
 }
 
 /**
- * The full turn list for answering the thread's LAST (unanswered) user
- * message. The lesson document and the anchor passage ride the first
- * user turn; earlier answers replay as assistant turns (a failed or
- * stopped answer keeps its partial text plus a note, so roles alternate).
+ * La lista completa de turnos para responder al ÚLTIMO mensaje del usuario (sin
+ * responder) del hilo. El documento de la lección y el pasaje del ancla van en el
+ * primer turno del usuario; las respuestas anteriores se reproducen como turnos del
+ * asistente (una respuesta fallida o detenida conserva su texto parcial más una
+ * nota, para que los roles se alternen).
  */
 export function sideChatModelTurns(thread: SideChatThread, lessonDocument: string): SideModelTurn[] {
 	const turns: SideModelTurn[] = [];
@@ -594,7 +606,7 @@ export function sideChatModelTurns(thread: SideChatThread, lessonDocument: strin
 	return turns;
 }
 
-/** Does the thread end in a question still waiting for an answer? */
+/** ¿Termina el hilo en una pregunta que aún espera respuesta? */
 export function sideThreadAwaitsAnswer(thread: SideChatThread): boolean {
 	return thread.messages.at(-1)?.role === "user";
 }

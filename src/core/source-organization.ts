@@ -1,18 +1,19 @@
 import type { ChatKind } from "./contracts/chat.ts";
 
-/** Source organization is presentation metadata, never graph/extraction identity.
- * A source has one parent; folders have stable IDs independent of names/paths. */
+/** La organización de las fuentes son metadatos de presentación, nunca identidad del
+ * grafo ni de la extracción. Una fuente tiene un solo padre; las carpetas tienen IDs
+ * estables, independientes de los nombres y las rutas. */
 export interface SourceFolder {
 	id: string;
 	name: string;
 	parentId: string | null;
 	createdAt: string;
-	/** Original picker-relative directory, retained through renames/moves. */
+	/** Directorio original relativo al selector, conservado a través de renombrados y traslados. */
 	importPath?: string;
 }
 export interface SourcePlacement {
 	folderId: string | null;
-	/** Imported-file display override only; chat titles live in ChatStore. */
+	/** Solo sustitución de la visualización de los ficheros importados; los títulos de los chats viven en ChatStore. */
 	name?: string;
 }
 export interface SourceOrganization {
@@ -23,7 +24,7 @@ export interface SourceOrganization {
 export interface SourceEntry {
 	id: string;
 	kind: "chat" | "notes" | "missing";
-	/** Read projection only; session records remain the source of truth. */
+	/** Solo proyección de lectura; los registros de sesión siguen siendo la fuente de verdad. */
 	chatKind?: ChatKind;
 	label: string | null;
 	createdAt: string | null;
@@ -33,8 +34,9 @@ export interface SourceDirectory {
 	organization: SourceOrganization;
 	sources: SourceEntry[];
 }
-/** Chains browsing and practice picking share this presentation inventory.
- * Keep the full organization: hidden sessions still own their placements. */
+/** La exploración de cadenas y la elección para la práctica comparten este inventario
+ * de presentación. Conserva la organización completa: las sesiones ocultas siguen
+ * siendo dueñas de sus ubicaciones. */
 export function chainSourceDirectory(directory: SourceDirectory): SourceDirectory {
 	return { ...directory, sources: directory.sources.filter((s) => s.chatKind !== "practice") };
 }
@@ -54,7 +56,7 @@ export function folderIsEmpty(state: SourceOrganization, id: string, sourceIds: 
 		&& ![...sourceIds].some((sourceId) => placementOf(state, sourceId)?.folderId === id);
 }
 
-/** Also used to validate drops server-side, including stale/crafted clients. */
+/** También se usa para validar en el servidor los soltados, incluidos los de clientes desactualizados o manipulados. */
 export function canMoveFolder(state: SourceOrganization, id: string, parentId: string | null): boolean {
 	const seen = new Set<string>([id]);
 	for (let next = parentId; next !== null;) {
@@ -67,7 +69,7 @@ export function canMoveFolder(state: SourceOrganization, id: string, parentId: s
 	return true;
 }
 
-/** Reject unsupported/corrupt data rather than overwrite organization on a write. */
+/** Rechaza los datos no admitidos o corruptos en lugar de sobrescribir la organización al escribir. */
 export function parseSourceOrganization(raw: unknown): SourceOrganization {
 	const fail = (): never => { throw new Error("Could not read source organization. Its data is invalid or newer than this app."); };
 	if (!raw || typeof raw !== "object") return fail();
@@ -106,7 +108,7 @@ export function parseOrganizationAction(raw: unknown): OrganizationAction {
 	}
 }
 
-/** Operation-based updates preserve unrelated edits; no whole-state client writes. */
+/** Las actualizaciones por operaciones conservan las ediciones no relacionadas; sin escrituras del estado completo desde el cliente. */
 export function applyOrganizationAction(state: SourceOrganization, action: Exclude<OrganizationAction, { action: "rename-source" }>,
 	sourceIds: ReadonlySet<string>, newFolder: { id: string; createdAt: string }): SourceOrganization {
 	const next = structuredClone(state);
@@ -134,8 +136,9 @@ export function applyOrganizationAction(state: SourceOrganization, action: Exclu
 	return next;
 }
 
-/** Reconstruct only directories needed by eligible files. Associations follow
- * stable folder IDs, not current names/parents; existing placements always win. */
+/** Reconstruye solo los directorios que necesitan los ficheros admisibles. Las
+ * asociaciones siguen los IDs estables de las carpetas, no los nombres ni los padres
+ * actuales; las ubicaciones existentes siempre ganan. */
 export function placeImportedSource(state: SourceOrganization, sourceId: string, filePath: string,
 	makeFolder: () => { id: string; createdAt: string }): SourceOrganization {
 	if (placementOf(state, sourceId)) return state;
@@ -143,8 +146,8 @@ export function placeImportedSource(state: SourceOrganization, sourceId: string,
 	const directories = filePath.split("/").slice(0, -1);
 	let parentId: string | null = null;
 	let start = 0;
-	// Reuse the deepest association first. Its original ancestors might have
-	// been moved/deleted; do not recreate now-unused empty ancestors.
+	// Primero se reutiliza la asociación más profunda. Sus antepasados originales pueden
+	// haberse movido o borrado; no se recrean antepasados vacíos que ya no se usan.
 	for (let i = directories.length - 1; i >= 0; i--) {
 		const existing = next.folders.find((f) => f.importPath === directories.slice(0, i + 1).join("/"));
 		if (existing) { parentId = existing.id; start = i + 1; break; }
