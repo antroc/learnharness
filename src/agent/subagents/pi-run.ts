@@ -9,64 +9,67 @@ import { backgroundCaptureStream, createBackgroundCapture } from "../background-
 import type { ModelRole } from "../../../config.ts";
 
 /**
- * The shared sub-agent runner (docs/archive/pi-engine-swap.md §6): one helper every
- * background agent (researcher, demo-builder, visual-maker, extractor,
- * auditor) runs on — a stateless pi Agent built per call, driven to
- * completion, with the seams the job runner and the money channel need.
+ * El ejecutor compartido de subagentes (docs/archive/pi-engine-swap.md §6): un
+ * auxiliar sobre el que se ejecutan todos los agentes en segundo plano
+ * (researcher, demo-builder, visual-maker, extractor, auditor): un Agent de pi
+ * sin estado construido en cada llamada, llevado hasta el final, con las
+ * fronteras que necesitan el ejecutor de tareas y el canal del dinero.
  *
- * Error semantics mirror the old ToolLoopAgent.generate: provider/loop
- * failures THROW (pi encodes them in the stream; this helper surfaces
- * them), and an abort throws an AbortError so every existing
- * `signal.aborted` early-return keeps working unchanged.
+ * La semántica de errores refleja la del antiguo ToolLoopAgent.generate: los
+ * fallos del proveedor o del bucle se LANZAN (pi los codifica en el flujo;
+ * este auxiliar los hace aflorar) y una cancelación lanza un AbortError, para
+ * que todos los retornos anticipados existentes con `signal.aborted` sigan
+ * funcionando sin cambios.
  */
 
 export interface SubagentRunOptions {
-	/** Named core role for engine resolution and opt-in captures. Optional when
-	 * an explicit engine is supplied; plugin runs do not invent core roles. */
+	/** Rol del núcleo con nombre para resolver el motor y para las capturas opcionales. Es
+	 * opcional si se aporta un motor explícito; las ejecuciones de plugins no inventan roles del núcleo. */
 	role?: ModelRole;
-	/** Explicit engine (also the off-network test seam); required without a role. */
+	/** Motor explícito (también la frontera de pruebas sin red); obligatorio si no hay rol. */
 	engine?: PiEngine;
 	systemPrompt: string;
-	/** Initial transcript (continuation semantics: ends user / toolResult). */
+	/** Transcripción inicial (semántica de continuación: termina en user / toolResult). */
 	messages?: AgentMessage[];
-	/** Fresh-run prompt text (mutually exclusive with a continuation). */
+	/** Texto del prompt de una ejecución nueva (excluyente con una continuación). */
 	prompt?: string;
-	/** Max model calls (the old stepCountIs safety net). */
+	/** Máximo de llamadas al modelo (la antigua red de seguridad stepCountIs). */
 	maxTurns: number;
-	/** Abort mid-model-call (the real-kill semantics). */
+	/** Cancela en mitad de una llamada al modelo (la semántica de terminación real). */
 	abortSignal?: AbortSignal;
-	/** Money channel: one call per model request. */
+	/** Canal del dinero: una llamada por petición al modelo. */
 	onUsage?: (usage: Usage) => void;
-	/** Activity line per tool execution (job record progress). */
+	/** Línea de actividad por ejecución de herramienta (progreso del registro de la tarea). */
 	onToolStart?: (toolName: string, args: unknown) => void;
-	/** Awaited native checkpoint barrier, before other observers or tool execution. */
+	/** Barrera de punto de control nativa y esperada, antes de otros observadores o de ejecutar herramientas. */
 	onEvent?: (event: AgentEvent) => void | Promise<void>;
-	/** Guard immediately before each native provider request. */
+	/** Protección justo antes de cada petición nativa al proveedor. */
 	beforeRequest?: () => void | Promise<void>;
-	/** Internal runner exception: conversation compaction is not worker work. */
+	/** Excepción interna del ejecutor: la compactación de la conversación no es trabajo de worker. */
 	bypassWorkerRequestAdmission?: boolean;
-	/** Per completed assistant message (extraction's step log). */
+	/** Por cada mensaje del asistente completado (el registro de pasos de la extracción). */
 	onAssistantMessage?: (message: AssistantMessage, step: number) => void;
-	/** Extra stop rule (extractor: stop after a clean submit). */
+	/** Regla de parada adicional (extractor: parar tras un submit limpio). */
 	shouldStop?: (message: AssistantMessage, toolResults: ToolResultMessage[]) => boolean;
-	/** Debug: when set AND LH_PROVIDER_EVENTS=1, raw provider stream
-	 *  events append to data/debug/provider-events/<chatId>.jsonl (context
-	 *  "job:<role>"). Absent or env-off → no observer.
-	 *  Also identifies the source in opt-in LH_BACKGROUND_CAPTURE captures. */
+	/** Depuración: si está definido Y LH_PROVIDER_EVENTS=1, los eventos en bruto
+	 *  del flujo del proveedor se añaden a data/debug/provider-events/<chatId>.jsonl
+	 *  (contexto "job:<role>"). Sin definir o con la variable desactivada → sin
+	 *  observador. También identifica el origen en las capturas opcionales de
+	 *  LH_BACKGROUND_CAPTURE. */
 	chatId?: string;
 }
 
 export interface SubagentRunResult {
-	/** The messages this run added (assistant + tool results). */
+	/** Los mensajes que añadió esta ejecución (asistente + resultados de herramientas). */
 	newMessages: AgentMessage[];
-	/** The final assistant text (the deliverable). */
+	/** El texto final del asistente (el entregable). */
 	text: string;
 }
 
 export function subagentEngine(role: ModelRole | undefined, override?: PiEngine): PiEngine {
-	// BYOK (owner, 2026-09-22): no factory pins — the override is the only
-	// real path (the runner injects settings-resolved engines); a missed
-	// injection hits the honest thrower in models.ts instead of a guess.
+	// BYOK (responsable, 2026-09-22): sin fijaciones de fábrica; la sustitución es la
+	// única ruta real (el ejecutor inyecta motores resueltos desde los ajustes); una
+	// inyección que falte llega al lanzador honesto de models.ts en lugar de a una suposición.
 	if (override) return override;
 	if (!role) throw new Error("An explicit engine or configured model role is required");
 	return piEngineFor(role);
@@ -76,15 +79,15 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 	if (opts.abortSignal?.aborted) throw Object.assign(new Error("aborted"), { name: "AbortError" });
 	const engine = subagentEngine(opts.role, opts.engine);
 	let turns = 0;
-	// Debug recorder (owner, 2026-10-04): raw provider events per job run.
+	// Grabador de depuración (responsable, 2026-10-04): eventos en bruto del proveedor por ejecución de tarea.
 	const providerEvents = opts.chatId && opts.role ? providerEventObserver(opts.chatId, `job:${opts.role}`) : undefined;
 	const sessionId = randomUUID();
-	// Captures have a core-role identity. Explicit plugin engines have no such
-	// role; do not misattribute them or invent a new capture product surface.
+	// Las capturas tienen una identidad de rol del núcleo. Los motores explícitos de plugins no
+	// tienen ese rol; no se les atribuye mal ni se inventa una nueva superficie de producto de captura.
 	const capture = opts.role ? createBackgroundCapture({ role: opts.role, runId: sessionId, sourceId: opts.chatId }) : undefined;
 	const agent = new Agent({
 		identity: APP_IDENTITY,
-		// One unsaved conversation per invocation, stable through every turn.
+		// Una conversación sin guardar por invocación, estable a lo largo de todos los turnos.
 		sessionId,
 		initialState: {
 			systemPrompt: opts.systemPrompt,
@@ -102,8 +105,8 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 			await opts.beforeRequest?.();
 		},
 		...(providerEvents ? { onProviderStreamEvent: providerEvents } : {}),
-		// 0.87.1: shouldStopAfterTurn → finishTurn (same call point; "end"
-		// exits before the steering poll, exactly the old boolean-true).
+		// 0.87.1: shouldStopAfterTurn → finishTurn (mismo punto de llamada; "end" sale
+		// antes de consultar la reorientación, exactamente como el antiguo true booleano).
 		finishTurn: (turn) => {
 			turns++;
 			return turns >= opts.maxTurns || opts.shouldStop?.(turn.message, turn.toolResults) === true
@@ -130,8 +133,8 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 						const m = event.message as AssistantMessage;
 						capture?.reply(m);
 						if (m.stopReason === "aborted") {
-							// The call was cancelled — no completed step, no billed
-							// usage (the abort path asserts zero steps).
+							// La llamada se canceló: ningún paso completado, ningún uso facturado
+							// (la ruta de cancelación comprueba que hay cero pasos).
 								aborted = true;
 							break;
 						}
@@ -171,9 +174,9 @@ export async function runSubagent(tools: AgentTool<any, any>[], opts: SubagentRu
 	}
 	if (errorMessage !== undefined) throw new Error(errorMessage);
 
-	// 0.87.1: drop the seeded leading SystemMessage (transcript rework —
-	// see ui-stream's settleWith) before slicing past the input count, or
-	// the seed displaces the slice and the last INPUT message leaks in.
+	// 0.87.1: se descarta el SystemMessage inicial sembrado (rehecho de la transcripción;
+	// ver settleWith de ui-stream) antes de cortar tras el número de mensajes de entrada, o
+	// la semilla desplaza el corte y se cuela el último mensaje de ENTRADA.
 	const newMessages = agent.state.messages
 		.filter((m) => (m as { role?: string }).role !== "system")
 		.slice(before);

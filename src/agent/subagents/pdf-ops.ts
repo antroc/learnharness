@@ -4,53 +4,58 @@ import { fileURLToPath } from "node:url";
 import { documentToMarkdown, type PdfPage } from "./pdf-markdown.ts";
 
 /**
- * PDF plumbing for the pdf-reader sub-agent — sources v0 (2026-09): Node
- * ports of the four pdf-reader skill scripts (pdf_info / pdf_extract /
- * pdf_search / pdf_render), on the user-chosen hybrid stack:
+ * Fontanería de PDF para el subagente pdf-reader (sources v0, 2026-09):
+ * versiones para Node de los cuatro scripts de la skill pdf-reader (pdf_info /
+ * pdf_extract / pdf_search / pdf_render), sobre la pila híbrida que eligió el
+ * usuario:
  *
- * - TEXT (info / extract / search): pdfjs-dist — pure JS, no native deps.
- *   extract and search read pdf-markdown's Markdown, so words and lines
- *   survive (the raw text items glued "lecture" + "Plants").
- * - RENDER: subagents/headless.ts uses the same pdfjs engine with
- *   @napi-rs/canvas (Skia), in-process — no browser needed.
+ * - TEXTO (info / extract / search): pdfjs-dist, JS puro, sin dependencias
+ *   nativas. extract y search leen el Markdown de pdf-markdown, así que las
+ *   palabras y las líneas se conservan (los elementos de texto en bruto pegaban
+ *   "lecture" + "Plants").
+ * - RENDERIZADO: subagents/headless.ts usa el mismo motor pdfjs con
+ *   @napi-rs/canvas (Skia), en el proceso; no hace falta navegador.
  *
- * Doctrine (the skill's reading strategy, mirrored in the sub-agent's system
- * prompt): triage with pdf_info FIRST, then size-based strategy — short PDFs
- * render all pages, medium render flagged (math/image-heavy) pages, long
- * ones search for targeted lookups before reading anything at length.
+ * Doctrina (la estrategia de lectura de la skill, reflejada en el prompt de
+ * sistema del subagente): clasificar PRIMERO con pdf_info y después aplicar
+ * una estrategia según el tamaño: los PDF cortos renderizan todas las
+ * páginas, los medianos renderizan las páginas marcadas (con muchas
+ * matemáticas o imágenes) y los largos hacen búsquedas concretas antes de
+ * leer nada a fondo.
  *
- * These are pure library functions — no model in sight. The pdf-reader
- * agent (pdf-reader.ts) drives them through its own tool loop.
+ * Son funciones de biblioteca puras, sin modelo a la vista. El agente
+ * pdf-reader (pdf-reader.ts) las dirige con su propio bucle de herramientas.
  */
 
 export interface PdfPageInfo {
 	page: number;
 	text_length: number;
 	image_count: number;
-	/** Fraction of math-flavored chars — the render-this-page signal (port
-	 *  of the skill's unicode-range density heuristic). */
+	/** Fracción de caracteres de tipo matemático: la señal de «renderiza esta
+	 *  página» (versión de la heurística de densidad por rangos Unicode de la skill). */
 	math_density: number;
 }
 
 export interface PdfInfo {
 	path: string;
 	page_count: number;
-	/** Mean chars/page — the size class the strategy branches on. */
+	/** Media de caracteres por página: la clase de tamaño según la que se ramifica la estrategia. */
 	mean_text_length: number;
 	pages: PdfPageInfo[];
 }
 
-/** Load the legacy pdfjs build (runs headless in plain node, no worker). */
+/** Carga la compilación heredada de pdfjs (funciona headless en node a secas, sin worker). */
 async function loadPdfjs() {
 	const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
 	return pdfjs;
 }
 
-/** Standard-font data dir (live-smoke finding 2026-09-19: without it pdfjs
- *  warns and falls back on non-embedded standard fonts — Helvetica, Times…).
- *  The node side takes a plain filesystem path, shared by text and rendering.
- *  pdfjs checks endsWith("/") even on Windows: use a literal trailing slash,
- *  NOT path.sep ("\\" on Windows). Node fs accepts this path on every OS. */
+/** Directorio de datos de fuentes estándar (hallazgo de la prueba en vivo del
+ *  2026-09-19: sin él pdfjs avisa y usa sustitutas para las fuentes estándar no
+ *  incrustadas: Helvetica, Times…). El lado de node recibe una ruta normal del
+ *  sistema de ficheros, compartida por el texto y el renderizado. pdfjs
+ *  comprueba endsWith("/") incluso en Windows: usa una barra final literal, NO
+ *  path.sep ("\\" en Windows). El fs de Node acepta esta ruta en todos los SO. */
 export function standardFontsDir(): string {
 	return path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "node_modules", "pdfjs-dist", "standard_fonts") + "/";
 }
@@ -66,10 +71,10 @@ async function loadBytes(data: Uint8Array, signal?: AbortSignal): Promise<PdfLoa
 	signal?.throwIfAborted();
 	const pdfjs = await loadPdfjs();
 	signal?.throwIfAborted();
-	// The legacy build in plain node runs on a main-thread fake worker (no
-	// workerSrc needed); teardown is the loading task's destroy().
-	// verbosity 0 = errors only — scanned PDFs (JBIG2 XObjects) otherwise
-	// flood the log with per-page warnings (live-smoke finding 2026-09-19).
+	// La compilación heredada en node a secas funciona con un worker simulado en el
+	// hilo principal (no hace falta workerSrc); el desmontaje es el destroy() de la tarea de carga.
+	// verbosity 0 = solo errores; si no, los PDF escaneados (XObjects JBIG2) inundan
+	// el registro con avisos por página (hallazgo de la prueba en vivo del 2026-09-19).
 	return pdfjs.getDocument({ data, standardFontDataUrl: standardFontsDir(), verbosity: 0 });
 }
 
@@ -82,24 +87,24 @@ async function openBytes(data: Uint8Array, signal?: AbortSignal, loadTask: PdfTa
 	});
 	const onAbort = () => { void destroy().catch(() => {}); };
 	signal?.addEventListener("abort", onAbort, { once: true });
-	// Covers cancellation while the loader itself was pending.
+	// Cubre la cancelación mientras el propio cargador estaba pendiente.
 	if (signal?.aborted) onAbort();
 	try {
-		// Do not race this promise against abort: opening and teardown must both
-		// settle before the caller can release conversion capacity.
+		// No se enfrenta esta promesa a la cancelación: la apertura y el desmontaje deben
+		// completarse antes de que el llamante pueda liberar capacidad de conversión.
 		const doc = await loadingTask.promise;
 		signal?.throwIfAborted();
 		return { doc, task: { destroy } };
 	} catch (error) {
-		// Failed opens own a loading task too. Cleanup is best effort, without
-		// replacing the parse error (or the caller's cancellation reason).
+		// Las aperturas fallidas también tienen su tarea de carga. La limpieza es de mejor
+		// esfuerzo, sin sustituir el error de análisis (ni el motivo de cancelación del llamante).
 		await destroy().catch(() => {});
 		signal?.throwIfAborted();
 		throw error;
 	}
 }
 
-/** Concatenate a page's text items into a body string. */
+/** Concatena los elementos de texto de una página en una cadena de cuerpo. */
 function itemsToText(items: unknown[]): string {
 	let out = "";
 	for (const it of items) {
@@ -111,20 +116,20 @@ function itemsToText(items: unknown[]): string {
 	return out;
 }
 
-/** Math-flavored char fraction — the skill's heuristic, verbatim ranges. */
+/** Fracción de caracteres de tipo matemático: la heurística de la skill, con los rangos tal cual. */
 function mathDensity(text: string): number {
 	let mathChars = 0;
 	for (const c of text) {
 		const code = c.codePointAt(0)!;
 		if (
-			(code >= 0x2200 && code <= 0x22ff) || // Mathematical Operators
-			(code >= 0x2100 && code <= 0x214f) || // Letterlike Symbols
-			(code >= 0x2190 && code <= 0x21ff) || // Arrows
-			(code >= 0x27c0 && code <= 0x27ef) || // Misc Mathematical Symbols-A
-			(code >= 0x2980 && code <= 0x29ff) || // Misc Mathematical Symbols-B
-			(code >= 0x2a00 && code <= 0x2aff) || // Supplemental Mathematical Operators
-			(code >= 0x0370 && code <= 0x03ff) || // Greek
-			(code >= 0x1d400 && code <= 0x1d7ff) || // Mathematical Alphanumeric Symbols
+			(code >= 0x2200 && code <= 0x22ff) || // Operadores matemáticos
+			(code >= 0x2100 && code <= 0x214f) || // Símbolos de tipo letra
+			(code >= 0x2190 && code <= 0x21ff) || // Flechas
+			(code >= 0x27c0 && code <= 0x27ef) || // Símbolos matemáticos diversos A
+			(code >= 0x2980 && code <= 0x29ff) || // Símbolos matemáticos diversos B
+			(code >= 0x2a00 && code <= 0x2aff) || // Operadores matemáticos suplementarios
+			(code >= 0x0370 && code <= 0x03ff) || // Griego
+			(code >= 0x1d400 && code <= 0x1d7ff) || // Símbolos alfanuméricos matemáticos
 			"∫∑∏√∂∇∞≈≠≤≥±×÷∈∉⊂⊃∪∩∧∨¬∀∃∅".includes(c)
 		) {
 			mathChars++;
@@ -133,17 +138,18 @@ function mathDensity(text: string): number {
 	return mathChars / Math.max(text.length, 1);
 }
 
-/** Cheap validity probe: getDocument resolves only for parseable PDFs —
- *  no page walk, no text extraction (unlike pdfInfo). The reader's upfront
- *  unreadable-source gate; garbage files throw pdfjs's precise error. */
+/** Sondeo barato de validez: getDocument solo se resuelve con PDF analizables;
+ *  sin recorrer páginas ni extraer texto (a diferencia de pdfInfo). Es la
+ *  barrera previa del lector para fuentes ilegibles; los ficheros basura lanzan
+ *  el error preciso de pdfjs. */
 export async function pdfProbe(filePath: string): Promise<void> {
 	const { task } = await openDocument(filePath);
 	await task.destroy();
 }
 
-/** pdf_info: page count + per-page triage signals. ALWAYS run first. */
+/** pdf_info: número de páginas + señales de clasificación por página. Se ejecuta SIEMPRE primero. */
 export async function pdfInfo(filePath: string): Promise<PdfInfo> {
-	const pdfjs = await loadPdfjs(); // OPS constant for the operator-list scan
+	const pdfjs = await loadPdfjs(); // Constante OPS para recorrer la lista de operadores
 	const { doc } = await openDocument(filePath);
 	const pages: PdfPageInfo[] = [];
 	let totalText = 0;
@@ -151,7 +157,7 @@ export async function pdfInfo(filePath: string): Promise<PdfInfo> {
 		const page = await doc.getPage(i);
 		const content = await page.getTextContent();
 		const text = itemsToText(content.items as unknown[]);
-		// count page images: paintImageXObject ops in the operator list
+		// cuenta las imágenes de la página: operaciones paintImageXObject de la lista de operadores
 		const ops = await page.getOperatorList();
 		let imageCount = 0;
 		for (const fn of ops.fnArray) {
@@ -173,7 +179,7 @@ export async function pdfInfo(filePath: string): Promise<PdfInfo> {
 	};
 }
 
-/** Parse 'all' | '1-5' | '1,3,7' | '3' into a sorted 1-indexed page list. */
+/** Analiza 'all' | '1-5' | '1,3,7' | '3' en una lista ordenada de páginas con índice desde 1. */
 export function parsePageSpec(spec: string, total: number): number[] {
 	const trimmed = spec.trim().toLowerCase();
 	if (trimmed === "all") return Array.from({ length: total }, (_, i) => i + 1);
@@ -197,15 +203,16 @@ export function parsePageSpec(spec: string, total: number): number[] {
 export type PdfConversion =
 	| { kind: "converted"; pages: PdfPage[] }
 	| { kind: "too-long"; pageCount: number }
-	/** Broken, encrypted, or not a PDF at all: pdfjs could not read it. */
+	/** Dañado, cifrado o ni siquiera un PDF: pdfjs no pudo leerlo. */
 	| { kind: "unreadable" };
 
 function isAbortError(error: unknown): boolean {
 	return error instanceof Error && error.name === "AbortError";
 }
 
-/** Server-internal loading-task seam for lifecycle tests, not a plugin capability.
- * Both injected and default loaders use the same conversion and cleanup path. */
+/** Frontera interna del servidor para la tarea de carga en las pruebas del ciclo de vida; no es una
+ * capacidad de plugin. Los cargadores inyectados y el predeterminado siguen la misma ruta de conversión
+ * y limpieza. */
 export function createPdfConverter(loadTask: PdfTaskLoader = loadBytes) {
 	return async (data: Uint8Array, maxPages: number, options?: { signal?: AbortSignal }): Promise<PdfConversion> => {
 		const signal = options?.signal;
@@ -227,8 +234,8 @@ export function createPdfConverter(loadTask: PdfTaskLoader = loadBytes) {
 				if (!signal?.aborted && !isAbortError(failure)) throw error;
 			}
 		}
-		// Also observe aborts arriving during final teardown. Never disguise
-		// cancellation as a corrupt PDF, even when destroy rejects on abort.
+		// También se observan las cancelaciones que llegan durante el desmontaje final. Nunca se
+		// disfraza una cancelación de PDF dañado, aunque destroy se rechace al cancelar.
 		signal?.throwIfAborted();
 		if (isAbortError(failure)) throw failure;
 		return result ?? { kind: "unreadable" };
@@ -237,20 +244,21 @@ export function createPdfConverter(loadTask: PdfTaskLoader = loadBytes) {
 
 const defaultPdfConverter = createPdfConverter();
 
-/** An uploaded PDF's pages as Markdown (the notes import's door). The page
- * cap is checked before any page is read. Cancellation is cooperative: pdfjs's
- * Node fake worker cannot interrupt synchronous parsing/formatting. The promise
- * waits for opening/conversion and best-effort destruction, not a hard deadline. */
+/** Las páginas de un PDF subido como Markdown (la puerta de la importación de
+ * notas). El límite de páginas se comprueba antes de leer ninguna. La cancelación
+ * es cooperativa: el worker simulado de Node de pdfjs no puede interrumpir el
+ * análisis o el formato síncronos. La promesa espera a la apertura/conversión y a
+ * la destrucción de mejor esfuerzo, no a un plazo estricto. */
 export async function convertPdf(data: Uint8Array, maxPages: number, options?: { signal?: AbortSignal }): Promise<PdfConversion> {
 	return defaultPdfConverter(data, maxPages, options);
 }
 
-/** A page's Markdown, or "" for a page with no text (the agent renders those). */
+/** El Markdown de una página, o "" si la página no tiene texto (el agente renderiza esas). */
 function pageMarkdown(page: PdfPage): string {
 	return page.kind === "text" ? page.markdown : "";
 }
 
-/** pdf_extract: Markdown of the requested pages, `--- Page N ---` headed. */
+/** pdf_extract: Markdown de las páginas pedidas, con encabezados `--- Page N ---`. */
 export async function pdfExtract(filePath: string, pageSpec: string): Promise<string> {
 	const { doc } = await openDocument(filePath);
 	const pages = parsePageSpec(pageSpec, doc.numPages);
@@ -262,13 +270,14 @@ export async function pdfExtract(filePath: string, pageSpec: string): Promise<st
 export interface PdfSearchHit {
 	page: number;
 	line: number;
-	/** contextLines around the hit, `>>>` marking the hit line. */
+	/** contextLines alrededor de la coincidencia, con `>>>` marcando su línea. */
 	context: string;
 }
 
-/** pdf_search: keyword/regex across all pages with context lines.
- *  pageTexts rides along so the agent can extract a hit's full page without
- *  a second pass (the skill pipelines `search → extract` the same way). */
+/** pdf_search: palabra clave/regex en todas las páginas, con líneas de contexto.
+ *  pageTexts viaja con el resultado para que el agente pueda extraer la página
+ *  completa de una coincidencia sin una segunda pasada (la skill encadena
+ *  `search → extract` del mismo modo). */
 export async function pdfSearch(
 	filePath: string,
 	query: string,
@@ -311,9 +320,9 @@ function escapeRegex(s: string): string {
 	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Where rendered pages land (mirrors the skill's /tmp convention). */
+/** Dónde acaban las páginas renderizadas (refleja la convención /tmp de la skill). */
 export function renderDir(filePath: string): string {
-	// FNV-1a short hash of the absolute path — stable per file, no deps.
+	// Hash corto FNV-1a de la ruta absoluta: estable por fichero, sin dependencias.
 	const abs = path.resolve(filePath);
 	let h = 0x811c9dc5;
 	for (let i = 0; i < abs.length; i++) {

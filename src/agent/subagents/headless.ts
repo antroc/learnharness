@@ -6,50 +6,53 @@ import { standardFontsDir } from "./pdf-ops";
 import { svgImageSource } from "../../../lib/svg-image-source";
 
 /**
- * Verification engines for sub-agents: demos use the app's own Electron
- * browser-service via puppeteer-core, with system Chrome as fallback.
- * SVGs use only resvg; PDFs use pdfjs + Skia (no browser).
- * No extra Chromium is shipped or downloaded.
+ * Motores de verificación para los subagentes: las demos usan el propio
+ * servicio de navegador Electron de la app mediante puppeteer-core, con el
+ * Chrome del sistema como alternativa. Los SVG usan solo resvg; los PDF usan
+ * pdfjs + Skia (sin navegador). No se distribuye ni se descarga ningún
+ * Chromium adicional.
  *
- * Chrome fallback resolution: CHROME_PATH first, then common macOS,
- * Windows and Linux install paths. `available()` is a cheap executable
- * check; the helper must still prove it can launch/connect at job time.
+ * Resolución del Chrome alternativo: primero CHROME_PATH y después las rutas
+ * de instalación habituales de macOS, Windows y Linux. `available()` es una
+ * comprobación barata del ejecutable; el auxiliar aún tiene que demostrar que
+ * puede arrancar/conectarse cuando se ejecuta la tarea.
  *
- * Test seam: `headlessOverride.current` replaces the whole API (tests inject
- * a fake; nothing here touches a real browser). Builders call `getHeadless()`.
+ * Frontera de pruebas: `headlessOverride.current` sustituye toda la API (las
+ * pruebas inyectan una falsa; nada de aquí toca un navegador real). Los
+ * constructores llaman a `getHeadless()`.
  */
 
 export interface DemoRunResult {
-	/** console.error / console messages of type "error". */
+	/** console.error / mensajes de consola de tipo "error". */
 	consoleErrors: string[];
-	/** Uncaught exceptions (window.onerror / unhandled rejections). */
+	/** Excepciones no capturadas (window.onerror / promesas rechazadas sin gestionar). */
 	pageErrors: string[];
-	/** Network requests that failed (CDN scripts that didn't load, …). */
+	/** Peticiones de red que fallaron (scripts de CDN que no cargaron, …). */
 	failedRequests: string[];
-	/** Value of the optional probe expression, when requested and successful. */
+	/** Valor de la expresión de sondeo opcional, si se pidió y tuvo éxito. */
 	probeResult?: unknown;
-	/** True when nothing above recorded anything. */
+	/** True cuando nada de lo anterior registró nada. */
 	ok: boolean;
 }
 
 export interface RunDemoOptions {
-	/** How long to let the page settle (animations, async CDN loads) — default 2s. */
+	/** Cuánto se deja asentar la página (animaciones, cargas asíncronas de CDN); 2 s por defecto. */
 	settleMs?: number;
-	/** Optional JS expression evaluated in the page after settling; its value
-	 * is returned to the builder so it can assert on internal state. */
+	/** Expresión JS opcional que se evalúa en la página tras asentarse; su valor
+	 * se devuelve al constructor para que pueda comprobar el estado interno. */
 	probe?: string;
 }
 
 export interface RenderSvgOptions {
-	/** Annotation images keep strict native input: skip ordinary figure display repairs. */
+	/** Las imágenes de anotación conservan la entrada nativa estricta: se omiten las reparaciones de visualización de las figuras normales. */
 	nativeOnly?: boolean;
-	/** Viewport size — defaults to the SVG's width/height attrs, else 900×700. */
+	/** Tamaño del viewport; por defecto, los atributos width/height del SVG, o si no, 900×700. */
 	width?: number;
 	height?: number;
 }
 
 export interface RenderPdfOptions {
-	/** Render DPI — 72 is 100% zoom; the skill's guidance is 100/150/200. */
+	/** DPI de renderizado: 72 es el 100 % de zoom; la skill recomienda 100/150/200. */
 	dpi?: number;
 }
 
@@ -59,26 +62,26 @@ export interface RenderedPdfPage {
 }
 
 export interface HeadlessApi {
-	/** True when a browser helper or Chrome is resolvable (cheap, no launch). */
+	/** True cuando se puede resolver un auxiliar de navegador o Chrome (barato, sin arrancar). */
 	available(): boolean;
-	/** Why not — for error messages. */
+	/** Por qué no, para los mensajes de error. */
 	unavailableReason(): string | null;
-	/** Execute HTML in a browser, capture errors, optionally probe. */
+	/** Ejecuta HTML en un navegador, captura los errores y, opcionalmente, sondea. */
 	runDemo(html: string, opts?: RunDemoOptions): Promise<DemoRunResult>;
-	/** Rasterize an SVG to a PNG buffer (for verify-by-looking). */
+	/** Rasteriza un SVG a un búfer PNG (para verificar mirando). */
 	renderSvg(svg: string, opts?: RenderSvgOptions): Promise<Buffer>;
-	/** Render PDF pages to PNGs natively (pdfjs + Skia) for the pdf-reader. */
+	/** Renderiza páginas PDF a PNG de forma nativa (pdfjs + Skia) para el pdf-reader. */
 	renderPdfPages(pdfPath: string, pages: number[], opts?: RenderPdfOptions): Promise<RenderedPdfPage[]>;
 }
 
-/** Test seam — undefined in production. */
+/** Frontera de pruebas: undefined en producción. */
 export const headlessOverride: { current?: HeadlessApi } = {};
 
 export function getHeadless(): HeadlessApi {
 	return headlessOverride.current ?? realHeadless;
 }
 
-// ─── Chrome resolution ───────────────────────────────────────────────────────
+// ─── Resolución de Chrome ────────────────────────────────────────────────────
 
 const CHROME_CANDIDATES = [
 	...(process.platform === "win32" ? [
@@ -103,7 +106,7 @@ export function resolveChromeExecutablePath(): string | null {
 		try {
 			if (fs.existsSync(candidate)) return candidate;
 		} catch {
-			/* not readable — try the next */
+			/* no se puede leer: probar el siguiente */
 		}
 	}
 	return null;
@@ -114,15 +117,15 @@ const NO_CHROME_MESSAGE =
 	"Install Google Chrome or set CHROME_PATH to a Chrome executable. " +
 	"(Verification is mandatory — demos are never delivered untested.)";
 
-// ─── The app's own Chromium as a browser service (Wave E stage 3) ────────────
-// Demos execute JS and need a browser. PRIMARY: this very app's binary
-// spawned with --browser-service (main.cjs boots a hidden window with a CDP
-// port and prints "BROWSER_SERVICE_CDP <port>"). FALLBACK: system Chrome.
-// A Node IPC channel owns its lifetime: parent death/disconnect quits the
-// helper on every OS (Windows Electron stdin is synthetic EOF). No orphans.
-// PDFs and SVGs never come here (native now).
+// ─── El propio Chromium de la app como servicio de navegador (oleada E, fase 3)
+// Las demos ejecutan JS y necesitan un navegador. PRINCIPAL: el binario de esta
+// misma app lanzado con --browser-service (main.cjs arranca una ventana oculta
+// con un puerto CDP e imprime "BROWSER_SERVICE_CDP <port>"). ALTERNATIVA: el
+// Chrome del sistema. Un canal IPC de Node controla su ciclo de vida: la muerte o
+// desconexión del padre cierra el auxiliar en todos los SO (en Windows el stdin de
+// Electron es un EOF sintético). Sin huérfanos. Los PDF y SVG nunca pasan por aquí (ahora son nativos).
 
-/** Handshake line parser (pure; exported for tests). */
+/** Analizador de la línea de negociación (puro; exportado para las pruebas). */
 export function parseBrowserServiceLine(line: string): number | null {
 	const m = line.match(/^BROWSER_SERVICE_CDP (\d+)$/);
 	if (!m) return null;
@@ -130,24 +133,24 @@ export function parseBrowserServiceLine(line: string): number | null {
 	return port >= 1 && port <= 65535 ? port : null;
 }
 
-/** Spawn env sanitizer (pure; exported for tests): the helper must run as a
- *  FULL Electron app — ELECTRON_RUN_AS_NODE must not leak — and must not
- *  inherit the dev-shell userData redirect. */
+/** Saneador del entorno de lanzamiento (puro; exportado para las pruebas): el
+ *  auxiliar debe ejecutarse como una app Electron COMPLETA (ELECTRON_RUN_AS_NODE
+ *  no debe filtrarse) y no debe heredar la redirección de userData del shell de desarrollo. */
 export function browserServiceSpawnEnv(
 	env: Record<string, string | undefined>,
 ): Record<string, string | undefined> {
 	const out: Record<string, string | undefined> = { ...env };
 	delete out.ELECTRON_RUN_AS_NODE;
 	delete out.LH_DEV_URL;
-	// The artifact renderer is not an authorized app API client.
+	// El renderizador de artefactos no es un cliente autorizado de la API de la app.
 	delete out.LH_DESKTOP_API_SECRET;
 	delete out.LH_DESKTOP_SERVER;
 	return out;
 }
 
-/** The helper binary: inside the packaged app the server runs under
- *  ELECTRON_RUN_AS_NODE so process.execPath IS the app binary; in dev
- *  (plain node) the electron package resolves to the dev binary path. */
+/** El binario auxiliar: dentro de la app empaquetada el servidor se ejecuta con
+ *  ELECTRON_RUN_AS_NODE, así que process.execPath ES el binario de la app; en
+ *  desarrollo (node a secas) el paquete electron resuelve la ruta del binario de desarrollo. */
 export function browserServiceBinary(): string | null {
 	if (process.versions.electron) return process.execPath;
 	try {
@@ -174,23 +177,23 @@ async function connectBrowserService(): Promise<ConnectedBrowserService | null> 
 	let proc = browserServiceProc;
 
 	if (proc && proc.exitCode === null) {
-		// Helper alive from a previous run — reuse its endpoint.
+		// Auxiliar vivo de una ejecución anterior: se reutiliza su endpoint.
 		port = (proc as { __cdpPort?: number }).__cdpPort ?? null;
 	}
 	if (port === null) {
 		const binary = browserServiceBinary();
 		if (!binary) return null;
-		// Packaged: execPath runs the bundled app (flag reaches main.cjs).
-		// Dev: the bare electron binary needs the repo root as the app arg —
-		// flagless it would open Electron's default app instead of our shell.
+		// Empaquetada: execPath ejecuta la app incluida (el flag llega a main.cjs).
+		// En desarrollo: el binario electron a secas necesita la raíz del repo como argumento;
+		// sin él abriría la app por defecto de Electron en lugar de nuestro shell.
 		const appArgs = process.versions.electron ? ["--browser-service"] : [
-			// src/agent/subagents → repo root
+			// src/agent/subagents → raíz del repo
 			path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..", ".."),
 			"--browser-service",
 		];
 		proc = spawn(binary, appArgs, {
-			// Cast: the sanitizer is pure over a loose record; NODE_ENV is
-			// always present in a real process.env.
+			// Conversión de tipo: el saneador es puro sobre un registro laxo; NODE_ENV
+			// siempre está presente en un process.env real.
 			env: browserServiceSpawnEnv(process.env) as NodeJS.ProcessEnv,
 			stdio: ["ignore", "pipe", "pipe", "ipc"] as const,
 		});
@@ -228,8 +231,8 @@ async function connectBrowserService(): Promise<ConnectedBrowserService | null> 
 		const version = await fetch(`http://127.0.0.1:${port}/json/version`);
 		const info = (await version.json()) as { webSocketDebuggerUrl?: string };
 		if (!info.webSocketDebuggerUrl) return null;
-		// connect ≠ launch: browser.close() below merely disconnects — the
-		// helper stays resident for the next job (IPC-owned lifetime).
+		// conectar ≠ arrancar: browser.close() más abajo solo desconecta; el auxiliar
+		// sigue residente para la siguiente tarea (ciclo de vida controlado por IPC).
 		const browser = await puppeteer.connect({
 			browserWSEndpoint: info.webSocketDebuggerUrl,
 			defaultViewport: null,
@@ -240,14 +243,15 @@ async function connectBrowserService(): Promise<ConnectedBrowserService | null> 
 	}
 }
 
-/** Serialize acquisition, page use and invalidation together: the helper owns
- * ONE page target. Queued jobs must acquire after the previous job retires or
- * discards its helper, never capture a Browser while a handshake is pending. */
+/** Serializa juntas la adquisición, el uso de la página y la invalidación: el
+ * auxiliar posee UN solo destino de página. Las tareas en cola deben adquirir
+ * después de que la anterior retire o descarte su auxiliar, nunca capturar un
+ * Browser mientras haya una negociación pendiente. */
 let helperPageChain: Promise<unknown> = Promise.resolve();
 
 async function withBrowserPage<T>(fn: (page: import("puppeteer-core").Page) => Promise<T>): Promise<T> {
-	// Helper first (owner ruling 2026-10-10: the app's own Chromium primary,
-	// system Chrome fallback) — deterministic across users, zero install.
+	// Primero el auxiliar (decisión del responsable 2026-10-10: el propio Chromium de
+	// la app como principal y el Chrome del sistema como alternativa): determinista entre usuarios, sin instalar nada.
 	const run = async (): Promise<{ value: T } | null> => {
 		const helper = await connectBrowserService();
 		if (!helper) return null;
@@ -258,14 +262,14 @@ async function withBrowserPage<T>(fn: (page: import("puppeteer-core").Page) => P
 			return { value: await fn(page) };
 		} catch (error) {
 			if (error instanceof IsolatedPageCleanupError) {
-				// A failed retirement must never leave a live untrusted document
-				// on the shared target. The next job starts a fresh owned helper.
+				// Una retirada fallida nunca debe dejar un documento no fiable vivo en el
+				// destino compartido. La siguiente tarea arranca un auxiliar propio nuevo.
 				helper.proc.kill();
 				if (browserServiceProc === helper.proc) browserServiceProc = null;
 			}
 			throw error;
 		} finally {
-			// Drop all page state (JS heap, listeners) between jobs.
+			// Descarta todo el estado de la página (heap de JS, listeners) entre tareas.
 			await page.goto("about:blank").catch(() => {});
 		}
 	};
@@ -274,13 +278,13 @@ async function withBrowserPage<T>(fn: (page: import("puppeteer-core").Page) => P
 	const result = await next;
 	if (result) return result.value;
 
-	// Chrome fallback: per-job launch, close on the way out (old semantics).
+	// Chrome alternativo: se arranca por tarea y se cierra al salir (semántica antigua).
 	const puppeteer = (await import("puppeteer-core")).default;
 	const executablePath = resolveChromeExecutablePath();
 	const browser = await puppeteer.launch({
 		headless: true,
-		// Explicit path when we found one; otherwise let puppeteer resolve the
-		// system Chrome install itself via the "chrome" channel.
+		// Ruta explícita si encontramos una; si no, puppeteer resuelve por sí mismo
+		// la instalación de Chrome del sistema mediante el canal "chrome".
 		...(executablePath ? { executablePath } : { channel: "chrome" as const }),
 		args: ["--disable-gpu", "--no-sandbox", "--disable-dev-shm-usage"],
 	});
@@ -292,16 +296,16 @@ async function withBrowserPage<T>(fn: (page: import("puppeteer-core").Page) => P
 	}
 }
 
-// ─── Isolated page loading ───────────────────────────────────────────────────
-// Demo HTML is model output, so it is untrusted.
-// They load in memory on about:blank, which gives the document an opaque
-// origin like the learner's sandboxed iframe. A file:// document could read
-// any local file. As a second layer, requests for any other scheme (file:
-// included) are aborted while the page is loaded.
+// ─── Carga aislada de páginas ────────────────────────────────────────────────
+// El HTML de las demos lo genera el modelo, así que no es fiable.
+// Se carga en memoria sobre about:blank, lo que da al documento un origen opaco,
+// como el iframe aislado del alumno. Un documento file:// podría leer cualquier
+// fichero local. Como segunda capa, las peticiones de cualquier otro esquema
+// (file: incluido) se abortan mientras la página está cargada.
 
 const ISOLATED_PAGE_SCHEMES = new Set(["http:", "https:", "data:", "blob:", "about:"]);
 
-/** Request filter for isolated pages (pure; exported for tests). */
+/** Filtro de peticiones para páginas aisladas (puro; exportado para las pruebas). */
 export function isIsolatedPageRequestAllowed(url: string): boolean {
 	try {
 		return ISOLATED_PAGE_SCHEMES.has(new URL(url).protocol);
@@ -317,9 +321,10 @@ type IsolatedPage = Pick<
 
 class IsolatedPageCleanupError extends Error {}
 
-/** Load untrusted markup in memory with the request filter on. Cleanup first
- * retires the document under that same guard, then disables interception.
- * If retirement fails, leave the guard installed and discard the helper. */
+/** Carga marcado no fiable en memoria con el filtro de peticiones activo. La
+ * limpieza primero retira el documento bajo esa misma protección y luego
+ * desactiva la intercepción. Si la retirada falla, se deja la protección
+ * instalada y se descarta el auxiliar. */
 export async function loadIsolatedPage(page: IsolatedPage, html: string): Promise<() => Promise<void>> {
 	const onRequest = (request: import("puppeteer-core").HTTPRequest) => {
 		const decision = isIsolatedPageRequestAllowed(request.url()) ? request.continue() : request.abort("accessdenied");
@@ -338,7 +343,7 @@ export async function loadIsolatedPage(page: IsolatedPage, html: string): Promis
 	try {
 		page.on("request", onRequest);
 		await page.setRequestInterception(true);
-		// setContent retains the current origin; reset under the guard first.
+		// setContent conserva el origen actual; primero se restablece bajo la protección.
 		if (page.url() !== "about:blank") await page.goto("about:blank", { timeout: 5_000 });
 		await page.setContent(html, { waitUntil: "load", timeout: 30_000 });
 		return cleanup;
@@ -348,14 +353,14 @@ export async function loadIsolatedPage(page: IsolatedPage, html: string): Promis
 	}
 }
 
-// ─── Demo execution ──────────────────────────────────────────────────────────
+// ─── Ejecución de demos ──────────────────────────────────────────────────────
 
 async function runDemo(html: string, opts: RunDemoOptions = {}): Promise<DemoRunResult> {
 	return withBrowserPage(page => runDemoOnPage(page, html, opts));
 }
 
-/** Production execution on an owned page; the packaged gate uses this same
- * function with its explicitly scratch-profiled helper target. */
+/** Ejecución de producción en una página propia; la barrera del paquete usa
+ * esta misma función con su destino auxiliar de perfil temporal explícito. */
 export async function runDemoOnPage(page: import("puppeteer-core").Page, html: string, opts: RunDemoOptions = {}): Promise<DemoRunResult> {
 	const settleMs = opts.settleMs ?? 2000;
 	const consoleErrors: string[] = [];
@@ -406,7 +411,7 @@ export async function runDemoOnPage(page: import("puppeteer-core").Page, html: s
 	};
 }
 
-// ─── SVG rasterization ───────────────────────────────────────────────────────
+// ─── Rasterización de SVG ────────────────────────────────────────────────────
 
 function svgViewport(svg: string, opts: RenderSvgOptions): { width: number; height: number } {
 	if (opts.width && opts.height) return { width: opts.width, height: opts.height };
@@ -418,41 +423,45 @@ function svgViewport(svg: string, opts: RenderSvgOptions): { width: number; heig
 	};
 }
 
-/** Canonicalize a raw Chrome screenshot for the model's eyes (2026-09-19 fix).
+/** Normaliza una captura de pantalla de Chrome en bruto para los ojos del
+ *  modelo (corrección del 2026-09-19).
  *
- *  WHY: Chrome writes PNGs with a SPLIT IDAT stream (4KB chunks) — and
- *  Alibaba's vision decoder (behind OpenRouter's qwen3.8-flash, the
- *  visual-maker's look-model) rejected those outright during the
- *  2026-09-18/19 window: "The image format is illegal and cannot be opened",
- *  deterministically, at every size (50–800px) — while every single-IDAT
- *  form passed (a handcrafted 1×1, and sharp re-encodes). On a later re-test
- *  raw Chrome PNGs passed too (the upstream decoder was fixed or is flaky
- *  per backend), but the canonical form stays: PNG spec says the IDAT chunks
- *  are an arbitrary SPLIT of one zlib stream, so merging them is the more
- *  standard shape, byte-identical stream, zero re-encoding.
+ *  POR QUÉ: Chrome escribe los PNG con un flujo IDAT PARTIDO (fragmentos de
+ *  4 KB), y el decodificador de visión de Alibaba (detrás de qwen3.8-flash de
+ *  OpenRouter, el modelo de visión del visual-maker) los rechazaba de plano
+ *  durante el periodo 2026-09-18/19: "The image format is illegal and cannot
+ *  be opened", de forma determinista y en todos los tamaños (50–800 px),
+ *  mientras que todas las formas con un único IDAT pasaban (un 1×1 hecho a
+ *  mano y recodificaciones con sharp). En una prueba posterior los PNG de
+ *  Chrome en bruto también pasaron (el decodificador remoto se corrigió o es
+ *  inestable según el backend), pero la forma canónica se queda: la
+ *  especificación PNG dice que los fragmentos IDAT son una PARTICIÓN
+ *  arbitraria de un único flujo zlib, así que unirlos es la forma más
+ *  estándar, con un flujo idéntico byte a byte y sin recodificar.
  *
- *  Pure Node on purpose (no sharp): historically the process already carried
- *  a native image lib via @huggingface/transformers' nested sharp + libvips,
- *  and importing the root sharp (Next's optional dependency) put a SECOND
- *  libvips into the process — macOS's ObjC runtime warns (duplicate
- *  GNotificationCenterDelegate, "mysterious crashes"). The transformers
- *  embedder died with wave 6 (2026-09-23) but the rule lives on: one native
- *  image lib per process; app code carries none. */
+ *  Node puro a propósito (sin sharp): históricamente el proceso ya cargaba una
+ *  biblioteca de imagen nativa a través del sharp + libvips anidado de
+ *  @huggingface/transformers, e importar el sharp de la raíz (dependencia
+ *  opcional de Next) metía una SEGUNDA libvips en el proceso; el runtime ObjC
+ *  de macOS avisa (GNotificationCenterDelegate duplicado, "mysterious
+ *  crashes"). El embedder de transformers desapareció con la oleada 6
+ *  (2026-09-23), pero la regla se mantiene: una biblioteca de imagen nativa
+ *  por proceso; el código de la app no lleva ninguna. */
 export function providerSafePng(png: Buffer): Buffer {
 	const SIG_LEN = 8;
 	if (png.length < SIG_LEN + 12 || png.subarray(0, SIG_LEN).toString("hex") !== "89504e470d0a1a0a") return png;
-	// Walk the chunks once, merging the IDAT split into its canonical
-	// single-chunk form (first IDAT's position, concatenated payload).
+	// Recorre los fragmentos una vez y une la partición IDAT en su forma canónica
+	// de un solo fragmento (posición del primer IDAT, contenido concatenado).
 	const parts: Array<{ type: string; data: Buffer }> = [];
 	let off = SIG_LEN;
 	while (off + 12 <= png.length) {
 		const len = png.readUInt32BE(off);
-		if (off + 12 + len > png.length) break; // truncated tail — leave as-is
+		if (off + 12 + len > png.length) break; // cola truncada: se deja tal cual
 		parts.push({ type: png.subarray(off + 4, off + 8).toString("ascii"), data: png.subarray(off + 8, off + 8 + len) });
 		off += 12 + len;
 	}
 	const idats = parts.filter((p) => p.type === "IDAT");
-	if (idats.length < 2) return png; // already canonical
+	if (idats.length < 2) return png; // ya es canónico
 	const merged = Buffer.concat(idats.map((p) => p.data));
 	let emittedIdat = false;
 	const out: Buffer[] = [png.subarray(0, SIG_LEN)];
@@ -466,7 +475,7 @@ export function providerSafePng(png: Buffer): Buffer {
 	return Buffer.concat(out);
 }
 
-/** One PNG chunk (length + type + data + CRC32) — the spec's exact layout. */
+/** Un fragmento PNG (longitud + tipo + datos + CRC32): la disposición exacta de la especificación. */
 function chunk(type: string, data: Buffer): Buffer {
 	const out = Buffer.alloc(12 + data.length);
 	out.writeUInt32BE(data.length, 0);
@@ -476,7 +485,7 @@ function chunk(type: string, data: Buffer): Buffer {
 	return out;
 }
 
-/** CRC-32 (PNG's polynomial, table-less) for chunk checksums. */
+/** CRC-32 (el polinomio de PNG, sin tabla) para las sumas de comprobación de los fragmentos. */
 function crc32(buf: Buffer): number {
 	let c = ~0;
 	for (const byte of buf) {
@@ -487,10 +496,10 @@ function crc32(buf: Buffer): number {
 }
 
 async function renderSvg(svg: string, opts: RenderSvgOptions = {}): Promise<Buffer> {
-	// Static native rasterization only. Ordinary figures get the same two
-	// render-only repairs as their display; annotation inputs remain strict.
-	// Native errors propagate to the existing visual-maker revision/failure
-	// handling, never executable browser markup or a system Chrome fallback.
+	// Solo rasterización nativa estática. Las figuras normales reciben las mismas dos
+	// reparaciones de solo renderizado que en su visualización; las de anotación siguen estrictas.
+	// Los errores nativos se propagan a la gestión de revisión/fallo existente del
+	// visual-maker, nunca a marcado ejecutable en navegador ni al Chrome del sistema.
 	const { width } = svgViewport(svg, opts);
 	const { Resvg } = await import("@resvg/resvg-js");
 	const resvg = new Resvg(opts.nativeOnly ? svg : svgImageSource(svg), {
@@ -501,16 +510,17 @@ async function renderSvg(svg: string, opts: RenderSvgOptions = {}): Promise<Buff
 	return providerSafePng(resvg.render().asPng());
 }
 
-// ─── PDF page rasterization (pdfjs paints, Skia hosts) ─────────────────
+// ─── Rasterización de páginas PDF (pdfjs pinta, Skia aloja) ─────────────
 
-/** Decimal megapixels: at four bytes per pixel this is about 61 MiB per
- *  page canvas, before pdfjs/Skia's other working memory. */
+/** Megapíxeles decimales: a cuatro bytes por píxel son unos 61 MiB por lienzo
+ *  de página, sin contar el resto de memoria de trabajo de pdfjs/Skia. */
 export const MAX_PDF_CANVAS_PIXELS = 16_000_000;
 export const MAX_PDF_CANVAS_SIDE = 8192;
 
-/** Plan the allocation from the scale-1 viewport (including PDF rotation).
- *  Keep ordinary DPI/ceil arithmetic unchanged; oversized pages lose scale,
- *  never gain it. Exported as a pure seam so extreme geometry needs no canvas. */
+/** Planifica la reserva a partir del viewport a escala 1 (incluida la rotación
+ *  del PDF). La aritmética normal de DPI/ceil no cambia; las páginas demasiado
+ *  grandes pierden escala, nunca la ganan. Se exporta como frontera pura para
+ *  que la geometría extrema no necesite un lienzo. */
 export function pdfCanvasGeometry(baseWidth: number, baseHeight: number, dpi: number): {
 	scale: number;
 	width: number;
@@ -522,8 +532,8 @@ export function pdfCanvasGeometry(baseWidth: number, baseHeight: number, dpi: nu
 	if (!Number.isFinite(dpi) || dpi <= 0 || dpi / 72 === 0) {
 		throw new Error("PDF render DPI must be finite and positive");
 	}
-	// Limit sides first, so the area calculation cannot overflow even when
-	// the unscaled page dimensions or requested DPI are enormous.
+	// Primero se limitan los lados, para que el cálculo del área no pueda desbordarse
+	// aunque las dimensiones sin escalar o los DPI pedidos sean enormes.
 	let scale = Math.min(dpi / 72, MAX_PDF_CANVAS_SIDE / baseWidth, MAX_PDF_CANVAS_SIDE / baseHeight);
 	const area = (baseWidth * scale) * (baseHeight * scale);
 	if (area > MAX_PDF_CANVAS_PIXELS) scale *= Math.sqrt(MAX_PDF_CANVAS_PIXELS / area);
@@ -533,8 +543,8 @@ export function pdfCanvasGeometry(baseWidth: number, baseHeight: number, dpi: nu
 	});
 	const fits = ({ width, height }: { width: number; height: number }) =>
 		width <= MAX_PDF_CANVAS_SIDE && height <= MAX_PDF_CANVAS_SIDE && width * height <= MAX_PDF_CANVAS_PIXELS;
-	// Ceil can put an otherwise bounded floating-point viewport over budget.
-	// Find a safe scale rather than clipping the viewport or allocating first.
+	// Ceil puede dejar por encima del presupuesto un viewport en coma flotante que estaba acotado.
+	// Se busca una escala segura en lugar de recortar el viewport o reservar primero.
 	if (!fits(dimensions(scale))) {
 		let low = 0;
 		let high = scale;
@@ -551,14 +561,14 @@ export function pdfCanvasGeometry(baseWidth: number, baseHeight: number, dpi: nu
 	return { scale, ...dimensions(scale) };
 }
 
-/** Render PDF pages to PNGs — the sources-v0 pdf-reader's eyes.
+/** Renderiza páginas PDF a PNG: los ojos del pdf-reader de sources-v0.
  *
- *  History: pdfjs ALWAYS painted the pages (scale = dpi/72, the skill's
- *  zoom arithmetic) — first inside a headless Chrome tab (canvas shim,
- *  toDataURL, 2026-09-19), now into @napi-rs/canvas in this process (Wave
- *  E, 2026-10-10). The paint engine never changed; only the canvas host:
- *  Skia in-process via pdfjs-dist v6's own Node integration. No browser,
- *  no temp files, no base64 hop. */
+ *  Historia: pdfjs SIEMPRE pintó las páginas (escala = dpi/72, la aritmética
+ *  de zoom de la skill); primero dentro de una pestaña de Chrome headless
+ *  (lienzo simulado, toDataURL, 2026-09-19) y ahora en @napi-rs/canvas en este
+ *  proceso (oleada E, 2026-10-10). El motor de pintado no cambió nunca; solo el
+ *  anfitrión del lienzo: Skia en el proceso mediante la integración con Node
+ *  de pdfjs-dist v6. Sin navegador, sin ficheros temporales, sin pasar por base64. */
 async function renderPdfPages(
 	pdfPath: string,
 	pages: number[],
@@ -568,19 +578,19 @@ async function renderPdfPages(
 	if (!Number.isFinite(dpi) || dpi <= 0 || dpi / 72 === 0) {
 		throw new Error("PDF render DPI must be finite and positive");
 	}
-	// NATIVE CANVAS (Wave E, owner 2026-10-10): pdfjs paints into
-	// @napi-rs/canvas in this process — no browser involved. pdfjs-dist v6's
-	// own Node integration IS @napi-rs/canvas (its optionalDependency: the
-	// NodeCanvasFactory requires it), so the paint engine is the exact code
-	// that used to run in the Chrome shim tab; only the canvas host changed
-	// (Skia in-process instead of a DOM canvas). Text-side pdf tools never
-	// needed a browser; now renders don't either.
+	// LIENZO NATIVO (oleada E, responsable 2026-10-10): pdfjs pinta en
+	// @napi-rs/canvas en este proceso, sin navegador. La integración con Node de
+	// pdfjs-dist v6 ES @napi-rs/canvas (su optionalDependency: la NodeCanvasFactory
+	// lo requiere), así que el motor de pintado es exactamente el código que antes
+	// se ejecutaba en la pestaña simulada de Chrome; solo cambió el anfitrión del
+	// lienzo (Skia en el proceso en lugar de un lienzo DOM). Las herramientas de texto
+	// de PDF nunca necesitaron navegador; ahora el renderizado tampoco.
 	const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
 	const { createCanvas } = await import("@napi-rs/canvas");
 	const data = new Uint8Array(fs.readFileSync(path.resolve(pdfPath)));
-	// Standard-font data as a directory path (live-smoke finding 2026-09-19:
-	// without it pdfjs renders non-embedded standard fonts via fallback);
-	// verbosity 0 = errors only (JBIG2 noise on scanned PDFs).
+	// Datos de fuentes estándar como ruta de directorio (hallazgo de la prueba en vivo
+	// del 2026-09-19: sin ellos pdfjs renderiza con sustitutas las fuentes estándar no
+	// incrustadas); verbosity 0 = solo errores (ruido de JBIG2 en los PDF escaneados).
 	const loadingTask = pdfjs.getDocument({ data, standardFontDataUrl: standardFontsDir(), verbosity: 0 });
 	const doc = await loadingTask.promise;
 	try {
@@ -593,8 +603,8 @@ async function renderPdfPages(
 			const vp = pg.getViewport({ scale: geometry.scale });
 			const canvas = createCanvas(geometry.width, geometry.height);
 			const ctx = canvas.getContext("2d");
-			// pdfjs's render types speak the DOM context; @napi-rs/canvas's
-			// context is the same 2D API implemented over Skia.
+			// Los tipos de renderizado de pdfjs hablan del contexto DOM; el contexto de
+			// @napi-rs/canvas es la misma API 2D implementada sobre Skia.
 			await pg.render({
 				canvasContext: ctx as unknown as CanvasRenderingContext2D,
 				canvas: canvas as unknown as HTMLCanvasElement,
@@ -602,8 +612,8 @@ async function renderPdfPages(
 			}).promise;
 			out.push({
 				page: pageNo,
-				// Skia-encoded PNG → providerSafePng for the same single-IDAT
-				// canonical form every other vision-model image gets.
+				// PNG codificado por Skia → providerSafePng, para la misma forma canónica de un
+				// solo IDAT que recibe cualquier otra imagen para el modelo de visión.
 				png: providerSafePng(canvas.toBuffer("image/png")),
 			});
 		}
@@ -613,12 +623,12 @@ async function renderPdfPages(
 	}
 }
 
-// ─── the real API ────────────────────────────────────────────────────────────
+// ─── la API real ─────────────────────────────────────────────────────────────
 
 export const realHeadless: HeadlessApi = {
 	available() {
-		// The helper binary exists by construction in the packaged app; in dev
-		// it resolves via the electron package. System Chrome widens coverage.
+		// El binario auxiliar existe por construcción en la app empaquetada; en desarrollo
+		// se resuelve mediante el paquete electron. El Chrome del sistema amplía la cobertura.
 		return browserServiceBinary() !== null || resolveChromeExecutablePath() !== null;
 	},
 	unavailableReason() {

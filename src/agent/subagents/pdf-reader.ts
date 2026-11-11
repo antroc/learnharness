@@ -13,18 +13,20 @@ import { getHeadless, type HeadlessApi } from "./headless.ts";
 import { pdfExtract, pdfInfo, pdfProbe, pdfSearch, type PdfSearchHit } from "./pdf-ops.ts";
 
 /**
- * The pdf-reader sub-agent (sources v0, 2026-09): reads a learner-provided
- * PDF on the teacher's behalf — a hand-rolled loop like the visual-maker's
- * (image-in-the-loop can't ride the execute-tool plumbing: rendered pages
- * are shown to THIS agent's eyes, never delivered onward — user-decided).
+ * El subagente pdf-reader (sources v0, 2026-09): lee un PDF aportado por el
+ * alumno en nombre del profesor, con un bucle hecho a mano como el del
+ * visual-maker (la imagen dentro del bucle no puede ir por la fontanería de
+ * execute de las herramientas: las páginas renderizadas se muestran a los ojos
+ * de ESTE agente y nunca se entregan más allá; decisión del usuario).
  *
- * System prompt = the pdf-reader skill's reading doctrine, verbatim in
- * strategy: triage with pdf_info FIRST, then size-based strategy — short
- * PDFs render all pages, medium render flagged (math/image-heavy) pages,
- * long ones search for targeted lookups before reading anything at length.
+ * Prompt de sistema = la doctrina de lectura de la skill pdf-reader, con la
+ * estrategia tal cual: clasificar PRIMERO con pdf_info y después aplicar una
+ * estrategia según el tamaño: los PDF cortos renderizan todas las páginas, los
+ * medianos renderizan las páginas marcadas (con muchas matemáticas o imágenes)
+ * y los largos hacen búsquedas concretas antes de leer nada a fondo.
  *
- * Its final text IS the brief (researcher idiom), with (p. N) citations;
- * runPdfJob wraps it into PdfResult with pagesConsulted tracked by the loop.
+ * Su texto final ES el informe (al estilo del researcher), con citas (p. N);
+ * runPdfJob lo envuelve en un PdfResult con las pagesConsulted que lleva el bucle.
  */
 
 const INSTRUCTIONS = `You are a PDF reading specialist. You work for a teacher agent inside a learning
@@ -59,10 +61,11 @@ claim cited as (p. N). End with a line "Pages consulted: N, N, …" listing ever
 extracted or rendered.`;
 
 const MAX_ITERATIONS = 14;
-/** Rendered pages per pdf_render call — the skill renders selectively; a
- *  batch cap keeps one over-eager call from flooding the vision context. */
+/** Páginas renderizadas por llamada a pdf_render: la skill renderiza de forma
+ *  selectiva; un límite por lote impide que una llamada demasiado ansiosa
+ *  inunde el contexto de visión. */
 const RENDER_BATCH_CAP = 6;
-/** Extract output ceiling — narrow the spec instead of dumping a book. */
+/** Tope de la salida de extract: mejor acotar la especificación que volcar un libro. */
 const EXTRACT_CAP = 24_000;
 
 export interface PdfReaderOptions {
@@ -72,19 +75,21 @@ export interface PdfReaderOptions {
 	onActivity?: (line: string) => void;
 	headless?: HeadlessApi;
 	maxIterations?: number;
-	/** Debug: raw provider-event recording key (LH_PROVIDER_EVENTS=1). */
+	/** Depuración: clave de grabación de eventos en bruto del proveedor (LH_PROVIDER_EVENTS=1). */
 	chatId?: string;
 }
 
 export interface PdfReaderInput extends PdfToolInput {}
 
-/** The wire declarations (pi-ai Tool, TypeBox parameters). This loop owns
- *  execution itself — pdf_info/pdf_extract run via the plain pdfInfoText/
- *  pdfExtractText bodies below, pdf_search/pdf_render dispatch inline in
- *  the loop (search hits must join the citation set; renders feed the
- *  image-in-the-loop message) — so the declarations carry no execute.
- *  dpi/context_lines/literal carry the old zod `.default()`s as schema
- *  descriptions + loop-side ??-fills (the loop reads them via numOr). */
+/** Las declaraciones que van por la red (Tool de pi-ai, parámetros TypeBox).
+ *  Este bucle se encarga él mismo de la ejecución: pdf_info/pdf_extract se
+ *  ejecutan con los cuerpos simples pdfInfoText/pdfExtractText de más abajo y
+ *  pdf_search/pdf_render se despachan en línea dentro del bucle (las
+ *  coincidencias de búsqueda deben sumarse al conjunto de citas; los
+ *  renderizados alimentan el mensaje con la imagen en el bucle), así que las
+ *  declaraciones no llevan execute. dpi/context_lines/literal trasladan los
+ *  antiguos `.default()` de zod como descripciones del esquema + rellenos ??
+ *  en el bucle (el bucle los lee con numOr). */
 export function createPdfTools(_pdfPath: string): Record<string, Tool> {
 	return {
 		pdf_info: {
@@ -124,7 +129,7 @@ export function createPdfTools(_pdfPath: string): Record<string, Tool> {
 	};
 }
 
-/** pdf_info's body (the loop's dispatch target): the triage readout. */
+/** El cuerpo de pdf_info (el destino de despacho del bucle): el resultado de la clasificación. */
 async function pdfInfoText(pdfPath: string): Promise<string> {
 	const info = await pdfInfo(pdfPath);
 	const lines = [
@@ -138,7 +143,7 @@ async function pdfInfoText(pdfPath: string): Promise<string> {
 	return lines.join("\n");
 }
 
-/** pdf_extract's body: capped text extraction with the narrow-the-spec notice. */
+/** El cuerpo de pdf_extract: extracción de texto con tope y el aviso de acotar la especificación. */
 async function pdfExtractText(pdfPath: string, pages: string): Promise<string> {
 	const text = await pdfExtract(pdfPath, pages);
 	if (text.length > EXTRACT_CAP) {
@@ -158,9 +163,10 @@ function toolText(toolCallId: string, toolName: string, value: string): ToolResu
 	};
 }
 
-/** Doctrine gate (the visual-maker's unlooked-finish rule, ported): never
- *  deliver a brief that consulted nothing — an unread PDF brief is made-up
- *  content, exactly the class of failure the gate exists for. */
+/** Barrera de doctrina (la regla del visual-maker de no terminar sin mirar,
+ *  trasladada aquí): nunca se entrega un informe que no consultó nada; un
+ *  informe de un PDF sin leer es contenido inventado, justo la clase de fallo
+ *  para la que existe la barrera. */
 const UNREAD_FINISH_MESSAGE =
 	"You finished without consulting any page of the PDF — your brief would be invention, not reading. Extract or render the relevant pages first, then write the brief from what you actually saw.";
 
@@ -171,8 +177,8 @@ export async function runPdfReaderAgent(
 	const maxIterations = opts.maxIterations ?? MAX_ITERATIONS;
 	let pdfPath = input.path;
 	let openError: string | null;
-	// Source denial is an ordinary upfront PDF failure, before parsing,
-	// rendering or any model request (including direct reader invocations).
+	// Que se deniegue la fuente es un fallo normal y previo del PDF, antes de analizar,
+	// renderizar o hacer ninguna petición al modelo (también en invocaciones directas del lector).
 	try {
 		pdfPath = resolveSourcePath(input.path);
 		openError = await probeReadable(pdfPath);
@@ -183,15 +189,15 @@ export async function runPdfReaderAgent(
 		return { path: pdfPath, question: input.question, brief: `PDF failed: ${openError}`, pagesRead: [], pagesConsulted: [] };
 	}
 	const headless = opts.headless ?? getHeadless();
-	// No Chrome gate (Wave E, 2026-10-10): pdf_render is native now
-	// (pdfjs paints into @napi-rs/canvas in-process) — the whole pdf-reader
-	// runs browser-free; text tools always worked without one.
+	// Sin barrera de Chrome (oleada E, 2026-10-10): pdf_render ahora es nativo
+	// (pdfjs pinta en @napi-rs/canvas en el proceso); todo el pdf-reader funciona
+	// sin navegador; las herramientas de texto siempre funcionaron sin él.
 
 	const tools = createPdfTools(pdfPath);
 	const toolDeclarations = Object.values(tools);
 	const engine = opts.engine ?? piEngineFor("pdfReader");
-	// BYOK (owner, 2026-09-22): the level rides the injected engine — no
-	// factory pin to consult (engine.level is the resolved/clamped value).
+	// BYOK (responsable, 2026-09-22): el nivel viaja con el motor inyectado; no hay
+	// fijación de fábrica que consultar (engine.level es el valor resuelto/acotado).
 	const reasoning = engine.level;
 	const sessionId = randomUUID();
 	const capture = createBackgroundCapture({ role: "pdfReader", runId: sessionId, sourceId: opts.chatId });
@@ -204,11 +210,11 @@ export async function runPdfReaderAgent(
 	].join("\n");
 
 	let messages: Message[] = [{ role: "user", content: prompt, timestamp: Date.now() }];
-	/** Every page the reader extracted or rendered (the citation set). */
+	/** Todas las páginas que el lector extrajo o renderizó (el conjunto de citas). */
 	const consulted = new Set<number>();
-	/** Pages genuinely READ — extract or render output entered the loop.
-	 *  Search-hit context lines consult but don't read (the "78 pages
-	 *  consulted" overstatement split, sources v1 2026-09-19). */
+	/** Páginas LEÍDAS de verdad: la salida de extract o render entró en el bucle.
+	 *  Las líneas de contexto de las coincidencias de búsqueda consultan pero no
+	 *  leen (la división de la exageración «78 pages consulted», sources v1 2026-09-19). */
 	const read = new Set<number>();
 	let finalText = "";
 	let nudged = false;
@@ -227,7 +233,7 @@ export async function runPdfReaderAgent(
 				opts.chatId ? providerEventObserver(opts.chatId, "job:pdfReader") : undefined,
 				capture,
 			);
-			// Money channel: each iteration is one model call.
+			// Canal del dinero: cada iteración es una llamada al modelo.
 			opts.onUsage?.(result.usage);
 			messages = [...messages, result];
 
@@ -240,10 +246,10 @@ export async function runPdfReaderAgent(
 					.map((c) => c.text)
 					.join("")
 					.trim();
-				// The gate stays on CONSULTED, not read: search-hit context
-				// lines are genuine consultation (anti-fabrication duty) — a
-				// search-only brief is honest. pagesRead is the UI's honest
-				// count, not a delivery gate.
+				// La barrera sigue en CONSULTADAS, no en leídas: las líneas de contexto de las
+				// coincidencias son consulta genuina (deber contra la invención); un informe
+				// solo con búsquedas es honesto. pagesRead es el recuento honesto para la
+				// interfaz, no una barrera de entrega.
 				if (consulted.size === 0 && !nudged) {
 					nudged = true;
 					messages = [
@@ -256,8 +262,8 @@ export async function runPdfReaderAgent(
 			}
 
 			const toolResults: ToolResultMessage[] = [];
-			/** Rendered pages this batch, appended as images AFTER the tool
-			 *  results — the visual-maker's image-in-the-loop idiom. */
+			/** Páginas renderizadas en este lote, añadidas como imágenes DESPUÉS de los
+			 *  resultados de las herramientas: el estilo de imagen en el bucle del visual-maker. */
 			let renderedImages: { page: number; image: ProcessImageResult }[] | null = null;
 
 			for (const call of toolCalls) {
@@ -281,9 +287,9 @@ export async function runPdfReaderAgent(
 						const contextLines = numOr(args.context_lines, 3);
 						const literal = Boolean(args.literal);
 						opts.onActivity?.(`pdf_search: "${query}"`);
-						// Direct call (not the tool's execute): the loop needs the hits'
-						// pages — a hit's context lines ARE consultation, so they join
-						// the citation set (the unread-finish gate counts them).
+						// Llamada directa (no el execute de la herramienta): el bucle necesita las páginas
+						// de las coincidencias; sus líneas de contexto SON consulta, así que se suman
+						// al conjunto de citas (la barrera de terminar sin leer las cuenta).
 						const { hits } = await pdfSearch(pdfPath, query, { contextLines, literal });
 						for (const h of hits) consulted.add(h.page);
 						const cap = hits.slice(0, 40);
@@ -304,7 +310,7 @@ export async function runPdfReaderAgent(
 							const image = await processImage(p.png, "image/png", { resizeOptions: engine.model.inputLimits?.images?.resize });
 							opts.abortSignal?.throwIfAborted();
 							processed.push({ page: p.page, image });
-							// Only images actually delivered to the model count as read.
+							// Solo cuentan como leídas las imágenes que se entregaron de verdad al modelo.
 							if (image.ok) {
 								consulted.add(p.page);
 								read.add(p.page);
@@ -363,7 +369,7 @@ export async function runPdfReaderAgent(
 		capture?.finish(captureError);
 	}
 
-	// Iteration limit: deliver whatever was honestly consulted (never invention).
+	// Límite de iteraciones: se entrega lo que se consultó honestamente (nunca invención).
 	return {
 		path: pdfPath,
 		question: input.question,
@@ -373,12 +379,12 @@ export async function runPdfReaderAgent(
 	};
 }
 
-// ─── small helpers ───────────────────────────────────────────────────────────
+// ─── pequeños auxiliares ─────────────────────────────────────────────────────
 
-/** Parse a page spec into concrete page numbers, capped. */
+/** Convierte una especificación de páginas en números de página concretos, con tope. */
 function specNumbers(spec: string, cap: number): number[] {
-	// total = Infinity: bounds come from the document at execution time; the
-	// cap alone protects the batch.
+	// total = Infinity: los límites salen del documento al ejecutar; el tope por
+	// sí solo protege el lote.
 	const parts = spec.trim().toLowerCase() === "all" ? [`${cap}`] : spec.split(",");
 	const out = new Set<number>();
 	for (const part of parts) {
@@ -401,14 +407,14 @@ function numOr(v: unknown, dflt: number): number {
 	return typeof v === "number" && Number.isFinite(v) ? v : dflt;
 }
 
-/** Cheap upfront readability probe — real parsing happens inside the tools. */
+/** Sondeo previo y barato de legibilidad; el análisis real ocurre dentro de las herramientas. */
 async function probeReadable(pdfPath: string): Promise<string | null> {
 	try {
 		const fs = await import("node:fs/promises");
 		const stat = await fs.stat(pdfPath);
 		if (!stat.isFile()) return "not a regular file";
 		if (stat.size === 0) return "file is empty";
-		// parse probe: pdfProbe throws pdfjs's precise error for garbage files
+		// sondeo de análisis: pdfProbe lanza el error preciso de pdfjs con los ficheros basura
 		await pdfProbe(pdfPath);
 		return null;
 	} catch (err) {
@@ -416,8 +422,8 @@ async function probeReadable(pdfPath: string): Promise<string | null> {
 	}
 }
 
-/** One raw model call (no agent loop): the visual-maker's streamOnce,
- *  duplicated here because its module keeps it private. */
+/** Una llamada al modelo en bruto (sin bucle de agente): el streamOnce del
+ *  visual-maker, duplicado aquí porque su módulo lo mantiene privado. */
 async function streamOnce(
 	engine: PiEngine,
 	systemPrompt: string,
@@ -429,9 +435,9 @@ async function streamOnce(
 	onProviderStreamEvent?: ProviderEventObserver,
 	capture?: BackgroundCapture,
 ): Promise<AssistantMessage> {
-	// 0.87.1: provider-facing contexts are TranscriptContexts — the prompt
-	// and tool declarations fold into a leading system message.
-	// normalizeContext is the library's only Context→TranscriptContext entry.
+	// 0.87.1: los contextos de cara al proveedor son TranscriptContexts; el prompt
+	// y las declaraciones de herramientas se pliegan en un mensaje de sistema inicial.
+	// normalizeContext es la única entrada de la biblioteca de Context→TranscriptContext.
 	const stream = engine.streamFn(engine.model, normalizeContext({ systemPrompt, messages, tools }), {
 		sessionId,
 		reasoning: reasoning && reasoning !== "off" ? reasoning : undefined,
