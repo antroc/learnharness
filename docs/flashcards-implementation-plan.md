@@ -1,29 +1,29 @@
-# Flashcards: native-first implementation
+# Tarjetas de memoria: implementación nativa primero
 
-**Authorized:** Begin implementation. Keep it simple; no Anki export/import, dependencies, assets, conversion or compatibility work in v1. The earlier exhaustive draft is superseded.
+**Autorizado:** empezar la implementación. Mantenerlo sencillo; en la v1 no hay exportación/importación de Anki, dependencias, recursos, conversión ni trabajo de compatibilidad. El borrador exhaustivo anterior queda sustituido.
 
-## Small package, existing host services
+## Paquete pequeño, servicios del host existentes
 
-Source lives in `plugins/flashcards/`, with its own build manifest/lockfile. Build a normal installable `flashcards` folder; do not install over the person's live plugin/data or change root application dependencies.
+El código fuente está en `plugins/flashcards/`, con su propio manifiesto de compilación y lockfile. Compila una carpeta `flashcards` normal e instalable; no instales encima del plugin o los datos activos de la persona ni cambies las dependencias raíz de la aplicación.
 
-- **Local store:** one versioned JSON snapshot under `ctx.dataDirectory`, written by atomic replacement. It holds decks, proposition/cue collections, schedules, review history and generation progress. No database service, general repository framework or additional host API.
-- **Library:** flat source-based default decks, optional custom memberships, search, cue edits/deletion and Archive. Shared memberships reference one proposition collection/schedule. Preserve at least one membership; deleting a deck never deletes cards or progress.
-- **Generation:** use the actual host knowledge picker, read public graph propositions/immediate chains, include existing/deleted cues, and pack configurable ~4,000-token input chunks. Submit independent validated `ctx.workers` tasks through host admission. Follow the current cheap slot unless overridden. One active batch, no automatic model retries/replay. Successful chunks apply independently. Navigation does not cancel accepted work.
-- **Review:** think → reveal → Again/Hard/Good/Easy. A small attributed FSRS-6 port, published parameters, 90% retention, learning 1m/10m and relearning 10m. Schedule propositions, weight cues by latest result, and keep the same cue through learning/relearning. Daily new limit initially 20 per deck; due work uncapped. Introduction counts in every current membership but only the studied/admitting deck controls admission.
-- **Rendering/settings:** use `mountMarkdown`, host-controlled buttons/dialogs/pickers/settings and scoped cleanup. No private component imports, duplicate Markdown parser or plugin-local worker infrastructure.
+- **Almacén local:** una única instantánea JSON versionada en `ctx.dataDirectory`, escrita por sustitución atómica. Contiene mazos, colecciones de proposiciones/pistas, calendarios, historial de repaso y progreso de generación. Sin servicio de base de datos, sin un framework genérico de repositorio y sin API adicional del host.
+- **Biblioteca:** mazos por defecto planos basados en las fuentes, pertenencias personalizadas opcionales, búsqueda, edición/borrado de pistas y Archivar. Las pertenencias compartidas referencian una única colección/calendario por proposición. Conserva al menos una pertenencia; borrar un mazo nunca borra tarjetas ni progreso.
+- **Generación:** usa el selector de conocimiento real del host, lee las proposiciones públicas del grafo y sus cadenas inmediatas, incluye las pistas existentes/borradas y agrupa la entrada en fragmentos configurables de unos 4.000 tokens. Envía tareas `ctx.workers` independientes y validadas a través de la admisión del host. Sigue la ranura barata actual salvo que se personalice. Un lote activo, sin reintentos ni repeticiones automáticas del modelo. Los fragmentos correctos se aplican de forma independiente. La navegación no cancela el trabajo aceptado.
+- **Repaso:** pensar → revelar → Again/Hard/Good/Easy. Una pequeña adaptación de FSRS-6 con atribución, parámetros publicados, retención del 90 %, aprendizaje 1m/10m y reaprendizaje 10m. Programa las proposiciones, pondera las pistas según el último resultado y mantén la misma pista durante el aprendizaje/reaprendizaje. Límite diario de nuevas inicialmente de 20 por mazo; el trabajo pendiente no tiene tope. La introducción cuenta en todas las pertenencias actuales, pero solo el mazo que se estudia o que admite controla la admisión.
+- **Renderizado/ajustes:** usa `mountMarkdown`, botones/diálogos/selectores/ajustes controlados por el host y una limpieza con ámbito. Sin importaciones de componentes privados, sin un parser de Markdown duplicado y sin infraestructura de workers local del plugin.
 
-## Practical safeguards, not another platform
+## Protecciones prácticas, no otra plataforma
 
-Validate backend inputs; retain failed edit drafts. Grade only revealed, current review tickets; make accepted ratings and model-task dispatch idempotent. Keep cancellation/application markers with the same local snapshot. Reconcile accepted results after restart without making a new model call. Use explicit errors instead of silent context truncation, fallback models or data reset.
+Valida las entradas del backend; conserva los borradores de edición fallidos. Evalúa solo los tickets de repaso actuales y ya revelados; haz que las valoraciones aceptadas y el despacho de tareas del modelo sean idempotentes. Mantén los marcadores de cancelación/aplicación en la misma instantánea local. Concilia los resultados aceptados tras un reinicio sin hacer una nueva llamada al modelo. Usa errores explícitos en lugar de truncar el contexto en silencio, recurrir a modelos alternativos o restablecer los datos.
 
-Use deterministic FSRS intervals initially (reference fuzz-off default). Local study days initially start at 04:00; intraday steps use actual elapsed minutes. Published equations remain reference-tested; local queue/calendar behavior is an adapter, not a claim of identical Anki scheduling.
+Usa inicialmente intervalos de FSRS deterministas (el valor por defecto de referencia sin fuzz). Los días de estudio locales empiezan inicialmente a las 04:00; los pasos dentro del día usan los minutos realmente transcurridos. Las ecuaciones publicadas siguen probándose contra la referencia; el comportamiento local de la cola y el calendario es un adaptador, no una afirmación de que la programación sea idéntica a la de Anki.
 
-## Infrastructure learning
+## Aprendizaje sobre la infraestructura
 
-This plugin is a reference consumer of the still-evolving API. Report concrete excessive plumbing, awkward workarounds or missing capabilities to the human instead of hiding them behind a custom framework.
+Este plugin es un consumidor de referencia de una API que todavía evoluciona. Informa a la persona de la fontanería excesiva, los rodeos incómodos o las capacidades que falten, en concreto, en lugar de ocultarlos tras un framework propio.
 
-Known limitation: the public graph reader exposes source titles/paths but not imported-source display-name overrides used by the host picker. Initial deck labels can use those public titles/basenames and remain editable. No private-store workaround.
+Limitación conocida: el lector público del grafo expone los títulos y las rutas de las fuentes, pero no los nombres visibles personalizados de las fuentes importadas que usa el selector del host. Las etiquetas iniciales de los mazos pueden usar esos títulos públicos/nombres base y siguen siendo editables. Nada de rodeos a través del almacén privado.
 
-## Verification and delivery
+## Verificación y entrega
 
-Run focused native tests for generation, persistence, scheduling, shared memberships, review, cancellation and recovery. Build the external package and exercise its UI in a disposable app/browser environment. Mock model transport; do not call paid providers or touch real learning data. Report observed results and remaining gaps honestly. No automatic installation, root-host edits, commit, push or release.
+Ejecuta pruebas nativas específicas de generación, persistencia, programación, pertenencias compartidas, repaso, cancelación y recuperación. Compila el paquete externo y ejercita su interfaz en un entorno de app/navegador desechable. Simula el transporte del modelo; no llames a proveedores de pago ni toques datos de aprendizaje reales. Informa con honestidad de los resultados observados y de las carencias que queden. Sin instalación automática, sin ediciones en la raíz del host, sin commit, push ni publicación.
