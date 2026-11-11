@@ -1,0 +1,14 @@
+docs/archive/README.md
+docs/archive/architecture-2026-09-08.md
+docs/archive/pi-engine-swap.md
+docs/archive/plan.md
+docs/archive/plugin-implementation-history.md
+docs/archive/probe-teach-split.md
+docs/archive/release-0.3.md
+docs/archive/vision.md
+skills/learnharness-plugins/README.md
+skills/learnharness-plugins/SKILL.md
+skills/learnharness/SKILL.md
+skills/learnharness/references/data-format.md
+tests/fixtures/golden-data/README.md
+tests/skills/README.md

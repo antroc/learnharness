@@ -48,8 +48,8 @@ function customButtonColors(colors?: ButtonColors) {
     style[variable] = value
     classes.push(className)
   }
-  // Keep complete utility names static for Tailwind discovery. Missing slots
-  // add no state utility, so each property retains its applicable lower color.
+  // Mantén estáticos los nombres completos de las utilidades para que Tailwind los detecte. Las ranuras
+  // ausentes no añaden utilidad de estado, así que cada propiedad conserva su color inferior aplicable.
   add(colors?.background, "--button-custom-background", "bg-[color:var(--button-custom-background)]")
   add(colors?.text, "--button-custom-text", "text-[color:var(--button-custom-text)]")
   add(colors?.border, "--button-custom-border", "border-[color:var(--button-custom-border)]")

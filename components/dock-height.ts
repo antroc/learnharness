@@ -6,14 +6,14 @@ const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayout
 
 export interface DockHeightMeasurements {
 	columnHeight: number;
-	/** Stats/toolbar and block padding, outside the scrolling viewport. */
+	/** Relleno de la barra de estadísticas/herramientas y del bloque, fuera del viewport con scroll. */
 	outsideHeight: number;
-	/** Everything in the viewport except the animated shell. */
+	/** Todo lo que hay en el viewport salvo el contenedor animado. */
 	beforeShellHeight: number;
 	shellBorderHeight: number;
-	/** Natural content height, not the shell's animated/clamped height. */
+	/** Altura natural del contenido, no la altura animada/limitada del contenedor. */
 	contentHeight: number;
-	/** Null when collapsed, in chat mode, or showing malformed input. */
+	/** Null cuando está plegado, en modo chat o mostrando una entrada mal formada. */
 	questionHeight: number | null;
 	questionPaddingHeight: number;
 }
@@ -26,9 +26,9 @@ export function dockHeightBudget(m: DockHeightMeasurements) {
 	const questionMaxHeight = m.questionHeight === null
 		? null
 		: Math.max(viewportMaxHeight - (naturalHeight - m.questionHeight), 0);
-	// A cap smaller than the question's padding leaves no content viewport.
-	// Deliberately uncap the question and scroll the whole content instead;
-	// do not confuse a measured zero with an unmeasured CSS fallback.
+	// Un límite menor que el relleno de la pregunta no deja viewport para el contenido.
+	// Se quita a propósito el límite de la pregunta y se desplaza todo el contenido;
+	// no confundas un cero medido con un valor CSS de reserva sin medir.
 	const scrollWholeContent = questionMaxHeight === null
 		? naturalHeight > viewportMaxHeight
 		: questionMaxHeight <= m.questionPaddingHeight;
@@ -46,14 +46,14 @@ interface DockHeightElements {
 
 const pixels = (value: string) => Number.parseFloat(value) || 0;
 
-/** Read natural geometry before writing any constraints. Cancel the shell's
- * animated height out of both ancestor measurements, then substitute its
- * natural content and borders. This stays valid during a WAAPI height morph
- * and when the outer viewport is already capped. */
+/** Lee la geometría natural antes de escribir ninguna restricción. Anula la altura
+ * animada del contenedor en ambas medidas del ancestro y sustitúyela por su
+ * contenido y bordes naturales. Sigue siendo válido durante una transformación de
+ * altura con WAAPI y cuando el viewport exterior ya está limitado. */
 export function syncDockHeight(elements: DockHeightElements, expanded: boolean) {
 	const { column, block, viewport, body, shell, content } = elements;
-	// QuestionDock keeps a laid-out form in an invisible h-0 wrapper;
-	// PracticeDock removes its form. Neither hidden form is a height input.
+	// QuestionDock mantiene un formulario maquetado dentro de un envoltorio invisible h-0;
+	// PracticeDock elimina su formulario. Ningún formulario oculto cuenta para la altura.
 	const question = expanded ? content.querySelector<HTMLElement>("[data-dock-scroll-area]") : null;
 	const height = (el: HTMLElement) => el.getBoundingClientRect().height;
 	const shellStyle = getComputedStyle(shell);
@@ -72,11 +72,11 @@ export function syncDockHeight(elements: DockHeightElements, expanded: boolean) 
 	if (budget.questionMaxHeight === null) block.style.removeProperty("--dock-max-h");
 	else block.style.setProperty("--dock-max-h", budget.scrollWholeContent ? "none" : `${budget.questionMaxHeight}px`);
 	viewport.style.maxHeight = `${budget.viewportMaxHeight}px`;
-	// Overflow is visible in normal layouts: keep the shell's shadow intact.
-	// The stats/model toolbar is a sibling, never inside this overflow box.
+	// El desbordamiento es visible en las maquetaciones normales: conserva intacta la sombra del contenedor.
+	// La barra de estadísticas/modelo es un hermano, nunca está dentro de esta caja de desbordamiento.
 	viewport.style.overflowY = budget.scrollWholeContent ? "auto" : "visible";
-	// Clamp animated starting heights too, so a previous tall variant cannot
-	// paint above the column while morphing into a constrained layout.
+	// Limita también las alturas iniciales animadas, para que una variante alta anterior no
+	// se pinte por encima de la columna mientras se transforma en una maquetación restringida.
 	shell.style.maxHeight = budget.scrollWholeContent ? "none" : `${budget.shellMaxHeight}px`;
 	return budget;
 }
@@ -96,12 +96,12 @@ export function useDockHeight({
 }: DockHeightRefs & {
 	expanded: boolean;
 	enabled: boolean;
-	/** Reconnect observers when the keyed content node/scroll area changes. */
+	/** Vuelve a conectar los observadores cuando cambia el nodo de contenido/área de scroll con clave. */
 	mode: string;
 	onScrollbarInset: (inset: number) => void;
-	/** Settled visible block height, fed through the existing reserve policy. */
+	/** Altura visible estable del bloque, pasada por la política de reserva existente. */
 	onHeight: (height: number) => void;
-	/** Constraints are applied before notifying an active opening morph. */
+	/** Las restricciones se aplican antes de notificar a una transformación de apertura activa. */
 	onLayout?: () => void;
 }) {
 	const measure = useCallback(() => {
@@ -121,18 +121,18 @@ export function useDockHeight({
 			shell.style.removeProperty("max-height");
 		}
 		onLayout?.();
-		// ResizeObserver runs even when only a child field changed and React
-		// did not rerender DockOverlay. Keep its transcript reserve current,
-		// but never report a mid-morph height.
+		// ResizeObserver se ejecuta incluso cuando solo ha cambiado un campo hijo y React
+		// no ha vuelto a renderizar DockOverlay. Mantén actualizada su reserva del transcript,
+		// pero no informes nunca de una altura a mitad de transformación.
 		if (shell.getAnimations().length === 0) onHeight(block.getBoundingClientRect().height);
 	}, [scrollRef, blockRef, viewportRef, bodyRef, shellRef, contentRef, expanded, enabled, onScrollbarInset, onHeight, onLayout]);
 
-	// Imperative constraints land before the overlay's later layout effect
-	// measures its morph target/reserve, and before paint (including reveal).
+	// Las restricciones imperativas se aplican antes de que el layout effect posterior del overlay
+	// mida su objetivo/reserva de transformación, y antes del pintado (incluida la revelación).
 	useIsoLayoutEffect(measure);
 	useIsoLayoutEffect(() => {
-		// Ignore already-queued deliveries after variant replacement or Activity
-		// cleanup: old observers must never retarget a newer height animation.
+		// Ignora las entregas ya encoladas tras sustituir la variante o limpiar Activity:
+		// los observadores antiguos nunca deben redirigir una animación de altura más reciente.
 		let active = true;
 		const observedMeasure = () => { if (active) measure(); };
 		const observer = new ResizeObserver(observedMeasure);
@@ -150,9 +150,9 @@ export function useDockHeight({
 	}, [measure, mode, expanded, scrollRef, blockRef, viewportRef, bodyRef, contentRef]);
 }
 
-/** Overlay and transcript are siblings. Keep native scrolling in an actual
- * scroll container (including the short-window viewport), then forward only
- * at its edge. overflow:hidden/visible boxes cannot consume the wheel. */
+/** El overlay y el transcript son hermanos. Mantén el scroll nativo en un contenedor
+ * con scroll real (incluido el viewport de ventana corta) y reenvía solo al llegar
+ * a su borde. Las cajas overflow:hidden/visible no pueden consumir la rueda. */
 export function forwardDockWheel(event: WheelEvent, root: HTMLElement, transcript: HTMLElement) {
 	if (event.deltaY === 0) return;
 	for (let n = event.target as HTMLElement | null; n && n !== root; n = n.parentElement) {
