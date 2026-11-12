@@ -1,8 +1,8 @@
 /**
- * Option A — incremental anchored force layout (core/layout.ts). The
- * properties the user asked for: the layout EVOLVES (old placements stay
- * recognizable), new nodes land near their cluster, orphans collect on
- * the rim, and everything is deterministic.
+ * Opción A: layout de fuerzas incremental y anclado (core/layout.ts). Las
+ * propiedades que pidió el usuario: el layout EVOLUCIONA (las colocaciones antiguas siguen
+ * siendo reconocibles), los nodos nuevos caen cerca de su clúster, los huérfanos se reúnen en
+ * el borde y todo es determinista.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -19,7 +19,7 @@ const node = (id: string): GraphNode => ({
 	provenance: [],
 });
 const chain = (id: string, premises: string[], conclusion: string): GraphChain => ({ id, premises, conclusion, provenance: [], createdAt: "2026-09-13T00:00:00.000Z" });
-/** incrementalLayout's link shape — the DERIVED untyped arrow. */
+/** La forma de enlace de incrementalLayout: la flecha sin tipo DERIVADA. */
 const edge = (from: string, to: string): { from: string; to: string } => ({ from, to });
 
 const mean = (positions: Map<string, Position>, ids: string[]): { x: number; y: number } => ({
@@ -67,8 +67,8 @@ describe("incrementalLayout", () => {
 			[...coreEdges, edge("b", "d"), edge("d", "e")],
 			previous,
 		);
-		// The anchor keeps its neighborhood (bounded drift), and the new
-		// nodes landed near it rather than being flung elsewhere.
+		// El ancla conserva su vecindario (deriva acotada) y los nodos
+		// nuevos cayeron cerca de ella en vez de salir despedidos a otra parte.
 		const coreSpanBefore =
 			Math.max(...[...previous.values()].map((p) => p.x)) - Math.min(...[...previous.values()].map((p) => p.x));
 		assert.ok(
@@ -106,7 +106,7 @@ describe("incrementalLayout", () => {
 describe("settleGraphLayout", () => {
 	it("dedupes repeated node lines, runs, and writes the whole ledger", () => {
 		const written: Record<string, Position>[] = [];
-		const lines = [node("a"), node("b"), node("c"), node("d"), node("a")]; // "a" appended twice
+		const lines = [node("a"), node("b"), node("c"), node("d"), node("a")]; // "a" anexado dos veces
 		const store = {
 			readNodes: () => lines.map((l) => ({ ...l })),
 			readChains: () => [chain("arg_ab", ["a"], "b"), chain("arg_bcd", ["b", "c"], "d")],
@@ -115,8 +115,8 @@ describe("settleGraphLayout", () => {
 		};
 		settleGraphLayout(store);
 		assert.equal(written.length, 1);
-		// arg_ab is single-premise → collapsed to a direct arrow, NO imp
-		// node; arg_bcd is multi-premise → its imp node joins the layout.
+		// arg_ab tiene una sola premisa → se reduce a una flecha directa, SIN nodo
+		// imp; arg_bcd tiene varias premisas → su nodo imp entra en el layout.
 		assert.deepEqual(Object.keys(written[0]!).sort(), ["a", "arg_bcd", "b", "c", "d"], "positions for the unique nodes and ONLY the multi-premise chain's imp node");
 	});
 
@@ -136,7 +136,7 @@ describe("imp-link half distance (rendering arc, owner 2026-09-30)", () => {
 		const nodes = [{ id: from, x: 0, y: 0 }, { id: to, x: 500, y: 0 }];
 		const sim = createGraphSimulation(nodes, [{ from, to }], {
 			linkDistance,
-			chargeStrength: 0, // springs only — the rest length IS the equilibrium
+			chargeStrength: 0, // solo muelles: la longitud de reposo ES el equilibrio
 			gravity: { x: 0, y: 0, strength: 0 },
 		});
 		for (let i = 0; i < 300; i++) sim.tick();
@@ -150,16 +150,16 @@ describe("imp-link half distance (rendering arc, owner 2026-09-30)", () => {
 	});
 
 	it("a link TOUCHING an implication node gets HALF the rest length", () => {
-		// into the imp point (premise → arg_x)
+		// hacia el punto imp (premisa → arg_x)
 		assert.ok(Math.abs(settle("a", "arg_x", 100) - 50) < 2, "into-imp link ≈ 50");
-		// out of it (arg_x → conclusion)
+		// saliendo de él (arg_x → conclusión)
 		assert.ok(Math.abs(settle("arg_x", "b", 100) - 50) < 2, "out-of-imp link ≈ 50");
 	});
 });
 
 describe("clusterPull (the centroid force)", () => {
 	it("compacts each cluster toward its OWN centroid; strength 0 = off", () => {
-		// Two loose chains, far apart, edges only WITHIN each chain.
+		// Dos cadenas sueltas, muy separadas, con aristas solo DENTRO de cada cadena.
 		const mk = (p: string, baseX: number) =>
 			Array.from({ length: 8 }, (_, i) => ({ id: `${p}${i}`, x: baseX + i * 40, y: i * 15 }));
 		const a = mk("a", -400);
@@ -192,9 +192,9 @@ describe("clusterPull (the centroid force)", () => {
 		};
 		const pulled = run(0.15);
 		const unpulled = run(0);
-		// The force compacts (well under the unpulled baseline)...
+		// La fuerza compacta (muy por debajo de la referencia sin atracción)...
 		assert.ok(pulled < unpulled * 0.8, `pulled spread ${pulled.toFixed(1)} should be well under ${unpulled.toFixed(1)}`);
-		// ...and both groups survive as separate blobs (no merge).
+		// ...y ambos grupos sobreviven como burbujas separadas (sin fusionarse).
 		assert.ok(pulled > 0, "spread is finite/positive");
 	});
 });
@@ -237,10 +237,10 @@ describe("depths over the LOGICAL graph (physics arc, owner 2026-09-30)", () => 
 		);
 		for (let i = 0; i < 400; i++) sim.tick();
 		const pos = new Map((sim.nodes() as unknown as { id: string; x: number; y: number }[]).map((n) => [n.id, n]));
-		// The orphan converges on x (the pole is still a pole)...
+		// El huérfano converge en x (el polo sigue siendo un polo)...
 		assert.ok(Math.abs(pos.get("lonely")!.x) < 50, `lonely x pulled to center (got ${pos.get("lonely")!.x.toFixed(1)})`);
-		// ...but its y is UNTOUCHED — no row to sit on, no sag toward the
-		// pole (old behavior dragged it to y≈0).
+		// ...pero su y queda INTACTA: sin fila en la que asentarse, sin caer hacia el
+		// polo (el comportamiento antiguo lo arrastraba a y≈0).
 		assert.ok(Math.abs(pos.get("lonely")!.y - 400) < 5, `lonely y free (got ${pos.get("lonely")!.y.toFixed(1)})`);
 	});
 
@@ -248,20 +248,20 @@ describe("depths over the LOGICAL graph (physics arc, owner 2026-09-30)", () => 
 		const mk = (id: string, x: number, y: number) => ({ id, x, y });
 		const sim = createGraphSimulation(
 			[mk("a", 0, 0), mk("b", 40, 0), mk("c", 0, -480), mk("arg_x", 20, -100)],
-			// Drawn edges: the imp fan (springs ride these).
+			// Aristas dibujadas: el abanico imp (los muelles van sobre ellas).
 			[
 				{ from: "a", to: "arg_x" },
 				{ from: "b", to: "arg_x" },
 				{ from: "arg_x", to: "c" },
 			],
 			{
-				// The logical edges: what depth consumes.
+				// Las aristas lógicas: lo que consume la profundidad.
 				logicalEdges: [
 					{ from: "a", to: "c" },
 					{ from: "b", to: "c" },
 				],
-				// The junction's linkage: premises a,b (row 0), conclusion
-				// c (row 1) → the anchor is the AVERAGE, 0.5.
+				// La conexión de la unión: premisas a,b (fila 0), conclusión
+				// c (fila 1) → el ancla es la MEDIA, 0.5.
 				impLinks: [{ id: "arg_x", premises: ["a", "b"], conclusion: "c" }],
 				depthAnchor: { mode: "vertical", strength: 1, spacing: 500 },
 				gravity: { x: 0, y: 0, strength: 0.1 },
@@ -271,13 +271,13 @@ describe("depths over the LOGICAL graph (physics arc, owner 2026-09-30)", () => 
 		);
 		for (let i = 0; i < 400; i++) sim.tick();
 		const pos = new Map((sim.nodes() as unknown as { id: string; x: number; y: number }[]).map((n) => [n.id, n]));
-		// Propositions pin to their rows: a/b at depth 0 (y≈0), c at
-		// depth 1 (y≈−500 — targetY = baseY − depth·spacing).
+		// Las proposiciones se fijan a sus filas: a/b en profundidad 0 (y≈0), c en
+		// profundidad 1 (y≈−500; targetY = baseY − profundidad·espaciado).
 		assert.ok(Math.abs(pos.get("a")!.y) < 50, `a on row 0 (got ${pos.get("a")!.y.toFixed(1)})`);
 		assert.ok(Math.abs(pos.get("b")!.y) < 50, `b on row 0 (got ${pos.get("b")!.y.toFixed(1)})`);
 		assert.ok(Math.abs(pos.get("c")!.y + 500) < 50, `c on row 1 (got ${pos.get("c")!.y.toFixed(1)})`);
-		// The junction pins EXACTLY halfway: (0 + 1)/2 = 0.5 → y≈−250 —
-		// strictly above the premises, strictly below the conclusion.
+		// La unión se fija EXACTAMENTE a medio camino: (0 + 1)/2 = 0.5 → y≈−250;
+		// estrictamente por encima de las premisas, estrictamente por debajo de la conclusión.
 		assert.ok(Math.abs(pos.get("arg_x")!.y + 250) < 40, `arg_x on the half-row (got ${pos.get("arg_x")!.y.toFixed(1)})`);
 	});
 
@@ -291,8 +291,8 @@ describe("depths over the LOGICAL graph (physics arc, owner 2026-09-30)", () => 
 				{ from: "arg_x", to: "c" },
 			],
 			{
-				// a→b→c ladder: b at depth 1, c at depth 2; the chain's
-				// premises are a (0) and b (1), conclusion c (2).
+				// escalera a→b→c: b en profundidad 1, c en profundidad 2; las
+				// premisas de la cadena son a (0) y b (1), y la conclusión c (2).
 				logicalEdges: [
 					{ from: "a", to: "b" },
 					{ from: "a", to: "c" },
@@ -310,7 +310,7 @@ describe("depths over the LOGICAL graph (physics arc, owner 2026-09-30)", () => 
 		assert.ok(Math.abs(pos.get("a")!.y) < 40, `a on row 0 (got ${pos.get("a")!.y.toFixed(1)})`);
 		assert.ok(Math.abs(pos.get("b")!.y + 400) < 40, `b on row 1 (got ${pos.get("b")!.y.toFixed(1)})`);
 		assert.ok(Math.abs(pos.get("c")!.y + 800) < 40, `c on row 2 (got ${pos.get("c")!.y.toFixed(1)})`);
-		// (highest premise 1 + conclusion 2) / 2 = 1.5 → y≈−600.
+		// (premisa más alta 1 + conclusión 2) / 2 = 1.5 → y≈−600.
 		assert.ok(Math.abs(pos.get("arg_x")!.y + 600) < 40, `arg_x on the 1.5 half-row (got ${pos.get("arg_x")!.y.toFixed(1)})`);
 	});
 
@@ -337,8 +337,8 @@ describe("depths over the LOGICAL graph (physics arc, owner 2026-09-30)", () => 
 		for (let i = 0; i < 400; i++) sim.tick();
 		const pos = new Map((sim.nodes() as unknown as { id: string; x: number; y: number }[]).map((n) => [n.id, n]));
 		assert.ok(Math.abs(pos.get("c")!.y + 500) < 50, "c on row 1");
-		// No linkage supplied: no half-row, no stamping — springs alone
-		// place it between the levels.
+		// Sin conexión proporcionada: sin media fila, sin sellado; los muelles por sí solos
+		// lo colocan entre los niveles.
 		assert.ok(Math.abs(pos.get("arg_x")!.y) < 250, `arg_x unanchored (got ${pos.get("arg_x")!.y.toFixed(1)})`);
 	});
 });
@@ -347,7 +347,7 @@ describe("inferenceDepths (SCC-safe ranking)", () => {
 	const nodes = (ids: string[]) => ids.map((id) => ({ id }));
 
 	it("ranks a chain, a diamond takes the longest path, orphans are depth 0", () => {
-		// chain a->b->c; diamond a->d, b->d, c->d (d reachable at 1 and 2 and 3)
+		// cadena a->b->c; rombo a->d, b->d, c->d (d alcanzable en 1, 2 y 3)
 		const ns = nodes(["a", "b", "c", "d", "loner"]);
 		const edges = [
 			{ from: "a", to: "b" },
@@ -360,12 +360,12 @@ describe("inferenceDepths (SCC-safe ranking)", () => {
 		assert.equal(d.get("a"), 0);
 		assert.equal(d.get("b"), 1);
 		assert.equal(d.get("c"), 2);
-		assert.equal(d.get("d"), 3); // longest path, not shortest
+		assert.equal(d.get("d"), 3); // el camino más largo, no el más corto
 		assert.equal(d.get("loner"), 0);
 	});
 
 	it("cycles share a depth (mutual support = equal footing)", () => {
-		// x <-> y (a cycle), fed by s; z follows x.
+		// x <-> y (un ciclo), alimentado por s; z sigue a x.
 		const ns = nodes(["s", "x", "y", "z"]);
 		const edges = [
 			{ from: "s", to: "x" },
@@ -378,7 +378,7 @@ describe("inferenceDepths (SCC-safe ranking)", () => {
 		assert.equal(d.get("x"), d.get("y"), "cycle members share a depth");
 		assert.equal(d.get("x"), 1);
 		assert.equal(d.get("z"), 2);
-		// Deterministic across calls.
+		// Determinista entre llamadas.
 		assert.deepEqual([...inferenceDepths(ns, edges).entries()], [...d.entries()]);
 	});
 });
@@ -422,9 +422,9 @@ describe("depthAnchor force", () => {
 	});
 
 	it("settle with depthAnchor: old nodes keep x memory but snap to their level", () => {
-		// Node "old" was previously placed at y=300 (off-level). With
-		// vertical anchoring a re-settle must move it to the baseline
-		// while preserving (roughly) its x arrangement.
+		// El nodo "old" estaba colocado antes en y=300 (fuera de nivel). Con
+		// anclaje vertical, un nuevo asentamiento debe moverlo a la línea base
+		// conservando (más o menos) su disposición en x.
 		const previous = new Map([["old", { x: 250, y: 300 }], ["peer", { x: 260, y: 290 }]]);
 		const next = incrementalLayout(
 			[{ id: "old" }, { id: "peer" }, { id: "child" }],
@@ -436,7 +436,7 @@ describe("depthAnchor force", () => {
 			{ depthAnchor: { mode: "vertical", strength: 0.6, spacing: 80 } },
 		);
 		const old = next.get("old")!;
-		// The baseline defaults to the anchor centroid: (300+290)/2 = 295.
+		// La línea base es por defecto el centroide de las anclas: (300+290)/2 = 295.
 		assert.ok(Math.abs(old.y - 295) < 20, `old node snaps to the baseline (y=${old.y.toFixed(1)})`);
 		assert.ok(old.x > 150, `x memory preserved (x=${old.x.toFixed(1)})`);
 		const child = next.get("child")!;
@@ -444,12 +444,12 @@ describe("depthAnchor force", () => {
 	});
 
 	it("orphans are exempt from depth anchoring — y is FREE, the pole is horizontal (ORPHAN RULE, amended 2026-09-30)", () => {
-		// A premise→conclusion chain plus an unconnected loner. Gravity's
-		// center is FAR off-axis, so the forces are distinguishable: a
-		// depth-stamped orphan would sit on the baseline; the pre-amend
-		// exempt one sagged to gravity's y. Since the owner's 2026-09-30
-		// amendment the vertical pole is horizontal-ONLY for everyone —
-		// the orphan keeps its y and follows gravity on x alone.
+		// Una cadena premisa→conclusión más un nodo solitario sin conexiones. El centro
+		// de la gravedad está MUY fuera del eje, así que las fuerzas se distinguen: un
+		// huérfano con sello de profundidad se quedaría en la línea base; el exento
+		// anterior a la enmienda caía hacia la y de la gravedad. Desde la enmienda del
+		// responsable del 2026-09-30, el polo vertical es SOLO horizontal para todos:
+		// el huérfano conserva su y y sigue a la gravedad únicamente en x.
 		const ns = [
 			{ id: "base", x: 0, y: 0 },
 			{ id: "derived", x: 10, y: 0 },

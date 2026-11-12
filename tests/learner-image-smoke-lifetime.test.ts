@@ -11,7 +11,7 @@ describe("learner-image smoke owned lifetimes", () => {
 		try {
 			const result = await boundedSmokeOperation(() => {
 				diagnosticStarted = true;
-				return new Promise<null>(() => {}); // An unresponsive renderer's evaluate.
+				return new Promise<null>(() => {}); // El evaluate de un renderizador que no responde.
 			}, 20, null);
 			assert.equal(result, null);
 		} finally { cleaned = true; }
@@ -27,7 +27,7 @@ describe("learner-image smoke owned lifetimes", () => {
 	it("does not confuse a transient EPERM group probe with group exit", { skip: process.platform === "win32" }, async () => {
 		const signals: (number | string | undefined)[] = [];
 		let probes = 0;
-		// Fully stubbed signal function: no real process or group is addressed.
+		// Función de señal totalmente sustituida: no se dirige a ningún proceso ni grupo real.
 		const kill = mock.method(process, "kill", (target: number, signal?: number | NodeJS.Signals) => {
 			assert.equal(target, -424242);
 			signals.push(signal);
@@ -41,8 +41,8 @@ describe("learner-image smoke owned lifetimes", () => {
 	});
 
 	it("escalates for an owned descendant even after its detached group leader exits", { skip: process.platform === "win32", timeout: 10000 }, async () => {
-		// Both processes are synthetic children created here. The descendant
-		// deliberately ignores TERM; no process names or other PIDs are discovered.
+		// Ambos procesos son hijos sintéticos creados aquí. El descendiente
+		// ignora TERM a propósito; no se descubren nombres de procesos ni otros PID.
 		const descendant = 'process.on("SIGTERM", () => {}); console.log("READY"); setInterval(() => {}, 1000);';
 		const leader = `
 			const { spawn } = require("node:child_process");

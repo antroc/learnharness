@@ -1,6 +1,6 @@
 /**
- * The surfaces that hardcoded dark (light-mode wave, 2026-10-29): each now
- * reads the active palette or the rendered mode.
+ * Las superficies que tenían el modo oscuro escrito a fuego (oleada del modo claro, 2026-10-29): cada una
+ * lee ahora la paleta activa o el modo renderizado.
  */
 
 import React from "react";

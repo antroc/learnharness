@@ -11,13 +11,13 @@ import {
 import { kbdEventForAction as kbdEventForActionFromUi } from "../components/keyboard-shortcuts.tsx";
 
 /**
- * The ⌘B sidebar bug interlude (owner, 2026-09-25): ⌘B did nothing because
- * the sidebar listened on the pre-convention "lh:toggle-sidebar" while the
- * dispatcher sent "lh:kbd-toggle-sidebar". The fix is structural — both
- * sides compose the event name through the ONE helper — and these pins
- * hold the chain together: the registry maps the keypress to the action,
- * the helper spells the event, and the UI dispatcher imports the same
- * helper (not its own copy).
+ * El interludio del fallo de ⌘B en la barra lateral (responsable, 2026-09-25): ⌘B no hacía nada porque
+ * la barra lateral escuchaba el "lh:toggle-sidebar" anterior a la convención mientras el
+ * despachador enviaba "lh:kbd-toggle-sidebar". El arreglo es estructural (ambos
+ * lados componen el nombre del evento con el ÚNICO auxiliar) y estas fijaciones
+ * mantienen unida la cadena: el registro asocia la pulsación a la acción,
+ * el auxiliar escribe el evento y el despachador de la interfaz importa el mismo
+ * auxiliar (no su propia copia).
  */
 
 describe("kbdEventForAction — the one spelling for action events", () => {
@@ -59,8 +59,8 @@ describe("the thinking pill suffix — ⇧⇥ via the registry", () => {
 });
 
 describe("the Alt session cycle is RETIRED (owner, 2026-10-10)", () => {
-	// Barely used, felt laggy — session navigation lives IN the search
-	// now (↑/↓ walk the filtered list, Enter opens; sidebar.tsx).
+	// Apenas se usaba y parecía lento: la navegación entre sesiones vive ahora DENTRO de la búsqueda
+	// (↑/↓ recorren la lista filtrada, Enter abre; sidebar.tsx).
 	it("⌥↑ / ⌥↓ / ⌥↵ bind to NOTHING — no stray action fires", () => {
 		assert.equal(actionForBinding("alt+arrowup") ?? null, null);
 		assert.equal(actionForBinding("alt+arrowdown") ?? null, null);

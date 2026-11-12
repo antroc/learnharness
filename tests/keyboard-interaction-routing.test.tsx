@@ -61,7 +61,7 @@ function fixture() {
 		const event = new dom.window.Event("keydown", { bubbles: true, cancelable: true });
 		Object.assign(event, { key, ...extra });
 		await act(async () => {
-			// linkedom lacks window capture: invoke the provider's exact step.
+			// linkedom no tiene captura de window: invoca el paso exacto del proveedor.
 			controller?.captureKeyDown(event as unknown as KeyboardEvent);
 			target.dispatchEvent(event);
 		});

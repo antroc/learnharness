@@ -1,20 +1,20 @@
 /**
- * Learner images in the lesson (issue #363) — deterministic, zero network:
+ * Imágenes del alumno en la lección (issue #363): deterministas, sin red:
  *
- *   1. the shared loader (learner-image.ts): metadata-free normalization, the storage
- *      bound, EXIF baked upright, format conversion, readable failures
- *   2. show_image: one text line to the teacher, the picture as details
- *   3. visual with an image: dispatch-time path check, the maker's
- *      placeholder protocol (fake model + fake headless), one REAL resvg
- *      render of an embedded raster, and the job runner end to end
- *   4. the cards: no invert switch on images, the ImageCard chrome
+ *   1. el cargador compartido (learner-image.ts): normalización sin metadatos, el límite
+ *      de almacenamiento, EXIF consolidado en vertical, conversión de formato, fallos legibles
+ *   2. show_image: una línea de texto para el profesor, la imagen en details
+ *   3. visual con una imagen: comprobación de la ruta al despachar, el protocolo de
+ *      provisionales del creador (modelo falso + headless falso), un renderizado REAL con resvg
+ *      de un ráster incrustado y el ejecutor de tareas de extremo a extremo
+ *   4. las tarjetas: sin interruptor de invertir en las imágenes, el envoltorio de ImageCard
  *
- * Cleanup follows tests/demos.test.tsx (created chat/job files removed in
- * after(); overrides reset in finally blocks).
+ * La limpieza sigue a tests/demos.test.tsx (los ficheros de chat/tarea creados se borran en
+ * after(); las sustituciones se restablecen en bloques finally).
  */
 
 import React from "react";
-(globalThis as Record<string, unknown>).React = React; // tsx classic-JSX shim (see render-cards.test.tsx)
+(globalThis as Record<string, unknown>).React = React; // parche del JSX clásico de tsx (ver render-cards.test.tsx)
 
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
@@ -51,8 +51,8 @@ import { VisualOutputCard } from "../components/artifacts/visual-card.tsx";
 import { ImageCard, ImagePresentation, imageDownloadName, imageSvgDocument } from "../components/artifacts/image-card.tsx";
 import { artifactRenderers } from "../components/artifacts/index.ts";
 
-// The key-presence gate (see demos.test.tsx): the runner's model checks
-// read env-first truth.
+// La barrera de presencia de clave (ver demos.test.tsx): las comprobaciones de modelo del ejecutor
+// leen la verdad del entorno primero.
 process.env.OPENROUTER_API_KEY ??= "test-key-presence-gate";
 
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "lh-learner-images-"));
@@ -72,7 +72,7 @@ after(() => {
 
 // ─── fixtures ────────────────────────────────────────────────────────────────
 
-/** Left half yellow, right half blue — enough structure to check placement. */
+/** Mitad izquierda amarilla, mitad derecha azul: estructura suficiente para comprobar la colocación. */
 function raster(width: number, height: number, mime: "image/png" | "image/jpeg" | "image/webp" = "image/png"): Buffer {
 	const canvas = createCanvas(width, height);
 	const context = canvas.getContext("2d");
@@ -83,7 +83,7 @@ function raster(width: number, height: number, mime: "image/png" | "image/jpeg" 
 	return canvas.toBuffer(mime as "image/png");
 }
 
-/** A 12×8 JPEG tagged with an EXIF orientation (tests/image-processing.test.ts). */
+/** Un JPEG de 12×8 etiquetado con una orientación EXIF (tests/image-processing.test.ts). */
 function exifJpeg(orientation: number): Buffer {
 	const image = photon.PhotonImage.new_from_byteslice(raster(12, 8));
 	let jpeg: Buffer;
@@ -123,7 +123,7 @@ function pixel(png: Buffer, x: number, y: number): [number, number, number] {
 	}
 }
 
-/** A faux engine that snapshots every provider-facing context. */
+/** Un motor simulado que hace una instantánea de cada contexto de cara al proveedor. */
 function scripted(steps: FauxResponseStep[]) {
 	const faux = createFauxCore({ tokenSize: { min: 64, max: 64 } });
 	faux.setResponses(steps);
@@ -180,7 +180,7 @@ function fakeHeadless(): HeadlessApi & { svgCalls: string[] } {
 const MARKED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="30" viewBox="0 0 40 30"><image href="${LEARNER_IMAGE_HREF}" x="0" y="0" width="40" height="30"/><circle cx="10" cy="15" r="6" fill="none" stroke="red" stroke-width="2"/></svg>`;
 const UNPLACED_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="30"><circle cx="10" cy="15" r="6"/></svg>';
 
-// ─── 1. the loader ───────────────────────────────────────────────────────────
+// ─── 1. el cargador ──────────────────────────────────────────────────────────
 
 describe("learner image loader", () => {
 	it("normalizes a small PNG without changing its pixels",  async () => {
@@ -263,7 +263,7 @@ describe("show_image", () => {
 	});
 });
 
-// ─── 3. visual with an image ─────────────────────────────────────────────────
+// ─── 3. visual con una imagen ────────────────────────────────────────────────
 
 describe("visual with an image: dispatch", () => {
 	function fakeJobs() {
@@ -476,7 +476,7 @@ describe("visual job runner with an image", () => {
 	});
 });
 
-// ─── 4. the cards ────────────────────────────────────────────────────────────
+// ─── 4. las tarjetas ─────────────────────────────────────────────────────────
 
 describe("image cards", () => {
 	const details = {

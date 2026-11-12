@@ -25,8 +25,8 @@ function fixture() {
 		removeItem: (key: string) => { storage.delete(key); },
 	} });
 	const restoreModalDom = installModalDom(dom);
-	// linkedom lacks real window capture. Retain the actual capture callbacks
-	// and deliver them before the real React-target/document-bubble path.
+	// linkedom no tiene una captura de window real. Guarda los callbacks de captura reales
+	// y entrégalos antes de la ruta real de destino de React/burbujeo del documento.
 	const captures = new Set<EventListenerOrEventListenerObject>();
 	const add = dom.window.addEventListener.bind(dom.window), remove = dom.window.removeEventListener.bind(dom.window);
 	dom.window.addEventListener = ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
@@ -71,7 +71,7 @@ async function arm() { await act(async () => byTest("kbd-rebind-find").click());
 const isArmed = () => byTest("kbd-row-find").textContent!.includes("Press keys…");
 afterEach(async () => {
 	await act(async () => root?.unmount()); root = undefined;
-	// Flush HostDialog/FocusScope cleanup before restoring this fixture's DOM.
+	// Vacía la limpieza de HostDialog/FocusScope antes de restaurar el DOM de este fixture.
 	await new Promise(resolve => setTimeout(resolve, 5));
 	cleanup?.(); cleanup = undefined;
 });
@@ -91,8 +91,8 @@ it("a covered Settings recorder ignores child keys/Escape, and resumes recording
 	await f.render(<Harness />); await arm(); assert.equal(isArmed(), true);
 	await act(async () => openChild());
 	assert.equal(document.activeElement, byTest("child-heading"));
-	// Escape is the first event after coverage: the original regression
-	// consumed it during window capture and stranded the child dialog.
+	// Escape es el primer evento tras la cobertura: la regresión original
+	// lo consumía durante la captura de window y dejaba varado el diálogo hijo.
 	const escape = await f.key("Escape");
 	assert.equal(escape.defaultPrevented, true); assert.equal(childCloses, 1); assert.equal(parentCloses, 0);
 	assert.equal(document.querySelector("[data-testid='child-heading']"), null);

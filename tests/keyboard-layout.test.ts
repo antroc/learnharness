@@ -3,13 +3,13 @@ import { describe, it } from "node:test";
 import { actionForBinding, eventBinding, KEYBOARD_ACTIONS } from "../src/core/keyboard.ts";
 
 /**
- * Non-Latin keyboard layouts: with Ctrl/Cmd held, a Cyrillic (or Greek,
- * Hebrew, …) layout reports the LAYOUT's character in `key` — Ctrl+K on a
- * Russian layout is key "л" — so every letter shortcut went dead until the
- * learner switched back to a Latin layout. A modified letter whose `key` is
- * not ASCII falls back to its physical key (`code` KeyK → "k"). ASCII
- * character mappings (including AZERTY/Dvorak, where `key` is already
- * the intended letter) are untouched.
+ * Distribuciones de teclado no latinas: con Ctrl/Cmd pulsado, una distribución cirílica (o griega,
+ * hebrea…) informa en `key` del carácter de LA DISTRIBUCIÓN (Ctrl+K en una
+ * distribución rusa es la tecla "л"), así que todos los atajos de letra dejaban de funcionar hasta que el
+ * alumno volvía a una distribución latina. Una letra con modificador cuyo `key` no
+ * es ASCII recurre a su tecla física (`code` KeyK → "k"). Las correspondencias de
+ * caracteres ASCII (incluidas AZERTY/Dvorak, donde `key` ya es
+ * la letra pretendida) no se tocan.
  */
 
 function press(init: { key: string; code: string; ctrlKey?: boolean; metaKey?: boolean; altKey?: boolean; shiftKey?: boolean }): KeyboardEvent {

@@ -1,7 +1,7 @@
-/** GHSA-238p-pmpm-9mq7: inherited properties must not become KaTeX authority.
- * Output is inspected as inert strings/LinkeDOM; no resource or script is run.
- * node:test runs files in separate processes. Within this file all prototype
- * mutations are synchronous, non-concurrent, and restored even on failure.
+/** GHSA-238p-pmpm-9mq7: las propiedades heredadas no deben convertirse en autoridad para KaTeX.
+ * La salida se inspecciona como cadenas inertes/LinkeDOM; no se ejecuta ningún recurso ni script.
+ * node:test ejecuta los ficheros en procesos separados. Dentro de este fichero todas las mutaciones
+ * de prototipos son síncronas, no concurrentes y se restauran incluso si hay fallos.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -68,8 +68,8 @@ describe("KaTeX prototype read-side security", { concurrency: false }, () => {
 	});
 	it("ignores inherited builtin namespace entries", () => {
 		withPrototype("\\securityInherited", "INHERITED", () => {
-			// The parser may reject it as an unknown function rather than an
-			// undefined command; either way the inherited macro must not expand.
+			// El analizador puede rechazarlo como función desconocida en vez de como un
+			// comando no definido; en cualquier caso, la macro heredada no debe expandirse.
 			assert.throws(() => katex.renderToString(String.raw`\securityInherited`), /KaTeX parse error/);
 		});
 	});

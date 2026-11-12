@@ -138,7 +138,7 @@ describe("learner image source safety", () => {
 		webp.write("RIFF"); webp.writeUInt32LE(webp.length - 8, 4); webp.write("WEBP", 8);
 		webp.write("VP8X", 12); webp.writeUInt32LE(10, 16);
 		webp.write("VP8L", 30); webp.writeUInt32LE(5, 34); webp[38] = 0x2f;
-		webp.writeUInt32LE(16382, 39); // 16383px wide, despite the 1x1 canvas
+		webp.writeUInt32LE(16382, 39); // 16383px de ancho, pese al lienzo de 1x1
 		assert.throws(() => checkImageDimensions(webp, "image/webp"), /8192 pixels/);
 	});
 
