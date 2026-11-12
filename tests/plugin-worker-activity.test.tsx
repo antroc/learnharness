@@ -11,7 +11,7 @@ import { AssistantMessageEventStream } from "@earendil-works/pi-ai/utils/event-s
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import type { PluginWorkerActivityMetadata } from "../src/agent/plugin-workers.ts";
 
-// Isolate every application import, including catalog/auth lookups, from real data/accounts.
+// Aísla todos los imports de la aplicación, incluidas las consultas al catálogo/autenticación, de datos/cuentas reales.
 const directory = mkdtempSync(join(tmpdir(), "lh-worker-activity-"));
 process.env.LH_DATA_DIR = join(directory, "data");
 process.env.LH_AUTH_FILE = join(directory, "auth.json");
@@ -201,7 +201,7 @@ test("abort route validates namespaced END, handles completed tasks as 404, and 
 	assert.equal((await post("plugin-worker", `route-fixture:${task.id}`)).status, 200);
 	assert.equal(f.service.get(task.id).status, "cancelled");
 	assert.equal((await post("plugin-worker", `route-fixture:${task.id}`)).status, 404);
-	// No conversation exists: durable abort bookkeeping is tested without starting any teacher/provider.
+	// No existe ninguna conversación: la contabilidad duradera de abortos se prueba sin arrancar profesor/proveedor.
 	const job = jobStore.createJob({ kind: "plugin", chatId: "route-fixture-no-chat", toolCallId: "route-linked", plugin: {
 		pluginId: "route-fixture", taskId: task.id, workerId: "registered-worker", toolName: "fixture_tool", requestId: "request",
 	} });

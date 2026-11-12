@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { AUTHORING_DOCS, AUTHORING_EXAMPLES, AUTHORING_PROJECTS, buildPluginAuthoring, createAuthoringZip } from "../scripts/build-plugin-authoring.mjs";
 import { markdownAnchors, markdownProse, seedAuthoringReferenceFixture } from "./helpers/plugin-authoring-fixture.ts";
 
-/** Independent bitwise CRC and ZIP reader, not the production encoder. */
+/** CRC bit a bit y lector ZIP independientes, no el codificador de producción. */
 function checksum(bytes: Buffer) {
 	let crc = 0xffffffff;
 	for (const byte of bytes) {
@@ -114,7 +114,7 @@ it("produces the complete rooted skill, matching versions, current example layou
 		assert.equal(bytes.includes(Buffer.from("AUTHORING_PRIVATE_SENTINEL_9b1f")), false);
 		assert.deepEqual(bytes, fs.readFileSync(path.join(built.directory, name.slice("learnharness-plugins/".length))));
 	}
-	// All Markdown links/anchors, including source README links, resolve within the skill.
+	// Todos los enlaces/anclas Markdown, incluidos los enlaces al README de origen, se resuelven dentro de la skill.
 	const anchors = new Map([...entries].filter(([name]) => name.endsWith(".md")).map(([name, bytes]) => [name, markdownAnchors(bytes.toString())]));
 	for (const [name, bytes] of entries) if (name.endsWith(".md")) {
 		assert.doesNotMatch(bytes.toString(), /human-approved|commit closeout|UI-polish amendment|uncommitted|archive\/plugin-implementation-history|REPOSITORY_ONLY_HISTORY_SENTINEL|20\d\d-\d\d-\d\d/i, name);

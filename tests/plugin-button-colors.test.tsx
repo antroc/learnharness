@@ -13,8 +13,8 @@ const supported = ["#123456", "#654321", "#102030", "white", "black", "transpare
 async function withColors(run: (f: { target: HTMLElement; parserCalls: string[]; ui: ReturnType<ReturnType<typeof createPluginUiStore>["createUi"]>; store: ReturnType<typeof createPluginUiStore>; scope: AbortController; render(): Promise<void> }) => Promise<void>) {
 	const dom = parseHTML("<html><body><div id='root'></div><div id='target'>caller-owned</div></body></html>");
 	const parserCalls: string[] = [];
-	// Browser-owned parser dependency, not a replacement CSS parser. The actual
-	// supported/unsupported examples are also checked with Chromium CSS.supports.
+	// Dependencia del analizador del navegador, no un analizador CSS sustituto. Los
+	// ejemplos admitidos/no admitidos también se comprueban con CSS.supports de Chromium.
 	const values = { window: dom.window, self: dom.window, document: dom.document, HTMLElement: dom.window.HTMLElement,
 		Element: dom.window.Element, Node: dom.window.Node, HTMLInputElement: dom.window.HTMLInputElement,
 		HTMLTextAreaElement: dom.window.HTMLTextAreaElement, IS_REACT_ACT_ENVIRONMENT: true,

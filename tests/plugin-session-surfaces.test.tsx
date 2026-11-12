@@ -14,7 +14,7 @@ import { SideThreadPopover } from "../components/side-thread.tsx";
 import { installModalDom } from "./modal-dom.ts";
 import type { PluginSurfaceProps, PluginSurfaceTarget, PluginUi, PluginUiContent, PluginWidgetHandle } from "../src/core/plugin-ui.ts";
 
-// Popper/Presence choose their browser layout effect at import time.
+// Popper/Presence eligen su efecto de layout del navegador en el momento del import.
 const bootstrap = parseHTML("<!doctype html><html><body></body></html>");
 Object.defineProperty(bootstrap.document, "compatMode", { value: "CSS1Compat" });
 const bootstrapGlobals = new Map(["window", "document"].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
@@ -457,7 +457,7 @@ it("native-view expiry before the portal commits aborts content without a late m
 	let mounts = 0;
 	await act(async () => {
 		f.ui.openSurface(f.target(), { title: "Never commit", content() { mounts++; } }, { signal: new AbortController().signal });
-		// Deactivate in this same batch before the new portal's layout effects.
+		// Desactiva en este mismo lote antes de los efectos de layout del nuevo portal.
 		await f.render({ active: false });
 	});
 	assert.equal(mounts, 0); assert.equal(f.store.getSnapshot().length, 0);
@@ -549,7 +549,7 @@ it("a marker that cannot receive focus falls back to the existing field, heading
 		let fallback!: HTMLElement;
 		const handle = await f.open(`Unfocusable ${kind}`, container => {
 			const marker = document.createElement("div"); marker.setAttribute("data-plugin-initial-focus", "");
-			marker.focus = () => {}; // Browser refusal to focus an un-focusable plain div.
+			marker.focus = () => {}; // El navegador se niega a enfocar un div simple no enfocable.
 			container.append(marker);
 			if (kind !== "frame") {
 				fallback = document.createElement(kind === "field" ? "input" : "h2"); fallback.textContent = "Fallback"; container.append(fallback);
@@ -689,8 +689,8 @@ for (const expiry of ["dispose", "leave"] as const) {
 		assert.equal(f.controller.getTopLayer(), null);
 		assert.equal(document.querySelector("[data-testid='plugin-menu']"), null);
 		assert.equal(document.querySelector("[data-lh-menu]"), null);
-		// A plugin callback that ignored its old surface signal and resumes late
-		// cannot create a new globally portaled popup from the detached anchor.
+		// Un callback de plugin que ignoró la señal de su superficie antigua y se reanuda tarde
+		// no puede crear una nueva ventana emergente en un portal global desde el ancla separada.
 		await act(async () => {
 			await Promise.resolve();
 			const stale = otherUi.openMenu(anchor, { onClose() { closes++; }, items: [] }, { signal: caller.signal });

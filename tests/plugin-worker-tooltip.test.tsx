@@ -6,8 +6,8 @@ import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
 import { installModalDom } from "./modal-dom.ts";
 
-// Popper chooses its browser layout effect at import time, just as in the
-// existing passive-tooltip fixture. Each test still gets its own isolated DOM.
+// Popper elige su efecto de layout del navegador en el momento del import, igual que en la
+// fixture existente del tooltip pasivo. Cada prueba sigue teniendo su propio DOM aislado.
 const bootstrap = parseHTML("<html><body></body></html>");
 const bootstrapSaved = new Map(["window", "document"].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
 Object.assign(globalThis, { window: bootstrap.window, document: bootstrap.document });

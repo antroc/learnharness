@@ -54,7 +54,7 @@ it("the committed reference covers every real SDK public type/member and exactly
 	const build = spawnSync(process.execPath, [path.resolve("scripts/build-plugin-types.mjs"), sdk], { encoding: "utf8" });
 	assert.equal(build.status, 0, build.stderr);
 	const reference = createPluginApiReference({ sdk });
-	// Independent export traversal and AST member inventory; do not rely on the generator's count.
+	// Recorrido independiente de exportaciones e inventario de miembros del AST; no se fía del recuento del generador.
 	const program = ts.createProgram([path.join(sdk, "index.d.ts")], { module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext, skipLibCheck: true });
 	const checker = program.getTypeChecker(), file = program.getSourceFile(path.join(sdk, "index.d.ts"))!;
 	const exports = checker.getExportsOfModule(checker.getSymbolAtLocation(file)!);

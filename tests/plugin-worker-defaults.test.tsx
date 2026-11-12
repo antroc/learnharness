@@ -19,7 +19,7 @@ it("registered renderers override native plugin dispatch/result bodies; disable 
 	Object.assign(globalThis, { window: dom.window, self: dom.window, document: dom.document, HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, Node: dom.window.Node, MutationObserver: dom.window.MutationObserver, IS_REACT_ACT_ENVIRONMENT: true });
 	const info: PluginInfo = { id: "presentation-proof", origin: "community", enabled: true, status: "active", revision: "fixture-1", manifest: { apiVersion: 1, id: "presentation-proof", name: "Presentation proof", version: "1.0.0", minAppVersion: "0.3.7", main: "main.js" } };
 	const seen: PluginToolRenderProps[] = [];
-	// No network, plugin files, or provider calls: the real manager imports an in-memory fixture.
+	// Sin red, ficheros de plugins ni llamadas a proveedores: el gestor real importa una fixture en memoria.
 	const owner = createPluginWindowOwner({
 		reservedCodeBlockLanguages: [], reservedToolNames: [], pathname: () => "/", navigate() {},
 		fetch: async () => Response.json({ plugins: [info], directory: "/fixture/plugins" }),

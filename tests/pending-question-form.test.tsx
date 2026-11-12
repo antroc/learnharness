@@ -22,8 +22,8 @@ function question(id: string, callId: string, text: string): LhMessage {
 	} }], stopReason: "toolUse", timestamp: 1 } as unknown as LhMessage;
 }
 
-// The same keyed-content boundary as Chat's DockOverlay. This exercises the
-// actual form state under synthetic DOM, not CSS layout or a live provider.
+// La misma frontera de contenido con clave que el DockOverlay de Chat. Esto ejercita
+// el estado real del formulario sobre un DOM sintético, no el layout CSS ni un proveedor real.
 for (const reusedId of [false, true]) {
 	test(`question form resets on a newer question (${reusedId ? "reused" : "unique"} call id)`, async () => {
 		const host = document.createElement("div"); document.body.append(host);
@@ -123,7 +123,7 @@ test("saving a unique live question preserves its mounted form and selection", a
 		await render([live]);
 		const form = host.querySelector('[data-testid="question-dock"]');
 		await act(async () => { host.querySelector<HTMLButtonElement>('[role="radio"]')!.click(); });
-		// Append-only adoption can briefly retain the live copy beside the saved one.
+		// La adopción solo por anexado puede retener brevemente la copia viva junto a la guardada.
 		await render([saved, live]);
 		await render([saved]);
 		assert.equal(host.querySelector('[data-testid="question-dock"]'), form);

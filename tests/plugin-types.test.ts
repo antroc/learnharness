@@ -15,8 +15,8 @@ it("generated plugin API declarations are portable and usable as type-only impor
 		assert.equal(build.status, 0, String(build.stdout) + String(build.stderr));
 		assert.ok(fs.existsSync(path.join(output, "src", "core", "plugins.d.ts")));
 		assert.equal(fs.existsSync(path.join(output, "src", "server")), false, "No server implementation is part of the API tree");
-		// An author supplies the declared peer dependencies. This symlink is
-		// test-local, not a generated SDK reference to the source checkout.
+		// Un autor aporta las dependencias peer declaradas. Este enlace simbólico es
+		// local de la prueba, no una referencia generada del SDK al checkout de las fuentes.
 		fs.symlinkSync(path.join(root, "node_modules"), path.join(home, "node_modules"), "dir");
 		const consumer = path.join(home, "consumer.mts");
 		fs.writeFileSync(consumer, `

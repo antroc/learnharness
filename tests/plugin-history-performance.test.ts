@@ -29,7 +29,7 @@ function problem(): PluginProblemSnapshot {
     problemSchema: { type: "object", properties: { source: { type: "string" } }, required: ["source"] }, submissionSchema: { type: "string" }, requiresSubmissionRefinement: false, requiresProcessing: false };
 }
 function compilations(run: () => void): number {
-  // Count actual TypeBox JIT construction, not wall-clock timing. No production test hooks.
+  // Cuenta las construcciones JIT reales de TypeBox, no el tiempo de reloj. Sin hooks de prueba en producción.
   validatePluginSchema({ type: "boolean" });
   const original = globalThis.Function;
   let count = 0;

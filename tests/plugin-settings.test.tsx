@@ -110,7 +110,7 @@ it("dedicated plugin settings pages cover schema/custom/empty/loading/error, dee
 		assert.ok(page()?.querySelector('[data-testid="section-core-plugins"]'), "disabled core settings return to Core management");
 		await act(async () => { owner.manager.reconcile([info("schema"), info("backend")]); });
 
-		// Backend app.openSettings uses a browser event bridge into this provider.
+		// app.openSettings del backend usa un puente de eventos del navegador hacia este proveedor.
 		await act(async () => { root.render(shell(<SettingsDialogProvider><p>App</p></SettingsDialogProvider>)); });
 		await act(async () => { window.dispatchEvent(new dom.window.CustomEvent("lh:open-plugin-settings", { detail: { id: "schema" } })); });
 		assert.equal(document.querySelector('[role="dialog"]'), null, "non-string event details are ignored");
@@ -123,7 +123,7 @@ it("dedicated plugin settings pages cover schema/custom/empty/loading/error, dee
 		assert.ok(document.querySelector('[data-testid="section-plugin-backend"]'), "repeating the same open request retargets after manual navigation");
 	} finally {
 		await act(async () => { root.unmount(); });
-		// Let FocusScope finish its unmount event before restoring globals.
+		// Deja que FocusScope termine su evento de desmontaje antes de restaurar los globales.
 		await new Promise(resolve => setTimeout(resolve, 5));
 		restoreModalDom();
 		for (const key of keys) {

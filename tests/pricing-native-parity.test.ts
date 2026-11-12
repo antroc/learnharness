@@ -1,4 +1,4 @@
-/** Catalog/calculator parity replaces the old generated-table drift test. */
+/** La paridad entre catálogo y calculadora sustituye a la antigua prueba de deriva de la tabla generada. */
 import assert from "node:assert/strict";
 import test from "node:test";
 import { calculateCost, type Usage } from "@earendil-works/pi-ai";

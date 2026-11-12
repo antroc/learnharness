@@ -1,10 +1,11 @@
 /**
- * PRACTICE RECORD MECHANICS (practice sessions, owner 2026-10-04): the
- * native shapes beneath the two practice tools — the active-problem fold
- * (conclude-before-next-problem), the thinking marker (label registers),
- * the ask-style dismissal (UI-only marker; the conclude pair rides the
- * NEXT input), and the model-facing flattening (markers labeled, the
- * dismissal filtered, the synthesized pair native).
+ * MECÁNICA DEL REGISTRO DE PRÁCTICA (sesiones de práctica, responsable
+ * 2026-10-04): las formas nativas bajo las dos herramientas de práctica: el
+ * plegado del problema activo (concluir antes del siguiente problema), el
+ * marcador de razonamiento (registros de la etiqueta), el descarte al estilo
+ * ask (marcador solo de UI; el par de conclude viaja con la SIGUIENTE entrada)
+ * y el aplanado de cara al modelo (marcadores etiquetados, el descarte
+ * filtrado, el par sintetizado nativo).
  */
 
 import assert from "node:assert/strict";
@@ -31,7 +32,7 @@ import { dismissAppends, inputAppends, parseChatInput, parseDismissInput } from 
 import { modelSolutionForConclude } from "../src/core/native-messages.ts";
 import { projectView } from "../src/core/index.ts";
 
-// ── builders (native-shaped test fixtures) ───────────────────────────────────
+// ── constructores (fixtures de prueba con forma nativa) ──────────────────────
 
 const STAMPS = {
 	api: "faux",
@@ -72,8 +73,8 @@ function problemPose(callId = "call_p1", statement = "Show that…"): LhMessage[
 }
 
 function concludeCall(outcome: string): LhMessage[] {
-	// Honest folds: the conclude call rides WITH its clean ack — a
-	// dangling or errored conclude never freed anything.
+	// Plegados honestos: la llamada a conclude viaja CON su acuse limpio; un
+	// conclude colgante o con error nunca liberó nada.
 	return [
 		{
 			id: `msg_c_${outcome}`,
@@ -102,7 +103,7 @@ function concludeCall(outcome: string): LhMessage[] {
 	];
 }
 
-// ── the active-problem fold ──────────────────────────────────────────────────
+// ── el plegado del problema activo ───────────────────────────────────────────
 
 describe("activeProblemOf (the conclude-before-next-problem gate's fold)", () => {
 	it("no messages → nothing active", () => {
@@ -130,8 +131,8 @@ describe("activeProblemOf (the conclude-before-next-problem gate's fold)", () =>
 	});
 
 	it("an ERRORED pose never activates (the BKT phantom — honest activation)", () => {
-		// The gate refused the pose ("a problem is already active" in the
-		// BKT incident); the composer must not mount from its arguments.
+		// La barrera rechazó el planteamiento ("a problem is already active" en el
+		// incidente BKT); el compositor no debe montarse a partir de sus argumentos.
 		const rejected = problemPose("call_bad", "A different student…");
 		(rejected[1]! as unknown as { isError: boolean }).isError = true;
 		assert.equal(activeProblemOf(rejected), null, "a lone refused pose is nothing");
@@ -173,7 +174,7 @@ describe("activeProblemOf (the conclude-before-next-problem gate's fold)", () =>
 	});
 });
 
-// ── the dismissal's deferred conclude ────────────────────────────────────────
+// ── el conclude diferido del descarte ────────────────────────────────────────
 
 describe("pendingProblemDismissalOf (the marker waiting for its synthesis)", () => {
 	it("a trailing dismissal marker pends", () => {
@@ -191,7 +192,7 @@ describe("pendingProblemDismissalOf (the marker waiting for its synthesis)", () 
 	});
 });
 
-// ── the input channel ────────────────────────────────────────────────────────
+// ── el canal de entrada ──────────────────────────────────────────────────────
 
 describe("the thinking input", () => {
 	it("parses and appends the marker against the active problem (ONE lane)", () => {
@@ -209,8 +210,8 @@ describe("the thinking input", () => {
 		assert.equal(appends.length, 1);
 		const marker = appends[0] as { customType: string; content: string; details: unknown };
 		assert.equal(marker.customType, "practice-thinking");
-		// The single label (owner round 2, 2026-10-05): the register is read
-		// from the text by the agent, never declared by a button.
+		// La única etiqueta (ronda 2 del responsable, 2026-10-05): el agente lee el
+		// registro del texto; nunca lo declara un botón.
 		assert.match(marker.content, /Your thinking:\n/);
 		assert.deepEqual(marker.details, {
 			problemCallId: "call_p1",
@@ -234,7 +235,7 @@ describe("the thinking input", () => {
 	});
 });
 
-// ── the move-on signal (owner round 16, 2026-10-06) ─────────────────────────
+// ── la señal de avanzar (ronda 16 del responsable, 2026-10-06) ───────────────
 
 describe("the next input", () => {
 	it("parses bare and appends the practice-next marker in an idle practice session", () => {
@@ -244,7 +245,7 @@ describe("the next input", () => {
 		assert.equal(appends.length, 1);
 		const marker = appends[0] as { customType: string; content: string };
 		assert.equal(marker.customType, "practice-next");
-		// The model's unambiguous go-ahead, single-sourced in contracts.
+		// El visto bueno inequívoco del modelo, con una sola fuente en contracts.
 		assert.match(marker.content, /\[NEXT PROBLEM\]/);
 	});
 
@@ -260,7 +261,7 @@ describe("the next input", () => {
 	it("rides AFTER a pending dismissal conclusion, exactly like text", () => {
 		const dismissed = [...problemPose(), newProblemDismissedMarker("call_p1")];
 		const appends = inputAppends({ messages: dismissed, kind: "practice" }, { type: "next" });
-		assert.equal(appends.length, 3); // conclude pair + the next marker
+		assert.equal(appends.length, 3); // par de conclude + el siguiente marcador
 		assert.equal((appends[2] as { customType: string }).customType, "practice-next");
 	});
 });
@@ -308,7 +309,7 @@ describe("the dismiss-problem input (ask-style discard)", () => {
 	});
 });
 
-// ── the model-facing seam ────────────────────────────────────────────────────
+// ── la frontera de cara al modelo ────────────────────────────────────────────
 
 describe("toLlmMessages (practice shapes)", () => {
 	it("the thinking marker flattens to a labeled user message", () => {
@@ -332,14 +333,14 @@ describe("toLlmMessages (practice shapes)", () => {
 	});
 });
 
-// ── the continuation fold's practice carve-out ──────────────────────────────
+// ── el recorte de práctica del plegado de continuación ──────────────────────
 
 describe("needsContinuation (a persisted pose ack owes nothing)", () => {
 	it("a record ending on a problem-pose ack does NOT wake a continuation", () => {
-		// The pose's terminate:true ended that turn deliberately; the
-		// ack persists (unlike a question's placeholder). Without the
-		// carve-out, a reload after a posed problem would wake a
-		// phantom turn (owner design, 2026-10-04).
+		// El terminate:true del planteamiento terminó ese turno a propósito; el
+		// acuse persiste (a diferencia del provisional de una pregunta). Sin el
+		// recorte, recargar tras un problema planteado despertaría un
+		// turno fantasma (diseño del responsable, 2026-10-04).
 		assert.equal(needsContinuation(problemPose()), false);
 	});
 
@@ -372,7 +373,7 @@ describe("needsContinuation (a persisted pose ack owes nothing)", () => {
 });
 
 
-// ── the reveal join (owner round, 2026-10-05) ───────────────────────────────
+// ── la unión de la revelación (ronda del responsable, 2026-10-05) ───────────
 
 describe("modelSolutionForConclude (the conclusion's hero is the pose's commitment)", () => {
 	it("returns the cleanly-posed problem's modelSolution before the conclude", () => {
@@ -404,8 +405,8 @@ describe("modelSolutionForConclude (the conclusion's hero is the pose's commitme
 		const conclude = view.flatMap((m) => m.parts).find((p) => p.type === "tool-conclude");
 		assert.ok(conclude, "the conclude part projects");
 		assert.equal(conclude!.reveal, "Show that…", "the view-seam join carries the committed solution");
-		// THE FULL POSE FOLD (owner round 17): the whole problem-call input
-		// rides the conclude part — the observability drawer's data.
+		// EL PLEGADO COMPLETO DEL PLANTEAMIENTO (ronda 17 del responsable): toda la entrada
+		// de la llamada a problem viaja en la parte de conclude: los datos del cajón de observabilidad.
 		assert.deepEqual(conclude!.problemInput, {
 			statement: "Show that…",
 			mode: "recall",
@@ -414,7 +415,7 @@ describe("modelSolutionForConclude (the conclusion's hero is the pose's commitme
 	});
 });
 
-// ── the transcript face of the signal ───────────────────────────────────────
+// ── la cara de la señal en la transcripción ─────────────────────────────────
 
 describe("projectView renders the move-on signal", () => {
 	it("the practice-next marker projects the compact part (the centered NEXT PROBLEM line)", () => {

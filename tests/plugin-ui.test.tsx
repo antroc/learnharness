@@ -363,7 +363,7 @@ describe("controlled plugin UI", () => {
 		const item = (key: string, version: string) => ({ key, label: key, onSelect: () => { calls.push(`${key}:${version}`); } });
 		try {
 			const handle = ui.openMenu(document.querySelector("#target")!, { items: [item("A", "old"), item("B", "old")] }, { signal: scope.signal });
-			// Retain exactly the protected callback supplied to the old rendered item.
+			// Retiene exactamente el callback protegido que se dio al elemento renderizado antiguo.
 			const oldA = (store.getSnapshot()[0]!.props as PluginMenuProps).items[0]!.onSelect;
 			handle.update({ items: [item("B", "latest"), item("A", "latest")] });
 			await oldA(); assert.deepEqual(calls, ["A:latest"]);

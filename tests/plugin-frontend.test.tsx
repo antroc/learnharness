@@ -143,7 +143,7 @@ describe("plugin frontend lifecycle", () => {
 		assert.equal(contexts.length, 1); assert.equal(resource, "generation-1");
 		assert.equal(healthyActivations, 1, "one unresponsive package cannot block other packages");
 		assert.equal(f.manager.getSnapshot().plugins[0]!.phase, "loading");
-		// Cancel a replacement WHILE it is waiting for the previous teardown.
+		// Cancela una sustitución MIENTRAS espera al desmontaje anterior.
 		f.manager.reconcile([info("fixture", { enabled: false, status: "disabled" }), info("healthy")]);
 		f.manager.reconcile([info(), info("healthy")]); await tick();
 		assert.equal(contexts.length, 1);

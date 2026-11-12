@@ -108,8 +108,8 @@ test("current-owner acceptance still invalidates a canonical read begun while it
 	const sending = model.send({ type: "text", text: "opening" }, () => { accepted.resolve(); });
 	const stale = model.readRecord({ adoption: "append" });
 	ack.resolve(new Response(body)); await accepted.promise;
-	// ACK headers were accepted, but its body is still draining: no replacement
-	// stream/read has started, so only the ACK epoch fence can reject this GET.
+	// Las cabeceras ACK se aceptaron, pero su cuerpo aún se está vaciando: no ha empezado
+	// ningún stream/lectura sustituto, así que solo la valla de época del ACK puede rechazar este GET.
 	assert.equal(reads, 1);
 	oldRead.resolve(Response.json({ messages: older })); assert.equal(await stale, undefined);
 	closeAck(); await sending;

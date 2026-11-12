@@ -1,11 +1,12 @@
 /**
- * Plan-tree tests (W1) — two layers:
+ * Pruebas de plan-tree (W1), en dos capas:
  *
- *  1. Pure ops (src/core/plan-tree.ts): every validation error path and
- *     version semantics (structure only — progress derives from the
- *     transcript, docs/archive/probe-teach-split.md §3).
- *  2. Tool execute (src/agent/tools/plan.ts): against the REAL chat store —
- *     plan_init happy path, the re-callable rewrite, error results.
+ *  1. Operaciones puras (src/core/plan-tree.ts): todos los caminos de error de
+ *     validación y la semántica de versiones (solo estructura: el progreso se
+ *     deriva de la transcripción, docs/archive/probe-teach-split.md §3).
+ *  2. execute de la herramienta (src/agent/tools/plan.ts): contra el almacén de
+ *     chats REAL: camino feliz de plan_init, la reescritura que se puede volver
+ *     a llamar, resultados de error.
  */
 
 import assert from "node:assert/strict";
@@ -29,7 +30,7 @@ function tree(ids: string[], edges: Array<[string, string]> = []): PlanTree {
 	);
 }
 
-/** Assert the op throws a PlanTreeError matching the given regex. */
+/** Comprueba que la operación lanza un PlanTreeError que encaja con la regex dada. */
 function assertReject(fn: () => unknown, needle: RegExp): void {
 	try {
 		fn();
@@ -41,7 +42,7 @@ function assertReject(fn: () => unknown, needle: RegExp): void {
 	assert.fail(`expected a PlanTreeError matching ${needle}, but the op succeeded`);
 }
 
-// ─── 1. pure ops ─────────────────────────────────────────────────────────────
+// ─── 1. operaciones puras ────────────────────────────────────────────────────
 
 describe("plan-tree pure ops", () => {
 	it("createTree builds version 1 with no mutation of its inputs", () => {
@@ -53,7 +54,7 @@ describe("plan-tree pure ops", () => {
 		assert.ok(!("doneNodeIds" in t), "no done ledger of any kind");
 		assert.deepEqual(t.nodes.map((n) => n.id), ["a", "b"]);
 		assert.deepEqual(t.edges, [E("a", "b")]);
-		// Input arrays untouched (deep-copied into the tree).
+		// Los arrays de entrada no se tocan (se copian en profundidad al árbol).
 		assert.deepEqual(nodes, [N("a", "A"), N("b", "B")]);
 		assert.deepEqual(edges, [E("a", "b")]);
 	});
@@ -70,7 +71,7 @@ describe("plan-tree pure ops", () => {
 	it("createTree rejects self-loops, duplicates, and cycles", () => {
 		assertReject(() => createTree([N("a")], [E("a", "a")]), /self-loop/);
 		assertReject(() => createTree([N("a"), N("b")], [E("a", "b"), E("a", "b")]), /already exists/);
-		// a→b→c→a is a cycle.
+		// a→b→c→a es un ciclo.
 		assertReject(
 			() => createTree([N("a"), N("b"), N("c")], [E("a", "b"), E("b", "c"), E("c", "a")]),
 			/cycle/,
@@ -84,7 +85,7 @@ describe("plan-tree pure ops", () => {
 
 });
 
-// ─── 2. tool execute against the real store ─────────────────────────────────
+// ─── 2. execute de la herramienta contra el almacén real ────────────────────
 
 const createdChats: string[] = [];
 after(() => {
@@ -92,12 +93,12 @@ after(() => {
 		try {
 			fs.unlinkSync(path.join(PATHS.chats, `${id}.json`));
 		} catch {
-			/* already gone */
+			/* ya no existe */
 		}
 	}
 });
 
-/** Call a plan tool's execute directly with a minimal execution-options object. */
+/** Llama directamente al execute de una herramienta de plan con un objeto mínimo de opciones de ejecución. */
 async function exec(tools: ReturnType<typeof planTools>, name: string, input: unknown): Promise<PlanToolResult> {
 	const t = tools[name]!;
 	assert.ok(typeof t.execute === "function", `${name} must be a server-side tool with execute`);
@@ -170,7 +171,7 @@ describe("plan_init — the author-once mermaid tool (execute against the real s
 		assert.match(err, /line 2/);
 		assert.match(err, /line 3/);
 		assert.match(err, /line 4/);
-		// Context diet (2026-10-09): failures carry just the error — no tree echo.
+		// Dieta de contexto (2026-10-09): los fallos llevan solo el error, sin eco del árbol.
 		assert.equal(res.tree, undefined);
 		assert.equal(chatStore.getChat(chatId)!.tree, undefined, "nothing persisted on failure");
 	});
@@ -200,7 +201,7 @@ describe("plan_init — the author-once mermaid tool (execute against the real s
 	});
 });
 
-// ─── the mermaid subset parser ────────────────────────────────────────────────
+// ─── el analizador del subconjunto de mermaid ─────────────────────────────────
 
 describe("parseMermaidPlan (the constrained mermaid subset)", () => {
 	const parse = (m: string) => parseMermaidPlan(m);
@@ -241,10 +242,10 @@ describe("parseMermaidPlan (the constrained mermaid subset)", () => {
 	});
 
 	it("rejects: non-slug ids (with the SPECIFIC message), self-loops, subgraphs, missing header, empty", () => {
-		// The muscle-protein post-mortem (2026-09-11): underscore ids died at
-		// the regex layer with a generic message, and the teacher spent four
-		// plan_init calls hunting punctuation the parser didn't care about.
-		// Now EVERY bad id reaches the slug check — the message names the id.
+		// La autopsia de muscle-protein (2026-09-11): los ids con guion bajo morían
+		// en la capa de la regex con un mensaje genérico y el profesor gastó cuatro
+		// llamadas a plan_init buscando una puntuación que al analizador le daba igual.
+		// Ahora TODOS los ids incorrectos llegan a la comprobación de slug: el mensaje nombra el id.
 		assert.ok(!parse("graph TD\n  Foo Bar[x]\n").ok, "id with a space");
 		assert.match(parse("graph TD\n  Foo Bar[x]\n").problems[0]!, /line 2.*slug/);
 		assert.match(parse("graph TD\n  mps.translation[x]\n").problems[0]!, /node id `mps.translation` must be a lowercase slug/);
@@ -261,16 +262,16 @@ describe("parseMermaidPlan (the constrained mermaid subset)", () => {
 	});
 
 	it("free-form pass (2026-09-11): underscores, chains, arrow synonyms, any direction, quoted titles", () => {
-		// Underscores are first-class slug chars — kept verbatim, referenced
-		// verbatim by quiz nodeId.
+		// Los guiones bajos son caracteres de slug de pleno derecho: se conservan
+		// tal cual y el nodeId del quiz los referencia tal cual.
 		const us = parse("graph TD\n  mps_translation[Ribosomes build protein] --> net_balance[Net balance]\n");
 		assert.ok(us.ok, "underscore ids");
 		assert.deepEqual(us.plan!.nodes, [
 			{ id: "mps_translation", title: "Ribosomes build protein" },
 			{ id: "net_balance", title: "Net balance" },
 		]);
-		// The exact shape the muscle-protein teacher wrote (attempt 1):
-		// quoted titles with colons, commas, equals signs — must just work.
+		// La forma exacta que escribió el profesor de muscle-protein (intento 1):
+		// títulos entre comillas con dos puntos, comas y signos igual: tiene que funcionar sin más.
 		const quoted = parse(
 			'graph TD\n  mps_translation["MPS = ribosomes building protein"] --> per_meal["Per-meal dose: ~20-40 g saturates, excess oxidized"]\n',
 		);
@@ -279,20 +280,20 @@ describe("parseMermaidPlan (the constrained mermaid subset)", () => {
 			{ id: "mps_translation", title: "MPS = ribosomes building protein" },
 			{ id: "per_meal", title: "Per-meal dose: ~20-40 g saturates, excess oxidized" },
 		]);
-		// Chains expand to consecutive pairs.
+		// Las cadenas se expanden en pares consecutivos.
 		const chain = parse("graph TD\n  a[Alpha] --> b[Bee] --> c[See]\n");
 		assert.ok(chain.ok, "chained edges");
 		assert.deepEqual(chain.plan!.edges, [
 			{ from: "a", to: "b" },
 			{ from: "b", to: "c" },
 		]);
-		// Arrow synonyms ==>, -.-> mean the same as -->.
+		// Los sinónimos de flecha ==> y -.-> significan lo mismo que -->.
 		for (const arrow of ["==>", "-.->"]) {
 			const res = parse(`graph TD\n  a ${arrow} b\n`);
 			assert.ok(res.ok, arrow);
 			assert.deepEqual(res.plan!.edges, [{ from: "a", to: "b" }]);
 		}
-		// Any direction header (we layout ourselves).
+		// Cualquier cabecera de dirección (el layout lo hacemos nosotros).
 		for (const header of ["graph LR", "flowchart RL", "graph BT"]) {
 			assert.ok(parse(`${header}\n  a --> b\n`).ok, header);
 		}
@@ -304,7 +305,7 @@ describe("parseMermaidPlan (the constrained mermaid subset)", () => {
 	});
 });
 
-// ─── derived statuses: position from CALLS, never results (§3) ─────────────────
+// ─── estados derivados: posición a partir de LLAMADAS, nunca de resultados (§3) ─
 
 describe("derivePlanStatuses (the map tracks position, not completion)", () => {
 	const tree: PlanTree = {
@@ -349,7 +350,7 @@ describe("derivePlanStatuses (the map tracks position, not completion)", () => {
 		]);
 		assert.equal(st.current, "b");
 		assert.deepEqual([...st.visited], ["a"]);
-		// a passed check never marks anything finished — only moving on does
+		// una comprobación superada nunca marca nada como terminado: solo avanzar lo hace
 		const again = derivePlanStatuses(tree, [msg(quizPart("output-available", "a", true))]);
 		assert.equal(again.current, "a");
 		assert.equal(again.visited.size, 0, "one correct answer on a does not finish it");
@@ -388,7 +389,7 @@ describe("derivePlanStatuses (the map tracks position, not completion)", () => {
 		const rewritten: PlanTree = { ...tree, nodes: [tree.nodes[0]!, tree.nodes[1]!] };
 		const st = derivePlanStatuses(rewritten, [
 			msg(quizPart("output-available", "a", true)),
-			msg(quizPart("output-available", "c", true)), // c removed by the rewrite
+			msg(quizPart("output-available", "c", true)), // c eliminado por la reescritura
 		]);
 		assert.equal(st.current, "a", "the orphaned tag is ignored");
 		assert.equal(st.visited.size, 0);
@@ -408,7 +409,7 @@ describe("derivePlanStatuses (the map tracks position, not completion)", () => {
 	});
 });
 
-// ─── the explain mechanic derives position identically (owner 2026-09-27) ──
+// ─── la mecánica explain deriva la posición igual (responsable 2026-09-27) ──
 
 describe("derivePlanStatuses: tagged explain calls move the map like quiz calls", () => {
 	const tree: PlanTree = {

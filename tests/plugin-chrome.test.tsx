@@ -12,7 +12,7 @@ import { createPluginSessionActionContext } from "../src/core/plugin-view-contex
 import { mountPluginChrome, pluginInfo } from "./helpers/plugin-chrome.tsx";
 
 const sidebar = { placement: "sidebar", surface: "sidebar" } as const;
-// Chrome forwards the opaque target; this fixture never mounts a surface.
+// El adorno reenvía el destino opaco; esta fixture nunca monta una superficie.
 const surfaceTarget = Object.freeze({}) as PluginSurfaceTarget;
 const session = createPluginSessionActionContext({ placement: "top-bar", surface: "session", sessionId: "session-1", kind: "teaching", surfaceTarget }, () => ({
 	sessionId: "session-1", kind: "teaching", title: "Session", messages: [], transcript: [], status: "ready", reconciliation: "ready", busy: false, compacting: false, phase: "probe", contextTokens: null, queuedSteers: [], composer: { text: "" }, input: { type: "text", sessionId: "session-1", sessionKind: "teaching", surfaceTarget, channels: ["content"] },

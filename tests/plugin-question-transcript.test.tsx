@@ -201,9 +201,9 @@ test("historical answered renderer never receives unexpected v1 grading", async 
 });
 
 test("SourcePart delegates thinking once and preserves answer images outside the host card", () => {
-	// The direct component tests above exercise rendering and expansion. This
-	// structural boundary assertion avoids importing the private plugin runtime
-	// merely to prove Part does not add a second image-only ThinkingBlock.
+	// Las pruebas directas de componentes de arriba ejercitan el render y la expansión. Esta
+	// comprobación estructural de frontera evita importar el runtime privado de plugins
+	// solo para demostrar que Part no añade un segundo ThinkingBlock solo de imagen.
 	const source = readFileSync(new URL("../components/plugin-question-part.tsx", import.meta.url), "utf8");
 	assert.equal((source.match(/<PluginQuestionAnswered\b/g) ?? []).length, 1);
 	assert.match(source, /<PluginQuestionAnswered\b[^>]*snapshot=\{snapshot\}[^>]*answer=\{answer\}/);

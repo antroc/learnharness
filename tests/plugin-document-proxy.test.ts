@@ -4,7 +4,7 @@ import { Readable } from "node:stream";
 import { it } from "node:test";
 import { getCloneableBody } from "next/dist/server/body-streams.js";
 import { NextRequest } from "next/server";
-// Installed Next retains this name for its Proxy matcher test helper.
+// El Next instalado conserva este nombre para su auxiliar de pruebas del matcher de Proxy.
 import { unstable_doesMiddlewareMatch as unstable_doesProxyMatch } from "next/experimental/testing/server";
 import { config, proxy } from "../proxy.ts";
 import { createPluginDocumentConverter, MAX_DOCUMENT_BODY_BYTES } from "../src/server/plugin-documents.ts";
@@ -14,12 +14,12 @@ const origin = "http://localhost";
 const documentPath = "/api/plugins/document-one/documents/markdown";
 const result = { name: "small.txt", markdown: "small valid text 字", notices: [] as string[] };
 
-/** Next's router tests the raw AND decoded pathname with OR semantics. */
+/** El router de Next prueba el pathname en bruto Y el decodificado con semántica OR. */
 function proxyMatches(path: string): boolean {
 	const url = new URL(path, origin);
 	const matches = (value: URL) => unstable_doesProxyMatch({ config, nextConfig: {}, url: value.href });
 	if (matches(url)) return true;
-	try { url.pathname = decodeURIComponent(url.pathname); } catch { /* Next ignores decode errors. */ }
+	try { url.pathname = decodeURIComponent(url.pathname); } catch { /* Next ignora los errores de decodificación. */ }
 	return matches(url);
 }
 
@@ -44,14 +44,14 @@ it("Proxy retains API roots, siblings, endpoint lookalikes and all other API rou
 	}
 });
 
-/** Use installed Next's real clone/finalize implementation, not a mock of its
- * truncation. Holding a cloneable-body wrapper alone must leave the stream intact. */
+/** Usa la implementación real de clone/finalize del Next instalado, no un mock de
+ * su truncado. Retener solo un envoltorio de cuerpo clonable debe dejar el stream intacto. */
 async function uploadThroughNext(path: string, oversized: boolean, forceClone = proxyMatches(path), declaredLength?: string) {
 	const form = new FormData();
 	form.append("file", new File([result.markdown], result.name));
 	const sample = new Request(new URL(path, origin), { method: "POST", body: form });
 	const prefix = Buffer.from(await sample.arrayBuffer());
-	const chunk = Buffer.alloc(64 * 1024, 32); // Legal MIME epilogue after a complete multipart form.
+	const chunk = Buffer.alloc(64 * 1024, 32); // Epílogo MIME legal tras un formulario multipart completo.
 	const chunks: Buffer[] = oversized ? [prefix, ...Array<Buffer>(417).fill(chunk)] : [prefix];
 	const actualBytes = chunks.reduce((sum, bytes) => sum + bytes.byteLength, 0);
 	const raw = Object.assign(Readable.from(chunks), { url: path }) as IncomingMessage;
@@ -113,7 +113,7 @@ async function withDesktopEnvironment(marker: string | undefined, capability: st
 	}
 }
 
-/** Fail immediately on body access and independently count any internal reads. */
+/** Falla en cuanto se accede al cuerpo y cuenta por separado cualquier lectura interna. */
 function unreadableRequest(method: typeof methods[number], headers?: HeadersInit) {
 	let reads = 0, bodyAccesses = 0;
 	const body = new ReadableStream<Uint8Array>({

@@ -31,7 +31,7 @@ async function fixture(
 	};
 	const saved = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
 	Object.assign(globalThis, globals);
-	// React's native input support must be detected after the fixture DOM exists.
+	// El soporte de input nativo de React debe detectarse cuando ya existe el DOM de la fixture.
 	const { createRoot } = await import("react-dom/client");
 	const { createPluginUiStore, PluginUiHost } = await import("../components/plugin-ui-host.tsx");
 	const store = createPluginUiStore(), scope = new AbortController(), errors: unknown[] = [];
@@ -58,7 +58,7 @@ async function fixture(
 		await run({
 			input, disabledMutations, errors, accepted: () => amount,
 			change: async value => { await act(async () => {
-				// Bypass React's programmatic-value tracker, like a native edit.
+				// Esquiva el rastreador de valores programáticos de React, como una edición nativa.
 				Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value")!.set!.call(input, String(value));
 				input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
 			}); },

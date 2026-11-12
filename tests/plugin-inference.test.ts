@@ -203,7 +203,7 @@ test("activation and caller abort cancel in-flight waits and disable future work
 	for (const mode of ["caller", "activation"]) {
 		const entered = deferred();
 		let transportSignal: AbortSignal | undefined;
-		const f = fixture(t, { produce(_stream, call) { transportSignal = call.options.signal; entered.resolve(); /* Deliberately uncooperative producer: no terminal event. */ } });
+		const f = fixture(t, { produce(_stream, call) { transportSignal = call.options.signal; entered.resolve(); /* Productor deliberadamente poco cooperativo: sin evento terminal. */ } });
 		const caller = new AbortController();
 		const completed = f.adapter.inference.complete({ ...request(), signal: caller.signal });
 		await entered.promise;
@@ -388,8 +388,8 @@ test("incomplete transport streams become explicit errors; usage persistence fai
 	assert.equal((await f.adapter.inference.complete(request())).stopReason, "error");
 	const g = fixture(t);
 	writeFileSync(join(g.directory, "usage.jsonl"), "existing ledger\n");
-	// A directory supplied where a file is required fails writes without invoking
-	// any real host storage or relying on platform permission behavior.
+	// Un directorio donde se requiere un fichero hace fallar las escrituras sin invocar
+	// ningún almacenamiento real del host ni depender del comportamiento de permisos de la plataforma.
 	const blocked = join(g.directory, "not-a-directory"); writeFileSync(blocked, "fixture");
 	const broken = createPluginInference({ signal: g.signal.signal, dataDirectory: blocked }, g.deps);
 	await assert.rejects(broken.inference.complete(request()), /EEXIST|ENOTDIR/);

@@ -11,8 +11,8 @@ function image(width: number, height: number): ImageContent {
 	ctx.fillStyle = "#11bb66"; ctx.fillRect(0, 0, width, height);
 	return { type: "image", mimeType: "image/png", data: canvas.toBuffer("image/png").toString("base64") };
 }
-// Valid original and resized representations of the same synthetic solid-color
-// image. No provider, server-store initialization or real learner data required.
+// Representaciones original y redimensionada válidas de la misma imagen sintética de color
+// liso. No hace falta proveedor, inicializar el almacén del servidor ni datos reales de alumnos.
 const original = image(8, 4), processed = image(2, 1);
 assert.notEqual(original.data, processed.data);
 

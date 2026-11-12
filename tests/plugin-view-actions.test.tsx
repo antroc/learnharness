@@ -19,7 +19,7 @@ for (const overflow of [false, true]) test(`top-bar ${overflow ? "overflow" : "i
   let resolve!: () => void; const pending = new Promise<void>(yes => { resolve = yes; });
   const make = () => createPluginSessionActionContext({ placement: "top-bar", surface: "session", sessionId: "one", kind: "teaching", surfaceTarget }, () => data);
   function Chrome() {
-    usePlugins(); // Like Chat, consume host publication to refresh render-time predicates.
+    usePlugins(); // Como Chat, consume la publicación del host para refrescar los predicados del render.
     return <TopBar><h1 data-plugin-chrome-title>Session</h1><div className="flex-1" /><PluginTopBarActions context={make()} captureContext={() => { const fresh = make(); void fresh.view; return fresh; }} /></TopBar>;
   }
   const fixture = await mountPluginChrome({ activate(ctx) { context = ctx; ctx.registerAction({ id: "view", name: "Read full view", disabled(action) { return action.surface !== "session" || action.view.composer.text === "disabled"; }, async run(action) {

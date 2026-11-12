@@ -12,7 +12,7 @@ import { createFauxCore, createProvider, fauxAssistantMessage, fauxToolCall, typ
 import type { Agent } from "@earendil-works/pi-agent-core";
 import type { LhMessage } from "../src/core/native-messages.ts";
 
-// Completely isolated synthetic learner data and offline provider only.
+// Datos de alumno sintéticos totalmente aislados y solo un proveedor sin conexión.
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "lh-submission-native-"));
 process.env.LH_DATA_DIR = path.join(root, "data");
 process.env.LH_AUTH_FILE = path.join(root, "auth.json");
@@ -51,8 +51,8 @@ function dimensions(value: Readonly<ImageContent>) {
 	const decoded = photon.PhotonImage.new_from_byteslice(Buffer.from(value.data, "base64"));
 	try { return [decoded.get_width(), decoded.get_height()]; } finally { decoded.free(); }
 }
-// Observe the real image worker boundary, not timing or a replacement processor.
-// The mutation happens after capture and before its async processing returns.
+// Observa la frontera real del worker de imágenes, no la temporización ni un procesador sustituto.
+// La mutación ocurre después de la captura y antes de que vuelva su procesamiento asíncrono.
 async function duringProcessing<T>(mutate: () => void, run: () => Promise<T>): Promise<T> {
 	const original = Worker.prototype.postMessage;
 	let observed = false;

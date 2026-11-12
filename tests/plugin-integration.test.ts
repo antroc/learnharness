@@ -18,9 +18,10 @@ import type { ChatRecord, ChatSummary } from "../src/core/contracts/chat.ts";
 import type { ChatStore, GraphStore } from "../src/core/ports.ts";
 import type { ServerEvent } from "../src/core/events.ts";
 
-/** Hypothetical integration package, NOT a product feature. The backend uses
- * only its public context and Node builtins; it cannot import test/host internals.
- * Plain JSON schemas keep this genuinely external package dependency-free. */
+/** Paquete de integración hipotético, NO una funcionalidad del producto. El backend
+ * usa solo su contexto público y los módulos integrados de Node; no puede importar
+ * internos de las pruebas ni del host. Los esquemas JSON simples mantienen este
+ * paquete realmente externo libre de dependencias. */
 const backend = `
 const fs = require('node:fs');
 const path = require('node:path');

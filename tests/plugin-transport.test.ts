@@ -66,8 +66,8 @@ it("plugin HTTP adapter exposes operational failures instead of treating them as
 });
 it("plugin HTTP adapter preserves expected errors across Next module instances", async () => {
 	const { host } = fixture();
-	// A separately compiled host entry has a different constructor but the same
-	// process-wide error brand. Numeric status alone is never trusted.
+	// Una entrada del host compilada por separado tiene otro constructor pero la misma
+	// marca de error de todo el proceso. Nunca se confía solo en el estado numérico.
 	const hostErrorBrand = Symbol.for("learnharness.plugin-host-error");
 	class OtherModuleHostError extends Error {
 		readonly [hostErrorBrand] = true;

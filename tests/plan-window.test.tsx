@@ -5,9 +5,9 @@ import { PlanMarginalia, planExists } from "../components/plan-window.tsx";
 import { blockLayout, edgePathD, type LayoutNode, type PopupMessage } from "../components/plan-block.tsx";
 import type { PlanTree } from "../src/core/contracts.ts";
 
-// The plan marginalia: the bare diagram in the dock band's right flank —
-// full plan (padded viewBox, meet-fit), statuses + glow live by derivation,
-// nothing until a tree exists. Positioning and fade live in DockOverlay.
+// La nota al margen del plan: el diagrama desnudo en el flanco derecho de la franja
+// del dock: plan completo (viewBox con relleno, ajuste meet), estados + brillo en vivo
+// por derivación, nada hasta que exista un árbol. La posición y el fundido viven en DockOverlay.
 
 const CHAIN: PlanTree = {
 	nodes: [
@@ -22,8 +22,8 @@ const CHAIN: PlanTree = {
 	version: 1,
 };
 
-/** A transcript with a successful plan_init (carrying `tree`) and
- *  optionally a tagged quiz call. */
+/** Una transcripción con un plan_init correcto (que lleva `tree`) y,
+ *  opcionalmente, una llamada de quiz etiquetada. */
 function transcript(tree: PlanTree, taggedNodeId?: string): PopupMessage[] {
 	return [
 		{ id: "m1", role: "user", parts: [] } as never,
@@ -46,8 +46,8 @@ function transcript(tree: PlanTree, taggedNodeId?: string): PopupMessage[] {
 
 describe("planExists", () => {
 	it("false without a tree — the phantom-click gate (owner report, 2026-10-01)", () => {
-		// A JSX element is always truthy; the WRAPPER must gate on real
-		// presence or an invisible clickable button sits in the flank.
+		// Un elemento JSX siempre es verdadero; el ENVOLTORIO debe condicionarse a la
+		// presencia real o queda un botón invisible y clicable en el flanco.
 		assert.equal(planExists([]), false);
 		assert.equal(planExists(transcript({ nodes: [], edges: [], version: 0 })), false);
 	});
@@ -64,24 +64,24 @@ describe("PlanMarginalia render", () => {
 
 	it("renders the FULL plan (padded full-extent viewBox), not a windowed crop", () => {
 		const html = renderToStaticMarkup(<PlanMarginalia messages={transcript(CHAIN)} />);
-		// The viewBox covers the whole layout plus the glow-clearing pad —
-		// never the retired window's 2:1 crop.
+		// El viewBox cubre todo el layout más el relleno que despeja el brillo;
+		// nunca el recorte 2:1 de la ventana retirada.
 		const layout = blockLayout(CHAIN.nodes, CHAIN.edges);
-		const pad = 24; // MARGIN_PAD: GRAPH_PAD + 16 (glow halo clearance)
+		const pad = 24; // MARGIN_PAD: GRAPH_PAD + 16 (holgura del halo de brillo)
 		const vb = `viewBox="${-pad} ${-pad} ${layout.width + 2 * pad} ${layout.height + 2 * pad}"`;
 		assert.ok(html.includes(vb), `expected ${vb} in the svg`);
 		assert.ok(!/viewBox="-?\d+(\.\d+)? -?\d+(\.\d+)? 360 180"/.test(html), "the windowed viewBox is retired");
-		// Meet-fit mode: the svg fills the band box (h-full w-full), letting
-		// preserveAspectRatio contain the diagram in the flank.
+		// Modo de ajuste meet: el svg llena la caja de la franja (h-full w-full) y deja
+		// que preserveAspectRatio contenga el diagrama en el flanco.
 		assert.ok(html.includes('font-family:var(--font-prose)'), "fill mode classes");
 	});
 
 	it("glows the current node and dims the not-yet-visited (live statuses)", () => {
 		const html = renderToStaticMarkup(<PlanMarginalia messages={transcript(CHAIN, "b")} />);
-		// The yellow blurred halo marks the tagged check's node…
+		// El halo amarillo difuminado marca el nodo de la comprobación etiquetada…
 		assert.ok(html.includes("fill-yellow-400/25"), "glow on the current node");
 		assert.ok(html.includes('data-testid="plan-node-b" data-status="current"'), "b is current");
-		// …and arrows into upcoming nodes carry the dimmed head.
+		// …y las flechas hacia nodos próximos llevan la punta atenuada.
 		assert.ok(
 			html.includes("url(#:r0:-dim)") || /url\(#\S*-dim\)/.test(html),
 			"dimmed arrowhead into the upcoming node",
@@ -89,12 +89,12 @@ describe("PlanMarginalia render", () => {
 	});
 });
 
-// ─── The canvas must cover the arrows (owner, 2026-10-10) ────────────────────
-// The owner's REAL linear-algebra plan (chat_mv19m6xe, plan_init's mermaid
-// parsed to nodes/edges — golden fixtures use real data, owner ruling
-// 2026-10-10): a cross-column edge's bezier control points reached x=776
-// while dagre's node-extent width was 754 — 14px of arrow clipped at the
-// viewBox edge (the Hume plan cut 20px the same way).
+// ─── El lienzo debe cubrir las flechas (responsable, 2026-10-10) ─────────────
+// El plan REAL de álgebra lineal del responsable (chat_mv19m6xe, el mermaid de
+// plan_init analizado a nodos/aristas; las fixtures doradas usan datos reales,
+// decisión del responsable 2026-10-10): los puntos de control bezier de una arista
+// entre columnas llegaban a x=776 mientras que el ancho de los nodos según dagre era
+// 754: 14px de flecha recortados en el borde del viewBox (el plan de Hume cortaba 20px igual).
 const LINEAR_ALGEBRA_NODES: LayoutNode[] = [
 { id: "vector-space-axioms", title: "What a vector space is" },
 	{ id: "span-basis-dimension", title: "Span, basis, dimension" },
@@ -134,8 +134,8 @@ const LINEAR_ALGEBRA_EDGES: ReadonlyArray<{ from: string; to: string }> = [
 describe("blockLayout ink extent", () => {
 	it("covers every edge path's control points — arrows never clip (owner, 2026-10-10)", () => {
 		const L = blockLayout(LINEAR_ALGEBRA_NODES, LINEAR_ALGEBRA_EDGES);
-		// The viewBox extent must reach the furthest control point of
-		// every drawn edge (a bezier never leaves its control-point hull).
+		// La extensión del viewBox debe alcanzar el punto de control más lejano de
+		// cada arista dibujada (una bezier nunca sale de la envolvente de sus puntos de control).
 		let ctrlMaxX = -Infinity;
 		for (const e of LINEAR_ALGEBRA_EDGES) {
 			const pts = L.edgePts.get(`${e.from}->${e.to}`);
@@ -162,8 +162,8 @@ describe("blockLayout ink extent", () => {
 		let nodeMaxX = -Infinity;
 		for (const n of LINEAR_ALGEBRA_NODES)
 			nodeMaxX = Math.max(nodeMaxX, (L.x.get(n.id) ?? 0) + (L.nodeW.get(n.id) ?? 0));
-		// Pre-fix dagre width was 754 with ink at 776 — width must stay ≥
-		// ink, which here strictly exceeds the node extent.
+		// Antes del arreglo, el ancho de dagre era 754 con tinta en 776: el ancho debe
+		// ser ≥ tinta, que aquí supera estrictamente la extensión de los nodos.
 		assert.ok(L.width > nodeMaxX + 1, `layout width ${L.width} should exceed node extent ${nodeMaxX}`);
 	});
 });

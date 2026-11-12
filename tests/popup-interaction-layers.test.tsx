@@ -41,7 +41,7 @@ async function key(controller: InteractionLayersController, target: Element, val
 	const event = new window.Event("keydown", { bubbles: true, cancelable: true });
 	Object.assign(event, { key: value, shiftKey });
 	await act(async () => {
-		// linkedom does not implement the browser's window capture route.
+		// linkedom no implementa la ruta de captura de window del navegador.
 		controller.captureKeyDown(event as KeyboardEvent);
 		target.dispatchEvent(event);
 	});
@@ -146,8 +146,8 @@ test("nested popups share the unclipped modal host, integer paint order, and one
 function RepeatedPicker({ id }: { id: string }) {
 	const [open, setOpen] = useState(false);
 	const root = useRef<HTMLDivElement>(null);
-	// Like the real controls, open after the anchor exists. An initially open
-	// child cannot measure a parent host ref before React attaches that ref.
+	// Como los controles reales, se abre cuando ya existe el ancla. Un hijo abierto
+	// desde el inicio no puede medir la ref del host padre antes de que React la asigne.
 	useEffect(() => { setOpen(true); }, []);
 	const close = () => setOpen(false);
 	usePluginMenuDismiss(open, root, close);

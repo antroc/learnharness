@@ -170,7 +170,7 @@ test("cancel fences async validation; waiter abort and unsubscription do not can
 test("timeout and activation disposal persist first terminal outcomes without replay or late writes", async t => {
 	const gate = deferred<AssistantMessage>(); const f = fixture(t, () => gate.promise); f.register();
 	const timed = f.service.start("worker", options({ timeoutMs: 15 }));
-	// Keep the test alive while the worker's lifetime timer is unref'ed.
+	// Mantiene viva la prueba mientras el temporizador de vida del worker está sin ref.
 	const hold = setTimeout(() => {}, 1000); t.after(() => clearTimeout(hold));
 	const out = await f.service.wait(timed.id); assert.equal(out.status, "failed"); assert.equal(out.error.code, "timeout");
 	const priorCalls = f.calls.length;

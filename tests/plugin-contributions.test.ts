@@ -15,8 +15,8 @@ import { validatePluginSchema, validatePluginInferenceOptions } from "../src/cor
 import type { AgentBuildOptions } from "../src/agent/teacher-agent.ts";
 import type { PiEngine } from "../src/agent/models.ts";
 
-// Agent/server imports happen only after redirecting all app storage to a fresh
-// directory. Every inference call below uses the native SDK's in-process faux.
+// Los imports de agente/servidor ocurren solo después de redirigir todo el almacenamiento de
+// la app a un directorio nuevo. Cada llamada de inferencia de abajo usa el simulado en proceso del SDK nativo.
 const DATA = fs.mkdtempSync(path.join(os.tmpdir(), "plugin-contributions-data-"));
 process.env.LH_DATA_DIR = DATA;
 process.env.LH_AUTH_FILE = path.join(DATA, "auth.json");
@@ -69,7 +69,7 @@ test("registrations copy explicit role targets, unregister idempotently, and sta
 	let factories = 0;
 	const offTools = ctx.registerTools({ agents, create(context) {
 		factories++; assert.equal(Object.isFrozen(context), true);
-		assert.equal(Array.isArray(this.agents), true); // Preserve the native factory method's receiver.
+		assert.equal(Array.isArray(this.agents), true); // Conserva el receptor del método de factoría nativo.
 		return [native("per_turn", async () => textResult(`${context.chatId}:${context.agent}`))];
 	} });
 	agents.push("practice");
@@ -82,7 +82,7 @@ test("registrations copy explicit role targets, unregister idempotently, and sta
 	assert.deepEqual(await second.tools[0]!.execute("call", {}), textResult("second:teacher"));
 	offInstructions(); offInstructions(); offTools(); offTools();
 	assert.deepEqual(f.host.agentContributions(turn(), []), { instructions: [], tools: [] });
-	// Unregister changes future turns, not an already-captured turn snapshot.
+	// Desregistrar cambia los turnos futuros, no una instantánea de turno ya capturada.
 	assert.deepEqual(await first.tools[0]!.execute("call", {}), textResult("first:teacher"));
 	await f.host.setEnabled("example", false);
 	await assert.rejects(first.tools[0]!.execute("call", {}), /disabled or unavailable/);
@@ -90,7 +90,7 @@ test("registrations copy explicit role targets, unregister idempotently, and sta
 	assert.throws(() => ctx.registerTools({ agents: ["teacher"], create: () => [] }), /no longer active/);
 	const current = await f.context();
 	current.registerTools({ agents: ["teacher"], create: () => [native("new_activation")] });
-	offTools(); // A stale unregister must not touch the new activation.
+	offTools(); // Un desregistro obsoleto no debe tocar la nueva activación.
 	const fresh = f.host.agentContributions(turn(), []);
 	assert.equal(fresh.tools[0]!.name, "new_activation");
 	assert.equal(f.disposedServices(), 1);
@@ -159,7 +159,7 @@ test("all roles append instructions/tools without replacing builtin prompt, gate
 	const running = builders.teacher({ engine: engine(), chatId: "running", pluginContributions: f.host.agentContributions });
 	const prompt = running.state.systemPrompt;
 	await f.host.setEnabled("example", false);
-	assert.equal(running.state.systemPrompt, prompt); // No live prompt rewriting.
+	assert.equal(running.state.systemPrompt, prompt); // Sin reescritura de prompts en vivo.
 	const next = builders.teacher({ engine: engine(), chatId: "next", pluginContributions: f.host.agentContributions });
 	assert.equal(next.state.systemPrompt, composeInstructions("teacher"));
 	await assert.rejects(running.state.tools.find(tool => tool.name === "addon_teacher")!.execute("late", {}), /disabled or unavailable/);
@@ -167,7 +167,7 @@ test("all roles append instructions/tools without replacing builtin prompt, gate
 
 test("builtin names remain reserved when absent; first valid package wins and invalid packages reserve nothing", async t => {
 	const f = fixture(t); for (const id of ["a-first", "b-collision", "c-next", "d-builtin"]) f.plugin(id);
-	// Enable in reverse order: precedence must follow package IDs, not toggle order.
+	// Activa en orden inverso: la precedencia debe seguir los IDs de paquete, no el orden de activación.
 	const builtin = await f.context("d-builtin"), next = await f.context("c-next"), collision = await f.context("b-collision"), first = await f.context("a-first");
 	first.registerInstructions({ agents: ["teacher"], text: "First survives" });
 	first.registerTools({ agents: ["teacher"], create: () => [native("shared_name")] });
@@ -186,7 +186,7 @@ test("builtin names remain reserved when absent; first valid package wins and in
 		const info = f.host.list().find(item => item.id === id)!;
 		assert.equal(info.status, "active"); assert.match(info.error!, /name collision/);
 		assert.ok(await f.host.call(id, "context"));
-		assert.ok(f.host.asset(id, ["main.js"]).bytes.length); // Warning does not shut down UI/backend.
+		assert.ok(f.host.asset(id, ["main.js"]).bytes.length); // El aviso no apaga la UI ni el backend.
 	}
 	assert.ok(f.changes() > changes);
 	assert.equal(f.host.list().find(item => item.id === "a-first")!.error, undefined);

@@ -10,8 +10,8 @@ import type { JobStore } from "../src/core/ports.ts";
 import type { TurnRunner } from "../src/server/jobs.ts";
 import type { PluginBackgroundResult, PluginBackgroundTool, PluginTaskOutcome, PluginTaskRecord, PluginWorkerService } from "../src/core/plugin-workers.ts";
 
-// Recovery scans every chat/job in its store. Isolate before configuration
-// imports so this file's fake runner cannot deliver another test's markers.
+// La recuperación recorre todos los chats/tareas de su almacén. Aísla antes de importar
+// la configuración para que el runner falso de este fichero no entregue marcadores de otra prueba.
 const testDataDirectory = mkdtempSync(join(tmpdir(), "lh-plugin-background-tools-"));
 process.env.LH_DATA_DIR = testDataDirectory;
 after(() => { rmSync(testDataDirectory, { recursive: true, force: true }); });
@@ -33,7 +33,7 @@ function deferred<T>() {
 	return { promise, resolve };
 }
 async function flush() { for (let i = 0; i < 8; i++) await Promise.resolve(); }
-/** Test wakes acknowledge only after the marker is canonically persisted. */
+/** Los despertares de prueba solo acusan recibo cuando el marcador ya se ha persistido canónicamente. */
 function setTurnRunner(run: TurnRunner): void {
 	setRawTurnRunner(async (chatId, input) => {
 		const status = await run(chatId, input);
@@ -448,8 +448,8 @@ describe("real worker/store terminal ownership", () => {
 	}
 	it("terminal wait rejection reports storage poison honestly and releases ownership", async () => {
 		const h = harness();
-		// Suppress ephemeral terminal progress; a poisoned canonical waiter is
-		// the only terminal signal and must not be turned into a fake failure task.
+		// Suprime el progreso terminal efímero; un esperador canónico envenenado es
+		// la única señal terminal y no debe convertirse en una tarea de fallo falsa.
 		const poison = deferred<never>();
 		const workers: PluginWorkerService = {
 			register: () => () => {},

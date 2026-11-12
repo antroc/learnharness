@@ -177,7 +177,7 @@ it("enforces actual file cap before conversion even with lying Content-Length", 
 	await assert.rejects(service.convert(request, signal()), refusal(413, /25 MiB/));
 	assert.equal(calls, 0);
 	await recovered(service);
-	// The exact file bound reaches conversion (and can produce a small output).
+	// El límite exacto del fichero llega a la conversión (y puede producir una salida pequeña).
 	await service.convert(upload(new Uint8Array(MAX_DOCUMENT_FILE_BYTES), "exact.pdf"), signal());
 	assert.equal(calls, 1);
 });

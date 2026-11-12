@@ -1,14 +1,15 @@
 /**
- * Practice-flow integration test (practice sessions, owner design
- * 2026-10-04) — the full practice loop with zero tokens, mirroring
- * chat-flow.test.ts's harness (handleChatRequest + the faux engine):
+ * Prueba de integración de practice-flow (sesiones de práctica, diseño del
+ * responsable 2026-10-04): el bucle de práctica completo con cero tokens,
+ * replicando el arnés de chat-flow.test.ts (handleChatRequest + el motor simulado):
  *
- *   learner opens → practice agent poses (problem, terminate) → thinking
- *   arrives as a labeled message → agent concludes + reveals + wraps
- *   → Esc dismissal synthesizes the conclude pair on the next input.
+ *   el alumno abre → el agente de práctica plantea (problem, terminate) → el
+ *   razonamiento llega como mensaje etiquetado → el agente concluye + revela +
+ *   cierra → descartar con Esc sintetiza el par de conclude en la siguiente entrada.
  *
- * The record law under pin: the pose ack PERSISTS (unlike a question's
- * placeholder) and a record ending on it owes no continuation.
+ * La ley del registro que se fija: el acuse del planteamiento PERSISTE (a
+ * diferencia del provisional de una pregunta) y un registro que termina en él
+ * no debe ninguna continuación.
  */
 
 import assert from "node:assert/strict";
@@ -36,11 +37,11 @@ import { CONCLUDE_ACK_TEXT } from "../src/core/contracts/chat.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
 import type { ToolResultMessage } from "@earendil-works/pi-ai";
 
-// The BYOK key-presence gate reads env-first (chat-flow.test.ts's idiom).
+// La barrera de presencia de clave BYOK lee primero el entorno (la costumbre de chat-flow.test.ts).
 process.env.OPENROUTER_API_KEY ??= "test-key-presence-gate";
 
-/** A valid problem pose — the slim schema: statement, mode, target,
- *  modelSolution (the commitment, which is also the reveal). */
+/** Un planteamiento de problema válido, con el esquema reducido: statement, mode,
+ *  target, modelSolution (el compromiso, que también es la revelación). */
 const POSE = {
 	statement: "Prove that every finite group of prime order is cyclic.",
 	mode: "recall",
@@ -48,7 +49,7 @@ const POSE = {
 	modelSolution: "Let |G| = p. Any x ≠ e generates a subgroup whose order divides p…",
 } as const;
 
-/** A valid conclude — no reveal field; the pose's modelSolution is the reveal. */
+/** Un conclude válido: sin campo de revelación; el modelSolution del planteamiento es la revelación. */
 const CONCLUDE = {
 	outcome: "solved",
 	verdict: "The subgroup-order argument is credited in full.",
@@ -63,7 +64,7 @@ after(() => {
 		try {
 			fs.unlinkSync(path.join(PATHS.chats, `${id}.json`));
 		} catch {
-			/* already gone */
+			/* ya no existe */
 		}
 	}
 });
@@ -90,10 +91,10 @@ async function drain(res: Response): Promise<string> {
 	return res.text();
 }
 
-/** CONNECTION DIET B (owner, 2026-10-10): POST acks and closes; the turn's
- *  wire is the reattach stream. Mirrors drain(): 200-ack assert + the fully
- *  drained SSE body via runningTurn + subscribe (subscribe immediately —
- *  faux turns settle in microtask rounds). */
+/** DIETA DE CONEXIÓN B (responsable, 2026-10-10): el POST acusa recibo y cierra; el
+ *  cable del turno es el stream de reenganche. Replica drain(): aserción del acuse 200
+ *  + el cuerpo SSE vaciado entero mediante runningTurn + subscribe (suscríbete
+ *  enseguida: los turnos simulados se asientan en rondas de microtareas). */
 async function drainTurn(req: Request, factory: Parameters<typeof handleChatRequest>[1]): Promise<string> {
 	const cloned = req.clone();
 	const ack = await handleChatRequest(req, factory);
@@ -102,17 +103,17 @@ async function drainTurn(req: Request, factory: Parameters<typeof handleChatRequ
 	}
 	const { chatId } = (await cloned.json()) as { chatId: string };
 	const handle = runningTurn(chatId);
-	if (!handle) return ""; // the turn settled inside the handler — completion already happened
+	if (!handle) return ""; // el turno se asentó dentro del manejador: la finalización ya ocurrió
 	return new Response(handle.subscribe()).text();
 }
 
-/** The practice agent factory (the handler's kind branch, test-shaped). */
+/** La factoría del agente de práctica (la rama por tipo del manejador, con forma de prueba). */
 function practiceFactory(chatId: string, engine: PiEngine): Parameters<typeof handleChatRequest>[1] {
 	return (opts) => createPracticeAgent({ chatId, chatStore }, { engine, messages: opts.messages });
 }
 
-/** Each step records the prompt it received — the transcript the model
- *  saw (the chat-flow capture idiom). */
+/** Cada paso registra el prompt que recibió: la transcripción que vio el
+ *  modelo (la costumbre de captura de chat-flow). */
 function scripted(steps: FauxResponseStep[]): { engine: PiEngine; calls: string[] } {
 	const calls: string[] = [];
 	const faux = createFauxCore({});
@@ -135,16 +136,16 @@ describe("practice flow (scripted model)", () => {
 	it("pose → thinking commit → conclude + reveal; the pose ack persists and owes nothing", async () => {
 		const chat = createPracticeChat("Test: practice groups");
 		const { engine, calls } = scripted([
-			// Turn 1: the agent poses immediately (terminate:true ends the run).
+			// Turno 1: el agente plantea enseguida (terminate:true termina la ejecución).
 			() => fauxAssistantMessage([fauxToolCall("problem", POSE, { id: "call-p1" })], { stopReason: "toolUse" }),
-			// Turn 2 (after the commit): conclude (non-terminating) …
+			// Turno 2 (tras el envío): conclude (sin terminar)…
 			() => fauxAssistantMessage([fauxToolCall("conclude", CONCLUDE, { id: "call-c1" })], { stopReason: "toolUse" }),
-			// … the loop continues: reveal text ends the turn.
+			// … el bucle sigue: el texto de revelación termina el turno.
 			() => fauxAssistantMessage([fauxText("Clean proof. Ready for the next one?")]),
 		]);
 		const factory = practiceFactory(chat.id, engine);
 
-		// ── Turn 1: the opening text; the agent poses ──
+		// ── Turno 1: el texto inicial; el agente plantea ──
 		await drainTurn(post(chat.id, { type: "text", text: "practice group theory" }), factory);
 		const afterPose = chatStore.getChat(chat.id)!.messages;
 		const ack = afterPose[afterPose.length - 1] as LhMessage & ToolResultMessage;
@@ -154,20 +155,20 @@ describe("practice flow (scripted model)", () => {
 		assert.equal(needsContinuation(afterPose), false);
 		assert.equal(activeProblemOf(afterPose)?.toolCallId, "call-p1");
 
-		// ── Turn 2: the submission arrives as a single-lane thinking message ──
+		// ── Turno 2: el envío llega como mensaje de razonamiento de un solo carril ──
 		await drainTurn(post(chat.id, { type: "thinking", problemCallId: "call-p1", text: "|G|=p; ⟨x⟩ has order dividing p" }), factory);
-		// The model saw the one label (owner round 2, 2026-10-05): the
-		// register is read from the text, not declared by a button.
+		// El modelo vio la única etiqueta (ronda 2 del responsable, 2026-10-05): el
+		// registro se lee del texto, no lo declara un botón.
 		assert.ok(lastSaw(calls, "Your thinking:"), "the conclude turn's prompt carries the thinking");
 		const afterConclude = chatStore.getChat(chat.id)!.messages;
 		const concludeAck = afterConclude.find(
 			(m) => (m as ToolResultMessage).role === "toolResult" && (m as ToolResultMessage).toolName === "conclude",
 		) as LhMessage & ToolResultMessage;
 		assert.ok(concludeAck, "the conclude ack persisted");
-		// Owner round 16: the ack carries the turn-ends law (no more tools,
-		// the learner's go-ahead paces the next problem).
+		// Ronda 16 del responsable: el acuse lleva la ley de fin de turno (no más
+		// herramientas; el visto bueno del alumno marca el ritmo del siguiente problema).
 		assert.ok((concludeAck.content[0] as { text: string }).text.includes("END YOUR TURN"));
-		// The turn continued past conclude to the reveal text.
+		// El turno continuó tras conclude hasta el texto de revelación.
 		assert.ok(afterConclude.some((m) => (m as { role?: string }).role === "assistant" && JSON.stringify((m as { content?: unknown }).content).includes("Clean proof.")));
 		assert.equal(activeProblemOf(afterConclude), null);
 	});
@@ -182,7 +183,7 @@ describe("practice flow (scripted model)", () => {
 		await drainTurn(post(chat.id, { type: "text", text: "go" }), factory);
 		await drainTurn(post(chat.id, { type: "thinking", problemCallId: "call-p2", text: "stuck at the second step" }), factory);
 		assert.ok(lastSaw(calls, "Your thinking:"), "the turn's prompt carries the thinking");
-		// The problem is still active — a trace never concludes.
+		// El problema sigue activo: un rastro nunca concluye.
 		assert.equal(activeProblemOf(chatStore.getChat(chat.id)!.messages)?.toolCallId, "call-p2");
 	});
 
@@ -195,7 +196,7 @@ describe("practice flow (scripted model)", () => {
 		const factory = practiceFactory(chat.id, engine);
 		await drainTurn(post(chat.id, { type: "text", text: "go" }), factory);
 
-		// The silent dismissal route (the same POST the client's Esc takes).
+		// La ruta silenciosa de descarte (el mismo POST que usa el Esc del cliente).
 		const dismissRoute = await import("../app/api/chats/[id]/dismiss/route.ts");
 		const dismissRes = await dismissRoute.POST(
 			new Request(`http://test/api/chats/${chat.id}/dismiss`, {
@@ -209,7 +210,7 @@ describe("practice flow (scripted model)", () => {
 		const marked = chatStore.getChat(chat.id)!.messages;
 		assert.equal(activeProblemOf(marked), null, "the marker deactivates at Esc time");
 
-		// The next plain input synthesizes the conclude pair ahead of itself.
+		// La siguiente entrada normal sintetiza el par de conclude delante de sí misma.
 		await drainTurn(post(chat.id, { type: "text", text: "something easier" }), factory);
 		const msgs = chatStore.getChat(chat.id)!.messages;
 		const synth = msgs.find(

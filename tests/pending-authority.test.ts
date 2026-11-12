@@ -43,7 +43,7 @@ test("the authoritative question still waits for projected input validation", ()
 	assert.equal(pending(messages, view), null);
 });
 
-// Synthetic compatibility cases, not claims about the affected user's history.
+// Casos sintéticos de compatibilidad, no afirmaciones sobre el historial del usuario afectado.
 test("reused ids select the newest native question's input, not an older available part", () => {
 	const old = assistant("old", "call_0");
 	const newer = assistant("new", "call_0");

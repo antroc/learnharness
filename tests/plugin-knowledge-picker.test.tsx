@@ -12,7 +12,7 @@ import { installModalDom } from "./modal-dom.ts";
 import type { GraphSnapshot, SourceDirectory } from "../src/core/index.ts";
 import type { PluginKnowledgePickerProps, PluginWidgetHandle } from "../src/core/plugin-ui.ts";
 
-// Isolate configuration before importing application modules, even in standalone runs.
+// Aísla la configuración antes de importar módulos de la aplicación, incluso al ejecutarse sola.
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "lh-plugin-knowledge-"));
 const environment = { ...process.env };
 process.env.HOME = path.join(scratch, "home");
@@ -335,7 +335,7 @@ it("actual checkbox changes emit immediately; controlled updates, Done/X/Escape 
 	const f = await fixture();
 	try {
 		await click(f, "practice-props-chip");
-		// Checkbox activation in linkedom needs the native pre-click state transition.
+		// La activación de la casilla en linkedom necesita la transición de estado nativa previa al clic.
 		await act(async () => { (document.querySelector('[data-testid="cluster-checkbox-chat"]') as HTMLInputElement).click(); });
 		assert.deepEqual(f.calls, [["a", "b"]]);
 		assert.equal(f.target.textContent?.includes("nodes selected"), false, "selection remains caller-controlled");

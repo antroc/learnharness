@@ -1,11 +1,12 @@
 /**
- * probe_done — the probe→planning seam tool (docs/archive/probe-teach-split.md §2).
- * Server-side; three outcomes: refusal while a question is open, refusal
- * after the probe is already concluded, ok + handoff queued. The handoff
- * rides the wake pipeline (deliver injected here — no server seam import).
- * Wave B: the record is native history — fixtures are pi messages, the
- * pending-question gate is the dangling-question scan, and the handoff is
- * a native marker (customType probe-handoff, HANDOFF_TEXT content).
+ * probe_done: la herramienta de frontera sondeo→planificación
+ * (docs/archive/probe-teach-split.md §2). En el servidor; tres resultados:
+ * rechazo mientras hay una pregunta abierta, rechazo cuando el sondeo ya ha
+ * concluido, ok + traspaso encolado. El traspaso viaja por el proceso de
+ * despertar (aquí se inyecta deliver: sin importar la frontera del servidor).
+ * Oleada B: el registro es historial nativo: las fixtures son mensajes de pi,
+ * la barrera de pregunta pendiente es el escaneo de preguntas colgantes y el
+ * traspaso es un marcador nativo (customType probe-handoff, contenido HANDOFF_TEXT).
  */
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
@@ -28,7 +29,7 @@ after(() => {
 		try {
 			fs.unlinkSync(path.join(PATHS.chats, `${id}.json`));
 		} catch {
-			/* scratch cleanup, best effort */
+			/* limpieza del espacio temporal, con el mejor esfuerzo */
 		}
 	}
 });
@@ -46,8 +47,8 @@ const ASSESSMENT = {
 	summary: "Enter at the formal definition.",
 };
 
-/** A native assistant message carrying one tool call (the minimal fixture
- *  shape the scans read — role assistant, content blocks). */
+/** Un mensaje nativo del asistente con una llamada a herramienta (la forma
+ *  mínima de fixture que leen los escaneos: rol assistant, bloques de contenido). */
 function assistantWithCall(id: string, toolName: string, args: unknown): LhMessage {
 	return {
 		id,
@@ -79,8 +80,8 @@ describe("probe_done: the probe→planning seam", () => {
 		assert.equal(res.error, undefined);
 		assert.equal(delivered.length, 1, "the handoff is queued exactly once");
 		assert.equal(delivered[0]!.id, `steer_probe_${chatId}`);
-		// Native marker (Wave B): the model-facing HANDOFF_TEXT rides content;
-		// the UI keys off customType; the chat id rides details.
+		// Marcador nativo (oleada B): el HANDOFF_TEXT de cara al modelo viaja en content;
+		// la UI se guía por customType; el id del chat viaja en details.
 		assert.equal(delivered[0]!.customType, "probe-handoff");
 		assert.equal(delivered[0]!.content, HANDOFF_TEXT);
 		assert.equal((delivered[0]!.details as { chatId: string }).chatId, chatId);
@@ -144,7 +145,7 @@ describe("probe_done: the probe→planning seam", () => {
 	});
 });
 
-/** A real record result, distinct from the calling assistant message. */
+/** Un resultado real del registro, distinto del mensaje del asistente que hace la llamada. */
 function probeResult(overrides: Partial<Extract<LhMessage, { role: "toolResult" }>> = {}): LhMessage {
 	return {
 		id: "probe-result", role: "toolResult", toolCallId: "call_probe", toolName: "probe_done",

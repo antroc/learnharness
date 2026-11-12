@@ -9,8 +9,8 @@ import type { PluginQuestionSnapshot } from "../src/core/plugin-questions.ts";
 import type { NativePluginQuestionDefinition } from "../src/agent/plugin-question-tools.ts";
 import type { QuestionTypeResolver } from "../src/server/plugin-questions.ts";
 
-// Birth-stamp isolation before any config-loading import. Exercise the actual
-// route/barrels, with a local resolver only; no plugin startup or network.
+// Aislamiento del sello de nacimiento antes de cualquier import que cargue la configuración. Ejercita
+// la ruta/barriles reales, solo con un resolvedor local; sin arranque de plugins ni red.
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "lh-plugin-dismiss-route-"));
 process.env.LH_DATA_DIR = path.join(root, "data");
 process.env.LH_AUTH_FILE = path.join(root, "auth.json");

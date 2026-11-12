@@ -39,7 +39,7 @@ async function fixture(run: (f: { state: { active: boolean; key: string; hooks: 
 						attempt.deliver();
 						const model = new SessionModel({ chatId: state.key, initialMessages: [], fetch: async url => { if (String(url) === "/api/chat") { state.posts++; return Response.json({ accepted: true }); } if (String(url).endsWith("/stream")) return new Response("data: [DONE]\n\n"); return Response.json({ messages: [] }); } });
 						await model.send({ type: "text", text: prepared.content.text }, () => { state.draft = ""; attempt.accepted(); }, undefined, attempt.refused);
-					} catch { attempt.cancel(); /* Captured input stays in the native draft. */ }
+					} catch { attempt.cancel(); /* La entrada capturada se queda en el borrador nativo. */ }
 				})();
 			});
 		}, [target, runner]);

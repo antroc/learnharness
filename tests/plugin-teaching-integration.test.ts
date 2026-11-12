@@ -19,7 +19,7 @@ const originalFetch = globalThis.fetch;
 globalThis.fetch = async () => { throw new Error("Unexpected network in teaching-plugin integration"); };
 after(() => { globalThis.fetch = originalFetch; fs.rmSync(root, { recursive: true, force: true }); });
 
-// Configure storage BEFORE loading any module which reads app paths.
+// Configura el almacenamiento ANTES de cargar cualquier módulo que lea rutas de la app.
 const { createPluginHost } = await import("../src/server/plugin-host.ts");
 const { createPluginInference } = await import("../src/server/plugin-inference.ts");
 const { createPluginWorkerService } = await import("../src/agent/plugin-workers.ts");

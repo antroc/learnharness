@@ -1,5 +1,6 @@
-/** Actual route + production compaction gate, using only registered offline
- * Pi providers. Plugin processing must never run to estimate its own result. */
+/** Ruta real + barrera de compactación de producción, usando solo proveedores Pi
+ * registrados sin conexión. El procesamiento de plugins nunca debe ejecutarse para
+ * estimar su propio resultado. */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -67,7 +68,7 @@ for (const practice of [false, true]) test(`${practice ? "plugin practice submis
 		let canonical: LhMessage[] = [];
 		const turn = runPiTurn({ agent, onFinish(messages) { canonical = messages as LhMessage[]; } });
 		await new Response(turn.subscribe()).text();
-		// Remove FauxCore's synthetic usage anchors, not any authority/input.
+		// Quita las anclas de uso sintéticas de FauxCore, no ninguna autoridad/entrada.
 		canonical = canonical.map((m, index) => ({ ...m, id: m.id ?? `saved_pose_${index}`, ...(m.role === "assistant" ? { usage: fauxAssistantMessage("").usage } : {}) }));
 		chatStore.saveMessages(chat.id, canonical);
 		canonical = chatStore.getChat(chat.id)!.messages;
@@ -99,15 +100,15 @@ for (const practice of [false, true]) test(`${practice ? "plugin practice submis
 			api: { stream: (m, context, opts) => { contexts.push(structuredClone(context)); return modelFaux.streamSimple(m, context, opts); }, streamSimple: (m, context, opts) => { contexts.push(structuredClone(context)); return modelFaux.streamSimple(m, context, opts); } } }));
 		writeSettings({ graph: { enabled: false }, compaction: { thresholdTokens: 80000 }, models: { strong: { model: { provider: model.provider, id: model.id } } } });
 		chatStore.saveSettings(chat.id, { model: { provider: model.provider, id: model.id } });
-		environmentVariables.NODE_ENV = "production"; // exercise the real gate, not its test-mode fast path
+		environmentVariables.NODE_ENV = "production"; // ejercita la barrera real, no su vía rápida del modo de pruebas
 		const response = await handleChatInput(chat.id, input, opts => practice ? createPracticeAgent({ chatId: chat.id, chatStore }, opts) : createProberAgent({ chatId: chat.id } as never, opts));
 		assert.equal(response.status, 200, await response.clone().text());
 		const live = runningTurn(chat.id); if (live) await new Response(live.subscribe()).text();
 		await response.text();
 		assert.equal(processed, 1);
 		assert.equal(contexts.length, 2, "one real compaction request and one continuation, both offline");
-		// Assertions inside SDK/plugin callbacks can become saved error outcomes;
-		// also assert their observations and successful settlement outside them.
+		// Las aserciones dentro de callbacks del SDK/plugin pueden convertirse en resultados de
+		// error guardados; comprueba también sus observaciones y el asentamiento correcto fuera de ellos.
 		assert.match(JSON.stringify(contexts[0]!.messages), /SAVED_HISTORY_PUBLIC/);
 		assert.doesNotMatch(JSON.stringify(contexts[0]!.messages), /NEW_SIDE_CARGO|Host Thinking|observed/);
 		assert.match(JSON.stringify(contexts[1]!.messages), /NEW_SIDE_CARGO/);

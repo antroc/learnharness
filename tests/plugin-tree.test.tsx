@@ -15,8 +15,8 @@ function ssr(tree: PluginTreeProps) {
 	return parseHTML(`<html><body>${renderToStaticMarkup(<PluginTree {...tree} signal={new AbortController().signal} renderContent={() => assert.fail("SSR fixture expects plain strings")} />)}</body></html>`).document;
 }
 
-// Renderer seam: this test host gives each delegated content mount its own
-// lifetime, making descendant unmounts observable without the UI factory.
+// Frontera del renderizador: este host de prueba da a cada montaje de contenido delegado su
+// propia vida, lo que hace observables los desmontajes de descendientes sin la factoría de UI.
 function TestContent({ content, signal }: { content: PluginUiContent; signal: AbortSignal }) {
 	const root = useRef<HTMLDivElement>(null);
 	useLayoutEffect(() => {
@@ -85,7 +85,7 @@ function content(name: string, lifecycle: { mounted: string[]; cleaned: string[]
 }
 const lifecycle = () => ({ mounted: [] as string[], cleaned: [] as string[], signals: new Map<string, AbortSignal>() });
 
-// Private widget validation accepts occurrence keys, not domain identities.
+// La validación privada del widget acepta claves de aparición, no identidades del dominio.
 test("validation covers hidden duplicate row keys, duplicate columns and malformed widths without changing accepted keys", () => {
 	const accepted = props([{ key: "", content: "empty key" }, { key: "  ", content: "space key", children: [{ key: "same item elsewhere", content: "Repeated entity" }] }], {
 		columns: [{ key: "", header: "Zero width", width: 0 }, { key: "  ", header: "CSS width", width: "  calc(2rem + 1px)  " }],
@@ -318,7 +318,7 @@ test("Space selects only the host checkbox of a row or its selection prefix, nev
 	const row = (disabled = false): PluginTreeRow => ({ key: "selectable", content: custom, selection: { label: "Select row", checked: false, disabled, onChange: value => { selected.push(value); } }, disclosure: { label: "Children", expanded: false, onChange: noChange } });
 	const f = await fixture(props([row(), { key: "plain", content: "No host checkbox" }]));
 	const selectable = treeRow("selectable"), checkbox = selectable.querySelector<HTMLInputElement>('[data-plugin-tree-control="selection"]')!;
-	// linkedom does not perform the browser checkbox's native click toggle.
+	// linkedom no hace el cambio nativo por clic de la casilla del navegador.
 	const click = checkbox.click.bind(checkbox); checkbox.click = () => { checkbox.checked = !checkbox.checked; click(); };
 	await f.pointer(selectable);
 	assert.equal((await f.key(selectable, " ")).defaultPrevented, true); assert.deepEqual(selected, [true]);

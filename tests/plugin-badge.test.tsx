@@ -17,7 +17,7 @@ async function withBadge(run: (f: {
 }) => Promise<void>) {
 	const dom = parseHTML("<html><body><div id='root'></div><div id='target'>caller-owned</div></body></html>");
 	const parserCalls: [string, string][] = [];
-	// Dependency stub only: real Chromium also exercises the CSS parser and paint.
+	// Solo un sustituto de la dependencia: Chromium real también ejercita el analizador CSS y el pintado.
 	const values = { window: dom.window, self: dom.window, document: dom.document, HTMLElement: dom.window.HTMLElement,
 		Element: dom.window.Element, Node: dom.window.Node, HTMLInputElement: dom.window.HTMLInputElement,
 		HTMLTextAreaElement: dom.window.HTMLTextAreaElement, IS_REACT_ACT_ENVIRONMENT: true,
@@ -80,7 +80,7 @@ it("badge validation rejects malformed text/colors and invalid tints atomically 
 		{ text: "Invalid", color: null }, { text: "Invalid", color: 42 }, { text: "Invalid", color: "" },
 		{ text: "Invalid", color: " " }, { text: "Invalid", color: "not-a-color" },
 		{ text: "Invalid", color: "red; position: fixed" }, { text: "Invalid", color: "url(https://example.invalid/x)" },
-		{ text: "Invalid", color: "inherit" }, // Valid property keyword, but not a color-mix operand.
+		{ text: "Invalid", color: "inherit" }, // Palabra clave de propiedad válida, pero no un operando de color-mix.
 	];
 	for (const props of invalid) {
 		assert.throws(() => f.ui.mountBadge(f.target, props as PluginBadgeProps, { signal: f.widget.signal }), TypeError);

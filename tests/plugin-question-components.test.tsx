@@ -536,7 +536,7 @@ for (const check of [false, true]) test(`healthy ${check ? "teach" : "probe"} th
 test("framed PathInput preserves the thinking ref, typed draft and native editing keys", async () => {
 	const f = await fixture({ thinking: true });
 	const input = document.querySelector<HTMLElement>('[data-testid="thinking-field"] [data-file-path-input]')!;
-	// linkedom does not implement the browser's isContentEditable getter.
+	// linkedom no implementa el getter isContentEditable del navegador.
 	Object.defineProperty(input, "isContentEditable", { configurable: true, value: true });
 	await act(async () => {
 		document.getElementById("plugin-editor")!.focus();

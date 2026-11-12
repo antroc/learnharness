@@ -48,8 +48,8 @@ async function fixture(strict: boolean, run: (f: {
 	function Boundary() {
 		const state = useChatSession({ chatId: "fixture", initialMessages: record, initiallyInFlight: false });
 		current = state;
-		// The production Chat effect's stable identity: reconnecting effects
-		// must request fresh authority even for the same retained question.
+		// La identidad estable del efecto de Chat en producción: los efectos que se
+		// reconectan deben pedir autoridad nueva incluso para la misma pregunta retenida.
 		const identity = pendingPluginQuestionOf(state.canonicalMessages)?.questionId ?? null;
 		useEffect(() => { if (identity) void state.reconcile(); }, [identity, state.reconcile]);
 		return <output>{state.reconciliation}:{state.pluginQuestionAvailability?.status ?? "unknown"}</output>;

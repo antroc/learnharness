@@ -28,7 +28,7 @@ const packageInfo: PluginInfo = { id: "render-proof", origin: "community", enabl
 	apiVersion: 1, id: "render-proof", name: "Renderer proof", version: "1.0.0", minAppVersion: "0.3.7", main: "main.js",
 } };
 
-/** Real provider + React effects, but no network, user files, or provider calls. */
+/** Proveedor y efectos de React reales, pero sin red, ficheros del usuario ni llamadas a proveedores. */
 async function harness(frontend: PluginFrontendModule, { reserved = true } = {}) {
 	const dom = parseHTML("<html><head></head><body><div id='test-root'></div></body></html>");
 	const keys = ["window", "self", "document", "HTMLElement", "Element", "Node", "MutationObserver", "requestAnimationFrame", "cancelAnimationFrame", "IS_REACT_ACT_ENVIRONMENT"] as const;

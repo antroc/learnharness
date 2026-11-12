@@ -52,8 +52,8 @@ async function fixture(options: { missing?: boolean; available?: boolean; ready?
   return { state, draft, render, submit, get editorProps() { return editorProps; }, replaceRegistration(next?: ProblemRendererRegistration) { registration = next; } };
 }
 
-/** Match Chat's real runner reservation -> asynchronous dictation -> capture seam.
- * A synchronous prepare stub cannot expose the reservation's parent re-render. */
+/** Reproduce la frontera real de Chat: reserva del runner -> dictado asíncrono -> captura.
+ * Un sustituto síncrono de prepare no puede exponer el nuevo render del padre por la reserva. */
 async function preparingFixture() {
   const renderRoot = await dom();
   const draft: PluginProblemDraft = { submission: { status: "empty" }, thinking: "original thinking" };

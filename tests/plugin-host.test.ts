@@ -252,7 +252,7 @@ test("dispose/disable abort cooperative pending activation and disposed host rej
 	f.plugin("example", {}, `exports.activate = async ctx => { ctx.handle('context', () => ctx); await new Promise(resolve => ctx.signal.addEventListener('abort', resolve, {once:true})); };`);
 	await f.host.initialize();
 	const enabling = f.host.setEnabled("example", true);
-	// A service factory resolves the synchronization point without timing/sleeps.
+	// Una factoría de servicio resuelve el punto de sincronización sin temporizadores ni esperas.
 	let started!: () => void;
 	const startedPromise = new Promise<void>(r => { started = r; });
 	const original = f.deps.createServices;
