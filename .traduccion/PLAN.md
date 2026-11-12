@@ -22,10 +22,11 @@ comentarios y docstrings de los 7 ficheros Python. El código en sí no se modif
   apunten a ellos, en el mismo fichero y desde otros ficheros ya traducidos.
 - Frontmatter YAML: se traducen los valores descriptivos (`description`), no las claves ni `name`.
 - Textos legales (LICENSE, avisos de copyright en THIRD-PARTY) se dejan en inglés.
-- Los prompts de `src/agent/prompts/` se traducen como el resto (esta rama es para leer;
-  ten en cuenta que, si se ejecutara la app desde esta rama, el agente recibiría los prompts en castellano).
-  Consecuencia conocida: las pruebas que comprueban frases literales de los prompts en inglés
-  (p. ej. `tests/practice-agents.test.ts`) fallan en esta rama; no se tocan.
+- Los prompts de `src/agent/prompts/` se traducen como el resto: al ejecutar la app desde
+  esta rama, el agente recibe los prompts en castellano.
+  Las pruebas que comprueban frases literales de los prompts se actualizaron en la sesión 16
+  a las frases en castellano (ver Registro); si cambias la redacción de un prompt, actualiza
+  también la prueba que la fija.
 - Cadenas literales que el código genera o muestra y que el agente o el lector deben reconocer
   tal cual se dejan en inglés, entre comillas: en los prompts, “Recorded learner–helper
   conversation”, *Your thinking*, *Next problem*, "Check your understanding", "dismissed",
@@ -49,9 +50,10 @@ comentarios y docstrings de los 7 ficheros Python. El código en sí no se modif
   "Tipo público del SDK, exportado como…", "Declaración de apoyo usada por un tipo
   público…", "— declaración de apoyo", "**Tipos relacionados:**", "**Devuelve:**",
   "**Índice de miembros** (…)", "[Índice de la API]", los enlaces a guías de la cabecera y
-  el comentario `<!-- Generado por … -->`. Consecuencia conocida: la prueba
-  `tests/plugin-api-reference.test.ts` (que compara con una regeneración) falla en esta
-  rama; no se toca. También se tradujeron en todos los ficheros "— N firmas o variantes" y
+  el comentario `<!-- Generado por … -->`. Desde la sesión 16 el generador
+  (`scripts/build-plugin-api-reference.mjs`) escribe esas frases en castellano y la
+  referencia se regenera desde los JSDoc del código (la fuente canónica): para cambiar la
+  prosa de `docs/plugin-api/`, edita el JSDoc y regenera. También se tradujeron en todos los ficheros "— N firmas o variantes" y
   las cabeceras de las tablas de parámetros ("| Parámetro | Tipo |"). Excepción: los
   encabezados de `docs/plugin-api/README.md` sí se tradujeron (nada enlaza a sus anclas).
   Para la prosa se usa `.traduccion/prosa.py` (extrae los párrafos fuera de código y
@@ -532,3 +534,24 @@ falsos positivos).
   Inconsistencia de glosario conocida, no corregida: *seam* aparece como «juntura» en
   docs/archive/ y en los primeros ficheros de C1 (antes de fijar «frontera» en la sesión 6).
   REVISIÓN FINAL TERMINADA.
+- Sesión 16 (pruebas en verde): el fork pasa a ser un proyecto independiente que se va a
+  evolucionar, así que se arreglan las pruebas que fallaban por la traducción. Con la
+  batería completa se vio que eran 8 ficheros, no 3:
+  tests/skills/test_skill.py (frases del SKILL.md); tests/plugin-api-reference.test.ts
+  (plantillas del generador `scripts/build-plugin-api-reference.mjs` traducidas con las
+  frases que ya usaban los docs y `docs/plugin-api/` regenerado desde los JSDoc: cambian
+  ≈168 párrafos de redacción, que ahora salen del código); y las que fijan frases de los
+  prompts: practice-agents, jobs, prompt-overrides, side-chat y question-tools (frases en
+  castellano tomadas de los prompts traducidos; las comprobaciones de textos retirados
+  —`doesNotMatch`— también se tradujeron para que sigan protegiendo algo). En
+  tests/chat-flow.test.ts se quitó `assert.match(seen, /committed/)`: solo coincidía con
+  el prompt del sistema en inglés, porque el resultado de herramienta que ve el modelo
+  lleva únicamente {kind, text} (queda un comentario explicándolo). Las descripciones de
+  las herramientas y los mensajes de error siguen en inglés (son cadenas de código), así
+  que sus comprobaciones no cambian.
+  Resultado: Python 53/53; TS sin fallos atribuibles a la traducción. Fallan solo 6 pruebas
+  de entorno que también fallan en `main` en este contenedor (passive-tooltip,
+  plugin-document-proxy, safe-fetch-connector, safe-fetch ×2, subscription-auth: red,
+  tiempos y CLI); la batería completa se queda colgada tras safe-fetch, así que el resto se
+  ejecuta aparte. `tsc --noEmit` solo da errores en plugins/ por no estar compilado el SDK
+  `learnharness-plugin-api` aquí (instalación con --ignore-scripts).
