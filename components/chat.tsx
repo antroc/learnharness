@@ -324,7 +324,9 @@ export function Chat({
 	const submissionMounted = useRef(true);
 	useEffect(() => { submissionMounted.current = true; return () => { submissionMounted.current = false; submissionRunner.dispose(); }; }, [submissionRunner]);
 	useEffect(() => () => submissionRunner.dispose(), [surfaceTarget, submissionRunner]);
-	const inputViewReader = useRef<(() => PluginSessionViewInput) | null>(null) as SessionInputViewReader;
+	// Objeto estable propio, no useRef: React sella los refs al renderizar en el servidor en desarrollo
+	// y la asignación de `changed` de abajo fallaría con «object is not extensible».
+	const [inputViewReader] = useState<SessionInputViewReader>(() => ({ current: null }));
 	const [, refreshViewContext] = useState(0);
 	const notifyViewChanged = useCallback(() => { if (submissionMounted.current) refreshViewContext(value => value + 1); }, []);
 	inputViewReader.changed = notifyViewChanged;
@@ -2512,9 +2514,10 @@ export function DockOverlay({
 	const readingInputRef = useRef<HTMLDivElement>(null);
 	const ownsDock = !!pending || !!pluginQuestion || unreadablePlugin || !!practice;
 	const initialPendingRef = useRef(pendingId);
-	const nativeViewReader = useRef<(() => NativeQuestionViewState) | null>(null) as ViewReaderRef<NativeQuestionViewState>;
-	const practiceViewReader = useRef<(() => string) | null>(null) as ViewReaderRef<string>;
-	const customViewReader = useRef<(() => { available: boolean }) | null>(null) as ViewReaderRef<{ available: boolean }>;
+	// Objetos estables propios, no useRef: la asignación de `changed` de abajo fallaría con un ref sellado.
+	const [nativeViewReader] = useState<ViewReaderRef<NativeQuestionViewState>>(() => ({ current: null }));
+	const [practiceViewReader] = useState<ViewReaderRef<string>>(() => ({ current: null }));
+	const [customViewReader] = useState<ViewReaderRef<{ available: boolean }>>(() => ({ current: null }));
 	nativeViewReader.changed = practiceViewReader.changed = customViewReader.changed = viewReader?.changed;
 
 	// Estado de LLEGADA de una pregunta de enseñanza, aplicado durante el render — ANTES del
