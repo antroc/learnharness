@@ -13,8 +13,8 @@
  *
  * El arreglo es BORRARLO: sin hook, pi-ai resuelve las claves de forma
  * nativa desde el entorno en cada petición, que es la intención declarada de
- * la arquitectura (models.ts: "the keys seam reflects file-saved keys into
- * env"). Este fichero fija que el borrado se mantiene: los agentes construidos
+ * la arquitectura (models.ts: «la juntura de claves refleja en env las claves
+ * guardadas en fichero»). Este fichero fija que el borrado se mantiene: los agentes construidos
  * NO deben exponer ningún hook getApiKey, para que la resolución nativa se
  * ejecute con todos los proveedores.
  *

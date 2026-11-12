@@ -1526,7 +1526,7 @@ export async function verifyPluginBrowser(url, options = {}) {
 		await page.waitForSelector('[role="dialog"][aria-label="Static Markdown dialog proof"]', { visible: true });
 		await markdownAction("dialog", "formatted"); await assertStaticFormatted("dialog", 1);
 		const disabledMarkdownDialog = await page.$(markdownRoot("dialog"));
-		// Global Settings is independent of the plugin dialog being unloaded.
+		// Los Ajustes globales no dependen de que el diálogo del plugin esté descargado.
 		await chord(",");
 		await page.waitForSelector('[data-testid="settings-dialog"]', { visible: true });
 		await page.locator('[data-testid="settings-nav-plugins"]').click();

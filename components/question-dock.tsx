@@ -557,7 +557,7 @@ function QuestionDockForm({
 			const modded = e.altKey || e.metaKey || e.ctrlKey;
 			// Tab a secas alterna el foco: filas → thinking. El deslizador de
 			// confianza NO recibe foco en absoluto (responsable, ronda de interfaz 2026-10-01) —
-			// global ←/→ own its keyboard, so it never joins the chain.
+			// las ←/→ globales son dueñas de su teclado, así que nunca entra en la cadena.
 			// Shift+Tab se deja pasar (es del ciclo global del nivel de thinking),
 			// así que la comprobación de shift importa.
 			if (e.key === "Tab" && !e.shiftKey && !modded) {
@@ -587,7 +587,7 @@ function QuestionDockForm({
 				setKbdIdx(next);
 				if (t?.closest?.("[data-kbdrow]")) focusRow(next);
 			} else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-				// Global confidence cycling (owner, UI round 2026-10-01): the
+				// Ciclo global de la confianza (responsable, ronda de interfaz 2026-10-01):
 				// El MISMO patrón que ↑/↓ sobre las filas — funciona esté donde esté el
 				// foco, sin hacer clic, sin anillo de foco. Inactivo con "I don't know"
 				// (el deslizador se agrisa y no se envía nada).

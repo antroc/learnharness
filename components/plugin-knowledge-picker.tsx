@@ -144,7 +144,7 @@ export function PluginKnowledgePicker({ value, onChange, disabled, signal, onErr
 		if (!modal && (!pane?.isConnected || !pane.contains(trigger.current) || !route || route.signal.aborted)) {
 			latest.current.onError(new Error("Knowledge picker source is no longer in an active host pane")); return;
 		}
-		// Global dialogs own their own lifetime; the unrelated page behind a
+		// Los diálogos globales gestionan su propia vida; la página ajena que hay detrás de
 		// el modal puede navegar sin que caduque su selector aún vivo.
 		const source: PickerOrigin = { pane, route: modal ? null : route, owner: invocationOwner, modal };
 		const owner: OpeningLease | null = controller.reserveOpening(PICKER_SLOT, { opener: trigger.current, onRevoke: () => {

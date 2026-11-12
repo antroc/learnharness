@@ -108,7 +108,7 @@ export const PathInput = React.forwardRef<HTMLDivElement, PathInputProps>(functi
 		function stage(paths: string[]) {
 			if (composing.current) { pendingPaths.push(...paths); return; }
 			remember();
-			// Global drop may have moved focus: saved selection is still authoritative.
+			// Un soltado global puede haber movido el foco: la selección guardada sigue siendo la que vale.
 			let next: PathEditSnapshot;
 			try { next = insertFilePaths(current, saved, paths); }
 			catch { return; } // Las cargas de evento no válidas nunca modifican el texto del alumno.
