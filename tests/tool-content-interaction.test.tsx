@@ -31,8 +31,8 @@ test("actual select → submit → saved result → historical Why uses source d
 		assert.equal(choice.getAttribute("aria-checked"), "true");
 		const submit = [...host.querySelectorAll<HTMLButtonElement>("button")].find(button => button.textContent?.includes("Submit answer"))!;
 		assert.equal(submit.disabled, false);
-		// linkedom does not implement the browser's default button→form
-		// action; dispatch its native submit event through React instead.
+		// linkedom no implementa la acción por defecto botón→formulario del navegador;
+		// despacha en su lugar su evento submit nativo a través de React.
 		await act(async () => submit.closest("form")!.dispatchEvent(new window.Event("submit", { bubbles: true, cancelable: true })));
 		assert.ok(answer);
 		assert.equal(answer.questionText, question);

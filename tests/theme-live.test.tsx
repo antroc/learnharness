@@ -110,7 +110,7 @@ it("a server palette refresh cannot overwrite newer live colors or mode; typogra
 		await act(async () => render({}));
 		await act(async () => live.onAppearanceChange({ theme: dawn.id, colors: { text: "#123456" }, fontFamily: "Georgia", sessionNameSerif: false }));
 		assert.equal(document.documentElement.style.getPropertyValue("--foreground"), "#123456");
-		// Simulate <html> rewritten by a refreshed layout before provider effects.
+		// Simula un <html> reescrito por un layout refrescado antes de los efectos del proveedor.
 		document.documentElement.className = "dark";
 		document.documentElement.style.setProperty("--foreground", "#111111");
 		await act(async () => render({ colors: { text: "#111111" } }, { ...DEFAULT_THEME, mode: "light" }));

@@ -5,14 +5,14 @@ import type { ChatStore } from "../src/core/ports.ts";
 import { runPiTurn } from "../src/server/pi/ui-stream.ts";
 import { persistTurn } from "../src/server/turn-service.ts";
 
-/** No engine or network: exercise the runner's awaited listener seam. */
+/** Sin motor ni red: ejercita la frontera del listener esperado del runner. */
 function agentEndingWith(loopFailure?: Error): Agent {
 	const listeners: Array<(event: never) => unknown> = [];
 	return {
 		state: { messages: [] },
 		subscribe(listener: (event: never) => unknown) { listeners.push(listener); return () => {}; },
 		async continue() {
-			await Promise.resolve(); // let the view subscribe before the terminal
+			await Promise.resolve(); // deja que la vista se suscriba antes del terminal
 			if (loopFailure) throw loopFailure;
 			for (const listener of listeners) await listener({ type: "agent_end", messages: [] } as never);
 		},

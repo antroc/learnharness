@@ -1,10 +1,11 @@
 /**
- * Turn liveness registry unit tests (src/server/turn-liveness.ts): one turn
- * per chat, ever — begin/end round trip, double-begin rejection, restart
- * after end. The 30-minute stale-eviction TTL is not tested (it is a leak
- * guard, not a behavior). The lifecycle-emitter pins ride the same seams:
- * turn-started on the accepted begin only, turn-settled on the live end
- * only, and the registry already consistent when the listener runs.
+ * Pruebas unitarias del registro de vida del turno (src/server/turn-liveness.ts):
+ * un turno por chat, siempre: ida y vuelta de begin/end, rechazo del doble
+ * begin, reinicio tras end. El TTL de expulsión de obsoletos de 30 minutos no se
+ * prueba (es una guarda contra fugas, no un comportamiento). Las fijaciones del
+ * emisor del ciclo de vida usan las mismas fronteras: turn-started solo en el
+ * begin aceptado, turn-settled solo en el end vivo, y el registro ya coherente
+ * cuando se ejecuta el listener.
  */
 
 import assert from "node:assert/strict";
@@ -45,7 +46,7 @@ describe("turn lifecycle events", () => {
 		assert.equal(beginTurn(id), true, "fresh chat accepts the turn");
 		assert.equal(beginTurn(id), false, "the rejected double-begin");
 		assert.deepEqual(got, [{ type: "turn-started", chatId: id }], "exactly one event");
-		endTurn(id); // cleanup (its settle is asserted in the next case's terms)
+		endTurn(id); // limpieza (su asentamiento se comprueba en los términos del caso siguiente)
 		off();
 	});
 
@@ -55,15 +56,15 @@ describe("turn lifecycle events", () => {
 		let runningAtSettle: boolean | undefined;
 		const off = subscribe((e) => {
 			got.push(e);
-			// The settle must be observable as already-idle: the registry
-			// write happens BEFORE the emit, so a listener that fetches truth
-			// (the whole point of notify → fetch) reads consistent state.
+			// El asentamiento debe observarse como ya en reposo: la escritura en el registro
+			// ocurre ANTES de la emisión, así que un listener que pide la verdad
+			// (todo el sentido de notificar → pedir) lee un estado coherente.
 			if (e.type === "turn-settled") runningAtSettle = isTurnRunning(id);
 		});
 		beginTurn(id);
-		got.length = 0; // focus on the settle path
-		endTurn(id); // live entry → settle
-		endTurn(id); // absent entry → defensive no-op, must stay silent
+		got.length = 0; // céntrate en el camino del asentamiento
+		endTurn(id); // entrada viva → asentamiento
+		endTurn(id); // entrada ausente → operación nula defensiva, debe quedarse callada
 		assert.deepEqual(got, [{ type: "turn-settled", chatId: id }]);
 		assert.equal(runningAtSettle, false, "listener sees the registry already cleared");
 		off();

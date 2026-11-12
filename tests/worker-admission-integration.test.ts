@@ -1,5 +1,6 @@
-/** Offline request-boundary integration. Storage/auth roots are installed before
- * composition imports; every transcript, PDF and provider response is synthetic. */
+/** Integración sin conexión de la frontera de peticiones. Las raíces de almacenamiento/
+ * autenticación se instalan antes de los imports de composición; todas las transcripciones,
+ * PDF y respuestas de proveedor son sintéticos. */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -109,7 +110,7 @@ function submit(name: string, value: unknown, onCall?: () => void, gate?: Promis
 }
 
 test("actual audit lock: cancelling middle B cannot let C audit while A still holds audit+merge", { timeout: 8_000 }, async () => {
-	configureWorkerRequestAdmission(() => 8); // admission must not mask lock overlap
+	configureWorkerRequestAdmission(() => 8); // la admisión no debe ocultar el solapamiento de bloqueos
 	const graphStore = memoryLedgers();
 	const a = teachingChat("Alpha"), b = teachingChat("Beta"), c = teachingChat("Gamma");
 	const gate = deferred();
@@ -163,7 +164,7 @@ test("shared injected engine: each request releases before tools, and continuati
 	}], { engine, role: "researcher", systemPrompt: "Synthetic worker", prompt: "Work", maxTurns: 2, onUsage: () => { usage++; } });
 	try {
 		await toolEntered.promise;
-		// No role: the explicit-engine path used by ctx.workers tasks.
+		// Sin rol: el camino de motor explícito que usan las tareas de ctx.workers.
 		assert.equal((await run(engine, { onUsage: () => { usage++; } })).text, "Synthetic answer.");
 		assert.equal(calls, 2, "a running tool does not retain a worker model permit");
 		assert.equal(engine.streamFn, sharedStream, "shared engine is not mutated or globally classified");
@@ -307,8 +308,8 @@ test("same injected engine stays ungated for direct teacher/prober/practice, raw
 		await engine.streamFn(engine.model, normalizeContext({ messages: [newUserMessage("Raw standalone inference")] })).result();
 		const chat = chatStore.createChat("Synthetic compaction");
 		chatStore.saveMessages(chat.id, [newUserMessage("x".repeat(100_000)), newUserMessage("y".repeat(100_000)), newUserMessage("z".repeat(100_000)), newUserMessage("recent")]);
-		// The production settle-kick exercises the real summarizer even in tests
-		// (ensureCompacted intentionally skips non-injected summaries in test mode).
+		// El empujón de asentamiento de producción ejercita el resumidor real incluso en las pruebas
+		// (ensureCompacted se salta a propósito los resúmenes no inyectados en modo de pruebas).
 		kickCompaction(() => ({ chatStore, engine, modelId: "faux:synthetic", kind: "teach", thresholdTokens: 1_000, systemPromptTokens: 0 }), chat.id);
 		await awaitCompaction(chat.id);
 		const record = chatStore.getChat(chat.id)!;

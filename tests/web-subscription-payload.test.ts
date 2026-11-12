@@ -1,4 +1,4 @@
-/** Exercise the real curator against synthetic payloads, never the repo payload. */
+/** Ejercita el curador real con cargas sintéticas, nunca con la carga del repo. */
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, copyFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";

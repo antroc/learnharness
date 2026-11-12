@@ -1,11 +1,13 @@
 /**
- * Unit tests — the UI parse seam (src/core/tool-parts.ts).
+ * Pruebas unitarias: la frontera de análisis de la UI (src/core/tool-parts.ts).
  *
- * The rule born of the 2026-09-12 live crashes: model-authored tool input
- * is consumed only through these parsers, each running the SAME zod schema
- * the model faced at the boundary. These pins hold the two exact live
- * crash shapes (the model's double-encoding habit) and the boundary-parity
- * property: anything a boundary schema accepts, the display parse accepts.
+ * La regla nacida de los fallos reales del 2026-09-12: la entrada de
+ * herramienta escrita por el modelo solo se consume a través de estos
+ * analizadores, cada uno con el MISMO esquema zod que el modelo encontró en la
+ * frontera. Estas fijaciones sostienen las dos formas exactas de los fallos
+ * reales (la costumbre del modelo de codificar dos veces) y la propiedad de
+ * paridad con la frontera: todo lo que acepta un esquema de frontera lo acepta
+ * el análisis para mostrar.
  */
 
 import assert from "node:assert/strict";
@@ -30,8 +32,8 @@ const TEACHER_QUIZ = {
 	],
 	correctAnswer: "truth",
 	explanation: "Convention-T schematizes truth for the object language.",
-	type: "check", // teach-only role field — the display parse KEEPS it (the dock gates by it)
-	nodeId: "convention-t", // teacher-only field — the display parse must accept and strip it
+	type: "check", // campo de rol solo de enseñanza: el análisis para mostrar lo CONSERVA (el dock depende de él)
+	nodeId: "convention-t", // campo solo del profesor: el análisis para mostrar debe aceptarlo y quitarlo
 };
 
 const PROBER_QUIZ = {
@@ -75,13 +77,13 @@ describe("parseQuizInput", () => {
 	});
 
 	it("boundary parity: the 2026-09-26 string-options shape heals on read (universal-heal mirror, 2026-10-09)", () => {
-		// The boundary now heals a JSON-encoded options string at EVERY
-		// registry (healToolRecord, owner 2026-10-09 — the bare-quiz sets
-		// carried no prepareArguments at all), and the record keeps the RAW
-		// args — so the display parse heals the same shape, per this file's
-		// own parity law: anything the boundary accepts, the display parse
-		// accepts, or the posed quiz renders nowhere while the turn has
-		// ended = learner lockout.
+		// Ahora la frontera repara una cadena options codificada en JSON en TODOS los
+		// registros de herramientas (healToolRecord, responsable 2026-10-09: los conjuntos de quiz
+		// a secas no llevaban ningún prepareArguments), y el registro conserva los argumentos EN
+		// BRUTO, así que el análisis para mostrar repara la misma forma, según la propia
+		// ley de paridad de este fichero: todo lo que acepta la frontera lo acepta el
+		// análisis para mostrar, o el quiz planteado no se renderiza en ninguna parte con el
+		// turno ya terminado = alumno bloqueado.
 		const stringified = { ...PROBER_QUIZ, options: JSON.stringify(PROBER_QUIZ.options) };
 		const parsed = parseQuizInput(stringified);
 		assert.ok(parsed, "the healed-at-boundary record must parse on read");
@@ -89,14 +91,14 @@ describe("parseQuizInput", () => {
 	});
 
 	it("boundary parity under Value.Convert: a NUMERIC correctAnswer parses (live-smoke lockout fix, 2026-09-26)", () => {
-		// The live smoke's model emitted correctAnswer: 17 (number). pi's
-		// boundary runs Value.Convert before Value.Check, so the quiz posed
-		// — but the record keeps the RAW args. A parse seam without Convert
-		// would reject exactly what the boundary accepted: the pending quiz
-		// renders nowhere while the turn has ended = learner lockout.
-		// Dock-visible parity case: the smoke's real emission — options whose
-		// values ARE the numbers, correctAnswer numeric. Convert → "17",
-		// refinement passes (it matches an option), the quiz parses.
+		// El modelo de la prueba de humo en vivo emitió correctAnswer: 17 (número). La frontera
+		// de pi ejecuta Value.Convert antes de Value.Check, así que el quiz se planteó,
+		// pero el registro conserva los argumentos EN BRUTO. Una frontera de análisis sin Convert
+		// rechazaría justo lo que aceptó la frontera: el quiz pendiente no se
+		// renderiza en ninguna parte con el turno ya terminado = alumno bloqueado.
+		// Caso de paridad visible en el dock: la emisión real de la prueba de humo: opciones cuyos
+		// valores SON los números, correctAnswer numérico. Convert → "17",
+		// el refinamiento pasa (coincide con una opción) y el quiz se analiza.
 		const numeric = {
 			question: "What is 5 + 3 × 4?",
 			options: [
@@ -114,10 +116,10 @@ describe("parseQuizInput", () => {
 		const parsedArray = parseQuizInput(numericArray);
 		assert.ok(parsedArray);
 		assert.deepEqual(parsedArray.correctAnswer, ["17", "27"]);
-		// Non-convertible garbage still never parses (structure owns it)…
+		// La basura no convertible sigue sin analizarse nunca (es cosa de la estructura)…
 		assert.equal(parseQuizInput({ ...PROBER_QUIZ, correctAnswer: { bad: true } }), undefined);
-		// …and Convert's widening (undefined → "") is caught by the refinement
-		// chain the boundary itself uses — garbage renders as a quiet fallback.
+		// …y la ampliación de Convert (undefined → "") la detecta la cadena de refinamientos
+		// que usa la propia frontera: la basura se renderiza como una alternativa discreta.
 		const widened = { ...PROBER_QUIZ, correctAnswer: undefined };
 		assert.equal(parseQuizInput(widened), undefined, "the refinement owns the reject");
 	});
@@ -154,8 +156,8 @@ describe("parseProbeDoneInput", () => {
 	});
 
 	it("the live crash shape — assessment STRINGIFIED — does not parse", () => {
-		// The exact double-encoding from the modal-realism run: strands died
-		// on `.map` because the card cast the shape. The parse kills the class.
+		// La doble codificación exacta de la ejecución de modal-realism: los hilos morían
+		// en `.map` porque la tarjeta forzaba la forma. El análisis acaba con toda la clase.
 		const stringified = { assessment: JSON.stringify(VALID_ASSESSMENT.assessment) };
 		assert.equal(parseProbeDoneInput(stringified), undefined);
 		const garbage = JSON.stringify(VALID_ASSESSMENT.assessment).slice(0, 30);
@@ -167,9 +169,9 @@ describe("parseProbeDoneInput", () => {
 	});
 });
 describe("LaTeX-escape restoration (the JSON-debris fix, owner ruling 2026-09-26)", () => {
-	// The exact live shapes from the modal-logic session: single-backslash
-	// LaTeX inside JSON args — JSON escape resolution ate the command's
-	// first letter (\f → FF ate 'f' of \forall, \v → VT ate 'v' of \varphi).
+	// Las formas reales exactas de la sesión de lógica modal: LaTeX con una sola barra
+	// invertida dentro de argumentos JSON: la resolución de escapes de JSON se comía la
+	// primera letra del comando (\f → FF se comía la 'f' de \forall, \v → VT la 'v' de \varphi).
 	it("presentation restores debris from parsed source fields (question + options + explanation)", () => {
 		const parsed = parseQuizInput({
 			question: "What does \\(\\forall x\\, \\varphi(x)\\) mean?",
@@ -231,7 +233,7 @@ describe("LaTeX-escape restoration (the JSON-debris fix, owner ruling 2026-09-26
 });
 
 describe("display-math newline rule (Option A, owner ruling 2026-09-27)", () => {
-	// TS literal below: \\[ is \[, \\forall is intact \forall, \n is a REAL newline, \\\\ is the LaTeX \\ line break.
+	// Literal de TS de abajo: \\[ es \[, \\forall es un \forall intacto, \n es un salto de línea REAL, \\\\ es el salto de línea \\ de LaTeX.
 	const MULTILINE = "Compare:\n\\[\n\\forall x, & f(x) = x^2 \\\\\n& g(x) = x^3\n\\]";
 
 	it("real newlines inside display math are kept — multi-line equations pass through untouched", () => {
@@ -363,13 +365,13 @@ describe("dollar-delimiter recognition — existing escape restoration rules", (
 	});
 });
 
-// ─── parseExplainInput (free-recall display parse, owner 2026-09-27) ───────
+// ─── parseExplainInput (análisis para mostrar del recuerdo libre, responsable 2026-09-27) ─
 
 describe("parseExplainInput: the dock's display seam for explain calls", () => {
 	const good = {
 		question: "Explain why Mercury is hard to observe.",
 		correctAnswer: "Its small angular separation from the Sun — it never strays far from the Sun in our sky.",
-		nodeId: "planet-order", // the teacher's field — STRIPPED by Clean, like quiz
+		nodeId: "planet-order", // el campo del profesor: Clean lo QUITA, como en quiz
 		details: "Think about where it appears at dusk.",
 	};
 
@@ -386,7 +388,7 @@ describe("parseExplainInput: the dock's display seam for explain calls", () => {
 	});
 
 	it("restores LaTeX escape debris inside math spans (the pi-ai streaming wobble)", () => {
-		// \f of \forall was eaten by the lenient args parse: U+000C + "orall".
+		// el análisis permisivo de los argumentos se comió la \f de \forall: U+000C + "orall".
 		const dirty = "Because \(orall x\) holds.";
 		const parsed = parseExplainInput({ ...good, correctAnswer: dirty })!;
 		assert.equal(parsed.correctAnswer, "Because \(\forall x\) holds.");
@@ -396,14 +398,14 @@ describe("parseExplainInput: the dock's display seam for explain calls", () => {
 		assert.equal(parseExplainInput("just a string"), undefined);
 		assert.equal(parseExplainInput({ explanation: "e", correctAnswer: "a" }), undefined, "missing question");
 		assert.equal(parseExplainInput({ question: "q", explanation: "e", correctAnswer: { nested: true } }), undefined);
-		// 42 → "42": the same numeric coercion the quiz seam pins.
+		// 42 → "42": la misma conversión numérica que fija la frontera del quiz.
 		assert.equal(parseExplainInput({ question: "q", explanation: "e", correctAnswer: 42 })?.correctAnswer, "42");
 	});
 });
 
 describe("over-escaped command recovery after shape parsing", () => {
-	// Keep these real authoring shapes, but recover only for presentation.
-	// Parsed source is also used to build durable answers and identities.
+	// Conserva estas formas de autoría reales, pero recupera solo para la presentación.
+	// El origen analizado también se usa para construir respuestas e identidades duraderas.
 	const CLEAN =
 		"Let $f : \\mathbb{R}^n \\to \\mathbb{R}$ be differentiable at $x$, with $\\nabla f(x) \\neq 0$. Among all unit directions $\\|u\\|_2 = 1$, which makes $D_u f(x)$ most negative?";
 	const DOUBLE = (s: string): string => s.replace(/\\/g, "\\\\");
@@ -421,7 +423,7 @@ describe("over-escaped command recovery after shape parsing", () => {
 		assert.ok(parsed, "parses");
 		assert.equal(parsed.question, DOUBLE(CLEAN), "shape parsing retains source");
 		assert.equal(repairMathForDisplay(parsed.question), CLEAN);
-		// The CLEAN sibling fields of the same call stay byte-identical.
+		// Los campos hermanos LIMPIOS de la misma llamada quedan idénticos byte a byte.
 		assert.equal(parsed.options[0]!.label, BASE.options[0]!.label);
 		assert.equal(parsed.explanation, BASE.explanation);
 	});

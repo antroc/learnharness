@@ -128,7 +128,7 @@ test("abort during reserved-permit handoff releases exactly once and skips cance
 	const signal = new AbortController();
 	const a = f.call(signal.signal), b = f.call();
 	const results = [a.result(), b.result()];
-	signal.abort(); // first permit reserved, source microtask has not executed
+	signal.abort(); // primer permiso reservado, la microtarea de origen aún no se ha ejecutado
 	await tick(); assert.equal(f.sources.length, 1);
 	assert.equal(globals[key]?.active, 1);
 	assert.equal((await results[0]!).stopReason, "aborted");
@@ -199,7 +199,7 @@ test("terminal and result observers can await a child at capacity one (release-b
 	assert.equal((await stream(model, context).result()).stopReason, "toolUse");
 });
 
-/** Same lazy result convention as production PluginStream. */
+/** La misma convención de resultado perezoso que el PluginStream de producción. */
 class PullStream extends AssistantMessageEventStream {
 	started = false;
 	pulls = 0;
@@ -214,7 +214,7 @@ class PullStream extends AssistantMessageEventStream {
 		})();
 	}
 	override result(): Promise<AssistantMessage> {
-		if (!this.started) void (async () => { for await (const _event of this) { /* native convention */ } })();
+		if (!this.started) void (async () => { for await (const _event of this) { /* convención nativa */ } })();
 		return super.result();
 	}
 }
@@ -381,7 +381,7 @@ test("caller abort during synchronous source construction preserves native abort
 		const stream = workerRequestStream((_model, _context, options) => {
 			const source = new AssistantMessageEventStream();
 			options!.signal!.addEventListener("abort", () => finish(source, actual), { once: true });
-			caller.abort(); // Native abort terminal exists before the factory returns.
+			caller.abort(); // El terminal de aborto nativo existe antes de que vuelva la factoría.
 			return source;
 		})(model, context, { signal: caller.signal });
 		if (!resultOnly) {
@@ -425,7 +425,7 @@ test("uncooperative next()/return() cannot strand wrapper return/result or leak 
 				return: () => new Promise(() => {}),
 			};
 		}
-		override end(): void { /* Deliberately ignores native cancellation. */ }
+		override end(): void { /* Ignora a propósito la cancelación nativa. */ }
 	}
 	const stream = workerRequestStream((_model, _context, options) => {
 		const signal = options!.signal!;
@@ -436,12 +436,12 @@ test("uncooperative next()/return() cannot strand wrapper return/result or leak 
 	})(model, context);
 	const iterator = stream[Symbol.asyncIterator](), pending = iterator.next();
 	await started;
-	await iterator.return?.(); // Neither the source next() nor return() settles.
+	await iterator.return?.(); // Ni el next() ni el return() del origen se asientan.
 	await pending;
 	assert.equal((await stream.result()).stopReason, "aborted");
 	assert.equal(globals[key]?.active, 0);
 	assert.equal(added, 1); assert.equal(removed, 1);
-	// A late rejection must already have a handler after the cancellation race.
+	// Un rechazo tardío ya debe tener manejador tras la carrera de cancelación.
 	rejectLate(new Error("late ignored provider failure")); await tick();
 	const child = workerRequestStream(() => { const source = new AssistantMessageEventStream(); finish(source); return source; })(model, context);
 	assert.equal((await child.result()).stopReason, "stop");

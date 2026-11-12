@@ -15,8 +15,8 @@ const deferred = <T,>() => {
 const occurrence = { messageId: "pose", contentIndex: 0, toolCallId: "call", toolName: "custom_pose" };
 
 async function fixture(kind: "question" | "practice", enabled = true) {
-	// Deliberately not the coding plugin: only frozen host capability flags
-	// decide the label, never plugin identity or similarly named payload fields.
+	// A propósito no es el plugin de programación: solo los indicadores congelados de capacidad
+	// del host deciden la etiqueta, nunca la identidad del plugin ni campos de carga con nombres parecidos.
 	const payload = { requiresGrading: true, requiresProcessing: true };
 	const question: PluginQuestionSnapshot = {
 		protocolVersion: enabled ? 2 : 1, ...(enabled ? { requiresGrading: true as const } : {}),

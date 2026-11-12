@@ -1,10 +1,11 @@
 /**
- * The default-order resolution, client-side (chunk 2): the UI populates a
- * fresh model pick's thinking level with the SAME level the engine build
- * runs for an unset record — first DEFAULT_THINKING_ORDER entry the model
- * supports (Platform's interlude bd68486 moved the ordering into the core
- * barrel exactly for this). These tests pin the helper against the
- * server's defaultThinkingLevel semantics (src/agent/models.ts).
+ * La resolución del orden por defecto, en el cliente (fragmento 2): la UI rellena
+ * el nivel de razonamiento de un modelo recién elegido con el MISMO nivel con el
+ * que la construcción del motor ejecuta un registro sin fijar: la primera entrada
+ * de DEFAULT_THINKING_ORDER que admita el modelo (el interludio bd68486 de
+ * Platform movió la ordenación al barril del núcleo justo para esto). Estas
+ * pruebas fijan el auxiliar frente a la semántica de defaultThinkingLevel del
+ * servidor (src/agent/models.ts).
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -20,7 +21,7 @@ describe("defaultOrderLevel — the ordering's first supported", () => {
 	});
 
 	it("a model without medium falls to the NEXT order entry it supports", () => {
-		// order: medium, low, high, minimal, xhigh, max — low wins here
+		// orden: medium, low, high, minimal, xhigh, max: aquí gana low
 		assert.equal(defaultOrderLevel(tl(["minimal", "low", "high"])), "low");
 		assert.equal(defaultOrderLevel(tl(["high", "xhigh", "max"])), "high");
 	});
@@ -45,7 +46,7 @@ describe("populateLevel — an explicit pick always rides; absence populates", (
 	});
 
 	it("an UNSUPPORTED explicit level STILL rides — the write clamps server-side (bd68486), the signal re-reads the clamped truth", () => {
-		// xhigh rides even though unsupported here; never re-populated client-side
+		// xhigh se mantiene aunque aquí no se admita; nunca se vuelve a rellenar en el cliente
 		assert.equal(populateLevel("xhigh", tl(["minimal", "medium", "high"])), "xhigh");
 	});
 

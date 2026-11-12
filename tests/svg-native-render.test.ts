@@ -1,5 +1,5 @@
-/** Static native SVG rendering, bounded render-only repairs, strict annotation
- * input, and native failures that never dispatch a browser or system Chrome. */
+/** Render nativo estático de SVG, reparaciones acotadas solo para el render, entrada
+ * de anotaciones estricta y fallos nativos que nunca despachan un navegador ni el Chrome del sistema. */
 import assert from "node:assert/strict";
 import { describe, it, type TestContext } from "node:test";
 import childProcess from "node:child_process";
@@ -91,9 +91,9 @@ describe("native renderSvg (resvg only)", () => {
 	});
 
 	it("viewBox-only SVG gets the 900px-wide default", async () => {
-		// No width attr anywhere (svgViewport grabs the FIRST width= in the
-		// document — children included — a pre-existing quirk kept for
-		// parity; use a circle so the default branch is exercised).
+		// Ningún atributo width en ninguna parte (svgViewport coge el PRIMER width= del
+		// documento, hijos incluidos: una rareza previa que se conserva por
+		// paridad; usa un círculo para que se ejercite la rama por defecto).
 		const svg =
 			'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200"><circle cx="150" cy="100" r="90" fill="#aa5533"/></svg>';
 		const png = await realHeadless.renderSvg(svg);
@@ -118,7 +118,7 @@ describe("native renderSvg (resvg only)", () => {
 		const png = await realHeadless.renderSvg(svg);
 		const f = pngFacts(png);
 		assert.equal(f.w, 300);
-		// A blank 300x100 white PNG is ~300 bytes; glyphs push it well past.
+		// Un PNG blanco vacío de 300x100 ocupa ~300 bytes; los glifos lo hacen crecer mucho más.
 		assert.ok(png.length > 1000, `text rendered (png ${png.length} bytes > 1000)`);
 	});
 });

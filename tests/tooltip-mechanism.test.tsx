@@ -1,11 +1,12 @@
 /**
- * Tooltip-wave mechanism pins (owner, 2026-09-25): the composition rule —
- * icon/pill controls ride the styled Radix tooltip via Hint, the shortcut
- * appended as an em-dash suffix off the LIVE registry (a rebind changes
- * the suffix); truncation-reveals keep native title=; the copy carries no
- * internal vocabulary. Node 26 exposes the host platform through navigator,
- * so expectations cover Mac glyphs AND Ctrl+/Shift+ elsewhere. Composition
- * is the pin; running on a Mac must not be a test prerequisite.
+ * Fijaciones del mecanismo de la oleada de tooltips (responsable, 2026-09-25): la
+ * regla de composición: los controles de icono/píldora usan el tooltip Radix
+ * con estilo mediante Hint, con el atajo añadido como sufijo tras una raya a
+ * partir del registro EN VIVO (reasignar cambia el sufijo); las revelaciones de
+ * texto truncado conservan el title= nativo; el texto no lleva vocabulario
+ * interno. Node 26 expone la plataforma del host mediante navigator, así que las
+ * expectativas cubren los glifos de Mac Y Ctrl+/Shift+ en los demás. La
+ * composición es lo que se fija; ejecutarse en un Mac no debe ser requisito de la prueba.
  */
 
 import React from "react";

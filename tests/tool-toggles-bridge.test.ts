@@ -1,14 +1,15 @@
 /**
- * The P2 tool-toggle bridge (2026-09-19): AgentBuildOptions.toolToggles is
- * first-class — the agent constructors thread it to the factories' enabled?
- * param (an explicit opts.tools registry is never filtered), and the
- * settings write side rejects unknown tool keys against TOGGLEABLE_TOOLS
- * (the definitive adjudicated list — a persisted `quiz: false` would
- * genuinely drop the quiz once the bridge honors the delta).
+ * El puente de conmutadores de herramientas P2 (2026-09-19):
+ * AgentBuildOptions.toolToggles es de primera clase: los constructores de
+ * agentes lo pasan al parámetro enabled? de las factorías (un registro
+ * explícito opts.tools nunca se filtra), y la parte de escritura de los
+ * ajustes rechaza las claves de herramienta desconocidas contra
+ * TOGGLEABLE_TOOLS (la lista definitiva decidida: un `quiz: false` persistido
+ * quitaría de verdad el quiz en cuanto el puente respetara el delta).
  *
- * Parser tests are PURE (no fs — parallel-test discipline); the agent
- * construction tests use an in-memory chat fixture like
- * question-tools.test.ts.
+ * Las pruebas del analizador son PURAS (sin sistema de ficheros: disciplina de
+ * pruebas en paralelo); las de construcción de agentes usan una fixture de chat
+ * en memoria como question-tools.test.ts.
  */
 import assert from "node:assert/strict";
 import { z } from "zod";
@@ -23,8 +24,8 @@ import { chatStore } from "../src/store/chats.ts";
 import { createFauxCore } from "@earendil-works/pi-ai";
 import type { PiEngine } from "../src/agent/models.ts";
 
-/** A scripted pi engine — the agent builds need an injected engine since
- *  BYOK removed the factory pins (owner, 2026-09-22). */
+/** Un motor pi guionizado: construir los agentes requiere un motor inyectado desde
+ *  que BYOK quitó las fijaciones de fábrica (responsable, 2026-09-22). */
 function fauxEngine(): PiEngine {
 	const faux = createFauxCore({});
 	return { model: faux.getModel(), streamFn: faux.streamSimple };
@@ -36,8 +37,8 @@ describe("AgentBuildOptions.toolToggles (the P2 bridge)", () => {
 		agent.state.tools.map((t) => t.name).sort();
 
 	it("flows into the teacher's registry: a job-tool delta is a no-op on the bare set", () => {
-		// No ctx → bare agent: quiz/ask only. A job-tool delta names tools
-		// that don't exist there — the bridge must not crash on it.
+		// Sin ctx → agente a secas: solo quiz/ask. Un delta de herramientas de tareas nombra
+		// herramientas que ahí no existen: el puente no debe fallar por ello.
 		const bare = createTeacherAgent(undefined, { engine: fauxEngine(), toolToggles: { research: false } });
 		assert.deepEqual(toolNames(bare), ["ask_user_question", "quiz"]);
 	});

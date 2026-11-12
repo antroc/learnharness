@@ -1,23 +1,24 @@
 /**
- * THE WHITEHEAD INCIDENT PINS (owner, 2026-10-09): glm-5.3 (z-ai via
- * OpenRouter) emitted two argument-wobble shapes in one real session —
- * quiz `type: "\"predict\""` (the literal with quotes baked in; the
- * schema's own description displayed the values quoted+colon) rejected
- * TEN times with byte-identical retries while the lesson never started,
- * and `correctAnswer: [":parmenides"]` (the option value with the JSON
- * key-value colon glued on) rejected four times.
+ * LAS FIJACIONES DEL INCIDENTE WHITEHEAD (responsable, 2026-10-09): glm-5.3 (z-ai
+ * mediante OpenRouter) emitió dos formas de titubeo de argumentos en una sesión
+ * real: `type: "\"predict\""` en quiz (el literal con las comillas dentro; la
+ * propia descripción del esquema mostraba los valores entre comillas y con dos
+ * puntos) rechazado DIEZ veces con reintentos idénticos byte a byte mientras la
+ * lección no llegaba a empezar, y `correctAnswer: [":parmenides"]` (el valor de
+ * la opción con los dos puntos de clave-valor de JSON pegados) rechazado cuatro veces.
  *
- * The fixes these pins hold:
- *  1. THE STANDARD HEAL EVERYWHERE — healToolRecord wraps every registry
- *     (bareQuestionTools carried NO prepareArguments at all), and the
- *     quote-encoded literal heals before TypeBox validation.
- *  2. THE DEBRIS STRIP AT MEMBERSHIP SEAMS — stripModelValueDebris in
- *     coerceCorrectAnswer (boundary check + grading), normalizeQuizType,
- *     and resolveTargetId.
- *  3. THE DISPLAY MIRROR — the record keeps RAW arguments, so
- *     parseQuizInput heals the same wobble on read (the tool-parts law:
- *     a healed-at-boundary quiz whose display parse rejects is an
- *     invisible pending quiz and a learner lockout).
+ * Los arreglos que sostienen estas fijaciones:
+ *  1. LA REPARACIÓN ESTÁNDAR EN TODAS PARTES: healToolRecord envuelve todos los
+ *     registros de herramientas (bareQuestionTools no llevaba NINGÚN
+ *     prepareArguments), y el literal codificado con comillas se repara antes
+ *     de la validación TypeBox.
+ *  2. LA LIMPIEZA DE RESTOS EN LAS FRONTERAS DE PERTENENCIA: stripModelValueDebris
+ *     en coerceCorrectAnswer (comprobación de frontera + calificación),
+ *     normalizeQuizType y resolveTargetId.
+ *  3. EL ESPEJO DE LA VISTA: el registro conserva los argumentos EN BRUTO, así
+ *     que parseQuizInput repara el mismo titubeo al leer (la ley de tool-parts:
+ *     un quiz reparado en la frontera cuyo análisis para mostrar lo rechaza es
+ *     un quiz pendiente invisible y deja bloqueado al alumno).
  */
 
 import assert from "node:assert/strict";
@@ -36,13 +37,13 @@ import { resolveTargetId } from "../src/core/chains.ts";
 import { bareQuestionTools } from "../src/agent/teacher-agent.ts";
 import { probeQuizTool } from "../src/agent/tools.ts";
 
-/** The incident's exact encoding: the value wrapped in literal quotes. */
+/** La codificación exacta del incidente: el valor envuelto en comillas literales. */
 function QUOTED(value: string): string {
 	return `"${value}"`;
 }
 
-// A complete, well-formed teach-quiz input — the incident's call with
-// every field valid BUT the wobbled one.
+// Una entrada completa y bien formada de quiz de enseñanza: la llamada del incidente
+// con todos los campos válidos SALVO el del titubeo.
 function whiteheadQuiz(type: unknown, correctAnswer: unknown) {
 	return {
 		question: "What was Parmenides' claim?",
@@ -101,9 +102,9 @@ describe("the death-loop shape — quiz type with quotes baked in", () => {
 	});
 
 	it("WIRING: the 2026-09-26 string-options shape heals through the bare quiz too", () => {
-		// The universal heal covers the ORIGINAL incident's shape as well:
-		// options serialized as a JSON string (then healed only on the
-		// plan-tree quiz path; the bare registries had nothing).
+		// La reparación universal también cubre la forma del incidente ORIGINAL:
+		// options serializado como cadena JSON (entonces solo se reparaba en el camino
+		// del quiz de plan-tree; los registros a secas no tenían nada).
 		const quiz = bareQuestionTools().quiz;
 		assert.ok(quiz?.prepareArguments, "the bare quiz must carry the standard heal");
 		const input = whiteheadQuiz("predict", ["parmenides"]);
@@ -123,8 +124,8 @@ describe("the colon shape — correctAnswer with copy-syntax debris", () => {
 		assert.equal(stripModelValueDebris(QUOTED("predict")), "predict");
 		assert.equal(stripModelValueDebris(`: "primary-external" `), "primary-external");
 		assert.equal(stripModelValueDebris("`value`"), "value");
-		assert.equal(stripModelValueDebris("a:b"), "a:b"); // interior colon is content
-		assert.equal(stripModelValueDebris('["x"]'), '["x"]'); // interior quotes are content (JSON-array strings)
+		assert.equal(stripModelValueDebris("a:b"), "a:b"); // los dos puntos interiores son contenido
+		assert.equal(stripModelValueDebris('["x"]'), '["x"]'); // las comillas interiores son contenido (cadenas de array JSON)
 	});
 
 	it("coerceCorrectAnswer cleans non-matching entries (boundary check + grading seam)", () => {
@@ -180,11 +181,11 @@ describe("the display mirror — raw records heal on read", () => {
 		const raw = whiteheadQuiz(QUOTED("predict"), [":parmenides"]);
 		const parsed = parseQuizInput(raw);
 		assert.ok(parsed, "the wobbled record must parse — else the quiz is invisible");
-		// The display schema's type is DELIBERATELY a lenient string (old
-		// and probe records carry none); the read seam is normalizeQuizType —
-		// which strips the recorded wobble to the intended role.
+		// El type del esquema de vista es A PROPÓSITO una cadena permisiva (los registros
+		// antiguos y los de sondeo no lo llevan); la frontera de lectura es normalizeQuizType,
+		// que quita el titubeo registrado para dejar el rol pretendido.
 		assert.equal(normalizeQuizType(parsed?.type), "predict");
-		// The graded answer resolves to the option despite the recorded colon.
+		// La respuesta calificada se resuelve a la opción pese a los dos puntos registrados.
 		assert.deepEqual(parsed ? coerceCorrectAnswer(parsed.correctAnswer, parsed.options.map((o) => o.value ?? o.label)) : [], ["parmenides"]);
 	});
 });

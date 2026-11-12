@@ -1,6 +1,6 @@
-/** Keyless research availability + the injected search port.
- * No network, no shared data files — the jobStore fake below is in-memory.
- * A missing search key is a recoverable tool result, not a dispatch gate.
+/** Disponibilidad de la investigación sin clave + el puerto de búsqueda inyectado.
+ * Sin red ni ficheros de datos compartidos: el falso jobStore de abajo es en memoria.
+ * Que falte la clave de búsqueda es un resultado de herramienta recuperable, no una barrera de envío.
  */
 
 import assert from "node:assert/strict";
@@ -75,18 +75,18 @@ describe("web_search on the injected port (web.ts)", () => {
 	it("web_fetch needs no search engine — it stays independent", async () => {
 		const { web_fetch } = createWebTools(() => null);
 		assert.ok(web_fetch, "web_fetch present with no provider");
-		// (Full fetch behavior is out of scope here — no network in tests.)
+		// (El comportamiento completo de fetch queda fuera del alcance aquí: sin red en las pruebas).
 		const out = await web_fetch!.execute!("c1", { url: "not a url" });
 		assert.match(String(out.details), /web_fetch failed: invalid URL/);
 	});
 
 	it("web_fetch ACCEPTS a valid http(s) URL — the protocol gate must not reject everything (the colon bug, 2026-10-07)", async () => {
-		// URL.protocol is \"https:\" WITH the colon; the colon-less comparison
-		// ported from the py harness (urlparse().scheme has none) made the
-		// gate throw for every valid URL — the tool never fetched a page in
-		// its life (owner-reported via OpenRouter logs). This pin stubs fetch
-		// so the happy path runs hermetically: a VALID url must REACH the
-		// fetch stage.
+		// URL.protocol es \"https:\" CON los dos puntos; la comparación sin dos puntos
+		// portada del arnés de py (urlparse().scheme no los lleva) hacía que la
+		// barrera lanzara error con cualquier URL válida: la herramienta no descargó una página en
+		// toda su vida (informado por el responsable a partir de los registros de OpenRouter). Esta
+		// fijación sustituye fetch para que el camino feliz se ejecute de forma hermética: una URL
+		// VÁLIDA debe LLEGAR a la fase de fetch.
 		const { web_fetch } = createWebTools(() => null);
 		safeFetchOverride.current = (async () =>
 			new Response("A plain text page with enough content to matter for the test.", {
@@ -129,7 +129,7 @@ describe("keyless researcher loop", () => {
 		}), "Prompt verified; no model behavior inferred.");
 	});
 
-	// These scripts prove tool/loop mechanics, not real-model compliance.
+	// Estos guiones demuestran la mecánica de herramientas/bucle, no el cumplimiento de un modelo real.
 	for (const searchFirst of [true, false]) {
 		it(searchFirst ? "recovers from missing search keys by fetching a supplied URL" : "fetch-only research needs no search credentials", async () => {
 			const url = "https://example.com/supplied-source";
@@ -172,7 +172,7 @@ describe("keyless researcher loop", () => {
 			try {
 				assert.equal(await runResearcherAgent(`Verify ${url}`, {
 					engine: { model: faux.getModel(), streamFn: faux.streamSimple },
-					// No search seam: this is the keyless backstop, not a search stub.
+					// Sin frontera de búsqueda: esta es la red de seguridad sin clave, no un sustituto de la búsqueda.
 				}), brief);
 				assert.deepEqual(fetched, [url]);
 			} finally {
@@ -182,7 +182,7 @@ describe("keyless researcher loop", () => {
 	}
 });
 
-/** Minimal in-memory JobStore — registry tests never touch the fs. */
+/** JobStore mínimo en memoria: las pruebas del registro de herramientas nunca tocan el sistema de ficheros. */
 function fakeJobStore(): JobStore {
 	const jobs = new Map<string, JobRecord>();
 	return {
@@ -208,7 +208,7 @@ function fakeJobStore(): JobStore {
 		},
 		listJobs: () => [...jobs.values()],
 		findJobByToolCallId: () => null,
-		deleteJobsForChat: () => 0, // the drop tests never delete
+		deleteJobsForChat: () => 0, // las pruebas de descarte nunca borran
 	};
 }
 
@@ -254,14 +254,14 @@ describe("keyless research dispatch (jobTools)", () => {
 	});
 });
 
-// Exercise live registry factories too: search status must not override
-// the existing per-role/user-toggle policy.
+// Ejercita también las factorías vivas del registro de herramientas: el estado de búsqueda
+// no debe imponerse a la política existente por rol/conmutador del usuario.
 
 import { createProberTools, createTeacherTools } from "../src/agent/tools.ts";
 import type { ChatStore } from "../src/core/ports.ts";
 
-/** A chat-store stub — the registry factories only CLOSE OVER it at build
- *  time (quiz/plan superRefines read it at execute time, never here). */
+/** Un sustituto del almacén de chats: las factorías del registro de herramientas solo lo
+ *  CAPTURAN al construirse (los superRefine de quiz/plan lo leen al ejecutarse, nunca aquí). */
 const fakeChatStore = {
 	getChat: () => null,
 	saveMessages: () => {},

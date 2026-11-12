@@ -1,8 +1,8 @@
 /**
- * The theme wave's pure core (src/core/themes.ts): the import validator,
- * the presets, the theme → CSS-token adapter (Default pinned against the
- * app/globals.css literals), override precedence across the two override
- * homes, and the export.
+ * El núcleo puro de la oleada de temas (src/core/themes.ts): el validador de
+ * importación, los presets, el adaptador tema → tokens CSS (Default fijado
+ * contra los literales de app/globals.css), la precedencia de sustituciones
+ * entre los dos sitios de sustituciones y la exportación.
  */
 
 import assert from "node:assert/strict";
@@ -81,7 +81,7 @@ describe("presets", () => {
 	});
 });
 
-/** The declarations of the block opening with `selector {`. */
+/** Las declaraciones del bloque que se abre con `selector {`. */
 function cssBlock(css: string, selector: string): Map<string, string> {
 	const start = css.indexOf(`${selector} {`);
 	assert.ok(start >= 0, `missing ${selector}`);

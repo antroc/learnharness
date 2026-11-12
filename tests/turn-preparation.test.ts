@@ -11,7 +11,7 @@ const terminal = 'data: {"type":"turn-settled"}\n\ndata: [DONE]\n\n';
 let serial = 0;
 const chatId = () => `preparation-${++serial}`;
 
-/** A replaying teacher seam: only the teacher owns bytes/history. */
+/** Una frontera de profesor que repite: solo el profesor es dueño de los bytes/el historial. */
 function teacher() {
 	const replay = ['data: {"type":"agent_start"}\n\n', 'data: {"type":"message_update","message":"before attach"}\n\n'];
 	const views = new Set<ReadableStreamDefaultController<Uint8Array>>();

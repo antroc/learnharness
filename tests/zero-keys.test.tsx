@@ -1,9 +1,10 @@
 /**
- * The zero-keys wave's pure seams (owner-locked over Platform's 66dbea9
- * key-presence gate, 2026-09-25): the provider-key truth (hasProviderKey
- * — tool keys don't count, they unlock no models), the pill's SSR shape,
- * and the SetupDialog's self-contained first-key screen (the dialog STAYS
- * MOUNTED after a save; these pins hold the screen's structure).
+ * Las fronteras puras de la oleada de cero claves (cerrada por el responsable
+ * sobre la barrera de presencia de claves 66dbea9 de Platform, 2026-09-25): la
+ * verdad de las claves de proveedor (hasProviderKey: las claves de
+ * herramientas no cuentan, no desbloquean modelos), la forma SSR de la píldora
+ * y la pantalla autónoma de primera clave del SetupDialog (el diálogo SIGUE
+ * MONTADO tras guardar; estas fijaciones sostienen la estructura de la pantalla).
  */
 
 import assert from "node:assert/strict";
@@ -38,7 +39,7 @@ describe("hasProviderKey — the zero-keys pill's truth", () => {
 	});
 
 	it("a TOOL key alone does not count — Deepgram unlocks no models", () => {
-		// Deepgram is not in the providers roster: it must never suppress the pill.
+		// Deepgram no está en la plantilla de proveedores: nunca debe suprimir la píldora.
 		assert.equal(hasProviderKey([status("DEEPGRAM_API_KEY", true)], PROVIDERS), false);
 	});
 
@@ -54,7 +55,7 @@ describe("ZeroKeysPill — the composer-hoisted notice", () => {
 		assert.ok(html.includes('data-testid="setup-cta-keys"'));
 		assert.match(html, />Add a provider key<\/button>/);
 		assert.doesNotMatch(html, /chats start|—/);
-		// the models CTA's testid must not appear on the keys pill
+		// el testid de la llamada a la acción de modelos no debe aparecer en la píldora de claves
 		assert.ok(!html.includes('data-testid="setup-cta"'));
 	});
 });
@@ -106,7 +107,7 @@ describe("SetupKeysBody — stage 1's self-contained first-key screen", () => {
 		);
 		assert.ok(html.includes('data-testid="setup-key-error"'));
 		assert.ok(html.includes("Expected 20+ characters"));
-		// the old "Open Keys settings" round-trip died with the self-contained screen
+		// la antigua ida y vuelta a "Open Keys settings" murió con la pantalla autónoma
 		assert.ok(!html.includes("setup-open-keys"));
 	});
 });
@@ -120,8 +121,8 @@ describe("the dictation keyless seam (owner dictation trio)", () => {
 		assert.equal(DEEPGRAM_KEY_ID, "DEEPGRAM_API_KEY");
 	});
 });
-/** A minimal catalog double — only the two halves the strong-keyless guard
- *  reads: the strong pin and the present-key providers list. */
+/** Un doble mínimo del catálogo: solo las dos mitades que lee la guarda de strong
+ *  sin clave: la fijación de strong y la lista de proveedores con clave presente. */
 const catalog = (strongProvider: string | null, ...keyedProviders: string[]): ModelCatalogResponse => ({
 	models: [],
 	defaults: null,
@@ -145,15 +146,15 @@ const catalog = (strongProvider: string | null, ...keyedProviders: string[]): Mo
 
 describe("strongKeyless — the pre-send guard's truth (owner interlude, no-orphan-chats)", () => {
 	it("strong pinned to a provider whose key is gone: the guard FIRES", () => {
-		// keys exist generally (anthropic), but the strong slot pins openrouter
+		// hay claves en general (anthropic), pero la ranura fuerte fija openrouter
 		assert.equal(strongKeyless(catalog("openrouter", "anthropic")), true);
-		// no keys at all with a strong pin: also keyless (guard case 1 fires too)
+		// ninguna clave con una fijación de strong: también sin clave (también salta el caso 1 de la guarda)
 		assert.equal(strongKeyless(catalog("openrouter")), true);
 	});
 
 	it("strong provider's key present: the guard does NOT fire — the normal send path stays open", () => {
 		assert.equal(strongKeyless(catalog("openrouter", "openrouter", "anthropic")), false);
-		// belt check: a provider row never counts when keyPresent is false
+		// comprobación extra: una fila de proveedor nunca cuenta cuando keyPresent es false
 		const lying = catalog("openrouter", "openrouter", "anthropic");
 		lying.providers[0]!.keyPresent = false;
 		assert.equal(strongKeyless(lying), true);

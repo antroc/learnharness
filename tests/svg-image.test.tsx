@@ -12,8 +12,8 @@ import { VisualOutputCard } from "../components/artifacts/visual-card.tsx";
 import { svgImageSource } from "../components/artifacts/svg-image.tsx";
 import { MermaidOverlay, SessionMermaidContext } from "../components/session-overlay.tsx";
 
-// Structure-only checks: linkedom does not load images or implement CSS cascade.
-// No fixture script, link, or external reference is executed by these tests.
+// Comprobaciones solo de estructura: linkedom no carga imágenes ni implementa la cascada CSS.
+// Estas pruebas no ejecutan ningún script, enlace ni referencia externa de la fixture.
 const FIGURE = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="160" viewBox="0 0 320 160"><style>text{font-family:Arial,Helvetica,sans-serif;fill:#202830}</style><defs><marker id="arrow"><path d="M0 0L5 5"/></marker></defs><path marker-end="url(#arrow)" d="M0 0L20 20"/><text>θ &amp; φ: 50% #1</text></svg>`;
 const ACTIVE_MARKUP = `<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" onload="example()"><script>example()</script><foreignObject><div xmlns="http://www.w3.org/1999/xhtml" onclick="example()">Example</div></foreignObject><a href="javascript:example()"><text>Link</text></a><image href="https://example.invalid/image.png"/></svg>`;
 const PREFIX = "data:image/svg+xml;charset=utf-8,";
@@ -178,7 +178,7 @@ it("the fullscreen button opens the same SVG image and inversion; download keeps
 		assert.equal(fullscreen.getAttribute("src"), inline.getAttribute("src"));
 		assert.match(overlayHolder.getAttribute("style")!, /invert\(1\) hue-rotate\(180deg\)/);
 
-		// Intercept only the download anchor; never navigate or write a real file.
+		// Intercepta solo el ancla de descarga; nunca navega ni escribe un fichero real.
 		dom.document.createElement = ((...args: Parameters<typeof originalCreateElement>) => {
 			const element = originalCreateElement.apply(dom.document, args);
 			if (args[0] === "a") {

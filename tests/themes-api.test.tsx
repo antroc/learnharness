@@ -1,9 +1,10 @@
 /**
- * The theme wave end to end over the real route handlers and the real
- * disk adapters (framework-free Request/Response, the prompt-overrides
- * precedent): picking a preset, importing and removing a custom theme,
- * and exporting. This file OWNS its temp LH_DATA_DIR (set before any
- * config-loading import — config.ts reads it at module load).
+ * La oleada de temas de extremo a extremo sobre los manejadores de ruta reales
+ * y los adaptadores de disco reales (Request/Response sin framework, el
+ * precedente de prompt-overrides): elegir un preset, importar y quitar un tema
+ * personalizado, y exportar. Este fichero es el RESPONSABLE de su LH_DATA_DIR
+ * temporal (fijado antes de cualquier import que cargue la configuración:
+ * config.ts lo lee al cargar el módulo).
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -43,7 +44,7 @@ const post = (body: unknown) => postTheme(new Request("http://x/api/themes", jso
 const del = (id: string) => deleteTheme(new Request(`http://x/api/themes/${id}`, { method: "DELETE" }), { params: Promise.resolve({ id }) });
 const list = async () => ((await (await getThemes()).json()) as { themes: Theme[] }).themes;
 
-/** The Settings section exactly as the app mounts it after a reload. */
+/** La sección de Ajustes exactamente como la monta la app tras recargar. */
 function renderSection(): string {
 	const { appearance, theme } = readThemeBoot();
 	return renderToStaticMarkup(
@@ -74,7 +75,7 @@ const ayu = {
 describe("picking a preset recolors the app and keeps my overrides", () => {
 	it("the background override survives the switch and paints over Latte", async () => {
 		writeSettingsRecord({ version: 1, appearance: { background: "#101010" } });
-		// The theme grid composes the whole section with the new id.
+		// La cuadrícula de temas compone toda la sección con el nuevo id.
 		const res = await put("appearance", { ...readSettingsRecord()!.appearance, theme: "catppuccin-latte" });
 		assert.equal(res.status, 200);
 		const stored = readSettingsRecord()!.appearance!;

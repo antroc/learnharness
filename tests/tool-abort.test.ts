@@ -1,12 +1,13 @@
 /**
- * The abort-cascade fix (2026-09-19), pinned against the pi-native seams
- * (Wave A, 2026-09-26): serverExecute (tool-execute.ts) races every tool
- * body against the run's AbortSignal and the system-level per-call timeout
- * — aborting the run kills a running tool, the timeout is the net so no
- * tool can hold a turn hostage (the 2.7-minute grep lesson). Question
- * tools bypass the guard entirely (questionResult is instant and carries
- * terminate). The fs tools honor the signal with partial results
- * (fs-tools.test.ts covers their side).
+ * El arreglo de la cascada de abortos (2026-09-19), fijado contra las fronteras
+ * nativas de pi (oleada A, 2026-09-26): serverExecute (tool-execute.ts) hace
+ * competir el cuerpo de cada herramienta con el AbortSignal de la ejecución y
+ * el tiempo límite por llamada del sistema: abortar la ejecución mata una
+ * herramienta en marcha, y el tiempo límite es la red para que ninguna
+ * herramienta pueda tener un turno de rehén (la lección del grep de 2,7
+ * minutos). Las herramientas de preguntas se saltan la guarda por completo
+ * (questionResult es instantáneo y lleva terminate). Las herramientas de
+ * ficheros respetan la señal con resultados parciales (fs-tools.test.ts cubre su lado).
  */
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
@@ -28,7 +29,7 @@ afterEach(() => {
 
 const probeSchema = Type.Object({});
 
-/** A native tool whose execute captures ctx.signal, then hangs or resolves. */
+/** Una herramienta nativa cuyo execute captura ctx.signal y luego se cuelga o se resuelve. */
 function probeTool(captured: { signal?: AbortSignal }, opts: { hang?: boolean; value?: string } = {}) {
 	return {
 		name: "probe",
@@ -37,7 +38,7 @@ function probeTool(captured: { signal?: AbortSignal }, opts: { hang?: boolean; v
 		parameters: probeSchema,
 		execute: serverExecute("probe", probeSchema, (_input: unknown, ctx: ToolExecuteContext) => {
 			captured.signal = ctx.signal;
-			if (opts.hang) return new Promise<string>(() => {}); // never settles, no timer
+			if (opts.hang) return new Promise<string>(() => {}); // nunca se asienta, sin temporizador
 			return opts.value ?? "ok";
 		}),
 	};
@@ -45,15 +46,15 @@ function probeTool(captured: { signal?: AbortSignal }, opts: { hang?: boolean; v
 
 describe("serverExecute abort + timeout guard", () => {
 	it("forwards a live abort signal to the tool's ctx", async () => {
-		// Even with no parent signal, the tool still gets the guard's combined
-		// signal (parent+timeout) — a stable reference tools can poll.
+		// Incluso sin señal del padre, la herramienta recibe la señal combinada de la
+		// guarda (padre+tiempo límite): una referencia estable que las herramientas pueden consultar.
 		const captured: { signal?: AbortSignal } = {};
 		const pi = probeTool(captured);
 		await pi.execute("c1", {});
 		assert.ok(captured.signal, "the tool received a signal");
 		assert.equal(captured.signal!.aborted, false);
-		// The forwarded signal is the guard's COMBINED one — aborting the
-		// parent flips it, which is what long-running tools poll.
+		// La señal reenviada es la COMBINADA de la guarda: abortar el
+		// padre la activa, y es lo que consultan las herramientas de larga duración.
 		const ac = new AbortController();
 		const captured2: { signal?: AbortSignal } = {};
 		const pi2 = probeTool(captured2, { value: "done" });
@@ -97,8 +98,8 @@ describe("serverExecute: cooperative settle, mapping parity, question bypass", (
 			parameters: schema,
 			execute: serverExecute("partial", schema, (_input: unknown, ctx: ToolExecuteContext) =>
 				new Promise((resolve) => {
-					// The fs-tools contract: poll upfront (a listener on an
-					// already-aborted signal never fires), else listen.
+					// El contrato de fs-tools: consulta al principio (un listener sobre una señal
+					// ya abortada nunca se dispara); si no, escucha.
 					const signal = ctx.signal!;
 					if (signal.aborted) return resolve("partial results");
 					signal.addEventListener("abort", () => resolve("partial results"), { once: true });
@@ -113,7 +114,7 @@ describe("serverExecute: cooperative settle, mapping parity, question bypass", (
 
 	it("questionResult is instant, terminates, and carries no details", async () => {
 		const ac = new AbortController();
-		ac.abort(); // a pre-aborted run signal — the placeholder must not care
+		ac.abort(); // una señal de ejecución ya abortada: al provisional le debe dar igual
 		const result = await askUserQuestionTool.execute("c6", { question: "q" }, ac.signal);
 		assert.match((result.content[0] as { text?: string }).text!, /Question posed/);
 		assert.equal(result.details, null);
