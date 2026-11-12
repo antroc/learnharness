@@ -22,14 +22,15 @@ afterEach(() => {
 });
 
 /**
- * The sessionless draft view (/chat/new, owner 2026-09-13): "+ New session"
- * opens the draft — NOTHING is created until the first message is sent, and
- * that message becomes the session's title. These pins hold the two seams:
- * startDraftSession (the create-on-send contract) and DraftShell (the
- * visible surface: composer blob + stats bar + the fresh-chat empty state).
+ * La vista de borrador sin sesión (/chat/new, responsable 2026-09-13): "+ New session"
+ * abre el borrador: NO se crea nada hasta enviar el primer mensaje, y ese
+ * mensaje se convierte en el título de la sesión. Estas fijaciones sostienen las dos
+ * fronteras: startDraftSession (el contrato de crear al enviar) y DraftShell (la
+ * superficie visible: burbuja del compositor + barra de estadísticas + el estado
+ * vacío de un chat nuevo).
  */
 
-/** A fetch double: records calls, answers /api/chats with a canned id. */
+/** Un doble de fetch: registra las llamadas y responde a /api/chats con un id preparado. */
 function fakeFetch(id: string) {
 	const calls: { url: string; method: string; body: unknown }[] = [];
 	const f = (async (url: string, init?: RequestInit) => {
@@ -111,18 +112,18 @@ describe("DraftShell — the sessionless surface", () => {
 				onSend={() => {}}
 			/>,
 		);
-		// The chat composer, ready for the first message.
+		// El compositor del chat, listo para el primer mensaje.
 		assert.ok(html.includes('data-testid="composer"'));
-		// The draft's model control binds the strong slot — the
-		// new-session default (per-session models, owner 2026-09-28).
+		// El control de modelo del borrador se enlaza a la ranura fuerte: el
+		// valor por defecto de una sesión nueva (modelos por sesión, responsable 2026-09-28).
 		assert.ok(html.includes('data-testid="stats-model"'));
-		// No CTA by default: a configured surface stays quiet.
+		// Sin llamada a la acción por defecto: una superficie configurada se queda callada.
 		assert.ok(!html.includes('data-testid="setup-cta"'));
-		// The same empty state a fresh chat shows.
+		// El mismo estado vacío que muestra un chat nuevo.
 		assert.ok(html.includes("The teacher will open by probing what you already know."));
-		// The pointer-events pattern (953b22b): the wrapper stays inert…
+		// El patrón de pointer-events (953b22b): el envoltorio sigue inerte…
 		assert.ok(html.includes("pointer-events-none"));
-		// …and the blob re-enables it.
+		// …y la burbuja lo vuelve a activar.
 		assert.ok(/rounded-2xl[^>]*pointer-events-auto|pointer-events-auto[^>]*rounded-2xl/.test(html));
 	});
 
@@ -140,11 +141,11 @@ describe("DraftShell — the sessionless surface", () => {
 				}
 			/>,
 		);
-		// The same affordance home carries, above the draft shell's blob.
+		// La misma indicación que lleva el inicio, encima de la burbuja del armazón del borrador.
 		assert.ok(html.includes('data-testid="setup-cta"'));
 		assert.match(html, />Set up your models<\/button>/);
 		assert.doesNotMatch(html, /chats start after/);
-		// Above the composer: the CTA's markup precedes the blob's.
+		// Encima del compositor: el marcado de la llamada a la acción precede al de la burbuja.
 		const cta = html.indexOf('data-testid="setup-cta"');
 		const blob = html.search(/rounded-2xl[^>]*pointer-events-auto|pointer-events-auto[^>]*rounded-2xl/);
 		assert.ok(cta !== -1 && blob !== -1 && cta < blob, "CTA above the blob");
@@ -189,7 +190,7 @@ describe("the practice draft (?mode=practice, 2026-10-04)", () => {
 			/>,
 		);
 		assert.match(html, />Pick nodes<\/button>/);
-		// picked: count + Clear, the home register verbatim
+		// elegidos: recuento + Clear, el registro del inicio tal cual
 		const picked = renderToStaticMarkup(
 			<DraftShell
 				busy={false}
@@ -202,7 +203,7 @@ describe("the practice draft (?mode=practice, 2026-10-04)", () => {
 		);
 		assert.match(picked, /1 node selected/);
 		assert.match(picked, /Clear/);
-		// teach mode with nothing picked renders nothing (home's law)
+		// el modo de enseñanza sin nada elegido no renderiza nada (la ley del inicio)
 		const teach = renderToStaticMarkup(
 			<DraftShell busy={false} text="" onChange={() => {}} onSend={() => {}} mode="teach" />,
 		);

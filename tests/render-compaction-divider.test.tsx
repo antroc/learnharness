@@ -1,16 +1,17 @@
 /**
- * THE COMPACTION DIVIDERS — SSR render pins (owner round 14; inert since
- * release polish 2026-10-06). Two ruled surfaces from one marker: the
- * MOMENT divider (minimal centered small text, the retrying-message
- * register — no rule lines) where the user is when compaction lands, and
- * the CUT divider (the longer one — phase-divider geometry, dotted rules
- * + a chip carrying the summarized token count) at the kept boundary.
+ * LOS DIVISORES DE COMPACTACIÓN: fijaciones de render SSR (ronda 14 del
+ * responsable; inertes desde el pulido de la release del 2026-10-06). Dos
+ * superficies regladas a partir de un marcador: el divisor del MOMENTO (texto
+ * pequeño centrado y mínimo, el registro del mensaje de reintento, sin rayas)
+ * donde está el usuario cuando llega la compactación, y el divisor del CORTE
+ * (el más largo: geometría de phase-divider, rayas punteadas + una etiqueta con
+ * el recuento de tokens resumidos) en el límite conservado.
  *
- * NOT VIEWABLE (owner, 2026-10-06): the summary dialog is gone — the
- * compaction content is model-facing plumbing; anyone who wants to
- * inspect it reads their provider logs. The pins below hold the
- * dividers INERT: plain markup, no button, no affordance, and the
- * marker's summary text never reaches the DOM.
+ * NO SE PUEDE VER (responsable, 2026-10-06): el diálogo del resumen ha
+ * desaparecido: el contenido de la compactación es fontanería de cara al
+ * modelo; quien quiera inspeccionarlo lee los registros de su proveedor. Las
+ * fijaciones de abajo mantienen los divisores INERTES: marcado simple, sin
+ * botón, sin indicación, y el texto del resumen del marcador nunca llega al DOM.
  */
 
 import React from "react";
@@ -41,7 +42,7 @@ describe("CompactionMomentDivider", () => {
 		const html = renderToStaticMarkup(<CompactionMomentDivider data={data} />);
 		assert.ok(html.includes('data-testid="compaction-divider"'));
 		assert.ok(html.includes("Context compacted"));
-		// NO horizontal rule (the owner ruling: minimal, unlike the cut)
+		// SIN raya horizontal (la decisión del responsable: mínimo, a diferencia del corte)
 		assert.ok(!html.includes("border-t-2"));
 	});
 });

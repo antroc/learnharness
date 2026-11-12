@@ -1,10 +1,11 @@
 /**
- * Render tests for the presentation layer (W3): the \(...\)/\[...\] math
- * delimiter contract, single-newline line breaks, and mermaid rendering.
+ * Pruebas de render de la capa de presentación (W3): el contrato de delimitadores
+ * matemáticos \(...\)/\[...\], los saltos de línea con un solo salto y el render
+ * de mermaid.
  *
- * Same idiom as render-cards.test.tsx: static HTML via react-dom/server, no
- * DOM. tsx note: tsx uses the CLASSIC JSX transform, so `React` must be a
- * resolvable global — the shim below provides it.
+ * La misma costumbre que render-cards.test.tsx: HTML estático mediante
+ * react-dom/server, sin DOM. Nota sobre tsx: tsx usa la transformación JSX
+ * CLÁSICA, así que `React` debe ser un global resoluble; el parche de abajo lo proporciona.
  */
 
 import React from "react";
@@ -17,7 +18,7 @@ import { MessageResponse } from "../components/ai-elements/message.tsx";
 import { MermaidError } from "../components/mermaid-error.tsx";
 import { transformMathDelimiters, healOverescapedCommands } from "../src/core/math-delims.ts";
 
-/** Render through MessageResponse in static mode (no streaming/remend artifacts). */
+/** Renderiza mediante MessageResponse en modo estático (sin artefactos de streaming/remend). */
 function render(md: string): string {
 	return renderToStaticMarkup(<MessageResponse mode="static">{md}</MessageResponse>);
 }
@@ -45,8 +46,8 @@ describe("math delimiter transform (pure unit)", () => {
 	});
 
 	it("degrades indented display math (list items) to the inline form", () => {
-		// An indented $$ flow block half-parses inside list continuations;
-		// inline keeps the math inside the item.
+		// Un bloque de flujo $$ sangrado se analiza a medias dentro de las continuaciones
+		// de lista; en línea, las matemáticas se quedan dentro del elemento.
 		assert.equal(
 			transformMathDelimiters("- item\n  \\[\n  x^2\n  \\]\n- next"),
 			"- item\n  $$x^2$$\n- next",
@@ -191,10 +192,10 @@ describe("render — line breaks (remark-breaks)", () => {
 
 describe("render — mermaid", () => {
 	it("renders a mermaid fence as a diagram container, not a raw code block", () => {
-		// SSR renders the lazy chunk's Suspense skeleton (the diagram itself
-		// mounts client-side after hydration) — so assert on what must NOT
-		// happen: the mermaid language must not take the code-block path, and
-		// the chart source must not leak as visible code.
+		// El SSR renderiza el esqueleto Suspense del fragmento perezoso (el diagrama en sí
+		// se monta en el cliente tras la hidratación), así que se comprueba lo que NO debe
+		// ocurrir: el lenguaje mermaid no debe tomar el camino del bloque de código y
+		// el código del gráfico no debe filtrarse como código visible.
 		const html = render("```mermaid\ngraph TD\nA --> B\n```");
 		assert.ok(
 			!html.includes('data-streamdown="code-block"'),
@@ -209,8 +210,8 @@ describe("render — mermaid", () => {
 	});
 
 	it("renders the error fallback for invalid mermaid: error + source + retry", () => {
-		// The fallback component mounts client-side when mermaid fails to
-		// parse; render it directly to pin its contract.
+		// El componente alternativo se monta en el cliente cuando mermaid no consigue
+		// analizar; se renderiza directamente para fijar su contrato.
 		const html = renderToStaticMarkup(
 			<MermaidError
 				chart={"not a diagram @@@\nA --> B"}
@@ -228,12 +229,12 @@ describe("render — mermaid", () => {
 
 
 describe("render — bold is the real <strong> (the dead Bold-color fix)", () => {
-	// Streamdown's default `strong` renders <span class="font-semibold"
-	// data-streamdown="strong"> — and the app's ink token rule
-	// (.lh-prose :where(strong, b), globals.css) matches strong/b
-	// ELEMENTS, so bold never took the --lh-ink-strong color (neither the
-	// factory #ee928c nor a settings boldColor). The mdComponents override
-	// renders the semantic element.
+	// El `strong` por defecto de Streamdown renderiza <span class="font-semibold"
+	// data-streamdown="strong">, y la regla del token de tinta de la app
+	// (.lh-prose :where(strong, b), globals.css) encaja con ELEMENTOS strong/b,
+	// así que la negrita nunca tomaba el color --lh-ink-strong (ni el
+	// #ee928c de fábrica ni un boldColor de los ajustes). La sustitución en mdComponents
+	// renderiza el elemento semántico.
 	it("bold renders a real <strong> element inside .lh-prose", () => {
 		const html = render("plain **bold** plain");
 		assert.ok(
@@ -254,14 +255,14 @@ describe("render — bold is the real <strong> (the dead Bold-color fix)", () =>
 	});
 });
 
-// ─── escaped dollars inside math (owner, 2026-10-12) ────────────────────────
+// ─── dólares escapados dentro de las matemáticas (responsable, 2026-10-12) ──
 //
-// micromark's mathText closer is code-span logic — ANY size-matched `$` run
-// closes, `\$` included — so `$x = \$5$` closed at the escape and errored.
-// KaTeX itself renders `\$` fine (and its own auto-render scanner skips
-// escaped dollars). The fix normalizes at the render seam: inside balanced
-// inline spans, `\$` becomes the dollar-free `\text{\textdollar}` BEFORE
-// tokenization, so the scanner's closer is the one the author meant.
+// El cierre de mathText de micromark sigue la lógica de los code span: CUALQUIER
+// secuencia de `$` del mismo tamaño cierra, `\$` incluido, así que `$x = \$5$` se
+// cerraba en el escape y daba error. KaTeX en sí renderiza bien `\$` (y su propio
+// escáner de auto-render se salta los dólares escapados). El arreglo normaliza en
+// la frontera de render: dentro de span en línea equilibrados, `\$` pasa a ser el
+// `\text{\textdollar}` sin dólar ANTES de tokenizar, así el cierre es el que quería el autor.
 
 describe("escaped dollars inside math — transform units", () => {
 	it("replaces \\$ inside a balanced inline span", () => {
@@ -279,8 +280,8 @@ describe("escaped dollars inside math — transform units", () => {
 	});
 
 	it("does NOT replace even-backslash dollars (row break + dollar keeps closing)", () => {
-		// `$a\\$` closes at that `$` in micromark today — the parity is load-
-		// bearing; replacing it would change span ends for legitimate TeX.
+		// Hoy `$a\\$` cierra en ese `$` en micromark: la paridad es
+		// estructural; sustituirlo cambiaría el final de los span en TeX legítimo.
 		const md = "$a\\\\$b$ tail";
 		assert.equal(transformMathDelimiters(md), md);
 	});
@@ -319,8 +320,8 @@ describe("escaped dollars inside math — rendering", () => {
 	});
 
 	it("the session cascade case renders every later span cleanly", () => {
-		// The latex-testing session's Test 6: the early close used to error
-		// and could swallow the following text.
+		// La prueba 6 de la sesión de pruebas de LaTeX: el cierre prematuro daba error
+		// y podía tragarse el texto siguiente.
 		const html = render("Line A: $x = \\$5$.\n\nLine B: $y = 2$.\n\nWhat is $2 + 2$?");
 		assert.equal((html.match(/class="katex"/g) ?? []).length, 3, "all three spans render");
 		assert.ok(!html.includes("katex-error"), "no KaTeX errors");
@@ -347,17 +348,17 @@ describe("escaped dollars inside math — rendering", () => {
 });
 
 describe("over-escaped command heal — doubled backslashes in tool args (owner ruling 2026-10-15)", () => {
-	// Field evidence: xiaomi/mimo-v2.6-pro and deepseek-v4.1-flash
-	// stochastically DOUBLE LaTeX command backslashes inside JSON tool
-	// arguments — sometimes per-field within one call (the gradient-descent
-	// session's first probe: question doubled, explanation+options clean).
-	// KaTeX reads `\\` as a row break and renders the command name as plain
-	// letters — "renders as LaTeX but reads the word nabla". The heal lives
-	// at the tool-parts argument seam (restoreMathEscapesDeep); these are its
-	// pure units. TS literals: 4 backslashes = 2 real, 6 = 3 real.
+	// Prueba de campo: xiaomi/mimo-v2.6-pro y deepseek-v4.1-flash DUPLICAN de forma
+	// estocástica las barras invertidas de los comandos LaTeX dentro de los argumentos
+	// JSON de las herramientas, a veces campo a campo dentro de una misma llamada (el primer
+	// sondeo de la sesión de descenso de gradiente: pregunta duplicada, explicación+opciones bien).
+	// KaTeX lee `\\` como salto de fila y renderiza el nombre del comando como letras
+	// simples: «se renderiza como LaTeX pero se lee la palabra nabla». La reparación vive
+	// en la frontera de argumentos de tool-parts (restoreMathEscapesDeep); estas son sus
+	// unidades puras. Literales de TS: 4 barras invertidas = 2 reales, 6 = 3 reales.
 
-	/** The gradient-descent session's probe question (chat_mv7r02og, msg 3)
-	 *  in its CLEAN single-backslash form. */
+	/** La pregunta de sondeo de la sesión de descenso de gradiente (chat_mv7r02og, msg 3)
+	 *  en su forma LIMPIA con una sola barra invertida. */
 	const GD_QUESTION =
 		"Let $f : \\mathbb{R}^n \\to \\mathbb{R}$ be differentiable at $x$, with $\\nabla f(x) \\neq 0$. The directional derivative along a unit direction $u$ is $D_u f(x) = \\nabla f(x)^\\top u$. Among all unit directions $\\|u\\|_2 = 1$, which one makes $D_u f(x) **most negative** (steepest descent)?";
 
@@ -389,14 +390,14 @@ describe("over-escaped command heal — doubled backslashes in tool args (owner 
 	});
 
 	it("KEEPS legitimate \\ row breaks — space, newline, &, [, digits follow", () => {
-		const matrix = "\\begin{pmatrix} 1 \\\\ 2 \\\\\\ 3\\end{pmatrix}"; // \\ then \\\\
+		const matrix = "\\begin{pmatrix} 1 \\\\ 2 \\\\\\ 3\\end{pmatrix}"; // \\ y luego \\\\
 		assert.equal(healOverescapedCommands(matrix), matrix);
 		const aligned = "f(x) \\\\& g(x) \\\\[6pt] h(x)";
 		assert.equal(healOverescapedCommands(aligned), aligned);
 	});
 
 	it("KEEPS odd runs — a row break plus a real command cell", () => {
-		// 3 real backslashes then a letter: \\ row break + \\nabla command.
+		// 3 barras invertidas reales y luego una letra: salto de fila \\ + comando \\nabla.
 		const cell = "$a \\\\\\nabla b$";
 		assert.equal(healOverescapedCommands(cell), cell);
 	});
@@ -415,8 +416,8 @@ describe("over-escaped command heal — doubled backslashes in tool args (owner 
 	});
 
 	it("the raw doubled gradient-descent question renders the word-signature (the bug this heal exists for)", () => {
-		// The real session record (chat_mv7r02og, msg 3), expressed as the
-		// clean form with every backslash doubled — exactly what mimo emitted.
+		// El registro real de la sesión (chat_mv7r02og, msg 3), expresado como la
+		// forma limpia con todas las barras invertidas duplicadas: exactamente lo que emitió mimo.
 		const raw = GD_QUESTION.replace(/\\/g, "\\\\");
 		const html = render(raw);
 		assert.ok(!html.includes("∇"), "doubled form does not produce the glyph");
@@ -432,8 +433,8 @@ describe("over-escaped command heal — doubled backslashes in tool args (owner 
 	});
 
 	it("the healed inference-runtime question renders ∈ and ×", () => {
-		// The real session record (chat_mv8ybpvs, msg 7) — mimo doubled the
-		// whole field; clean form with every backslash doubled.
+		// El registro real de la sesión (chat_mv8ybpvs, msg 7): mimo duplicó el
+		// campo entero; forma limpia con todas las barras invertidas duplicadas.
 		const ir =
 			"Let $A \\in \\mathbb{R}^{m \\times k}$ and $B \\in \\mathbb{R}^{k \\times n}$, and let $C = AB$ be their matrix product.";
 		const html = render(healOverescapedCommands(ir.replace(/\\/g, "\\\\")));

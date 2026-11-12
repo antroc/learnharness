@@ -1,11 +1,13 @@
 /**
- * Empty-graph chrome pins (empty-graph chrome wave, owner 2026-09-25):
- * Import Notes renders ALWAYS — the one action that works on an empty
- * graph, the entry point itself; search + settings render only when the
- * snapshot has nodes (dead controls are lies — the honesty principle).
- * GraphChromeRow is the pure seam (the DeleteNodeBody pattern): SSR of
- * both states pins the ruling. Fetches don't run under renderToStaticMarkup
- * (effects never fire), so these pins exercise the component directly.
+ * Fijaciones del adorno con el grafo vacío (oleada del adorno con grafo vacío,
+ * responsable 2026-09-25): Import Notes se renderiza SIEMPRE: la única acción
+ * que funciona con un grafo vacío, el propio punto de entrada; la búsqueda y
+ * los ajustes solo se renderizan cuando la instantánea tiene nodos (los
+ * controles muertos son mentiras: el principio de honestidad). GraphChromeRow
+ * es la frontera pura (el patrón de DeleteNodeBody): el SSR de los dos estados
+ * fija la decisión. Las peticiones no se ejecutan con renderToStaticMarkup (los
+ * efectos nunca se disparan), así que estas fijaciones ejercitan el componente
+ * directamente.
  */
 
 import React from "react";
@@ -19,7 +21,7 @@ import { GraphChromeRow, GraphView } from "../components/graph-view.tsx";
 import type { GraphRenderSettings } from "../components/graph-canvas.ts";
 import { ServerEventsProvider } from "../components/server-events.tsx";
 
-/** Ref doubles — the SSR harness never attaches them. */
+/** Dobles de refs: el arnés SSR nunca los asigna. */
 const ref = { current: null };
 
 const PROPS = {
@@ -42,8 +44,8 @@ describe("GraphChromeRow — the empty-graph ruling (owner, 2026-09-25)", () => 
 		assert.ok(html.includes("lucide-waypoints"));
 		assert.ok(!html.includes("lucide-upload"));
 		assert.ok(!html.includes("Search nodes…"), "search is a lie on an empty graph");
-		// the settings gear is the lucide-settings svg (tooltip wave: its old
-		// native title is gone — the styled tooltip carries the label now)
+		// el engranaje de ajustes es el svg lucide-settings (oleada de tooltips: su antiguo
+		// title nativo ha desaparecido; ahora la etiqueta la lleva el tooltip con estilo)
 		assert.ok(!html.includes("lucide-settings"), "settings is a lie on an empty graph");
 		assert.ok(html.includes('data-testid="open-chain-table"'), "source inventory includes chats/files without graph nodes");
 		assert.equal(html.split("graph-chrome-fade-in").length - 1, 1, "only the inventory button has the appearance animation");
@@ -62,7 +64,7 @@ describe("GraphChromeRow — the empty-graph ruling (owner, 2026-09-25)", () => 
 		assert.ok(html.includes("Search nodes…"));
 		assert.ok(html.includes("lucide-settings"), "the settings gear renders");
 		assert.ok(html.includes('data-testid="open-chain-table"'), "the chains entry renders");
-		// the appear-once fade rides exactly the three gated controls, never Import Notes
+		// el fundido de aparición única va exactamente en los tres controles condicionados, nunca en Import Notes
 		assert.equal(html.split("graph-chrome-fade-in").length - 1, 3, "three fade carriers: search + chains + settings");
 	});
 

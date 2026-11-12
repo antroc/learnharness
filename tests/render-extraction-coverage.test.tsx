@@ -14,12 +14,13 @@ import {
 } from "../components/extraction-coverage.tsx";
 
 /**
- * The extraction-coverage surfaces (extraction-UX redesign, owner-locked
- * dispatch 2026-09-24): the sidebar context-menu block (numbers + the
- * manual Extract affordance) and the chat top bar's ring meter. The pure
- * folds and the presentational bodies are pinned here; the live fetch
- * chains (menu-open read, the 2s running poll, the turn-settle bump, the
- * settings signal) are Playwright's beat.
+ * Las superficies de cobertura de extracción (rediseño de la UX de extracción,
+ * encargo cerrado por el responsable el 2026-09-24): el bloque del menú
+ * contextual de la barra lateral (cifras + la indicación manual Extract) y el
+ * medidor de anillo de la barra superior del chat. Aquí se fijan los plegados
+ * puros y los cuerpos de presentación; las cadenas de peticiones en vivo (la
+ * lectura al abrir el menú, el sondeo de 2s en ejecución, el empujón al
+ * asentarse el turno, la señal de ajustes) son terreno de Playwright.
  */
 
 function coverage(over: Partial<SessionCoverage> = {}): SessionCoverage {
@@ -36,14 +37,14 @@ function coverage(over: Partial<SessionCoverage> = {}): SessionCoverage {
 }
 
 describe("fetchGraphRead — one truth with the extraction trigger (2026-10-02)", () => {
-	// The meter's denominator MUST be the number the server's
-	// effectiveSettings gate waits for. The old hand-rolled fallback
-	// read the raw delta and guessed `?? 4096` — a stale pre-setting-era
-	// constant — so an unset budget filled the ring at half the truth
-	// (owner repro: 6k shown full, extraction correctly silent at the then-
-	// factory 8192). The 2026-10-13 ruling restored the factory to 4096 (more
-	// frequent graph updates); the LAW is unchanged — the denominator is the
-	// factory the same core resolver serves, never a hand-rolled constant.
+	// El denominador del medidor DEBE ser la cifra que espera la barrera de
+	// effectiveSettings del servidor. La antigua alternativa hecha a mano
+	// leía el delta en bruto y suponía `?? 4096` (una constante obsoleta de antes de
+	// los ajustes), así que un presupuesto sin fijar llenaba el anillo a la mitad de lo real
+	// (reproducción del responsable: 6k mostrado lleno, la extracción callada con razón con
+	// el valor de fábrica de entonces, 8192). La decisión del 2026-10-13 devolvió el valor de fábrica a 4096 (más
+	// actualizaciones del grafo); la LEY no cambia: el denominador es el valor de
+	// fábrica que sirve el mismo resolvedor del núcleo, nunca una constante hecha a mano.
 	const stub = (payload: unknown, ok = true) => {
 		const real = globalThis.fetch;
 		globalThis.fetch = (async () =>

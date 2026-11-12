@@ -1,9 +1,9 @@
 /**
- * Composer render tests — the chat input row (content only; the persistent
- * rounded shell lives in the chat view's overlay so it can morph into the
- * question dock without remounting).
+ * Pruebas de render del compositor: la fila de entrada del chat (solo el
+ * contenido; el armazón redondeado persistente vive en el overlay de la vista
+ * del chat para poder transformarse en el dock de preguntas sin volver a montarse).
  *
- * Same tsx classic-JSX shim as render-cards.test.tsx.
+ * El mismo parche de JSX clásico de tsx que render-cards.test.tsx.
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -83,12 +83,12 @@ describe("Composer", () => {
 	});
 });
 
-// The Enter decision (composer steering, 2026-10-03): while a turn runs,
-// typed text makes Enter a STEER; Enter with an empty composer stays the
-// stop shortcut. (The plan-verdict accept branch died 2026-09-26 with the
-// verdict itself — the post-plan reply is a natural text message.) Pure
-// function so the static-render harness can pin it (key events can't be
-// simulated in renderToStaticMarkup).
+// La decisión de Enter (reorientación desde el compositor, 2026-10-03): mientras se
+// ejecuta un turno, el texto escrito convierte Enter en una REORIENTACIÓN; Enter con el
+// compositor vacío sigue siendo el atajo de detener. (La rama de aceptar el veredicto del
+// plan murió el 2026-09-26 con el propio veredicto: la respuesta tras el plan es un mensaje
+// de texto natural). Función pura para que el arnés de render estático pueda fijarla (los
+// eventos de teclado no se pueden simular en renderToStaticMarkup).
 describe("enterAction", () => {
 	it("busy stream with text: Enter steers (the queued send)", () => {
 		assert.equal(enterAction({ busy: true, canSend: true }), "send");

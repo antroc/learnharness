@@ -1,10 +1,10 @@
 /**
- * Phase presentation render tests — the in-session face (components/
- * phase-divider.tsx), monochrome since the minimal-color round: the header
- * chip (label + the braille spinner in the old dot slot while a turn is in
- * flight) and the dotted transcript boundary rules. Same tsx classic-JSX
- * shim as render-cards.test.tsx. (Replaces the old part-level PlanDivider
- * tests.)
+ * Pruebas de render de la presentación de fases: la cara dentro de la sesión
+ * (components/phase-divider.tsx), monocroma desde la ronda de color mínimo: la
+ * etiqueta de la cabecera (etiqueta + el spinner braille en la ranura del antiguo
+ * punto mientras hay un turno en curso) y las rayas punteadas de límite de la
+ * transcripción. El mismo parche de JSX clásico de tsx que render-cards.test.tsx.
+ * (Sustituye a las antiguas pruebas de PlanDivider a nivel de parte).
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -88,9 +88,9 @@ describe("teachStepIndex (WHERE teaching begins inside the flipping message — 
 	});
 
 	it("a later step: the boundary's step-start index — between plan presentation and teaching", () => {
-		// The stacked-dividers bug shape: plan_init + plan text, then a NEW
-		// step that poses the first tagged quiz. The seam is the SECOND
-		// step-start (index 3), not before the message.
+		// La forma del fallo de divisores apilados: plan_init + texto del plan, y luego un
+		// paso NUEVO que plantea el primer quiz etiquetado. La frontera es el SEGUNDO
+		// step-start (índice 3), no antes del mensaje.
 		const parts = [
 			{ type: "step-start" },
 			{ type: "tool-plan_init", state: "output-available" },

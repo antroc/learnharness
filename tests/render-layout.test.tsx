@@ -1,9 +1,9 @@
 /**
- * First paint follows the theme end to end: the record and the theme
- * files on a temp LH_DATA_DIR → readThemeBoot (exactly what app/layout.tsx
- * spreads on <html>; the layout itself imports CSS and next/font, so it
- * cannot load under tsx) → the server-rendered <html>. And the status
- * chrome speaks the theme's tokens.
+ * La primera pintura sigue al tema de extremo a extremo: el registro y los
+ * ficheros del tema en un LH_DATA_DIR temporal → readThemeBoot (exactamente lo
+ * que app/layout.tsx extiende sobre <html>; el layout en sí importa CSS y
+ * next/font, así que no puede cargarse con tsx) → el <html> renderizado en el
+ * servidor. Y el adorno de estado habla con los tokens del tema.
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -23,7 +23,7 @@ const { AnsweredCard } = await import("../components/answered-card.tsx");
 
 after(() => fs.rmSync(TMP_DATA, { recursive: true, force: true }));
 
-/** The <html> the layout renders from a boot (className + style). */
+/** El <html> que el layout renderiza a partir de un arranque (className + style). */
 function html(): string {
 	const { theme, vars } = readThemeBoot();
 	return renderToStaticMarkup(

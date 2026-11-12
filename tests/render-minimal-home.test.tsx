@@ -1,8 +1,8 @@
-/** The minimal home's KnowledgeSummary — the quiet centered summary of
- * the knowledge base (owner, 2026-10-06: "very quiet, very minimal").
- * Pure body: props in, markup out. Own-line law (same day refinement):
- * every count on its own row, NO dot separators, blocks parted by an
- * empty line, imported notes as a COUNT — never the file list. */
+/** El KnowledgeSummary del inicio mínimo: el resumen discreto y centrado de la
+ * base de conocimiento (responsable, 2026-10-06: «muy discreto, muy mínimo»).
+ * Cuerpo puro: props dentro, marcado fuera. Ley de línea propia (refinamiento del
+ * mismo día): cada recuento en su propia fila, SIN separadores de punto, bloques
+ * separados por una línea vacía, las notas importadas como RECUENTO, nunca la lista de ficheros. */
 import assert from "node:assert/strict";
 import { renderToStaticMarkup } from "react-dom/server";
 import React from "react";
@@ -28,8 +28,8 @@ describe("KnowledgeSummary — the quiet home summary (2026-10-06)", () => {
 		for (const line of ["12 propositions", "5 chains", "3 teaching sessions", "2 practice sessions", "4 imported notes"]) {
 			const i = html.indexOf(line);
 			assert.ok(i !== -1, `${line} renders`);
-			// own-line: the count is its own text node — the char after the
-			// label is a tag boundary (</p>), never " · "
+			// línea propia: el recuento es su propio nodo de texto: el carácter tras la
+			// etiqueta es un límite de etiqueta (</p>), nunca " · "
 			const after = html.slice(i + line.length, i + line.length + 2);
 			assert.ok(after.startsWith("<"), `${line} ends its own element, not a dot-joined run`);
 		}
@@ -42,7 +42,7 @@ describe("KnowledgeSummary — the quiet home summary (2026-10-06)", () => {
 		const sessionsBlock = html.indexOf("3 teaching sessions");
 		assert.ok(graphBlock !== -1 && sessionsBlock !== -1);
 		assert.ok(sessionsBlock > graphBlock, "sessions come after the graph block");
-		// the parting is a dedicated spacer element (h-4), not a paragraph
+		// la separación es un elemento espaciador dedicado (h-4), no un párrafo
 		assert.ok(html.includes('class="h-4"'), "one empty line between blocks");
 	});
 
