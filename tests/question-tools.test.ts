@@ -1,14 +1,14 @@
 /**
- * The agent-split question tools (docs/archive/probe-teach-split.md §1):
+ * Las herramientas de preguntas separadas por agente (docs/archive/probe-teach-split.md §1):
  *
- *  - teachQuizToolFor — the TEACHER's quiz: the shared authoring contract +
- *    the per-session plan-nodeId validation (position signal; a mismatched id
- *    is rejected at the call boundary and returns to the agent to fix).
- *  - createProberTools — the PROBER's quiz has NO nodeId field at all (the
- *    schema is built from quizInputBase; the key is stripped if the model
- *    tries anyway), plus ask + probe_done.
+ *  - teachQuizToolFor: el quiz del PROFESOR: el contrato de autoría compartido +
+ *    la validación del nodeId del plan por sesión (señal de posición; un id que no
+ *    encaja se rechaza en la frontera de la llamada y vuelve al agente para que lo arregle).
+ *  - createProberTools: el quiz del SONDEADOR NO tiene ningún campo nodeId (el
+ *    esquema se construye a partir de quizInputBase; la clave se elimina si el
+ *    modelo lo intenta de todos modos), más ask + probe_done.
  *
- * The grading contract (question-core) is shared and untouched by both.
+ * El contrato de calificación (question-core) es compartido y ninguno de los dos lo toca.
  */
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
@@ -41,7 +41,7 @@ after(() => {
 		try {
 			fs.unlinkSync(path.join(PATHS.chats, `${id}.json`));
 		} catch {
-			/* scratch cleanup, best effort */
+			/* limpieza del espacio temporal, con el mejor esfuerzo */
 		}
 	}
 });
@@ -67,14 +67,14 @@ const validQuiz = {
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 
-/** The Wave A boundary predicate (2026-09-26): pi's loop structurally
- *  validates against the TypeBox parameters, then execute re-runs the
- *  authoring refinements (the old superRefine) and returns an isError
- *  result on problems (pi 1.0 convention — invalidInputResult; the model
- *  sees both as retryable input errors). This helper replicates the old
- *  safeParse seam end to end. */
+/** El predicado de frontera de la oleada A (2026-09-26): el bucle de pi valida la
+ *  estructura contra los parámetros TypeBox, luego execute vuelve a ejecutar los
+ *  refinamientos de autoría (el antiguo superRefine) y devuelve un resultado
+ *  isError si hay problemas (convención de pi 1.0: invalidInputResult; el modelo
+ *  ve ambos como errores de entrada reintentables). Este auxiliar replica de
+ *  extremo a extremo la antigua frontera safeParse. */
 async function boundaryParse(
-	// `input: never` param: contravariance lets any AgentTool's execute slot in.
+	// parámetro `input: never`: la contravarianza permite encajar el execute de cualquier AgentTool.
 	tool: { parameters: any; execute: (id: string, input: never) => Promise<unknown> },
 	input: unknown,
 ): Promise<{ success: boolean; error?: AgentToolResult<{ tool: string; problems: string[] }> }> {
@@ -116,7 +116,7 @@ describe("teachQuizToolFor: the dynamic plan-nodeId validation (position signal)
 		});
 		const res = await boundaryParse(teachQuizToolFor({ chatId, chatStore }), {
 			...validQuiz,
-			nodeId: "arithmetic", // the typo — slug is 'arith'
+			nodeId: "arithmetic", // la errata: el slug es 'arith'
 		});
 		assert.equal(res.success, false);
 		const msg = problemLines(res.error).join("\n");
@@ -143,8 +143,8 @@ describe("teachQuizToolFor: the dynamic plan-nodeId validation (position signal)
 		const { nodeId: _dropped, ...untagged } = validQuiz;
 		const res = await boundaryParse(tool, untagged);
 		assert.equal(res.success, false, "an untagged quiz must be rejected back to the model");
-		// The structural pin: the SCHEMA itself names the missing field (pi's
-		// boundary formats Value.Errors as the tool-input-error the model sees).
+		// La fijación estructural: el propio ESQUEMA nombra el campo que falta (la frontera
+		// de pi formatea Value.Errors como el tool-input-error que ve el modelo).
 		const schemaErrors = [...Value.Errors(quizInputObject, untagged)].map((e) => e.message);
 		assert.match(
 			schemaErrors.join("\n"),
@@ -173,8 +173,8 @@ describe("teachQuizToolFor: the dynamic plan-nodeId validation (position signal)
 		const chatId = newChat("NodeId: grading rules intact");
 		const res = await boundaryParse(teachQuizToolFor({ chatId, chatStore }), {
 			...validQuiz,
-			correctAnswer: "42", // matches no option — question-core's rule
-			nodeId: "ghost", // also bad — BOTH problems surface
+			correctAnswer: "42", // no encaja con ninguna opción: la regla de question-core
+			nodeId: "ghost", // también incorrecto: aparecen LOS DOS problemas
 		});
 		assert.equal(res.success, false);
 		const msgs = problemLines(res.error).join("\n");
@@ -186,10 +186,10 @@ describe("teachQuizToolFor: the dynamic plan-nodeId validation (position signal)
 describe("the prober's quiz: no nodeId field at all", () => {
 	it("the probe schema accepts a plain quiz; a smuggled nodeId is NOT in the wire schema", () => {
 		assert.ok(Value.Check(probeQuizInputSchema, validQuiz));
-		// Wave A delta (2026-09-26): pi's TypeBox validation tolerates unknown
-		// keys rather than stripping them — but the probe schema's wire
-		// properties carry no nodeId at all, and the display parse seam
-		// (tool-parts parseQuizInput, Value.Clean) strips it before the dock.
+		// Diferencia de la oleada A (2026-09-26): la validación TypeBox de pi tolera las
+		// claves desconocidas en vez de eliminarlas, pero las propiedades de cable del
+		// esquema de sondeo no llevan nodeId, y la frontera de análisis para mostrar
+		// (parseQuizInput de tool-parts, Value.Clean) lo elimina antes de llegar al dock.
 		const smuggled = { ...validQuiz, nodeId: "anything" };
 		assert.ok(Value.Check(probeQuizInputSchema, smuggled));
 		const wireKeys = Object.keys((probeQuizInputSchema as { properties: Record<string, unknown> }).properties);
@@ -200,8 +200,8 @@ describe("the prober's quiz: no nodeId field at all", () => {
 	it("the prober's tool registry carries the nodeId-less quiz, probe_done, and the learner-filesystem set", () => {
 		const chatId = newChat("Prober: registry");
 		const tools = createProberTools({ chatId, chatStore, deliver: () => {}, jobStore, spawn: () => {} });
-		// Fix wave (2026-09-20): the owner ruling adds research + pdf dispatch
-		// to the probe phase's registry (demo/visual stay teach-only).
+		// Oleada de arreglos (2026-09-20): la decisión del responsable añade el envío de research +
+		// pdf al registro de herramientas de la fase de sondeo (demo/visual siguen siendo solo de enseñanza).
 		assert.deepEqual(Object.keys(tools).sort(), [
 			"ask_user_question", "find", "grep", "ls", "pdf", "probe", "probe_done", "read", "research",
 		]);
@@ -209,7 +209,7 @@ describe("the prober's quiz: no nodeId field at all", () => {
 		assert.equal(Value.Check(probe.parameters, { ...validQuiz, nodeId: "anything" }), true, "no session check to fail");
 	});
 });
-// ─── the description example (owner, 2026-10-12) ─────────────────────────
+// ─── el ejemplo de la descripción (responsable, 2026-10-12) ──────────────
 
 describe("quiz tool descriptions carry the complete, phase-correct example", () => {
 	it("the canonical body is schema-valid and authoring-clean (never ship a broken exemplar)", () => {
@@ -225,9 +225,9 @@ describe("quiz tool descriptions carry the complete, phase-correct example", () 
 			desc.includes("```json\n" + JSON.stringify(quizExampleBody, null, 2) + "\n```"),
 			"the example is the exact JSON.stringify of the canonical body",
 		);
-		// The escaping exemplar must be VISIBLE as wire text — the runtime
-		// string carries literal double backslashes, exactly what the model
-		// must type inside JSON.
+		// El ejemplo de escape debe VERSE como texto de cable: la cadena en tiempo
+		// de ejecución lleva barras invertidas dobles literales, exactamente lo que
+		// el modelo debe escribir dentro del JSON.
 		assert.ok(desc.includes("A signal is $y=\\\\sin(2x)$"), "LaTeX command backslash shows doubled");
 		assert.ok(desc.includes("a LaTeX backslash is \\\\ and a newline is \\n"), "the one-line escaping hint");
 		assert.ok(!desc.includes("nodeId"), "probe example carries no phase metadata");
@@ -238,8 +238,8 @@ describe("quiz tool descriptions carry the complete, phase-correct example", () 
 		const desc = teachQuizToolFor({ chatId, chatStore }).description;
 		const teachExample = { type: "check", nodeId: "chain-rule", ...quizExampleBody };
 		assert.ok(desc.includes("```json\n" + JSON.stringify(teachExample, null, 2) + "\n```"));
-		// The 2026-10-09 drop-order ruling: type+nodeId LEAD the object —
-		// fields generated first get dropped least.
+		// La decisión del orden de omisión del 2026-10-09: type+nodeId VAN DELANTE en el
+		// objeto: los campos que se generan primero son los que menos se omiten.
 		assert.ok(
 			/```json\n\{\n {2}"type": "check",\n {2}"nodeId": "chain-rule",/.test(desc),
 			"type and nodeId lead the serialized example",
@@ -250,16 +250,16 @@ describe("quiz tool descriptions carry the complete, phase-correct example", () 
 		);
 	});
 });
-// ─── tool availability (2026-09 settings seam) ───────────────────────────────
+// ─── disponibilidad de herramientas (frontera de ajustes de 2026-09) ─────────
 
 describe("tool toggles (core/pending.ts + factories)", () => {
 	it("TOGGLEABLE_TOOLS: the sub-agent dispatch tools; quiz/ask/read stay off the list", () => {
-		// THE DEFINITIVE vocabulary (adjudicated with the user 2026-09-19, P2
-		// reconciliation): the job tools only. quiz/ask_user_question are
-		// permanently always-on (the prober's assessment + teaching doctrine
-		// are built on graded questions — the wedge danger), as are the
-		// learner-fs set, plan tools, and probe_done. The settings WRITE side
-		// validates against this list (settings-body).
+		// EL vocabulario DEFINITIVO (decidido con el usuario el 2026-09-19, conciliación
+		// P2): solo las herramientas de tareas. quiz/ask_user_question están
+		// siempre activas de forma permanente (la evaluación del sondeador + la doctrina de
+		// enseñanza se basan en preguntas calificadas: el peligro de bloqueo), igual que el
+		// conjunto learner-fs, las herramientas de plan y probe_done. La parte de ESCRITURA
+		// de los ajustes valida contra esta lista (settings-body).
 		assert.deepEqual(TOGGLEABLE_TOOLS, ["research", "demo", "visual", "pdf"]);
 	});
 
@@ -273,14 +273,14 @@ describe("tool toggles (core/pending.ts + factories)", () => {
 		const noAsk = createProberTools(ctx, { ask_user_question: false });
 		assert.deepEqual(Object.keys(noAsk).sort(), ["find", "grep", "ls", "pdf", "probe", "probe_done", "read", "research"]);
 
-		// Quizzing is mechanics-managed now (owner 2026-09-27): quiz/explain
-		// NEVER pass through the generic filter — hand-written quiz:false is a
-		// no-op (the wedge danger stands: a quiz-less prober collapses its
-		// assessment flow). probe_done is never droppable — it ends the phase.
+		// Las preguntas ya las gestiona la mecánica (responsable 2026-09-27): quiz/explain
+		// NUNCA pasan por el filtro genérico: escribir a mano quiz:false no hace
+		// nada (el peligro de bloqueo sigue: un sondeador sin quiz hunde su
+		// flujo de evaluación). probe_done nunca se puede quitar: es lo que termina la fase.
 		const noQuiz = createProberTools(ctx, { quiz: false });
 		assert.deepEqual(Object.keys(noQuiz).sort(), ["ask_user_question", "find", "grep", "ls", "pdf", "probe", "probe_done", "read", "research"]);
-		// The mechanic switch (owner 2026-09-27): tools.explain === true arms
-		// free-recall — explain in, quiz out, exactly one quizzing tool.
+		// El interruptor de mecánica (responsable 2026-09-27): tools.explain === true arma el
+		// recuerdo libre: entra explain, sale quiz, exactamente una herramienta de preguntas.
 		const free = createProberTools(ctx, { explain: true });
 		assert.deepEqual(Object.keys(free).sort(), ["ask_user_question", "find", "grep", "ls", "pdf", "probe_done", "read", "recall", "research"]);
 		assert.ok(createProberTools(ctx, { probe_done: false }).probe_done, "probe_done always-on");
@@ -300,15 +300,15 @@ describe("tool toggles (core/pending.ts + factories)", () => {
 		const noResearch = Object.keys(createTeacherTools(ctx, { research: false })).sort();
 		assert.deepEqual(noResearch, ["ask_user_question", "demo", "find", "grep", "ls", "pdf", "plan_init", "quiz", "read", "show_image", "visual"]);
 
-		// absent = enabled: an empty record and undefined behave identically
+		// ausente = activado: un registro vacío y undefined se comportan igual
 		assert.deepEqual(
 			Object.keys(createTeacherTools(ctx, {})).sort(),
 			full,
 			"absent keys mean enabled — old records behave exactly as today",
 		);
 
-		// The mechanic switch (owner 2026-09-27): free-recall swaps the teach
-		// quiz for the teach explain — one quizzing tool, whichever is armed.
+		// El interruptor de mecánica (responsable 2026-09-27): el recuerdo libre cambia el quiz
+		// de enseñanza por el explain de enseñanza: una herramienta de preguntas, la que esté armada.
 		const freeFull = ["ask_user_question", "demo", "explain", "find", "grep", "ls", "pdf", "plan_init", "read", "research", "show_image", "visual"];
 		assert.deepEqual(Object.keys(createTeacherTools(ctx, { explain: true })).sort(), freeFull);
 		assert.deepEqual(
@@ -320,13 +320,13 @@ describe("tool toggles (core/pending.ts + factories)", () => {
 });
 
 
-// ─── prepareArguments: the GLM string-encoded options guard (2026-09-26) ────
+// ─── prepareArguments: la guarda de opciones codificadas como cadena de GLM (2026-09-26) ─
 
 describe("prepareQuestionArguments (the string-encoded options wobble)", () => {
-	// The gradient-descent session (chat_muhskq6p): 6 of 7 quiz validation
-	// failures were `options` arriving as a JSON-encoded STRING. pi runs
-	// prepareArguments BEFORE schema validation — the coerced call lands
-	// instead of bouncing back as a wasted retry turn.
+	// La sesión de descenso de gradiente (chat_muhskq6p): 6 de los 7 fallos de validación
+	// de quiz eran `options` que llegaban como CADENA codificada en JSON. pi ejecuta
+	// prepareArguments ANTES de validar el esquema: la llamada convertida se acepta
+	// en lugar de rebotar como un turno de reintento desperdiciado.
 	const goodOptions = [
 		{ label: "The slope of the tangent line", value: "slope" },
 		{ label: "The value of the curve", value: "value" },
@@ -355,7 +355,7 @@ describe("prepareQuestionArguments (the string-encoded options wobble)", () => {
 	});
 });
 
-// ─── the explain tool boundary (free-recall, owner 2026-09-27) ─────────────
+// ─── la frontera de la herramienta explain (recuerdo libre, responsable 2026-09-27) ─
 
 describe("teachExplainToolFor: the explain variant validates nodeId like the quiz", () => {
 	const validExplain = {
@@ -428,11 +428,11 @@ describe("the prober's explain: no nodeId field at all", () => {
 	});
 });
 
-// ─── descriptions are MECHANICS (owner 2026-10-03) ────────────────────────
-// Question-design doctrine lives in the system prompt (shared craft chunk +
-// teacher fragments), NOT in tool descriptions. A description that teaches
-// the model how to write questions drifts the moment a new variant (prober,
-// future adaptive practice) reuses the tool with a different doctrine.
+// ─── las descripciones son MECÁNICA (responsable 2026-10-03) ──────────────
+// La doctrina de diseño de preguntas vive en el system prompt (fragmento compartido de
+// oficio + fragmentos del profesor), NO en las descripciones de las herramientas. Una
+// descripción que enseña al modelo a escribir preguntas se desvía en cuanto una variante
+// nueva (el sondeador, una futura práctica adaptativa) reutiliza la herramienta con otra doctrina.
 describe("tool descriptions carry mechanics only, no question-craft", () => {
 	const teachQuiz = teachQuizToolFor({ chatId: "chat_x", chatStore: undefined as never });
 	for (const [name, tool] of [

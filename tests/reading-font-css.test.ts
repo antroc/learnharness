@@ -11,8 +11,8 @@ const stylesheet = fileURLToPath(new URL("../app/globals.css", import.meta.url))
 let css: string;
 
 before(async () => {
-	// Compile the real stylesheet, including Tailwind's defaults/preflight.
-	// JSX/SSR class assertions alone missed the @theme inline font bypass.
+	// Compila la hoja de estilos real, incluidos los valores por defecto/preflight de Tailwind.
+	// Las aserciones de clases de JSX/SSR por sí solas no detectaban el atajo de fuente de @theme inline.
 	const compiler = await compile(await fs.readFile(stylesheet, "utf8"), {
 		base: path.dirname(stylesheet),
 		loadStylesheet: async (id, base) => {

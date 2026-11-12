@@ -1,7 +1,8 @@
 /**
- * SSR pins — abort-turn-dialog (ESC-abort guard, owner 2026-10-02):
- * the confirm popup EVERYWHERE ruling. AbortTurnBody is the pure seam
- * (the DeleteNodeBody pattern); the wrapper owns effects + portal.
+ * Fijaciones SSR: abort-turn-dialog (guarda del aborto con ESC, responsable
+ * 2026-10-02): la decisión de la ventana de confirmación EN TODAS PARTES.
+ * AbortTurnBody es la frontera pura (el patrón de DeleteNodeBody); el
+ * envoltorio se encarga de los efectos y el portal.
  */
 
 import assert from "node:assert/strict";
@@ -28,7 +29,7 @@ describe("AbortTurnBody", () => {
 		assert.match(html, /Dismiss this question\?/);
 		assert.match(html, /Skipped — the teacher moves on without it\./);
 		assert.match(html, /Dismiss/);
-		// the abort copy must not leak into the dismissal mode
+		// el texto del aborto no debe filtrarse al modo de descarte
 		assert.ok(!html.includes("Abort this turn"));
 	});
 

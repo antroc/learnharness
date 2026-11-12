@@ -10,14 +10,14 @@ describe("the reading-thinking field (owner round, 2026-10-07)", () => {
 		const html = renderToStaticMarkup(
 			<ReadingThinkingField value="" revision={0} onChange={() => {}} claim={false} />,
 		);
-		// The fix (empirically diagnosed): Source Sans 3's font box (22px at
-		// 16px) exceeds lh-input's 20px line box by 1px; Chromium counts that
-		// in scrollHeight and a zero-padding field-sizing textarea becomes a
-		// permanent 1px scroll (a bar shown empty AND at every expansion below
-		// max-h). py-0.5 absorbs it — the composer/dock fields get the same
-		// absorption implicitly from py-2. Line-height stays 1.25 (caret law).
+		// El arreglo (diagnosticado de forma empírica): la caja de fuente de Source Sans 3 (22px a
+		// 16px) supera en 1px la caja de línea de 20px de lh-input; Chromium lo cuenta
+		// en scrollHeight y un textarea con field-sizing y sin relleno se convierte en un
+		// scroll permanente de 1px (una barra visible vacía Y en cada expansión por debajo de
+		// max-h). py-0.5 lo absorbe; los campos del compositor/dock reciben la misma
+		// absorción implícita de py-2. La altura de línea se queda en 1.25 (ley del cursor).
 		assert.ok(html.includes("py-0.5"), "the vertical padding is on the textarea");
-		// The cap survives: growth past max-h-40 still scrolls honestly.
+		// El tope sobrevive: crecer más allá de max-h-40 sigue haciendo scroll honestamente.
 		assert.ok(html.includes("max-h-40"), "the 160px growth cap stays");
 	});
 });

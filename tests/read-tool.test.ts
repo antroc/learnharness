@@ -1,10 +1,11 @@
 /**
- * The read tool (sources v0) — a Node port of pi's read semantics:
- * truncation with continuation offsets, image mime detection, error paths.
- * Driven through the NATIVE AgentTool execute (Wave A, 2026-09-26): text
- * reads return the raw string as details (the record's tool part output
- * reads it); image reads return native pi content parts (text + image)
- * with null details (the output-less part until the record persists).
+ * La herramienta read (fuentes v0): un port a Node de la semántica de read de
+ * pi: truncado con offsets de continuación, detección del mime de imágenes y
+ * caminos de error. Se usa a través del execute NATIVO de AgentTool (oleada A,
+ * 2026-09-26): las lecturas de texto devuelven la cadena en bruto como details
+ * (la lee la salida de la parte de herramienta del registro); las lecturas de
+ * imagen devuelven partes de contenido nativas de pi (texto + imagen) con
+ * details nulo (la parte sin salida hasta que el registro persiste).
  */
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
@@ -23,7 +24,7 @@ function write(name: string, content: string): string {
 	return file;
 }
 
-/** Native execute → the raw string body (text reads ride details verbatim). */
+/** execute nativo → el cuerpo de la cadena en bruto (las lecturas de texto viajan tal cual en details). */
 const run = (args: { path: string; offset?: number; limit?: number }) =>
 	readTool.execute!("test", args).then((r) => {
 		assert.ok(r.content.length >= 1);
@@ -41,9 +42,9 @@ describe("read tool — text semantics", () => {
 	});
 
 	it("resolves relative paths against the learner's home (sources v1 anchoring)", async () => {
-		// sources v1: the harness has no meaningful cwd — "find my notes" must
-		// work from a bare relative path, so the home directory is the anchor
-		// (fs-shared resolveSourcePath). Scratch file in home, cleaned up.
+		// fuentes v1: el arnés no tiene un cwd significativo: "find my notes" debe
+		// funcionar desde una ruta relativa a secas, así que el directorio personal es
+		// el ancla (resolveSourcePath de fs-shared). Fichero temporal en home, que se limpia.
 		const rel = `lh-read-rel-test-${process.pid}.txt`;
 		const homeFile = path.join(os.homedir(), rel);
 		fs.writeFileSync(homeFile, "rel", "utf-8");
@@ -58,7 +59,7 @@ describe("read tool — text semantics", () => {
 		const body = Array.from({ length: 30 }, (_, i) => `line ${i + 1}`).join("\n");
 		const file = write("thirty.txt", body);
 		const out = (await run({ path: file, offset: 10, limit: 3 })).text;
-		// pi parity: the explicit limit stopping short gets a remaining notice
+		// paridad con pi: el límite explícito que se queda corto recibe un aviso de lo restante
 		assert.match(out, /^line 10\nline 11\nline 12\n\n\[18 more lines in file\. Use offset=13 to continue\.\]$/);
 	});
 
@@ -81,13 +82,13 @@ describe("read tool — text semantics", () => {
 	});
 
 	it("truncates at 50KB with the same continuation notice", async () => {
-		// 200 lines of ~400B = ~80KB total, under the line cap — byte cap fires
+		// 200 líneas de ~400B = ~80KB en total, por debajo del tope de líneas: salta el tope de bytes
 		const line = "x".repeat(400);
 		const body = Array.from({ length: 200 }, () => line).join("\n");
 		const file = write("wide.txt", body);
 		const out = (await run({ path: file })).text;
 		assert.match(out, /50\.0KB limit\)\. Use offset=\d+ to continue\./);
-		// and the truncation actually cut content
+		// y el truncado sí recortó contenido
 		assert.ok(out.length < 52_000, "the 50KB ceiling must cut the 80KB body");
 	});
 
@@ -102,7 +103,7 @@ describe("read tool — text semantics", () => {
 describe("read tool — image semantics (native content parts)", () => {
 	it("returns native text + image parts for image files, details null (output-less part)", async () => {
 		const file = path.join(tmp, "dot.png");
-		// Detection now sniffs bytes and the native processor decodes the image.
+		// Ahora la detección examina los bytes y el procesador nativo decodifica la imagen.
 		const canvas = createCanvas(1, 1);
 		canvas.getContext("2d").fillRect(0, 0, 1, 1);
 		fs.writeFileSync(file, canvas.toBuffer("image/png"));

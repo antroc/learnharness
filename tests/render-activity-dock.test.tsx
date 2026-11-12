@@ -5,13 +5,13 @@ import { ActivitySection, formatElapsed, toBlobs, type ActivityFeed, type FeedEx
 import { formatTokens, formatUsd } from "../components/usage-format.ts";
 import { jobCost } from "../src/server/pricing.ts";
 
-// The section's pure layer: folds, formatting, and blob order — then the SSR
-// render (blobs, "—" doctrine, the abort affordance, the always-present
-// header — the sidebar's background-agents strip).
+// La capa pura de la sección: plegados, formato y orden de burbujas; luego el render
+// SSR (burbujas, la doctrina del "—", la indicación de aborto, la cabecera siempre
+// presente: la tira de agentes en segundo plano de la barra lateral).
 
 const NOW = Date.parse("2026-09-09T12:00:00Z");
 
-/** A full CallUsage (its fields are undefined-valued, not optional). */
+/** Un CallUsage completo (sus campos pueden valer undefined, pero no son opcionales). */
 function step(inputTokens: number, outputTokens: number) {
 	return { inputTokens, outputTokens, cacheReadTokens: undefined, cacheWriteTokens: undefined, reasoningTokens: undefined };
 }
@@ -42,7 +42,7 @@ describe("activity dock pure layer", () => {
 		const blobs = toBlobs(feed);
 		assert.equal(blobs.length, 2);
 		const first = blobs[0]!;
-		assert.equal(first.id, "cx"); // extraction started first
+		assert.equal(first.id, "cx"); // la extracción empezó primero
 		assert.equal(first.process, "extraction");
 		assert.equal(first.phase, "auditing");
 		assert.equal(blobs[1]!.id, "new");
@@ -97,7 +97,7 @@ describe("activity dock pure layer", () => {
 			},
 		});
 		const blob = toBlobs({ jobs: [priced], extractions: [] })[0]!;
-		// Pi-normalized fresh input is priced directly, never reduced by reads.
+		// La entrada nueva normalizada por Pi se tarifica directamente; las lecturas nunca la reducen.
 		assert.equal(blob.cost, 0.00215);
 		const missingProjection = toBlobs({ jobs: [{ ...priced, costUsd: undefined }], extractions: [] })[0]!;
 		assert.equal(missingProjection.cost, null, "the browser must not invent a fallback price");
@@ -109,7 +109,7 @@ describe("activity dock pure layer", () => {
 		const refused = job({
 			status: "error",
 			activity: "failed",
-			// the runner composes the envelope's error verbatim (invariant tail)
+			// el runner compone tal cual el error del sobre (cola invariante)
 			error: "No OpenRouter key is set — add one in Settings → Keys",
 		});
 		const blob = toBlobs({ jobs: [refused], extractions: [] })[0]!;
@@ -124,7 +124,7 @@ describe("activity dock pure layer", () => {
 		});
 		const blob = toBlobs({ jobs: [refused], extractions: [] })[0]!;
 		assert.equal(blob.activity, "needs model setup");
-		// A real failure keeps the runner's honest wording.
+		// Un fallo real conserva la redacción honesta del runner.
 		const crashed = job({ status: "error", activity: "failed", error: "FAILED: headless crashed" });
 		const real = toBlobs({ jobs: [crashed], extractions: [] })[0]!;
 		assert.equal(real.activity, "failed");
@@ -133,7 +133,7 @@ describe("activity dock pure layer", () => {
 	it("context line = LAST step's tokens vs the model limit, never a cumulative sum", () => {
 		const base = {
 			model: "openrouter:z-ai/glm-5.3-flash",
-			inputTokens: 400_000, // running total (much bigger — must NOT feed the line)
+			inputTokens: 400_000, // total acumulado (mucho mayor: NO debe alimentar la línea)
 			outputTokens: 8_000,
 			cacheReadTokens: 0,
 			cacheWriteTokens: 0,
@@ -142,27 +142,27 @@ describe("activity dock pure layer", () => {
 		};
 		const withLast = job({
 			usage: { ...base, lastStep: step(90_000, 2_000) },
-			// The amendment (owner 2026-09-23): the limit is the server's
-			// live-catalog join riding the feed — the dock never resolves it.
+			// La enmienda (responsable 2026-09-23): el límite es la unión con el catálogo en vivo
+			// del servidor que viaja en la fuente: el dock nunca lo resuelve.
 			contextLimit: 131_072,
 		});
 		const blob = toBlobs({ jobs: [withLast], extractions: [] })[0]!;
 		assert.equal(blob.context?.used, 92_000);
 		assert.equal(blob.context?.limit, 131_072);
-		// No lastStep yet (capture pending) → "—", even though usage exists.
+		// Aún sin lastStep (captura pendiente) → "—", aunque exista uso.
 		const stripped = toBlobs({ jobs: [job({ usage: { ...base } })], extractions: [] })[0]!;
 		assert.equal(stripped.context, null);
-		// Model missing from the live catalog (historical session,
-		// package update) → the feed carries null → no context line.
+		// Modelo ausente del catálogo en vivo (sesión histórica,
+		// actualización de paquete) → la fuente lleva null → sin línea de contexto.
 		const uncatalogued = toBlobs({
 			jobs: [job({ usage: { ...base, model: "nope/unknown", lastStep: step(5, 5), } })],
 			extractions: [],
 		})[0]!;
 		assert.equal(uncatalogued.context, null);
-		// The numerator is the same cache-inclusive fold the session meter
-		// uses (context-meter audit, owner 2026-09-23): provider "input"
-		// EXCLUDES cacheRead/cacheWrite, so input+output alone reads wildly
-		// low on cache-heavy jobs — 10k+0.5k+120k+30k = 160.5k, not 10.5k.
+		// El numerador es el mismo plegado con caché incluida que usa el medidor de la
+		// sesión (auditoría del medidor de contexto, responsable 2026-09-23): el "input" del
+		// proveedor EXCLUYE cacheRead/cacheWrite, así que input+output a secas se queda muy
+		// corto en tareas con mucha caché: 10k+0.5k+120k+30k = 160.5k, no 10.5k.
 		const cached = toBlobs({
 			jobs: [
 				job({
@@ -236,16 +236,16 @@ describe("activity section render", () => {
 		assert.match(html, /Chain-rule demo/);
 		assert.match(html, /building sandbox…/);
 		assert.match(html, /Extraction — merging/);
-		// Unpriced job → "—", never $0.0000 (doctrine); both blobs show it.
+		// Tarea sin precio → "—", nunca $0.0000 (doctrina); las dos burbujas lo muestran.
 		assert.match(html, /activity-blob-cost[^>]*>—</);
 		assert.match(html, /data-testid="activity-abort"/, "END on the blob face, popover-independent");
 		assert.match(html, /\bEnd\b/, "the explicit END button");
 		assert.match(html, /Background agents/);
-		// Total cost: nothing priced → "—" in the header.
+		// Coste total: nada con precio → "—" en la cabecera.
 		assert.match(html, /activity-total-cost[^>]*>—</);
-		// Truncation-reveals KEEP native title (tooltip wave mechanism rule):
-		// the truncated activity + title spans carry title= — a styled
-		// tooltip adds nothing over an ellipsis reveal.
+		// Las revelaciones de texto truncado CONSERVAN el title nativo (regla del mecanismo de la
+		// oleada de tooltips): los span de actividad truncada + título llevan title=; un tooltip
+		// con estilo no aporta nada frente a revelar unos puntos suspensivos.
 		assert.match(html, /title="building sandbox…"/);
 	});
 
@@ -271,8 +271,8 @@ describe("activity section render", () => {
 				}}
 			/>,
 		);
-		// two identical priced jobs → 2 × $0.002 = $0.0040 total (pi prices,
-		// glm-5.3-flash drifted in pi-ai 0.87.1)
+		// dos tareas idénticas con precio → 2 × $0.002 = $0.0040 en total (precios de pi;
+		// glm-5.3-flash cambió en pi-ai 0.87.1)
 		assert.match(html, /activity-total-cost[^>]*>\$0\.0040</);
 	});
 });
