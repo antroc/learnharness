@@ -1,4 +1,4 @@
-/** Backend title isolation without launching Electron or touching a user profile. */
+/** Aislamiento del título en el backend sin lanzar Electron ni tocar un perfil de usuario. */
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";

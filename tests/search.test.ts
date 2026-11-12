@@ -1,12 +1,12 @@
 /**
- * The search engines (search port + model slots wave, 2026-09-20):
- * engine resolution (the owner's auto-detect decision — a key is enough,
- * no engine choice needed; explicit pin requires the key; no silent
- * fallback) + the search adapters against a STUB fetch (never the
- * network — the wire shapes are verified against the published docs, and
- * the tests pin those shapes).
+ * Los motores de búsqueda (oleada del puerto de búsqueda + ranuras de modelo,
+ * 2026-09-20): resolución del motor (la decisión de autodetección del
+ * responsable: basta con una clave, no hace falta elegir motor; la fijación
+ * explícita requiere la clave; sin alternativa silenciosa) + los adaptadores de
+ * búsqueda contra un fetch SUSTITUTO (nunca la red: las formas del cable se
+ * verifican contra la documentación publicada y las pruebas fijan esas formas).
  *
- * PURE + injected fetch — this file owns no fs.
+ * PURO + fetch inyectado: este fichero no es responsable de ningún sistema de ficheros.
  */
 
 import assert from "node:assert/strict";
@@ -107,7 +107,7 @@ describe("resolveSearchEngineFor (the auto-detect decision)", () => {
 	});
 });
 
-/** A one-shot stub fetch: asserts the request shape and returns the canned response. */
+/** Un fetch sustituto de un solo uso: comprueba la forma de la petición y devuelve la respuesta preparada. */
 function stubFetch(canned: unknown, expect: (url: string, init: RequestInit) => void) {
 	return async (url: string, init: RequestInit): Promise<Response> => {
 		expect(url, init);
@@ -132,7 +132,7 @@ describe("tavilyProvider (wire shape per docs.tavily.com, verified 2026-09-20)",
 				const body = JSON.parse(init.body as string);
 				assert.equal(body.query, "test query");
 				assert.equal(body.max_results, 5);
-				// The legacy api_key-in-body form is retired — auth is the header.
+				// La forma heredada con api_key en el cuerpo está retirada: la autenticación va en la cabecera.
 				assert.equal(body.api_key, undefined);
 			},
 		));
@@ -161,7 +161,7 @@ describe("braveProvider (wire shape per Brave's dashboard docs, verified 2026-09
 			},
 			(url, init) => {
 				assert.ok(url.startsWith("https://api.search.brave.com/res/v1/web/search?"), url);
-				assert.ok(url.includes("q=test+query"), url); // URLSearchParams: spaces as +
+				assert.ok(url.includes("q=test+query"), url); // URLSearchParams: espacios como +
 				assert.ok(url.includes("count=5"));
 				const headers = init.headers as Record<string, string>;
 				assert.equal(headers["x-subscription-token"], "brave-throwaway-key-00001");
@@ -236,7 +236,7 @@ describe("firecrawlProvider (wire shape per docs.firecrawl.dev, verified 2026-10
 				const body = JSON.parse(init.body as string);
 				assert.equal(body.query, "test query");
 				assert.equal(body.limit, 5);
-				// A bare search — scraping each hit would cost extra credits.
+				// Una búsqueda a secas: extraer cada resultado costaría créditos adicionales.
 				assert.equal(body.scrapeOptions, undefined);
 			},
 		));
@@ -262,8 +262,8 @@ describe("firecrawlProvider (wire shape per docs.firecrawl.dev, verified 2026-10
 	});
 });
 
-// Search-only subset of chiranjivsethi's PR #81, source commit a216fa8.
-// No fetchPage, local model server, or model pricing is part of this adapter.
+// Subconjunto solo de búsqueda de la PR #81 de chiranjivsethi, commit de origen a216fa8.
+// Este adaptador no incluye fetchPage, servidor de modelos local ni precios de modelos.
 describe("ollamaProvider (hosted search only)", () => {
 	it("POSTs ollama.com/api/web_search with Bearer auth and bounded snippets", async () => {
 		const provider = ollamaProvider("ollama-fake-key-123456", stubFetch({ results: [

@@ -1,11 +1,10 @@
 /**
- * Update-banner render tests (Wave C, 2026-10-10): the banner is a pure
- * function of the shell's observational status — hidden without a bridge
- * or snapshot/event, visible with the downloaded
- * status, Restart wired to the bridge. The subscribe effect only runs
- * client-side, so the SSR pass pins the hidden state; the pushed state is
- * exercised by mounting with the bridge stubbed (classic-JSX shim as in
- * render-sidebar.test.tsx).
+ * Pruebas de render del aviso de actualización (oleada C, 2026-10-10): el aviso
+ * es una función pura del estado observado del armazón: oculto sin puente o sin
+ * instantánea/evento, visible con el estado de descargado y Restart conectado al
+ * puente. El efecto de suscripción solo se ejecuta en el cliente, así que la
+ * pasada SSR fija el estado oculto; el estado empujado se ejercita montando con
+ * el puente sustituido (parche de JSX clásico como en render-sidebar.test.tsx).
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -19,9 +18,9 @@ import { parseHTML } from "linkedom";
 import UpdateBanner from "../components/update-banner.tsx";
 import type { UpdateState } from "../components/settings/update-settings.tsx";
 
-// linkedom as the DOM for the interactive pass (first createRoot test in
-// the repo — the banner's push→render→click flow needs real effects).
-// The window.lh bridge type is declared globally by components/sidebar.tsx.
+// linkedom como DOM para la pasada interactiva (la primera prueba con createRoot del
+// repo: el flujo empujar→render→clic del aviso necesita efectos reales).
+// El tipo del puente window.lh lo declara globalmente components/sidebar.tsx.
 const dom = parseHTML("<html><body></body></html>");
 (globalThis as Record<string, unknown>).window = dom.window;
 (globalThis as Record<string, unknown>).document = dom.document;

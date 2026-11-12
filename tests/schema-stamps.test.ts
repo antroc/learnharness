@@ -1,14 +1,16 @@
 /**
- * SCHEMA STAMPS: chats use lazy v2 for side-conversation semantics, with
- * unstamped/v1 records readable. The graph family remains v1
- * (schema-versioning wave, owner 2026-10-10) (data/graph/format.json sidecar — ledgers, sources,
- * render-settings; positions deliberately unversioned, rebuildable).
- * Honest refusal: records stamped NEWER than this build are refused on
- * read (the downgrade scenario) — never misparsed, never rewritten.
+ * SELLOS DE ESQUEMA: los chats usan v2 perezoso para la semántica de las
+ * conversaciones laterales, y los registros sin sello/v1 se pueden leer. La
+ * familia del grafo sigue en v1 (oleada de versionado de esquemas, responsable
+ * 2026-10-10) (fichero auxiliar data/graph/format.json: registros, fuentes,
+ * render-settings; las posiciones van sin versión a propósito, se pueden
+ * reconstruir). Rechazo honesto: los registros sellados con una versión MÁS
+ * NUEVA que esta build se rechazan al leer (el escenario de volver a una versión
+ * anterior): nunca se analizan mal ni se reescriben.
  *
- * Runs under an isolated LH_DATA_DIR (the chat-birth-stamp discipline:
- * the seam is set before any config-loading import, so every app-module
- * import is dynamic).
+ * Se ejecuta con un LH_DATA_DIR aislado (la disciplina del sello de nacimiento
+ * del chat: la frontera se fija antes de cualquier import que cargue la
+ * configuración, así que todos los imports de módulos de la app son dinámicos).
  */
 
 import assert from "node:assert/strict";
@@ -17,7 +19,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import test from "node:test";
 
-// ── the seam, BEFORE any config-loading import ──────────────────────────────
+// ── la frontera, ANTES de cualquier import que cargue la configuración ──────
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-stamps-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 
@@ -30,7 +32,7 @@ test.after(() => {
 	fs.rmSync(TMP_DATA, { recursive: true, force: true });
 });
 
-// ── chats: lazy stamp at the write choke point ──────────────────────────────
+// ── chats: sello perezoso en el punto único de escritura ────────────────────
 
 test("chats: createChat stamps version 2 on disk", () => {
 	const r = chatStore.createChat("stamp test");
@@ -63,12 +65,12 @@ test("chats: a NEWER-stamped record is refused honestly (the downgrade scenario)
 	);
 	assert.equal(chatStore.getChat(id), null, "getChat refuses: reads as absent, never misparsed");
 	assert.ok(!chatStore.listChats().some((s) => s.id === id), "listChats skips it too");
-	// and the refused record is NOT rewritten or downgraded by the visit:
+	// y la visita NO reescribe ni rebaja la versión del registro rechazado:
 	const onDisk = JSON.parse(fs.readFileSync(path.join(TMP_DATA, "chats", `${id}.json`), "utf8"));
 	assert.equal(onDisk.version, 99, "the future record survives untouched");
 });
 
-// ── the graph family: the lazy format.json sidecar ──────────────────────────
+// ── la familia del grafo: el fichero auxiliar perezoso format.json ──────────
 
 test("graph: reads never write — no sidecar appears from reading alone", () => {
 	assert.ok(!fs.existsSync(GRAPH_FORMAT_FILE), "no sidecar before any write");
@@ -107,7 +109,7 @@ test("render-settings: its write stamps the family sidecar too", () => {
 	assert.equal(JSON.parse(fs.readFileSync(GRAPH_FORMAT_FILE, "utf8")).version, 1, "the render-settings write stamped the family");
 });
 
-// ── the fixtures stay the legacy pin: golden data reads unstamped ───────────
+// ── las fixtures siguen siendo la fijación heredada: los datos dorados se leen sin sello ─
 
 test("golden fixtures are deliberately the unstamped legacy shape (lazy v1 = current-valid)", () => {
 	const here = import.meta.dirname;

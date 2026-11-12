@@ -3,19 +3,21 @@ import { describe, it } from "node:test";
 import { probeArrivalExpanded, revealArrival, shouldStampGeometryMute } from "../components/chat.tsx";
 
 /**
- * Teach-question arrival states (owner ruling, scroll-honesty round
- * 2026-09-25). Applied DURING RENDER before the first paint — the bug was
- * the stale expanded=true left by the previous question painting one
- * frame of the open question: the dock measured itself tall, reserved that
- * height permanently (fold immunity refused the give-back), and the
- * transcript scrolled as if the collapsed question had opened.
+ * Estados de llegada de las preguntas de enseñanza (decisión del responsable,
+ * ronda de honestidad del scroll 2026-09-25). Se aplican DURANTE EL RENDER antes
+ * de la primera pintura: el fallo era el expanded=true obsoleto que dejaba la
+ * pregunta anterior, que pintaba un fotograma de la pregunta abierta: el dock se
+ * medía alto, reservaba esa altura para siempre (la inmunidad del plegado
+ * rechazaba devolverla) y la transcripción hacía scroll como si la pregunta
+ * plegada se hubiera abierto.
  */
 /**
- * The geometry-mute's growth rule (flicker round, 2026-09-26): reserve
- * GROWTH while a question is pending is the dock stretching itself (the
- * dictation flush landing many dictated lines at once, reproduced d≈152 >
- * COLLAPSE_DIST) — the spacer's scroll catch-up must not read as the
- * learner leaving. Shrinks are the fold's own give-back and never stamp.
+ * La regla de crecimiento del silencio de geometría (ronda del parpadeo,
+ * 2026-09-26): el CRECIMIENTO de la reserva mientras hay una pregunta pendiente
+ * es el dock estirándose (el volcado del dictado que mete muchas líneas
+ * dictadas de golpe, reproducido d≈152 > COLLAPSE_DIST): la recuperación del
+ * scroll del espaciador no debe leerse como que el alumno se va. Las
+ * reducciones son la propia devolución del plegado y nunca ponen sello.
  */
 describe("shouldStampGeometryMute — when a block resize is our own stretch", () => {
 	it("growth while a question is pending stamps (dictation flush, arrival stretch)", () => {
@@ -46,10 +48,10 @@ describe("revealArrival — how a teach question lands", () => {
 });
 
 /**
- * Probe-question arrival state (flicker round, 2026-09-26): open iff the
- * learner is following at the bottom; scrolled up in history → arrive as
- * the collapsed bar, decided DURING RENDER (the old after-paint effect
- * painted one stale-open frame first).
+ * Estado de llegada de las preguntas de sondeo (ronda del parpadeo,
+ * 2026-09-26): abierta sii el alumno está siguiendo abajo del todo; con scroll
+ * hacia arriba en el historial → llega como barra plegada, decidido DURANTE EL
+ * RENDER (el antiguo efecto tras la pintura pintaba antes un fotograma abierto obsoleto).
  */
 describe("probeArrivalExpanded — how a probe question lands", () => {
 	it("at the bottom following along: open", () => {

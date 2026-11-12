@@ -1,4 +1,4 @@
-/** Update UI with a fake preload bridge: no Electron, network or updates. */
+/** UI de actualización con un puente de preload falso: sin Electron, red ni actualizaciones. */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;
 (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
@@ -71,7 +71,7 @@ afterEach(async () => {
 	for (const { root, host } of roots.splice(0)) {
 		await act(async () => { root.unmount(); }); host.remove();
 	}
-	// FocusScope's delayed cleanup still needs the installed fixture DOM.
+	// La limpieza diferida de FocusScope aún necesita el DOM de la fixture instalado.
 	await new Promise(resolve => setTimeout(resolve, 5));
 	delete window.lh;
 	globalThis.fetch = originalFetch;
@@ -236,8 +236,8 @@ describe("General update rows", () => {
 describe("Settings integration", () => {
 	it("the toggle sends the complete General section and follows stored server truth", async () => {
 		bridge();
-		// A synthetic future sibling exercises the caller's section-preserving
-		// contract without introducing a new product setting or changing its API.
+		// Un hermano futuro sintético ejercita el contrato de conservar secciones del que llama
+		// sin introducir un ajuste nuevo en el producto ni cambiar su API.
 		const record = { version: 1, general: { autoUpdate: true, futureSibling: "keep" } };
 		const puts: unknown[] = [];
 		globalThis.fetch = async (input, init) => {

@@ -1,17 +1,18 @@
 /**
- * THE NOTIFICATION CHANNEL'S CLIENT HALF (push-architecture S3,
- * 2026-10-02): one EventSource per window fanned out through the hub.
- * The provider's ENTIRE effect body is wireSource(source, hub) — a plain
- * function — so these pins drive the real wiring with a fake source, no
- * React and no server: typed dispatch, resync-on-open, error isolation,
- * and close-stops-dispatch. The React glue around it (hooks/context) is
- * an adapter seam like lh:turn-state (untested by precedent).
+ * LA MITAD CLIENTE DEL CANAL DE NOTIFICACIONES (arquitectura push S3,
+ * 2026-10-02): un EventSource por ventana, repartido por difusión a través del
+ * hub. TODO el cuerpo del efecto del proveedor es wireSource(source, hub) (una
+ * función simple), así que estas fijaciones usan el cableado real con una
+ * fuente falsa, sin React ni servidor: despacho tipado, resincronización al
+ * abrir, aislamiento de errores y que cerrar detenga el despacho. El pegamento
+ * de React alrededor (hooks/contexto) es una frontera de adaptador como
+ * lh:turn-state (sin pruebas, por precedente).
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createNotifyHub, wireSource, type NotifySource } from "../components/server-events.tsx";
 
-/** A source the test drives by hand — recordable, closable, honest. */
+/** Una fuente que la prueba maneja a mano: grabable, cerrable, honesta. */
 function fakeSource() {
 	const events = new Map<string, Set<(data: string) => void>>();
 	const opens = new Set<() => void>();
@@ -52,7 +53,7 @@ describe("notify hub + wireSource (the client channel wiring)", () => {
 		hub.subscribe("turn-settled", (p) => got.push(`settled:${p.chatId}`));
 		src.push("turn-started", { chatId: "chat_wire" });
 		src.push("turn-settled", { chatId: "chat_wire" });
-		src.push("jobs-changed", { chatId: "chat_wire" }); // no subscriber — no-op
+		src.push("jobs-changed", { chatId: "chat_wire" }); // sin suscriptor: operación nula
 		assert.deepEqual(got, ["chat_wire", "settled:chat_wire"]);
 	});
 
@@ -63,7 +64,7 @@ describe("notify hub + wireSource (the client channel wiring)", () => {
 		let resyncs = 0;
 		hub.onResync(() => resyncs++);
 		src.open();
-		src.open(); // the reconnect case: same callback, fired again
+		src.open(); // el caso de reconexión: el mismo callback, disparado de nuevo
 		assert.equal(resyncs, 2);
 	});
 
@@ -86,7 +87,7 @@ describe("notify hub + wireSource (the client channel wiring)", () => {
 		wireSource(src, hub);
 		let calls = 0;
 		hub.subscribe("activity-changed", () => calls++);
-		// dispatch is the seam's own parser — feed it garbage directly
+		// dispatch es el propio analizador de la frontera: dale basura directamente
 		hub.dispatch("activity-changed", "{not json");
 		assert.equal(calls, 0);
 	});

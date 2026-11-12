@@ -1,12 +1,13 @@
 /**
- * BIRTH-SESSION CLUSTERING + THE PROBER GRAPH-TOOLS DATA SEAM (wave 7,
- * owner-locked 2026-09-23): embeddings are dead — a proposition's cluster
- * is the session that created it, derived on read from provenance
- * (session-clusters.ts); labels are session names; the prober tools read a
- * session list + per-session propositions with the extractor's latest
- * understanding level and its own timestamp. All in-memory fakes — the
- * fs-backed snapshot join (with the real store adapters) lives in
- * graph.test.ts.
+ * CLUSTERING POR SESIÓN DE NACIMIENTO + LA FRONTERA DE DATOS DE LAS HERRAMIENTAS
+ * DE GRAFO DEL SONDEADOR (oleada 7, cerrada por el responsable el 2026-09-23):
+ * los embeddings han muerto: el clúster de una proposición es la sesión que la
+ * creó, derivado al leer a partir de la procedencia (session-clusters.ts); las
+ * etiquetas son los nombres de las sesiones; las herramientas del sondeador
+ * leen una lista de sesiones + las proposiciones de cada sesión con el último
+ * nivel de comprensión del extractor y su propia marca de tiempo. Todo son
+ * falsos en memoria: la unión de la instantánea respaldada por el sistema de
+ * ficheros (con los adaptadores de almacén reales) vive en graph.test.ts.
  */
 
 import assert from "node:assert/strict";
@@ -29,8 +30,8 @@ import {
 // ─── fixtures ────────────────────────────────────────────────────────────────
 
 const pt = (chatId: string, messageId = "m1") => ({ chatId, messageId });
-/** attachImpToCommunities takes a structural Pick; full chains are
- *  assignable but literals need the widening. */
+/** attachImpToCommunities recibe un Pick estructural; las cadenas completas son
+ *  asignables, pero los literales necesitan ampliar el tipo. */
 const attachable = (c: GraphChain): Pick<GraphChain, "id" | "premises" | "conclusion" | "provenance"> => c;
 const node = (id: string, name: string, provenance: Array<{ chatId: string; messageId: string }>): GraphNode => ({
 	id,
@@ -69,7 +70,7 @@ function fakeStores(
 	return { chatStore, graphStore };
 }
 
-// ─── the partition ──────────────────────────────────────────────────────────
+// ─── la partición ───────────────────────────────────────────────────────────
 
 describe("birthSessionPartition", () => {
 	it("groups by the first provenance point, dedupes repeated lines, sorts deterministically", () => {
@@ -77,7 +78,7 @@ describe("birthSessionPartition", () => {
 			node("a", "A", [pt("chat1")]),
 			node("b", "B", [pt("chat1")]),
 			node("c", "C", [pt("chat2")]),
-			node("a", "A-linked", [pt("chat2")]), // link-append line for "a": ignored (first defines)
+			node("a", "A-linked", [pt("chat2")]), // línea de anexado de enlace para "a": se ignora (la primera define)
 			node("d", "D", [pt("chat1")]),
 		];
 		assert.deepEqual(birthSessionPartition(nodes), [
@@ -89,7 +90,7 @@ describe("birthSessionPartition", () => {
 	it("a SHARED node belongs to its birth session only — later contributors never claim it", () => {
 		const nodes = [
 			node("born-1", "X", [pt("chat1")]),
-			node("born-1", "X-linked", [pt("chat2")]), // chat2 re-encountered it
+			node("born-1", "X-linked", [pt("chat2")]), // chat2 volvió a encontrarla
 			node("born-2", "Y", [pt("chat2")]),
 		];
 		assert.deepEqual(birthSessionPartition(nodes), [
@@ -99,8 +100,8 @@ describe("birthSessionPartition", () => {
 	});
 
 	it("deletion re-attribution: a stripped birth falls to the earliest remaining contributor; no provenance = unclustered", () => {
-		// What delete-nodes leaves behind: the birth session's points are
-		// stripped from surviving lines — the merged provenance walks forward.
+		// Lo que deja delete-nodes: los puntos de la sesión de nacimiento se quitan
+		// de las líneas que sobreviven: la procedencia fusionada avanza.
 		const reattributed = node("survivor", "S", [pt("chat2"), pt("chat3")]);
 		assert.equal(birthSessionOf(reattributed), "chat2");
 		const naked = node("naked", "N", []);
@@ -110,12 +111,12 @@ describe("birthSessionPartition", () => {
 	});
 });
 
-// ─── notes files as birth sessions (production shape) ────────────────────────
+// ─── ficheros de notas como sesiones de nacimiento (forma de producción) ─────
 
 describe("notes files as birth sessions", () => {
-	// The mapping-line fallback is GONE (owner, 2026-09-29): the mappings
-	// ledger itself died with per-job in-memory resolution, and every merge
-	// writes provenance points — the src id IS the birth session.
+	// La alternativa de la línea de correspondencias HA DESAPARECIDO (responsable, 2026-09-29): el
+	// registro de correspondencias en sí murió con la resolución en memoria por tarea, y cada fusión
+	// escribe puntos de procedencia: el id de src ES la sesión de nacimiento.
 	it("graphSessionIndex lists imported files as kind:file with birth counts (production shape)", () => {
 		const nodes = [node("a", "Alpha", [pt("src_abc")]), node("b", "Beta", [pt("src_abc")]), node("c", "Gamma", [pt("src_abc")])];
 		const deps = fakeStores(nodes, {
@@ -145,7 +146,7 @@ describe("notes files as birth sessions", () => {
 	});
 });
 
-// ─── the snapshot join ──────────────────────────────────────────────────────
+// ─── la unión de la instantánea ─────────────────────────────────────────────
 
 describe("graphSnapshot birth-session clusters", () => {
 	it("labels clusters with session names (chat title / file path), keeps the ≥3 hull rule", () => {
@@ -174,7 +175,7 @@ describe("graphSnapshot birth-session clusters", () => {
 			label: "notes",
 			members: ["d", "e", "f"],
 		}, "a notes file is a birth-session too (owner ruling)");
-		// A 2-proposition session renders no hull (the presentation rule).
+		// Una sesión con 2 proposiciones no renderiza envolvente (la regla de presentación).
 		const two = fakeStores([node("x", "X", [pt("chat1")]), node("y", "Y", [pt("chat1")])], {
 			chats: [{ id: "chat1", title: "tiny", createdAt: "", updatedAt: "" }],
 		});
@@ -190,7 +191,7 @@ describe("graphSnapshot birth-session clusters", () => {
 	});
 });
 
-// ─── the prober data seam ───────────────────────────────────────────────────
+// ─── la frontera de datos del sondeador ─────────────────────────────────────
 
 describe("graphSessionIndex (the prober's session list)", () => {
 	it("birth counts, chat/file kinds, recency order, deleted records fall back honestly", () => {
@@ -199,7 +200,7 @@ describe("graphSessionIndex (the prober's session list)", () => {
 			node("b", "B", [pt("chat1")]),
 			node("c", "C", [pt("chat1")]),
 			node("d", "D", [pt("src_notes")]),
-			node("e", "E", [pt("gone")]), // its chat record no longer exists
+			node("e", "E", [pt("gone")]), // su registro de chat ya no existe
 		];
 		const deps = fakeStores(nodes, {
 			chats: [
@@ -242,7 +243,7 @@ describe("graphSessionPropositions (the per-session view)", () => {
 		const nodes = [
 			node("a", "Alpha", [pt("chat1")]),
 			node("b", "Beta", [pt("chat1")]),
-			node("c", "Gamma", [pt("chat2")]), // born elsewhere — never listed under chat1
+			node("c", "Gamma", [pt("chat2")]), // nacida en otra parte: nunca aparece bajo chat1
 		];
 		const deps = fakeStores(nodes);
 		assert.deepEqual(graphSessionPropositions(deps, "chat1"), [
@@ -252,7 +253,7 @@ describe("graphSessionPropositions (the per-session view)", () => {
 	});
 });
 
-// ─── imp-node cluster assignment (physics arc, owner 2026-09-30) ─────────────
+// ─── asignación de clúster de los nodos imp (arco de física, responsable 2026-09-30) ─
 
 describe("impClusterKey (majority among PREMISES' births)", () => {
 	const chainOf = (premises: string[], provenance: Array<{ chatId: string; messageId: string }> = []) =>
@@ -310,10 +311,10 @@ describe("attachImpToCommunities (the shared seam for pull + hulls)", () => {
 			elsewhere,
 			props,
 			[
-				// dangling conclusion — no imp node is minted, nothing to attach
+				// conclusión colgante: no se acuña ningún nodo imp, no hay nada que unir
 				attachable({ id: "arg_gone", premises: ["p1", "p1b"], conclusion: "ghost", provenance: [pt("chatA")], createdAt: "2026-09-30T00:00:00.000Z" }),
-				// fully live, but its home community (chatA) is not in the
-				// list — the post-hull-filter case: stays unclustered
+				// totalmente viva, pero su comunidad de origen (chatA) no está en la
+				// lista: el caso tras el filtro de envolventes: se queda sin clúster
 				attachable({ id: "arg_home", premises: ["p1", "p1b"], conclusion: "p1c", provenance: [pt("chatA")], createdAt: "2026-09-30T00:00:00.000Z" }),
 			],
 		);
@@ -321,7 +322,7 @@ describe("attachImpToCommunities (the shared seam for pull + hulls)", () => {
 	});
 });
 
-// ─── the snapshot seam: imp ids ride cluster members to BOTH consumers ──────
+// ─── la frontera de la instantánea: los ids imp viajan en los miembros del clúster a LOS DOS consumidores ─
 
 describe("graphSnapshot imp-node cluster assignment (physics arc, 2026-09-30)", () => {
 	const chats = [{ id: "chatA", title: "Session A", createdAt: "2026-09-30T00:00:00.000Z", updatedAt: "2026-09-30T00:00:00.000Z" }];
@@ -341,9 +342,9 @@ describe("graphSnapshot imp-node cluster assignment (physics arc, 2026-09-30)", 
 	});
 
 	it("the hull filter counts PROPOSITIONS — attaching an imp never resurrects a 2-member hull", () => {
-		// p1,p2 born chatA; the conclusion born chatB. The chain is fully
-		// live, its premises-majority home is chatA — a 2-proposition
-		// community the hull filter drops; the imp id must NOT tip it to 3.
+		// p1,p2 nacen en chatA; la conclusión nace en chatB. La cadena está totalmente
+		// viva y su origen por mayoría de premisas es chatA: una comunidad de 2
+		// proposiciones que el filtro de envolventes descarta; el id imp NO debe subirla a 3.
 		const snap = graphSnapshot(
 			fakeStores(
 				[node("p1", "P1", [pt("chatA")]), node("p2", "P2", [pt("chatA")]), node("p3b", "P3b", [pt("chatB")])],

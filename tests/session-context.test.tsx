@@ -9,11 +9,12 @@ import { DeleteSessionBody, DeleteSessionDialog, TRACES_COPY } from "../componen
 import type { ChatListItem } from "../src/core/index.ts";
 
 /**
- * Wave 6 chunk A — the deletion + context-menu seams on the sidebar:
- * SessionRow's right-click seam (always carries the row testid now), the
- * inline RenameRow (same geometry, select-all entry), and the two-option
- * delete dialog's plain-language copy (the locked design: both options
- * name their reach, the graph-touching one says so).
+ * Oleada 6, fragmento A: las fronteras de borrado + menú contextual en la barra
+ * lateral: la frontera del clic derecho de SessionRow (ahora siempre lleva el
+ * testid de la fila), el RenameRow en línea (misma geometría, entra con todo
+ * seleccionado) y el texto en lenguaje llano del diálogo de borrado con dos
+ * opciones (el diseño cerrado: las dos opciones dicen su alcance, la que toca
+ * el grafo lo dice).
  */
 
 const chat: ChatListItem = {
@@ -36,13 +37,13 @@ describe("RenameRow — the inline rename surface", () => {
 			<RenameRow chat={chat} onCommit={() => {}} onCancel={() => {}} />,
 		);
 		assert.ok(html.includes('data-testid="session-rename-input"'));
-		// controlled draft starts from the current title
+		// el borrador controlado empieza con el título actual
 		assert.ok(html.includes(`value="${chat.title}"`));
-		// the meta line rides along (row never changes height mid-edit)
+		// la línea de metadatos se mantiene (la fila nunca cambia de altura mientras se edita)
 		assert.ok(html.includes("session-rename-row"));
-		// (owner, polish round) NOTHING MOVES: no status spacer, no input
-		// border/padding — the draft text sits at the idle row's title x,
-		// and the input is the ONLY shift-proof editing cue (underline).
+		// (responsable, ronda de pulido) NADA SE MUEVE: sin espaciador de estado, sin borde
+		// ni relleno en el input: el texto del borrador queda en la x del título de la fila en reposo,
+		// y el input es la ÚNICA pista de edición que no desplaza nada (subrayado).
 		assert.ok(!html.includes("w-3.5 shrink-0"), "no always-on spacer (idle rows have none)");
 		const input = html.split('data-testid="session-rename-input"')[1]?.split("/>")[0] ?? "";
 		assert.ok(input.includes("px-0"), "input carries no left padding");
@@ -73,9 +74,9 @@ describe("DeleteSessionDialog — the node-dialog shape (owner flow rework 2026-
 		);
 		assert.match(html, /Delete session\?/);
 		const title = html.match(/<h2[^>]*>/)?.[0] ?? "";
-		assert.match(title, /text-sm font-semibold text-destructive/); // red, abort-turn look (owner, 2026-10-13)
+		assert.match(title, /text-sm font-semibold text-destructive/); // rojo, con el aspecto del aborto de turno (responsable, 2026-10-13)
 		assert.ok(!title.includes("font-title"), "no serif display title");
-		// the name: mono, normal text-sm size (owner, 2026-10-13), NO bg-muted code-block chrome
+		// el nombre: mono, tamaño text-sm normal (responsable, 2026-10-13), SIN el adorno bg-muted de bloque de código
 		const name = html.match(/data-testid="session-name-code"[^>]*>/)?.[0] ?? "";
 		assert.match(name, /font-mono text-sm/);
 		assert.ok(!name.includes("bg-muted"), "no code-block chrome");
@@ -94,14 +95,14 @@ describe("DeleteSessionDialog — the node-dialog shape (owner flow rework 2026-
 				onRun={() => {}}
 			/>,
 		);
-		// unchecked by default (preserve-graph) — React SSR omits the
-		// attribute when false, so pin its ABSENCE on the rendered input
+		// sin marcar por defecto (conservar el grafo): el SSR de React omite el
+		// atributo cuando es false, así que se fija su AUSENCIA en el input renderizado
 		assert.ok(!/"checked"/.test(html), "unchecked by default");
-		// plain-language consequences on the checkbox body
+		// consecuencias en lenguaje llano en el cuerpo de la casilla
 		assert.ok(html.includes(TRACES_COPY.title));
 		assert.ok(html.includes("leave the graph too"));
 		assert.ok(html.includes("survive"));
-		// the old two-button design is gone
+		// el antiguo diseño de dos botones ha desaparecido
 		assert.ok(!html.includes("delete-option-preserve"));
 		assert.ok(!html.includes("delete-option-nodes"));
 	});
@@ -121,8 +122,8 @@ describe("DeleteSessionDialog — the node-dialog shape (owner flow rework 2026-
 		assert.match(html, /data-testid="delete-cancel"[^>]*>Cancel</);
 		const del = html.match(/data-testid="delete-confirm"[^>]*>/)?.[0] ?? "";
 		assert.match(del, /border-destructive\/50/);
-		assert.match(html, /data-testid="delete-confirm"[^>]*>Deleting…</); // busy label on Delete
-		// the checkbox survives a busy render (disabled, not unmounted)
+		assert.match(html, /data-testid="delete-confirm"[^>]*>Deleting…</); // etiqueta de ocupado en Delete
+		// la casilla sobrevive a un render ocupado (desactivada, no desmontada)
 		assert.match(html, /data-testid="delete-traces-checkbox"[^>]*disabled=""/);
 	});
 });

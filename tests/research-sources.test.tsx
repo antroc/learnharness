@@ -1,6 +1,7 @@
-/** Research sources render as links, so only http(s) URLs may become one.
- * The researcher's fetch URLs are recorded before web_fetch rejects other
- * schemes, and research jobs saved earlier may still hold them. */
+/** Las fuentes de investigación se renderizan como enlaces, así que solo las URL
+ * http(s) pueden convertirse en uno. Las URL de las peticiones del investigador se
+ * registran antes de que web_fetch rechace otros esquemas, y las tareas de
+ * investigación guardadas antes aún pueden contenerlas. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";

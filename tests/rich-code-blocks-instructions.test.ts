@@ -11,7 +11,7 @@ import type { PluginWorkerService } from "../src/core/plugin-workers.ts";
 import type { PluginInference, PluginLearningData } from "../src/core/plugins.ts";
 import { FAMILIES, INSTRUCTIONS, type Family } from "../plugins/rich-code-blocks/src/contract.ts";
 
-// Redirect storage before importing the host/agents. No provider or user data is used.
+// Redirige el almacenamiento antes de importar el host/los agentes. No se usa ningún proveedor ni dato del usuario.
 const root = fs.mkdtempSync(path.join(os.tmpdir(), "lh-rich-instructions-"));
 process.env.LH_DATA_DIR = path.join(root, "app-data");
 process.env.LH_AUTH_FILE = path.join(root, "auth.json");
@@ -28,7 +28,7 @@ test("actual Rich code blocks backend appends enabled-family instructions to eve
   fs.mkdirSync(dist, { recursive: true });
   const source = path.resolve("plugins/rich-code-blocks");
   const manifest = JSON.parse(fs.readFileSync(path.join(source, "manifest.json"), "utf8"));
-  // Import the actual backend source through the test's TS loader, not an old dist build.
+  // Importa el código fuente real del backend mediante el cargador TS de la prueba, no una build antigua de dist.
   fs.writeFileSync(path.join(dist, "backend.cjs"), `exports.activate = async ctx => (await import(${JSON.stringify(pathToFileURL(path.join(source, "src/backend.ts")).href)})).activate(ctx);`);
   fs.writeFileSync(path.join(dist, "main.js"), "export function activate() {}");
   fs.copyFileSync(path.join(source, "src/styles.css"), path.join(dist, "styles.css"));

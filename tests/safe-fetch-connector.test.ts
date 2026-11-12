@@ -6,8 +6,8 @@ import type { AddressInfo, LookupFunction } from "node:net";
 import { it } from "node:test";
 import { createAddressCheckedAgent, isPublicAddress, safeFetch } from "../src/agent/tools/safe-fetch.ts";
 
-// Public hostname strings are never resolved externally. Only the owned
-// loopback listeners below are contacted, via this deterministic lookup.
+// Las cadenas de nombres de host públicos nunca se resuelven fuera. Solo se contacta con
+// los listeners de loopback propios de abajo, mediante esta resolución determinista.
 function lookup(next: () => string): LookupFunction {
 	return (_hostname, options, callback) => {
 		const address = next(), family = address.includes(":") ? 6 : 4;
@@ -48,7 +48,7 @@ it("HTTPS preserves certificate/SNI validation and refuses a private peer before
 	const names: (string | false | null)[] = [];
 	const server = https.createServer({ cert, key }, (_request, response) => { hits++; response.end("owned TLS fixture"); });
 	server.on("secureConnection", socket => { handshakes++; names.push(socket.servername); });
-	server.on("tlsClientError", () => {}); // expected untrusted/name-mismatch controls
+	server.on("tlsClientError", () => {}); // controles esperados de no confiable/nombre que no coincide
 	await new Promise<void>(resolve => server.listen(0, "127.0.0.1", resolve));
 	const options = { ca: cert, lookup: lookup(() => "127.0.0.1") };
 	const refused = createAddressCheckedAgent(isPublicAddress, options);

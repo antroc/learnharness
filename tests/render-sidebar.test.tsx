@@ -1,12 +1,13 @@
 /**
- * Session-row render tests — the picker's status language (owner,
- * minimal-color round): ONE indicator, the braille spinner, present ONLY
- * while a teach turn is in flight; every other state (idle, question
- * pending) renders nothing — phases only advance, so phase-as-signal was
- * decoration, and question-pending is the dominant RESTING state (the
- * meta line's text carries it). Pure function of the list item, so SSR of
- * <SessionRow> pins every visible state. Same tsx classic-JSX shim as
- * render-cards.test.tsx.
+ * Pruebas de render de las filas de sesión: el lenguaje de estado del selector
+ * (responsable, ronda de color mínimo): UN indicador, el spinner braille,
+ * presente SOLO mientras hay un turno de enseñanza en curso; cualquier otro
+ * estado (en reposo, pregunta pendiente) no renderiza nada: las fases solo
+ * avanzan, así que la fase como señal era decoración, y la pregunta pendiente
+ * es el estado DE REPOSO dominante (lo lleva el texto de la línea de
+ * metadatos). Función pura del elemento de la lista, así que el SSR de
+ * <SessionRow> fija todos los estados visibles. El mismo parche de JSX clásico
+ * de tsx que render-cards.test.tsx.
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -73,17 +74,17 @@ describe("SessionRow", () => {
 	});
 
 	it("busy does not double-signal background agents (that is the sidebar section's channel)", () => {
-		// The narrowing lives in the API route (busy = isTurnRunning only);
-		// the row itself just renders busy faithfully. Pinned here so the
-		// contract can't silently re-widen: an extraction-only "working"
-		// row would be a double signal.
+		// El estrechamiento vive en la ruta de la API (busy = solo isTurnRunning);
+		// la fila en sí se limita a renderizar busy con fidelidad. Se fija aquí para que
+		// el contrato no pueda volver a ampliarse en silencio: una fila «trabajando» solo
+		// por la extracción sería una señal doble.
 		const html = render(item({ busy: true, pendingQuestion: false }));
 		assert.ok(html.includes("Working"), "the spinner's label names the turn, not agents");
 	});
 
 	it("the meta line: state replaces the count when the state is the useful fact", () => {
-		// Local noon: timeAgo renders the local date, so a fixed UTC instant
-		// lands on 2026-01-01 west of UTC.
+		// Mediodía local: timeAgo renderiza la fecha local, así que un instante UTC fijo
+		// cae en 2026-01-01 al oeste de UTC.
 		const awaiting = render(item({ pendingQuestion: true, updatedAt: new Date(2026, 0, 2, 12).toISOString() }));
 		assert.ok(awaiting.includes("Waiting for input · 2026-01-02"), "awaiting meta keeps the existing date");
 		assert.ok(!awaiting.includes("messages"), "count yields to the state");
@@ -92,8 +93,8 @@ describe("SessionRow", () => {
 		const working = render(item({ busy: true }));
 		assert.ok(working.includes("Working…"), "working meta");
 
-		// Owner, typography round 5: the message count is dropped — it
-		// informed no decision. Idle meta is just how long ago.
+		// Responsable, ronda 5 de tipografía: se quita el recuento de mensajes: no
+		// ayudaba a decidir nada. Los metadatos en reposo son solo hace cuánto.
 		const idle = render(item({ title: "Partial derivatives", messageCount: 7 }));
 		assert.ok(idle.includes("Partial derivatives"));
 		assert.ok(!idle.includes("messages"), "the count is gone (flip-flop: one line in sessionMeta)");
@@ -131,7 +132,7 @@ describe("timeAgo", () => {
 		assert.equal(timeAgo("2026-01-02T11:55:00.000Z", now), "5m ago");
 		assert.equal(timeAgo("2026-01-02T09:00:00.000Z", now), "3h ago");
 		assert.equal(timeAgo("2025-12-31T12:00:00.000Z", now), "2d ago");
-		// Local noon, so the local date is 2025-06-02 in every time zone.
+		// Mediodía local, para que la fecha local sea 2025-06-02 en cualquier zona horaria.
 		const old = new Date(2025, 5, 2, 12).toISOString();
 		assert.equal(timeAgo(old, now), "2025-06-02", "beyond a week: ISO — unambiguous, sortable");
 	});

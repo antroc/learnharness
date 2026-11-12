@@ -1,7 +1,8 @@
-/** Source guard for the experimentally verified Turbopack privacy boundary.
- * Path producers can trace data even without reads, and a later join can
- * reintroduce assets despite an upstream opt-out. Actual deployment behavior
- * is checked by the production payload guard and source-free smoke.
+/** Guarda en el código fuente para la frontera de privacidad de Turbopack verificada
+ * experimentalmente. Los productores de rutas pueden rastrear datos incluso sin
+ * lecturas, y una unión posterior puede reintroducir assets pese a una exclusión
+ * anterior. El comportamiento real del despliegue lo comprueban la guarda de la
+ * carga de producción y la prueba de humo sin código fuente.
  */
 import assert from "node:assert/strict";
 import * as fs from "node:fs";

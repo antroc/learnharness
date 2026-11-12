@@ -8,9 +8,9 @@ import type { ModelCatalogEntry, ModelCatalogResponse } from "../src/core/contra
 import { prettyModel } from "../components/usage-format.ts";
 import type { ChatSettings, TurnUsage } from "../src/core/contracts.ts";
 
-// The stats bar: folds only (no cost math in the component), the "—"
-// doctrine for absent data, honest cost (never a fake $0), and the model +
-// thinking control (components/model-picker.tsx — pi-ai catalog backed).
+// La barra de estadísticas: solo plegados (sin cálculo de costes en el componente), la
+// doctrina del "—" para los datos ausentes, coste honesto (nunca un $0 falso) y el control
+// de modelo + razonamiento (components/model-picker.tsx, respaldado por el catálogo de pi-ai).
 
 function step(inputTokens: number, outputTokens: number, over: Record<string, number | undefined> = {}) {
 	return { inputTokens, outputTokens, cacheReadTokens: undefined, cacheWriteTokens: undefined, reasoningTokens: undefined, ...over };
@@ -33,18 +33,18 @@ describe("stats bar", () => {
 			<StatsBar turns={[]} />,
 		);
 		assert.match(html, /data-testid="stats-bar"/);
-		// pre-chat: no summary button, no "—" theater (the knowledge-context
-		// slider died with the injection — the left side is simply empty)
+		// antes del chat: sin botón de resumen ni teatro de "—" (el deslizador de contexto de
+		// conocimiento murió con la inyección: el lado izquierdo simplemente está vacío)
 		assert.ok(!html.includes('data-testid="stats-summary"'), "no summary button pre-chat");
 		assert.ok(!html.includes('data-testid="stats-context"'), "no context figure pre-chat");
 		assert.ok(!html.includes('data-testid="stats-cost"'), "no cost figure pre-chat");
-		// no turns, no settings, catalog not loaded → both control labels
-		// "—" (the thinking button shows just the level, like the model
-		// button shows just the model name — no prefix, no dot separator)
+		// sin turnos, sin ajustes, catálogo sin cargar → las dos etiquetas de control
+		// "—" (el botón de razonamiento muestra solo el nivel, igual que el botón del modelo
+		// muestra solo el nombre del modelo: sin prefijo ni separador de punto)
 		assert.match(html, /data-testid="stats-model"[^>]*>\s*<span[^>]*>—<\/span>/);
 		assert.match(html, /data-testid="stats-thinking"[^>]*>\s*<span[^>]*>—<\/span>/);
 		assert.ok(!html.includes("aria-hidden>·"), "no dot between the controls");
-		// the control reads as a button: pill border + dropdown chevron
+		// el control se lee como un botón: borde de píldora + chevron de desplegable
 		assert.match(html, /data-testid="stats-model"[^>]*rounded-full[^>]*>/);
 		assert.match(html, /▾/);
 	});
@@ -53,17 +53,17 @@ describe("stats bar", () => {
 		const html = renderToStaticMarkup(
 			<StatsBar turns={[turn(), turn()]} contextTokens={11_000} pricing={sessionCost({ turns: [turn(), turn()] })} />,
 		);
-		// last turn's last call: 10k in + 1k out = 11k. The LIMIT is the
-		// live catalog's — and the bar doesn't hold the index yet (the
-		// catalog join lands with the UI chunk), so the meter renders
-		// USAGE-ONLY (owner amendment: never a fallback window).
+		// última llamada del último turno: 10k de entrada + 1k de salida = 11k. El LÍMITE es el
+		// del catálogo en vivo, y la barra aún no tiene el índice (la unión con el
+		// catálogo llega con el fragmento de UI), así que el medidor renderiza
+		// SOLO EL USO (enmienda del responsable: nunca una ventana alternativa).
 		assert.match(html, /data-testid="stats-context">11k</);
-		// pi catalog price 0.15/0.5 per 1M (drifted in pi-ai 0.87.1):
-		// each turn 10k×0.15 + 1k×0.5 = $0.002 → two = $0.0040
+		// precio del catálogo de pi 0.15/0.5 por 1M (cambió en pi-ai 0.87.1):
+		// cada turno 10k×0.15 + 1k×0.5 = $0.002 → dos = $0.0040
 		assert.match(html, /data-testid="stats-cost">\$0\.0040</);
-		// model button label: SSR (record fetch not run yet) reads "—" —
-		// the strong slot arrives client-side via GET /api/settings; the
-		// turn log below still folds the ACTUAL models billed
+		// etiqueta del botón del modelo: en SSR (aún sin pedir el registro) muestra "—":
+		// la ranura fuerte llega en el cliente con GET /api/settings; el
+		// registro de turnos de abajo sigue plegando los modelos REALES facturados
 		assert.match(html, /data-testid="stats-model"[^>]*>\s*<span[^>]*>—<\/span>/);
 	});
 
@@ -72,9 +72,9 @@ describe("stats bar", () => {
 			<StatsBar turns={[turn({ model: "nope/unknown" })]} contextTokens={11_000} pricing={sessionCost({ turns: [turn({ model: "nope/unknown" })] })} />,
 		);
 		assert.match(html, /data-testid="stats-cost">—</);
-		// unknown model: no catalog limit exists, but the footprint is
-		// still an honest reading — usage-only (never "—" theater over
-		// real data, never a fake window)
+		// modelo desconocido: no existe límite del catálogo, pero la huella sigue
+		// siendo una lectura honesta: solo el uso (nunca teatro de "—" sobre
+		// datos reales, nunca una ventana falsa)
 		assert.match(html, /data-testid="stats-context">11k</);
 	});
 
@@ -90,7 +90,7 @@ describe("stats bar", () => {
 	});
 
 	it("prettyModel strips only the vendor path, preserving versions, dates and variants", () => {
-		assert.equal(prettyModel("z-ai/glm-5.3-flash"), "glm-5.3-flash"); // dashes kept (owner round 5)
+		assert.equal(prettyModel("z-ai/glm-5.3-flash"), "glm-5.3-flash"); // se conservan los guiones (ronda 5 del responsable)
 		assert.equal(prettyModel("qwen/qwen3.8-max-0902"), "qwen3.8-max-0902");
 		assert.equal(prettyModel("google/gemma-4-27b-it:free"), "gemma-4-27b-it:free");
 		assert.equal(prettyModel("anthropic/claude-opus-5:batch"), "claude-opus-5:batch");
@@ -101,26 +101,26 @@ describe("stats bar", () => {
 	});
 
 	it("provider-qualified stamps (usage contract, model-slots wave)", () => {
-		// qualified: the provider rides as a quiet suffix — federation makes
-		// the same model via two providers different bookkeeping
+		// cualificado: el proveedor va como sufijo discreto: con la federación, el
+		// mismo modelo mediante dos proveedores es contabilidad distinta
 		assert.equal(prettyModel("openrouter:z-ai/glm-5.3-flash", true), "glm-5.3-flash · openrouter");
 		assert.equal(prettyModel("openai:gpt-5.2", true), "gpt-5.2 · openai");
 		assert.equal(prettyModel("openrouter:google/gemma-4-27b-it:free", true), "gemma-4-27b-it:free · openrouter");
 		assert.equal(prettyModel("opencode:claude-opus-5-5", true), "claude-opus-5-5 · opencode");
-		// Bare ids are never parsed as usage stamps, even with a colon.
+		// Los ids a secas nunca se analizan como sellos de uso, ni siquiera con dos puntos.
 		assert.equal(prettyModel("model:free"), "model:free");
-		// qualified on a bare id: no suffix invented
+		// cualificado sobre un id a secas: no se inventa ningún sufijo
 		assert.equal(prettyModel("z-ai/glm-5.3-flash", true), "glm-5.3-flash");
 	});
 });
 
 describe("catalogLimits (the stats-bar live-limits join, pure)", () => {
-	// The client-side twin of the server's catalogContextLimits join:
-	// provider:id → contextWindow straight from the cached /api/models
-	// payload. A static render holds no catalog (the fetch is a live
-	// concern — Playwright verifies the wiring), so the pure index shape
-	// is pinned here: one entry per model, the exact key contextWindow()
-	// looks up, missing models absent (→ limit null → usage-only).
+	// El gemelo en el cliente de la unión catalogContextLimits del servidor:
+	// provider:id → contextWindow directamente de la carga en caché de /api/models.
+	// Un render estático no tiene catálogo (la petición es una cuestión en vivo:
+	// Playwright verifica el cableado), así que aquí se fija la forma del índice
+	// puro: una entrada por modelo, la clave exacta que busca contextWindow(),
+	// los modelos que faltan ausentes (→ límite null → solo el uso).
 	const entry = (over: Pick<ModelCatalogEntry, "id" | "provider" | "contextWindow">): ModelCatalogEntry => ({
 		name: over.id,
 		reasoning: false,

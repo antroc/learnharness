@@ -1,15 +1,18 @@
 /**
- * The keys composition (auth-keys wave, 2026-09-19): env-reflecting store +
- * env-wins precedence + the masked status view. Owner decisions pinned:
- *  - real env always wins; a PUT to an env-owned var persists to the file
- *    but never overwrites the env copy (status reports shadowedByEnv);
- *  - saves/deletes take effect immediately (file + process.env together);
- *  - unknown file vars are preserved and surfaced, never editable.
+ * La composición de claves (oleada de claves de autenticación, 2026-09-19):
+ * almacén que refleja el entorno + precedencia en la que gana el entorno + la
+ * vista de estado enmascarada. Decisiones del responsable que se fijan:
+ *  - el entorno real siempre gana; un PUT a una variable que pertenece al entorno
+ *    persiste en el fichero pero nunca sobrescribe la copia del entorno (el
+ *    estado informa de shadowedByEnv);
+ *  - guardar/borrar surte efecto de inmediato (fichero + process.env a la vez);
+ *  - las variables desconocidas del fichero se conservan y se muestran, nunca son editables.
  *
- * LH_AUTH_FILE redirects to a fresh tmp dir BEFORE the imports (the seam is
- * module-load bound); the \"real env\" var is set before src/server/keys.ts
- * first loads so the boot snapshot treats it as real environment. All
- * values here are throwaway test strings — never real secrets.
+ * LH_AUTH_FILE se redirige a un directorio tmp nuevo ANTES de los imports (la
+ * frontera depende de la carga del módulo); la variable del «entorno real» se
+ * fija antes de que src/server/keys.ts se cargue por primera vez para que la
+ * instantánea del arranque la trate como entorno real. Todos los valores de
+ * aquí son cadenas de prueba desechables, nunca secretos reales.
  */
 
 import assert from "node:assert/strict";
@@ -19,9 +22,9 @@ import * as path from "node:path";
 import { after, describe, it } from "node:test";
 import { externalCliEnv } from "../src/core/auth-env.ts";
 
-// THIS PROCESS'S ENV IS THE TEST SUBJECT — strip any inherited catalog vars
-// (a developer shell may export REAL keys; tests use throwaway values only,
-// never real secrets). The strip affects only this disposable child process.
+// EL ENTORNO DE ESTE PROCESO ES EL SUJETO DE LA PRUEBA: quita las variables del catálogo heredadas
+// (una shell de desarrollo puede exportar claves REALES; las pruebas solo usan valores desechables,
+// nunca secretos reales). La limpieza solo afecta a este proceso hijo desechable.
 for (const varName of [
 	"OPENROUTER_API_KEY",
 	"DEEPGRAM_API_KEY",
@@ -42,8 +45,8 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "lh-server-keys-"));
 const AUTH = path.join(TMP, "auth.json");
 process.env.LH_AUTH_FILE = AUTH;
 
-// The file BEFORE first boot: a shadowed OpenRouter (env will differ) + an
-// unknown var that must survive every write and surface as a generic row.
+// El fichero ANTES del primer arranque: un OpenRouter tapado (el entorno será distinto) + una
+// variable desconocida que debe sobrevivir a todas las escrituras y mostrarse como fila genérica.
 fs.writeFileSync(
 	AUTH,
 	JSON.stringify({
@@ -51,10 +54,10 @@ fs.writeFileSync(
 		FUTURE_PLANS_TOKEN: "opaque-plans-token",
 	}),
 );
-// Real env (set BEFORE the module's first import → boot snapshots it):
+// Entorno real (fijado ANTES del primer import del módulo → el arranque lo captura en la instantánea):
 process.env.OPENROUTER_API_KEY = "sk-or-v1-envvalue99";
 
-// Import AFTER env setup — module init runs the boot fill-gap + snapshot.
+// Importa DESPUÉS de preparar el entorno: la inicialización del módulo ejecuta el relleno de huecos del arranque + la instantánea.
 const { deleteKey, initAuthEnv, keyStatuses, keyValue, resolveKeyStatuses, saveKey, isWritableAuthKey } = await import(
 	"../src/server/keys.ts"
 );
@@ -105,7 +108,7 @@ describe("boot fill-gap + precedence", () => {
 
 describe("saveKey / deleteKey (immediate effect, no restart)", () => {
 	it("save reflects into env + file (fill-gap set)", () => {
-		const value = "d".repeat(40); // throwaway, ≥ Deepgram floor
+		const value = "d".repeat(40); // desechable, ≥ el mínimo de Deepgram
 		const r = saveKey("DEEPGRAM_API_KEY", value);
 		assert.ok(r.ok);
 		assert.equal(process.env.DEEPGRAM_API_KEY, value, "env updated immediately");
@@ -167,7 +170,7 @@ describe("saveKey / deleteKey (immediate effect, no restart)", () => {
 		});
 
 		it("save via provider env var: generic guard, reflected immediately", () => {
-			const value = "sk-throwaway-openai-0123456789"; // never a real secret
+			const value = "sk-throwaway-openai-0123456789"; // nunca un secreto real
 			const r = saveKey("OPENAI_API_KEY", value);
 			assert.ok(r.ok);
 			assert.equal(process.env.OPENAI_API_KEY, value, "env updated immediately");
@@ -180,7 +183,7 @@ describe("saveKey / deleteKey (immediate effect, no restart)", () => {
 		it("provider truncations/whitespace are 400s (paste hygiene only)", () => {
 			assert.ok(!saveKey("OPENAI_API_KEY", "short").ok);
 			assert.ok(!saveKey("OPENAI_API_KEY", "has whitespace now").ok);
-			// no family check anymore — any ≥12-char token passes
+			// ya no hay comprobación de familia: pasa cualquier token de ≥12 caracteres
 			assert.ok(saveKey("OPENROUTER_API_KEY", "not-sk-or-but-12chars").ok);
 		});
 
@@ -196,7 +199,7 @@ describe("saveKey / deleteKey (immediate effect, no restart)", () => {
 			deleteKey("OPENAI_API_KEY");
 			assert.equal(process.env.OPENAI_API_KEY, undefined);
 			assert.ok(!("OPENAI_API_KEY" in authStore.authVars()));
-			// cleanup the openrouter save from the guard test too
+			// limpia también lo guardado de openrouter en la prueba de la guarda
 			deleteKey("OPENROUTER_API_KEY");
 			assert.ok(!("OPENROUTER_API_KEY" in authStore.authVars()));
 		});

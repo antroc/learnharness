@@ -1,8 +1,8 @@
 /**
- * Failed-response Retry (issue #110). Input is already durable. Retry
- * omits the trailing failures from the temporary agent context, never
- * deletes them from the transcript, and appends only genuinely new output.
- * Scripted faux engines: no real provider calls or learning data.
+ * Reintentar una respuesta fallida (issue #110). La entrada ya es duradera.
+ * Retry omite los fallos finales del contexto temporal del agente, nunca los
+ * borra de la transcripción y solo añade la salida realmente nueva. Motores
+ * simulados guionizados: sin llamadas reales a proveedores ni datos de aprendizaje.
  */
 
 import assert from "node:assert/strict";
@@ -19,7 +19,7 @@ import type { LhMessage } from "../src/core/native-messages.ts";
 import type { QuestionData } from "../src/core/question-core.ts";
 import type { SteerMessage } from "../src/core/contracts.ts";
 
-// Set the storage/auth seams BEFORE any app/config-loading imports.
+// Fija las fronteras de almacenamiento/autenticación ANTES de cualquier import que cargue la app/configuración.
 assert.equal(process.env.NODE_ENV, "test", "Run with NODE_ENV=test; these tests must not invoke real providers.");
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "lh-retry-failed-turn-"));
 process.env.LH_DATA_DIR = path.join(scratch, "data");
@@ -56,7 +56,7 @@ const QUIZ_INPUT = {
 
 const networkFailure: FauxResponseStep = () => { throw new Error("fetch failed"); };
 
-/** Record the actual model context after the app's native conversion. */
+/** Registra el contexto real del modelo tras la conversión nativa de la app. */
 function scripted(steps: FauxResponseStep[]) {
 	const contexts: string[][] = [];
 	const histories: string[] = [];
@@ -80,7 +80,7 @@ function post(chatId: string, input: unknown): Request {
 
 type AgentFactory = (opts: AgentBuildOptions & { teaching: boolean }) => TeachingAgent;
 
-/** POST one event; after acceptance drain the server-owned turn. */
+/** Hace POST de un evento; tras aceptarse, vacía el turno que gestiona el servidor. */
 async function turn(engine: PiEngine, chatId: string, input: unknown, buildAgent?: AgentFactory): Promise<Response> {
 	const ack = await handleChatRequest(
 		post(chatId, input),
@@ -478,8 +478,8 @@ describe("Retry refusal and revalidation", () => {
 			const appended = later === "compaction" ? compaction("failed-response") : newUserMessage("A newer input");
 			const read = chatStore.getChat;
 			let reads = 0;
-			// Simulate another writer landing during the awaited gate. Do not
-			// change or invoke the compaction implementation to exercise Retry.
+			// Simula que otro escritor llega durante la barrera esperada. No cambies
+			// ni invoques la implementación de la compactación para ejercitar Retry.
 			const reader = mock.method(chatStore, "getChat", (id: string) => {
 				if (id === chat.id && ++reads === 2) chatStore.saveMessages(id, [...before, appended]);
 				return read(id);

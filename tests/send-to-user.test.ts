@@ -1,5 +1,5 @@
-/** Explicit Claude output: closed-network synthetic fixtures only. Native
- * history stays native; UI, extraction, and Markdown read the same prose. */
+/** Salida explícita de Claude: solo fixtures sintéticas con la red cerrada. El
+ * historial nativo sigue siendo nativo; la UI, la extracción y el Markdown leen la misma prosa. */
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import * as fs from "node:fs";
@@ -15,8 +15,8 @@ import type { PiEngine } from "../src/agent/models.ts";
 import type { AgentBuildOptions } from "../src/agent/teacher-agent.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
 
-// Set the data/auth seams BEFORE importing app modules. Do not read local
-// keys, recordings, or learner sessions, even if a dev server is running.
+// Fija las fronteras de datos/autenticación ANTES de importar módulos de la app. No leas claves
+// locales, grabaciones ni sesiones de alumnos, aunque haya un servidor de desarrollo en marcha.
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "lh-send-to-user-"));
 const originalEnv = process.env;
 const originalFetch = globalThis.fetch;
@@ -251,8 +251,8 @@ describe("send_to_user interrupted generations", () => {
 	}
 });
 
-// Legacy/caller-owned practice batches keep their existing stop semantics,
-// even though new production practice agents no longer offer the output tool.
+// Los lotes de práctica heredados/gestionados por quien llama conservan su semántica de parada,
+// aunque los nuevos agentes de práctica de producción ya no ofrezcan la herramienta de salida.
 function legacyPracticeAgent(engine: PiEngine) {
 	return createPracticeAgent({ chatId, chatStore }, {
 		engine,

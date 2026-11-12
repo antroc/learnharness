@@ -1,8 +1,9 @@
 /**
- * The research fetch tools follow model-chosen URLs, and a fetched page can
- * steer the model. They must reach only public addresses: never loopback,
- * the LAN, or cloud metadata, whether named directly, by hostname, or
- * through a redirect. All servers here are local; nothing touches the network.
+ * Las herramientas de petición de la investigación siguen URL que elige el
+ * modelo, y una página descargada puede reorientar al modelo. Solo deben llegar
+ * a direcciones públicas: nunca loopback, la LAN ni los metadatos de la nube,
+ * ya sea por nombre directo, por nombre de host o mediante una redirección.
+ * Todos los servidores de aquí son locales; nada toca la red.
  */
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
@@ -95,7 +96,7 @@ describe("redirects are checked at every hop", () => {
 			res.writeHead(302, { location: `http://127.0.0.1:${secret.port}/secret` });
 			res.end();
 		});
-		// Treat ::1 as "public" so the first hop is allowed; 127.0.0.1 stays refused.
+		// Trata ::1 como «público» para que se permita el primer salto; 127.0.0.1 sigue rechazado.
 		const agent = createAddressCheckedAgent((address) => address === "::1");
 		try {
 			await assert.rejects(safeFetch(`http://[::1]:${bounce.port}/start`, {}, agent), /refusing to connect to a private or local address/);

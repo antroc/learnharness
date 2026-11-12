@@ -18,8 +18,8 @@ const documentFor = (element: React.ReactElement) =>
 	parseHTML(`<html><body>${renderToStaticMarkup(element)}</body></html>`).document;
 const annotations = (root: ParentNode) => [...root.querySelectorAll('annotation[encoding="application/x-tex"]')].map(node => node.textContent);
 
-// PR266 identified the less-than + letter trigger. Test the actual streaming
-// render seam, not a TeX-space workaround: valid TeX must remain byte-identical.
+// La PR266 identificó el disparador menor-que + letra. Prueba la frontera real de render
+// en streaming, no un apaño con espacios de TeX: el TeX válido debe quedar idéntico byte a byte.
 for (const [name, surface] of Object.entries(surfaces)) describe(`streaming math — ${name}`, () => {
 	for (const [source, tex] of [
 		["$a<b$", "a<b"],
@@ -101,12 +101,12 @@ it("preserves native TeX source in both streaming and static modes", () => {
 		[...staticDocument.querySelectorAll(".katex-html")].map(node => node.innerHTML));
 });
 
-// Exercise successive updates on the SAME mounted components, rather than
-// mistaking independent server renders for incremental streaming coverage.
+// Ejercita actualizaciones sucesivas sobre los MISMOS componentes montados, en vez de
+// confundir renders independientes en el servidor con cobertura de streaming incremental.
 it("retains less-than prefixes through mounted streaming updates on every entry point", async () => {
 	const dom = parseHTML("<html><body></body></html>");
-	// linkedom has no layout/animation engine; Radix's open reasoning panel
-	// only needs these inert browser hooks. This test checks text, not layout.
+	// linkedom no tiene motor de layout/animación; el panel de razonamiento abierto de Radix
+	// solo necesita estos hooks inertes del navegador. Esta prueba comprueba texto, no layout.
 	const globals = { window: dom.window, document: dom.document, Element: dom.window.Element,
 		HTMLElement: dom.window.HTMLElement, IS_REACT_ACT_ENVIRONMENT: true,
 		getComputedStyle: () => ({ display: "block", animationName: "none" }),

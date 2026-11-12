@@ -5,7 +5,7 @@ import path from "node:path";
 import { after, beforeEach, it } from "node:test";
 import { SEARCH_ENGINES, type SearchEngineId } from "../src/core/search.ts";
 
-// Real settings/auth composition with fake keys and an injected transport only.
+// Composición real de ajustes/autenticación solo con claves falsas y un transporte inyectado.
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-search-expansion-"));
 process.env.LH_DATA_DIR = path.join(dir, "data");
 process.env.LH_AUTH_FILE = path.join(dir, "auth.json");

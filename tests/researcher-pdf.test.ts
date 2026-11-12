@@ -1,15 +1,17 @@
 /**
- * Researcher PDF capability (PDF wave, 2026-10-07, design B): web_fetch_pdf
- * downloads a PDF into a per-job temp dir and returns the triage summary;
- * pdf_info/pdf_extract/pdf_search read it page-level, ALL scoped to the dir
- * (the researcher's filesystem ends at the temp wall). web_fetch gained the
- * PDF POINTER (no dead-end) and the Source line with final URL + HTTP
- * status (the "ill-formed request" lesson: 200-served error bodies must be
- * distinguishable from real pages).
+ * Capacidad de PDF del investigador (oleada de PDF, 2026-10-07, diseño B):
+ * web_fetch_pdf descarga un PDF en un directorio temporal por tarea y devuelve
+ * el resumen de triaje; pdf_info/pdf_extract/pdf_search lo leen por páginas,
+ * TODOS limitados a ese directorio (el sistema de ficheros del investigador
+ * termina en el muro del temporal). web_fetch ganó el PUNTERO al PDF (sin
+ * callejón sin salida) y la línea Source con la URL final + el estado HTTP (la
+ * lección de "ill-formed request": los cuerpos de error servidos con 200 deben
+ * poder distinguirse de las páginas reales).
  *
- * Zero network: the safeFetch seam (safeFetchOverride) is stubbed with a REAL minimal PDF built
- * programmatically (correct xref offsets — pdfjs parses it like any
- * download). Rendering is out of scope here (no vision in the researcher).
+ * Red cero: la frontera safeFetch (safeFetchOverride) se sustituye con un PDF
+ * mínimo REAL construido por programa (offsets de xref correctos: pdfjs lo
+ * analiza como cualquier descarga). El render queda fuera del alcance aquí (el
+ * investigador no tiene visión).
  */
 
 import assert from "node:assert/strict";
@@ -21,10 +23,10 @@ import { createPdfReadTools } from "../src/agent/tools/pdf-read.ts";
 import { createWebTools } from "../src/agent/tools/web.ts";
 import { safeFetchOverride } from "../src/agent/tools/safe-fetch.ts";
 
-/** Build a valid N-page PDF in memory — ASCII-only so string offsets ARE
- *  byte offsets; xref entries computed as we assemble. */
+/** Construye en memoria un PDF válido de N páginas: solo ASCII, para que los offsets
+ *  de cadena SEAN offsets de bytes; las entradas de xref se calculan al ensamblar. */
 function buildPdf(pageTexts: string[]): Uint8Array {
-	const objects: string[] = []; // 1-indexed
+	const objects: string[] = []; // indexado desde 1
 	const pageIds = pageTexts.map((_, i) => 3 + i * 2);
 	const fontId = 3 + pageTexts.length * 2;
 	objects[1] = "<</Type/Catalog/Pages 2 0 R>>";
@@ -56,7 +58,7 @@ function buildPdf(pageTexts: string[]): Uint8Array {
 	return new TextEncoder().encode(pdf);
 }
 
-/** A fresh Response per call (bodies are single-use). */
+/** Una Response nueva por llamada (los cuerpos son de un solo uso). */
 const pdfResponse = () =>
 	new Response(PDF_BYTES.slice().buffer as ArrayBuffer, { headers: { "content-type": "application/pdf" } });
 
@@ -75,7 +77,7 @@ after(async () => {
 	await Promise.all(tempDirs.map((d) => fs.rm(d, { recursive: true, force: true })));
 });
 
-/** Tool-result .details → displayable string (the agent sees this shape). */
+/** .details del resultado de la herramienta → cadena mostrable (el agente ve esta forma). */
 function asText(result: unknown): string {
 	const r = result as { details?: unknown };
 	if (typeof r?.details === "string") return r.details;
