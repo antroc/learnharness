@@ -1,8 +1,10 @@
-/** Offline Next runtime gate (run after next build, with no dev server running).
- * Proves cold-start registration, cross-route owner/events and dev reloads using
- * synthetic credentials in a fresh profile. No OAuth, provider traffic or real
- * auth/data. The dev reload changes only a source mtime, restoring it afterward.
- * This is a test, not an alternative app launcher. */
+/** Barrera sin conexión del runtime de Next (ejecútala tras next build, sin
+ * ningún servidor de desarrollo en marcha). Demuestra el registro en
+ * arranque en frío, responsable/eventos entre rutas y recargas de
+ * desarrollo usando credenciales sintéticas en un perfil nuevo. Sin OAuth,
+ * tráfico a proveedores ni autenticación/datos reales. La recarga de
+ * desarrollo solo cambia el mtime de una fuente y lo restaura después. Esto
+ * es una prueba, no un lanzador alternativo de la app. */
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -37,7 +39,7 @@ globalThis.fetch = async (input, init) => {
  if (['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) return original(input, init);
  throw new Error('Offline subscription gate forbids external network: ' + url.origin + url.pathname);
 };\n`, { mode: 0o600 });
-// Intentionally an allowlist, not a copy of the calling shell's environment.
+// A propósito, una lista blanca, no una copia del entorno del shell que llama.
 const env = {
 	PATH: process.env.PATH ?? "/usr/bin:/bin", HOME: path.join(profile, "home"),
 	XDG_CONFIG_HOME: path.join(profile, "config"), XDG_CACHE_HOME: path.join(profile, "cache"), XDG_DATA_HOME: path.join(profile, "xdg-data"),
@@ -79,7 +81,7 @@ async function run(mode) {
 			headers: { origin, "sec-fetch-site": "same-origin", "x-learnharness-subscriptions": "1", "content-type": "application/json" },
 			signal: AbortSignal.timeout(60000),
 		});
-		// Controls have not been imported through an HTTP request yet.
+		// Los controles aún no se han importado mediante una petición HTTP.
 		const catalog = (await (await request("/api/models")).json()).providers;
 		for (const id of ["chatgpt", "github-copilot-subscription", "xai-subscription"]) assert(catalog.find((provider) => provider.id === id)?.keyPresent, `${mode}: cold ${id} unavailable.`);
 		let state = await (await request("/api/subscriptions")).json();

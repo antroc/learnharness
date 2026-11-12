@@ -1,28 +1,31 @@
 /**
- * smoke-server.mjs — boot the packaged standalone server and prove it serves.
+ * smoke-server.mjs — arranca el servidor standalone empaquetado y demuestra
+ * que sirve.
  *
- * The payload gate that pays for itself (2026-10-08): `next build` success
- * and a completed electron-builder run say NOTHING about whether the
- * packaged server actually starts. On its first day this smoke caught two
- * real defects nothing else saw: (1) a trace-exclude regression that
- * stripped the pi engine packages to bare package.jsons — the server
- * answered 500 on every route with ERR_MODULE_NOT_FOUND; (2) before that,
- * the dev auth.json (BYOK keys) shipping inside the bundle. It runs
- * between build-server.mjs and electron-builder so a broken payload fails
- * in seconds, not after a full packaging pass.
+ * La barrera de la carga que se amortiza sola (2026-10-08): que `next build`
+ * tenga éxito y que una ejecución de electron-builder termine NO dicen NADA
+ * sobre si el servidor empaquetado arranca de verdad. En su primer día esta
+ * prueba de humo detectó dos defectos reales que nada más vio: (1) una
+ * regresión de exclusión del rastreo que dejó los paquetes del motor pi en
+ * package.json pelados: el servidor respondía 500 en todas las rutas con
+ * ERR_MODULE_NOT_FOUND; (2) antes de eso, el auth.json de desarrollo (claves
+ * BYOK) distribuido dentro del paquete. Se ejecuta entre build-server.mjs y
+ * electron-builder para que una carga rota falle en segundos, no tras una
+ * pasada completa de empaquetado.
  *
- * What it does: spawns .next/standalone/server.js exactly the way the
- * Electron shell does (electron/main.cjs) — with --electron it uses
- * Electron's bundled Node via ELECTRON_RUN_AS_NODE, otherwise host Node —
- * 127.0.0.1 on a kernel-assigned
- * free port, NODE_ENV=production, a THROWAWAY LH_DATA_DIR and an EMPTY
- * LH_AUTH_FILE under os.tmpdir() (no real keys or data ever touch it) —
- * polls GET / until 200, then probes the GET-only API surface (graph /
- * models / settings — no side effects). Any non-200, an early server
- * exit, or a 30s boot timeout fails the gate and prints the server's own
- * log tail for diagnosis. The child is ALWAYS killed before exit — a
- * leaked server holds its port against the next run (learned the hard
- * way, same day).
+ * Qué hace: lanza .next/standalone/server.js exactamente como lo hace el
+ * armazón de Electron (electron/main.cjs) —con --electron usa el Node que
+ * trae Electron mediante ELECTRON_RUN_AS_NODE y, si no, el Node del host—
+ * en 127.0.0.1, en un puerto libre asignado por el núcleo, con
+ * NODE_ENV=production, un LH_DATA_DIR DESECHABLE y un LH_AUTH_FILE VACÍO
+ * bajo os.tmpdir() (ninguna clave ni dato real lo toca nunca); sondea GET /
+ * hasta obtener 200 y después prueba la superficie de la API solo GET
+ * (graph / models / settings, sin efectos secundarios). Cualquier respuesta
+ * distinta de 200, una salida temprana del servidor o un plazo de arranque
+ * de 30 s hacen fallar la barrera e imprimen la cola del log del propio
+ * servidor para el diagnóstico. El hijo se mata SIEMPRE antes de salir: un
+ * servidor que se escapa retiene su puerto frente a la siguiente ejecución
+ * (aprendido a las malas, el mismo día).
  */
 import { spawn } from "node:child_process";
 import { probeEnv, verifyDemoRuntime } from "./smoke-demo-runtime.mjs";
@@ -47,7 +50,7 @@ const RUNTIME = ELECTRON_MODE ? createRequire(import.meta.url)("electron") : pro
 
 const POLL_MS = 500;
 const BOOT_TIMEOUT_MS = 30_000;
-/** GET-only probes — the routes that exercised today's failure class. */
+/** Sondeos solo GET: las rutas que ejercitaron la clase de fallo de hoy. */
 const PROBES = ["/api/graph", "/api/models", "/api/settings", "/api/plugins"];
 
 if (!fs.existsSync(path.join(SOURCE_STANDALONE, "server.js"))) {
@@ -55,7 +58,7 @@ if (!fs.existsSync(path.join(SOURCE_STANDALONE, "server.js"))) {
 	process.exit(1);
 }
 
-/** A free TCP port (listen(0) → the kernel assigns one) — mirrors main.cjs. */
+/** Un puerto TCP libre (listen(0) → el núcleo asigna uno); refleja main.cjs. */
 function freePort() {
 	return new Promise((resolve, reject) => {
 		const srv = net.createServer();
@@ -67,7 +70,7 @@ function freePort() {
 	});
 }
 
-/** One GET; resolves the status code (0 = connection refused/failed). */
+/** Un GET; resuelve el código de estado (0 = conexión rechazada/fallida). */
 function get(url) {
 	return new Promise((resolve) => {
 		const req = http.get(url, (res) => {
@@ -83,22 +86,22 @@ function get(url) {
 }
 
 async function main() {
-	// Optional source-free proof: run a copy outside the checkout, so missing
-	// dependencies cannot resolve upward into development node_modules.
+	// Prueba opcional sin la fuente: ejecuta una copia fuera del checkout para que las
+	// dependencias que faltan no puedan resolverse hacia arriba en el node_modules de desarrollo.
 	if (ISOLATED_MODE) {
 		isolatedRoot = fs.mkdtempSync(path.join(os.tmpdir(), "lh-isolated-server-"));
-		// Preserve Next's relative external-package links. cpSync otherwise
-		// rewrites them to absolute links back into the original checkout.
+		// Conserva los enlaces relativos de paquetes externos de Next. Si no, cpSync
+		// los reescribe como enlaces absolutos de vuelta al checkout original.
 		fs.cpSync(SOURCE_STANDALONE, path.join(isolatedRoot, "standalone"), { recursive: true, verbatimSymlinks: true });
 	}
 	const standalone = isolatedRoot ? path.join(isolatedRoot, "standalone") : SOURCE_STANDALONE;
 	const server = path.join(standalone, "server.js");
-	// HTTP boot alone never imports the dynamically loaded demo engine.
-	// Fail before packaging if its standalone dependency graph is incomplete.
+	// El arranque HTTP por sí solo nunca importa el motor de demos cargado dinámicamente.
+	// Falla antes de empaquetar si su grafo de dependencias del standalone está incompleto.
 	verifyDemoRuntime(standalone, RUNTIME);
-	// /api/models only reads catalogs; initialize the real lazy SDK offline too.
+	// /api/models solo lee catálogos; inicializa también sin conexión el SDK perezoso real.
 	verifyProviderRuntime(standalone, RUNTIME);
-	// A plain GET without Accept-Encoding never exercises gzip backpressure.
+	// Un GET simple sin Accept-Encoding nunca ejercita la contrapresión de gzip.
 	verifyCompressionRuntime(standalone, RUNTIME);
 	const port = await freePort();
 	const url = `http://127.0.0.1:${port}`;
@@ -109,7 +112,7 @@ async function main() {
 	createPluginSmokeFixture(home);
 	const imports = [];
 	if (ISOLATED_MODE) {
-		// Reject absolute import escapes as well as incidental upward resolution.
+		// Rechaza las escapadas por import absoluto además de la resolución accidental hacia arriba.
 		const guard = path.join(home, "payload-import-guard.mjs");
 		fs.writeFileSync(guard, `import {registerHooks} from 'node:module'; import {realpathSync} from 'node:fs'; import path from 'node:path'; import {fileURLToPath} from 'node:url';
 const roots = ${JSON.stringify([standalone, path.join(home, "data", "plugins")])}.map(p=>realpathSync(p));
@@ -117,7 +120,7 @@ registerHooks({resolve(specifier,context,next){ const result=next(specifier,cont
 		imports.push("--import", guard);
 	}
 
-	const tail = []; // rolling log tail for failure diagnosis
+	const tail = []; // cola móvil del log para diagnosticar fallos
 	let tailBytes = 0;
 	const keep = (buf) => {
 		for (const line of buf.toString().split("\n")) {
@@ -166,7 +169,7 @@ registerHooks({resolve(specifier,context,next){ const result=next(specifier,cont
 					try {
 						child.kill("SIGKILL");
 					} catch {
-						/* already gone */
+						/* ya no existe */
 					}
 				}
 				done();
@@ -175,7 +178,7 @@ registerHooks({resolve(specifier,context,next){ const result=next(specifier,cont
 
 	let failed = null;
 	try {
-		// 1) Boot: poll GET / until 200 (or timeout / early exit).
+		// 1) Arranque: sondea GET / hasta obtener 200 (o plazo vencido / salida temprana).
 		let boot = 0;
 		const deadline = Date.now() + BOOT_TIMEOUT_MS;
 		while (Date.now() < deadline) {
@@ -187,7 +190,7 @@ registerHooks({resolve(specifier,context,next){ const result=next(specifier,cont
 		if (boot !== 200) throw new Error(`server never answered 200 on ${url} (last status: ${boot})`);
 		console.log(`[smoke-server] boot ok: GET / → 200 (${url})`);
 
-		// 2) API surface: every probe must be 200.
+		// 2) Superficie de la API: todos los sondeos deben dar 200.
 		for (const route of PROBES) {
 			const status = await get(url + route);
 			if (status !== 200) throw new Error(`GET ${route} → ${status} (expected 200)`);
@@ -208,7 +211,7 @@ registerHooks({resolve(specifier,context,next){ const result=next(specifier,cont
 		try {
 			fs.rmSync(home, { recursive: true, force: true });
 		} catch {
-			/* best effort — it's under os.tmpdir() */
+			/* con el mejor esfuerzo: está bajo os.tmpdir() */
 		}
 	}
 

@@ -1,14 +1,15 @@
-/** Real-browser proof for createPluginSmokeFixture + verifyPluginServer.
+/** Prueba en un navegador real de createPluginSmokeFixture + verifyPluginServer.
  *
- * The CALLER starts the already-built server with disposable learning/auth data
- * and owns its lifetime. This module never builds, starts a server, downloads a
- * browser, uses a persistent browser profile, or contacts provider accounts.
+ * El LLAMANTE arranca el servidor ya compilado con datos de aprendizaje/
+ * autenticación desechables y es dueño de su vida. Este módulo nunca
+ * compila, arranca un servidor, descarga un navegador, usa un perfil de
+ * navegador persistente ni contacta con cuentas de proveedores.
  *
  *   import { verifyPluginBrowser } from "./scripts/smoke-plugin-browser.mjs";
  *   await verifyPluginBrowser(url, {
  *     executablePath: "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
- *     scratchDirectory: home, // optional screenshots + complete evidence JSON
- *     headers: {},           // optional local-server transport headers
+ *     scratchDirectory: home, // capturas opcionales + JSON completo de evidencias
+ *     headers: {},           // cabeceras de transporte opcionales del servidor local
  *     timeoutMs: 30_000,
  *   });
  */
@@ -48,14 +49,14 @@ async function chromeExecutable(supplied) {
 		try {
 			await access(candidate, process.platform === "win32" ? constants.F_OK : constants.X_OK);
 			if ((await stat(candidate)).isFile()) return candidate;
-		} catch { /* Try only installed local stable-browser locations. */ }
+		} catch { /* Prueba solo las ubicaciones locales instaladas de navegadores estables. */ }
 	}
 	throw new Error(supplied
 		? `Plugin browser smoke: executablePath is not an executable file: ${supplied}`
 		: "Plugin browser smoke: Chrome stable is unavailable. Supply options.executablePath pointing to an installed browser; this smoke never downloads Chromium.");
 }
 
-/** Page-origin pickers own the main pane, never the sidebar or a modal. */
+/** Los selectores con origen en la página son dueños del panel principal, nunca de la barra lateral ni de un modal. */
 export async function assertPaneKnowledgePicker(page) {
 	const geometry = await page.$eval(KNOWLEDGE_OVERLAY, overlay => {
 		const box = element => { const { x, y, width, height } = element.getBoundingClientRect(); return { x, y, width, height }; };
@@ -79,7 +80,7 @@ export async function assertPaneKnowledgePicker(page) {
 	return geometry;
 }
 
-/** Modal-origin assertions stay strict; never reuse these for page origins. */
+/** Las aserciones con origen en un modal siguen siendo estrictas; nunca las reutilices para orígenes de página. */
 export async function assertModalKnowledgePicker(page) {
 	const geometry = await page.$eval(KNOWLEDGE_OVERLAY, overlay => {
 		const bounds = overlay.getBoundingClientRect();
@@ -98,8 +99,9 @@ export async function assertModalKnowledgePicker(page) {
 	return geometry;
 }
 
-/** Permanent real registry → Chat regression, independently callable without
- * the broad model/worker campaign. Caller supplies existing public actions. */
+/** Regresión permanente registro real → Chat, que se puede llamar por
+ * separado sin la amplia campaña de modelos/workers. El llamante aporta las
+ * acciones públicas existentes. */
 export async function verifySessionHelperShortcutOwnership({ page, chord, openSurface, closeSurface }) {
 	const helperSelector = '[data-testid="side-thread-popover"]';
 	const inputSelector = '[data-testid="side-thread-input"]';
@@ -115,8 +117,8 @@ export async function verifySessionHelperShortcutOwnership({ page, chord, openSu
 		await page.waitForFunction(() => !!document.activeElement?.closest('[data-plugin-session-surface]'));
 		assert.equal(await helper.evaluate(node => node.isConnected && !!node.closest('[inert], [aria-hidden="true"]')), true, "Same open native helper starts covered");
 		await chord("j");
-		// Let the real command's async finishFor/React close settle on the RED
-		// baseline; checking immediately after dispatch can hide the regression.
+		// Deja que el finishFor asíncrono del comando real y el cierre de React se asienten en la
+		// línea base ROJA; comprobar justo después de despachar puede ocultar la regresión.
 		await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 		const covered = await helper.evaluate((node, { helperSelector, inputSelector }) => ({
 			same: node.isConnected && document.querySelector(helperSelector) === node,
@@ -145,9 +147,9 @@ export async function verifySessionHelperShortcutOwnership({ page, chord, openSu
 	} finally { await helper.dispose(); }
 }
 
-/** @param {string} url An already-running disposable server's loopback origin.
+/** @param {string} url El origen de loopback de un servidor desechable ya en marcha.
  * @param {{executablePath?: string, scratchDirectory?: string, headers?: Record<string, string>, timeoutMs?: number}} [options]
- * @returns {Promise<object>} Full console, network, RPC, and assertion evidence.
+ * @returns {Promise<object>} Evidencias completas de consola, red, RPC y aserciones.
  */
 export async function verifyPluginBrowser(url, options = {}) {
 	const origin = new URL(url);
@@ -188,10 +190,10 @@ export async function verifyPluginBrowser(url, options = {}) {
 		await page.screenshot({ path: destination, fullPage: true });
 		evidence.screenshots.push(destination);
 	};
-	// This fixture intentionally has no Deepgram credential; the existing app
-	// probes dictation readiness at startup. Its missing-key 503 and the app's
-	// absent favicon are unrelated baseline responses, not plugin failures.
-	// Keep both in evidence and match only exact paths/statuses/resource errors.
+	// Esta fixture no tiene a propósito credencial de Deepgram; la app existente
+	// sondea la disponibilidad del dictado al arrancar. Su 503 por falta de clave y el
+	// favicon ausente de la app son respuestas de línea base ajenas, no fallos del plugin.
+	// Conserva ambos en las evidencias y casa solo rutas/estados/errores de recurso exactos.
 	const expectedFixtureResponse = entry => {
 		const target = new URL(entry.url);
 		return target.origin === base && entry.method === "GET" &&
@@ -202,20 +204,20 @@ export async function verifyPluginBrowser(url, options = {}) {
 		return evidence.responses.some(response => response.url === entry.location.url && expectedFixtureResponse(response)
 			&& entry.text === `Failed to load resource: the server responded with a status of ${response.status} (${response.status === 503 ? "Service Unavailable" : "Not Found"})`);
 	};
-	// Next can cancel an already-200 RSC prefetch when focus/navigation changes.
-	// This exception never covers /api/plugins, module assets, or failed status.
+	// Next puede cancelar una precarga RSC que ya dio 200 cuando cambia el foco/navegación.
+	// Esta excepción nunca cubre /api/plugins, recursos de módulos ni estados de fallo.
 	const expectedFrameworkAbort = entry => {
 		const target = new URL(entry.url);
 		return entry.method === "GET" && entry.failure?.errorText === "net::ERR_ABORTED"
 			&& target.origin === base && target.searchParams.has("_rsc") && !target.pathname.startsWith("/api/")
 			&& evidence.responses.some(response => response.url === entry.url && response.status === 200);
 	};
-	// The shared picker aborts its source-directory GET when closing or
-	// superseding a notify-driven read. Only the exact observed cleanup is
-	// expected: no graph writes, graph snapshot/model/module requests, HTTP
-	// error statuses, unrelated stages, or other failure reasons qualify.
-	// Retain request-start stage so a late cleanup event cannot be mistaken
-	// for an unrelated failure (or require exempting the next proof stage).
+	// El selector compartido aborta su GET del directorio fuente al cerrarse o al
+	// quedar sustituido por una lectura provocada por una notificación. Solo se espera la
+	// limpieza exacta observada: no cuentan escrituras en el grafo, peticiones de instantánea/modelo/módulo
+	// del grafo, estados de error HTTP, etapas ajenas ni otros motivos de fallo.
+	// Conserva la etapa del inicio de la petición para que un evento de limpieza tardío no se confunda
+	// con un fallo ajeno (ni obligue a eximir la siguiente etapa de la prueba).
 	const expectedPickerReadAbort = entry => {
 		const target = new URL(entry.url);
 		return entry.knowledgePickerOpened === true && entry.method === "GET"
@@ -223,9 +225,9 @@ export async function verifyPluginBrowser(url, options = {}) {
 			&& entry.failure?.errorText === "net::ERR_ABORTED"
 			&& ["controlled knowledge bubble and full-content shared picker", "knowledge picker retains normal source rename/folder/drag editing", "SPA Home navigation and view reattach", "public dialog-origin picker foreground", "fresh Settings nests above an active main picker", "custom Settings-origin picker foreground"].includes(entry.requestStage ?? entry.stage);
 	};
-	// SessionModel deliberately reader.cancel()s after its explicit SSE [DONE]
-	// terminal. Admit only this chat's exact successful terminal streams: CDP
-	// must have observed the complete protocol and the same ERR_ABORTED.
+	// SessionModel hace a propósito reader.cancel() tras su terminal SSE [DONE]
+	// explícito. Admite solo los streams terminales correctos exactos de este chat: CDP
+	// debe haber observado el protocolo completo y el mismo ERR_ABORTED.
 	const expectedQuestionReadAbort = entry => {
 		const target = new URL(entry.url);
 		const streams = questionStreamSnapshots().filter(stream => stream.stage === (entry.requestStage ?? entry.stage)
@@ -548,8 +550,8 @@ export async function verifyPluginBrowser(url, options = {}) {
 		page.on("response", response => {
 			if (recording) evidence.responses.push({ method: response.request().method(), url: response.url(), status: response.status(), stage: evidence.stage });
 		});
-		// Observe actual SSE bytes before the app's intentional terminal cancel;
-		// Network.getResponseBody/Response.text lose cancelled Chromium bodies.
+		// Observa los bytes SSE reales antes de la cancelación terminal intencionada de la app;
+		// Network.getResponseBody/Response.text pierden los cuerpos cancelados de Chromium.
 		const questionNetwork = await page.createCDPSession();
 		await questionNetwork.send("Network.enable");
 		questionNetwork.on("Network.responseReceived", event => {
@@ -571,8 +573,8 @@ export async function verifyPluginBrowser(url, options = {}) {
 			requestStages.set(request, evidence.stage);
 			const target = new URL(request.url());
 			if (recording) evidence.requests.push({ method: request.method(), url: request.url(), type: request.resourceType(), stage: evidence.stage });
-			// Hold only the question chat's real terminal canonical GET, never
-			// fabricate a record/result. Native persistence keeps running normally.
+			// Retén solo el GET canónico terminal real del chat de la pregunta; nunca
+			// inventes un registro/resultado. La persistencia nativa sigue funcionando con normalidad.
 			if (questionCanonicalGate && target.pathname === `/api/chats/${QUESTION.chatId}` && request.method() === "GET") {
 				questionCanonicalGate.requests.push(request); questionCanonicalGate.resolve(); return;
 			}
@@ -750,8 +752,8 @@ export async function verifyPluginBrowser(url, options = {}) {
 		await page.waitForSelector(folderRow, { visible: true });
 		const moveSource = async (parentId, targetSelector) => {
 			const saved = organizationResponse({ action: "move", kind: "source", id: KNOWLEDGE.sourceId, parentId });
-			// Drive native HTML5 drag/drop; no direct mutation fetch, fake graph
-			// state, or production test route substitutes for the picker controls.
+			// Maneja el arrastrar/soltar nativo de HTML5; ninguna petición de mutación directa, estado
+			// falso del grafo ni ruta de prueba de producción sustituye a los controles del selector.
 			await page.setDragInterception(true);
 			try {
 				const from = await page.$(sourceRow);
@@ -774,9 +776,9 @@ export async function verifyPluginBrowser(url, options = {}) {
 		await assertKnowledge("organization edits do not change selected IDs", [], 4);
 		await health();
 		evidence.assertions.push("The same picker permits actual source rename (restored), folder creation, native HTML5 drag into that folder and back to root; dedicated inert notes source leaves transcript identity/title untouched");
-		// Leave it OPEN: the existing global Graph/Home chord must dispose the
-		// pane with the view signal, without requiring a sidebar interaction
-		// or adding proof RPCs.
+		// Déjalo ABIERTO: el atajo global existente de Graph/Home debe liberar el
+		// panel con la señal de vista, sin requerir una interacción con la barra lateral
+		// ni añadir RPC de prueba.
 
 		evidence.stage = "SPA Home navigation and view reattach";
 		await chord("g");
@@ -881,8 +883,8 @@ export async function verifyPluginBrowser(url, options = {}) {
 		const retainedPicker = await page.$(KNOWLEDGE_OVERLAY);
 		const retainedSelection = await page.$(selectedPremise);
 		const pickerFocus = await page.evaluateHandle(() => document.activeElement);
-		// The sidebar is isolated by the picker. Use the existing global command,
-		// not a synthetic click into the inactive background.
+		// El selector aísla la barra lateral. Usa el comando global existente,
+		// no un clic sintético en el fondo inactivo.
 		await chord(",");
 		await page.waitForSelector('[data-testid="settings-dialog"]', { visible: true });
 		assert.equal(await page.$$eval('[data-testid="settings-dialog"]', nodes => nodes.length), 1);
@@ -894,8 +896,8 @@ export async function verifyPluginBrowser(url, options = {}) {
 		}), true, "Fresh Settings opens above the retained picker");
 		await assertKnowledge("Settings covers the picker without clearing controlled IDs", [KNOWLEDGE.premiseId], 1);
 		await screenshot("foreground-newer-settings");
-		// Passive help must paint above its owning modal without becoming an
-		// Escape owner. One physical Escape still closes Settings, not just help.
+		// La ayuda pasiva debe pintarse por encima de su modal dueño sin convertirse en
+		// dueña del Escape. Un solo Escape físico sigue cerrando Settings, no solo la ayuda.
 		await page.hover('[data-testid="settings-close"]');
 		await page.waitForFunction(() => [...document.querySelectorAll('[data-slot="tooltip-content"]')].some(tooltip => {
 			const bounds = tooltip.getBoundingClientRect();
@@ -963,8 +965,8 @@ export async function verifyPluginBrowser(url, options = {}) {
 		const retainedSettings = await page.$('[data-testid="settings-dialog"]');
 		await openForegroundPicker(settingsOrigin.root);
 		await assertPickerOrigin("existing Settings remains painted/inert below child before return-to", settingsOrigin, settingsIds, 1, true);
-		// Existing same-section deep-link: prove retained plugin content without
-		// confusing normal section navigation with a modal remount.
+		// Enlace directo existente a la misma sección: demuestra que el contenido del plugin se conserva sin
+		// confundir la navegación normal entre secciones con un remontaje del modal.
 		await page.evaluate(pluginId => window.dispatchEvent(new CustomEvent("lh:open-plugin-settings", { detail: pluginId })), PICKER_SETTINGS.id);
 		await page.waitForSelector(KNOWLEDGE_OVERLAY, { hidden: true });
 		assert.equal(await page.$$eval('[data-testid="settings-dialog"]', nodes => nodes.length), 1, "Return-to must not create another Settings instance");
@@ -1026,9 +1028,9 @@ export async function verifyPluginBrowser(url, options = {}) {
 		await openProof();
 		assert.equal(await page.$eval(markdownRoot("view"), root => Number(root.dataset.customMounts)), 1, "Ordinary stored teaching Markdown still invokes its registered code-block renderer exactly once");
 
-		// This stage uses only the public backend context and real same-origin
-		// settings/provider/activity routes. The fixture provider is SERVER-side
-		// loopback traffic; the browser's off-origin allowlist stays unchanged.
+		// Esta etapa usa solo el contexto público del backend y rutas reales del mismo origen
+		// de ajustes/proveedor/actividad. El proveedor de la fixture es tráfico de loopback del
+		// SERVIDOR; la lista blanca de orígenes externos del navegador no cambia.
 		const admissionCall = async operation => page.evaluate(async ({ route, operation }) => {
 			const response = await fetch(route, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ operation }) });
 			const payload = await response.json();
@@ -1052,7 +1054,7 @@ export async function verifyPluginBrowser(url, options = {}) {
 			return snapshot;
 		};
 		const setConcurrency = async value => {
-			// Exercise the main-header gear deep-link, then the real Agent tab.
+			// Ejercita el enlace directo del engranaje de la cabecera principal y después la pestaña Agent real.
 			await page.locator('main button[aria-label="Plugin settings"]').click();
 			await page.waitForSelector('[data-testid="section-plugin-native-smoke"]', { visible: true });
 			await page.locator('[data-testid="settings-nav-agent"]').click();
@@ -1112,10 +1114,10 @@ export async function verifyPluginBrowser(url, options = {}) {
 		const cdp = await page.createCDPSession();
 		const selectNativeNumber = async selector => {
 			await page.focus(selector);
-			// Headless synthetic Mod+A does not invoke macOS's native editing
-			// command reliably for number inputs (also reproduced without React).
-			// Dispatch Chromium's native selectAll command, never assign .value
-			// or replace the number input/native incomplete-token buffer.
+			// Un Mod+A sintético en headless no invoca de forma fiable el comando nativo de edición
+			// de macOS en las entradas numéricas (reproducido también sin React).
+			// Despacha el comando nativo selectAll de Chromium; nunca asignes .value
+			// ni sustituyas la entrada numérica/el búfer nativo de token incompleto.
 			const event = { key: "a", code: "KeyA", modifiers: modifier === "Meta" ? 4 : 2 };
 			await cdp.send("Input.dispatchKeyEvent", { ...event, type: "keyDown", commands: ["selectAll"] });
 			await cdp.send("Input.dispatchKeyEvent", { ...event, type: "keyUp" });
@@ -1124,9 +1126,9 @@ export async function verifyPluginBrowser(url, options = {}) {
 			const state = await page.$eval(selector, input => ({ value: input.value, badInput: input.validity.badInput,
 				focused: document.activeElement === input, type: input.type, min: input.getAttribute("min"), max: input.getAttribute("max"), step: input.getAttribute("step"),
 				appearance: getComputedStyle(input).appearance, spinAppearance: getComputedStyle(input, "::-webkit-inner-spin-button").appearance }));
-			// Chromium exposes its native editing buffer through the DevTools UA
-			// shadow tree on versions that include that tree. DOM .value alone is
-			// deliberately NOT used as proof of the visible incomplete token.
+			// Chromium expone su búfer de edición nativo a través del árbol shadow del UA de
+			// DevTools en las versiones que incluyen ese árbol. El .value del DOM por sí solo
+			// NO se usa a propósito como prueba del token incompleto visible.
 			try {
 				const { root } = await cdp.send("DOM.getDocument", { depth: 0 });
 				const { nodeId } = await cdp.send("DOM.querySelector", { nodeId: root.nodeId, selector });
@@ -1140,8 +1142,8 @@ export async function verifyPluginBrowser(url, options = {}) {
 				const viewport = editor(node);
 				if (!viewport) throw new Error("Chromium native editing viewport unavailable; paired screenshot review required");
 				const text = current => current.nodeName === "STYLE" ? "" : (current.nodeType === 3 ? current.nodeValue : "") + descendants(current).map(text).join("");
-				// The sibling UA placeholder retains its hidden text (e.g. 8/16).
-				// Read only the actual native editor, never concatenate placeholder.
+				// El placeholder hermano del UA conserva su texto oculto (p. ej. 8/16).
+				// Lee solo el editor nativo real; nunca concatenes el placeholder.
 				state.nativeEditorText = text(viewport);
 				state.nativeEditorSource = "Chromium user-agent #editing-view-port";
 			} catch (error) { state.nativeEditorReadError = String(error); }
@@ -1367,8 +1369,8 @@ export async function verifyPluginBrowser(url, options = {}) {
 		await page.$eval(questionEditor, node => node.setSelectionRange(3, 8));
 		const editor = await page.$(questionEditor);
 		const beforeFold = await editor.evaluate(node => ({ mount: node.dataset.mount, value: node.value, start: node.selectionStart, end: node.selectionEnd, publishes: node.dataset.publishes }));
-		// Real wheel gestures exercise the existing dock fold machine, not a
-		// private expand/fold hook or fabricated keyboard/composition event.
+		// Los gestos reales de rueda ejercitan la máquina de plegado existente del dock, no un
+		// hook privado de desplegar/plegar ni un evento de teclado/composición inventado.
 		await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 2250)));
 		await page.evaluate(() => {
 			window.__questionWheelProof = [];
@@ -1396,8 +1398,8 @@ export async function verifyPluginBrowser(url, options = {}) {
 		};
 		const beforeWheel = await scrollMetrics("before native wheel fold");
 		assert.ok(beforeWheel.scrollers.length, "Question prerequisite lesson must provide an overflowing transcript for natural wheel folding");
-		// Read the transcript from its visible blank margin, outside nested
-		// message overflow boxes and the active textarea's editing surface.
+		// Lee la transcripción desde su margen en blanco visible, fuera de las cajas de
+		// desbordamiento anidadas de los mensajes y de la superficie de edición del textarea activo.
 		await page.mouse.click(beforeWheel.point.x, beforeWheel.point.y);
 		for (const [index, deltaY] of [-420, -420, -840, -420, -420].entries()) {
 			await page.mouse.wheel({ deltaY }); await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 150)));
@@ -1542,9 +1544,9 @@ export async function verifyPluginBrowser(url, options = {}) {
 		await closeSettings();
 		await page.waitForFunction(() => document.querySelector("main")?.textContent.includes("This plugin is disabled."));
 		await health();
-		// These intentional negative HTTP probes run outside the page, so their
-		// expected 409s cannot mask or be confused with actual plugin console /
-		// browser-network errors. Consume every response body for diagnostics.
+		// Estos sondeos HTTP negativos intencionados se ejecutan fuera de la página, así que sus
+		// 409 esperados no pueden ocultar ni confundirse con errores reales de consola del plugin /
+		// de red del navegador. Consume todos los cuerpos de respuesta para los diagnósticos.
 		for (const [route, method, body] of [
 			[`${PLUGIN}/call`, "POST", { operation: "proof", input: "after-disable" }],
 			[`${PLUGIN}/assets/main.js`, "GET"],
@@ -1631,8 +1633,8 @@ export async function verifyPluginBrowser(url, options = {}) {
 		evidence.expectedPickerReadAborts = evidence.failedRequests.filter(expectedPickerReadAbort);
 		evidence.questionStreams = questionStreamSnapshots();
 		evidence.expectedQuestionReadAborts = evidence.failedRequests.filter(expectedQuestionReadAbort);
-		// Browser teardown intentionally closes SSE and outstanding requests;
-		// stop recording only AFTER all assertions, not during plugin activity.
+		// El desmontaje del navegador cierra a propósito el SSE y las peticiones pendientes;
+		// deja de grabar solo DESPUÉS de todas las aserciones, no durante la actividad del plugin.
 		recording = false;
 		if (browser) {
 			try { await browser.close(); }
@@ -1662,9 +1664,10 @@ export async function verifyPluginBrowser(url, options = {}) {
 	return evidence;
 }
 
-/** Observe the real Chat shell, including transient inserted/removed preparation UI.
- * The caller may hold a public interceptor RPC to inspect the pending state; no
- * app module imports, host mutations or permanent browser globals are needed. */
+/** Observa el armazón real de Chat, incluida la UI de preparación transitoria
+ * insertada/eliminada. El llamante puede retener una RPC interceptora pública
+ * para inspeccionar el estado pendiente; no hacen falta imports de módulos de
+ * la app, mutaciones del host ni globales permanentes del navegador. */
 export async function observeSilentSubmissionPresentation(page) {
 	const audit = await page.evaluateHandle(() => {
 		const shell = document.querySelector('[data-attachment-composer]');
@@ -1701,10 +1704,12 @@ export async function observeSilentSubmissionPresentation(page) {
 	};
 }
 
-/** Bounded, independent native-session extension proof. All plugin state is
- * observed through its public RPC; the host is driven only by native controls.
- * No app module imports, React/store hooks, pending-question seeding or forged
- * host attributes. Provider data below is captured by the loopback listener. */
+/** Prueba acotada e independiente de la extensión de sesión nativa. Todo el
+ * estado del plugin se observa mediante su RPC pública; el host se maneja
+ * solo con controles nativos. Sin imports de módulos de la app, hooks de
+ * React/almacén, siembra de preguntas pendientes ni atributos del host
+ * falsificados. Los datos del proveedor de abajo los captura el listener de
+ * loopback. */
 async function verifySessionExtensions({ page, evidence, admissionCall: call, openProof, health, screenshot, chord, timeoutMs }) {
 	const surface = '[data-smoke-session-surface="0"]';
 	const nativeSurface = '[data-plugin-session-surface]';
@@ -1734,8 +1739,8 @@ async function verifySessionExtensions({ page, evidence, admissionCall: call, op
 	const openSurface = async () => {
 		await page.locator('[aria-label="More plugin actions"]').click();
 		await page.waitForSelector('[data-testid="plugin-top-bar-menu"]', { visible: true });
-		// Reuse the existing action and placements/counts. Session context alone
-		// changes its behavior: the host supplies the opaque surfaceTarget.
+		// Reutiliza la acción y las colocaciones/recuentos existentes. Solo el contexto de sesión
+		// cambia su comportamiento: el host aporta el surfaceTarget opaco.
 		await page.$$eval('[data-testid="plugin-top-bar-menu"] [role="menuitem"]', items => items.find(item => item.textContent.trim() === "Runtime proof").click());
 		await page.waitForSelector(surface, { visible: true });
 	};
@@ -1769,8 +1774,8 @@ async function verifySessionExtensions({ page, evidence, admissionCall: call, op
 			const input = JSON.parse(response.request().postData() ?? "{}").input;
 			return input?.type === type && (text === undefined || input.text === text);
 		});
-		// A preceding UI-driver error must not become an unhandled teardown
-		// rejection that hides the original diagnostic/evidence file.
+		// Un error previo del driver de UI no debe convertirse en un rechazo de desmontaje
+		// sin gestionar que oculte el diagnóstico/fichero de evidencias original.
 		void pending.catch(() => {});
 		return pending;
 	};
@@ -1841,7 +1846,7 @@ async function verifySessionExtensions({ page, evidence, admissionCall: call, op
 	assert.equal(await parent.evaluate(input => input.isConnected && input.value === "Parent DOM draft survives nested coverage" && !input.closest("[inert]")), true, "Single Escape must resume the same painted parent DOM");
 	await page.locator(`${surface} [data-smoke-session-action="close"]`).click();
 	await page.waitForSelector(surface, { hidden: true }); await parent.dispose();
-	// Visible native X independently exercises host close, not fixture disposal.
+	// La X nativa visible ejercita por separado el cierre del host, no la liberación de la fixture.
 	await openSurface(); await page.locator(`${nativeSurface} button[aria-label="Close"]`).click();
 	await page.waitForSelector(surface, { hidden: true });
 	const failedArm = await arm(true);
@@ -1855,14 +1860,14 @@ async function verifySessionExtensions({ page, evidence, admissionCall: call, op
 	assert.equal(await page.$eval(`${composer} [contenteditable="true"]`, input => input.textContent), "Retained native draft after hook failure");
 	assert.equal(evidence.requests.filter(entry => entry.method === "POST" && new URL(entry.url).pathname === "/api/chat").length, postsBeforeFailure, "Failed interception must stop before native POST");
 	let state = await status(); assert.equal(accepted(state).length, 0); assert.equal(hooks(state).length, 1);
-	// Enable the exact owner-scoped reporting assertion only AFTER proving
-	// retained native draft, no POST and no acceptance for this deliberate error.
+	// Activa la aserción exacta de informe acotada al responsable solo DESPUÉS de demostrar
+	// que se conserva el borrador nativo, que no hay POST y que no hay aceptación para este error intencionado.
 	evidence.expectedSessionInterceptorFailure = { message: "session fixture fail closed", retainedDraft: "Retained native draft after hook failure", postsBeforeFailure, postsAfterFailure: evidence.requests.filter(entry => entry.method === "POST" && new URL(entry.url).pathname === "/api/chat").length, accepted: 0 };
-	// Fresh native Submit is a new attempt; empty native text is now enough
-	// because the public hasPendingInput + refreshSubmissions advertised PNG.
+	// Un Submit nativo nuevo es un intento nuevo; ahora basta con texto nativo vacío
+	// porque el hasPendingInput público + refreshSubmissions anunciaron un PNG.
 	await page.locator(`${composer} [contenteditable="true"]`).click();
-	// macOS headless Mod+A can omit the native editing command (the existing
-	// number proof uses this same Chromium command). Do not assign host value.
+	// Mod+A en headless en macOS puede omitir el comando de edición nativo (la prueba
+	// numérica existente usa este mismo comando de Chromium). No asignes el valor del host.
 	const editing = await page.createCDPSession();
 	try {
 		const key = { key: "a", code: "KeyA", modifiers: process.platform === "darwin" ? 4 : 2 };
@@ -1948,8 +1953,8 @@ async function verifySessionExtensions({ page, evidence, admissionCall: call, op
 	await release(SESSION.chatId);
 	evidence.sessionExtensions.push({ label: "accepted image survives deliberate model failure; native Retry reuses it without hook/acceptance replay", hooksBeforeRetry: hooks(failedState).length, hooksAfterRetry: hooks(state).length, requests: state.requests.slice(-2) });
 
-	// Native navigation expires the exact opaque token. A retained public
-	// plugin control attempts reuse; no fabricated target or host debug hook.
+	// La navegación nativa hace caducar el token opaco exacto. Un control público del plugin
+	// conservado intenta reutilizarlo; sin destino inventado ni hook de depuración del host.
 	await openSurface(); const departed = await page.$(surface);
 	await openProof(); assert.equal(await departed.evaluate(node => !node.isConnected), true); await departed.dispose();
 	assert.ok(evidence.expectedSessionInterceptorAlerts?.some(entry => entry.alerts.some(alert => alert.owner === "native-smoke/public-proof-panel" && alert.text === "session fixture fail closed")), "Intentional interceptor failure remains visibly reported by the exact public fixture owner");

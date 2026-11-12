@@ -1,71 +1,80 @@
 /**
- * verify-release.ts — the final desktop-release gate (2026-10-13).
+ * verify-release.ts — la barrera final de la publicación de escritorio
+ * (2026-10-13).
  *
- * Runs in the release workflow's LAST job, after all three packaging jobs
- * have uploaded to the tag's single draft GitHub Release, and fails the
- * workflow unless that draft holds exactly what end users and
- * electron-updater need. The workflow never publishes; this script only
- * reads (release list via the workflow's read-only token, update feeds
- * downloaded by the workflow's own gh steps).
+ * Se ejecuta en el ÚLTIMO job del flujo de publicación, después de que los
+ * tres jobs de empaquetado hayan subido al único borrador de GitHub Release
+ * de la etiqueta, y hace fallar el flujo salvo que ese borrador contenga
+ * exactamente lo que necesitan los usuarios finales y electron-updater. El
+ * flujo nunca publica; este script solo lee (la lista de publicaciones con
+ * el token de solo lectura del flujo y las fuentes de actualización
+ * descargadas por los propios pasos gh del flujo).
  *
- * Every expected file name below was verified against the INSTALLED
- * builder (app-builder-lib 26.15.3) — these are the artifacts it actually
- * emits for this repo's electron-builder.yml, not pattern guesses:
+ * Cada nombre de fichero esperado de abajo se verificó con el builder
+ * INSTALADO (app-builder-lib 26.15.3): son los artefactos que emite de
+ * verdad para el electron-builder.yml de este repo, no suposiciones por
+ * patrón:
  *
- *   mac (dmg + zip, arm64; no user artifactName there):
+ *   mac (dmg + zip, arm64; ahí no hay artifactName del usuario):
  *     dmg    LearnHarness-<v>-arm64.dmg       + .blockmap (createBlockmap)
  *     zip    LearnHarness-<v>-arm64-mac.zip   + .blockmap (createBlockmap;
- *            Squirrel.Mac updates from the ZIP — it IS the updater payload)
- *     feed   latest-mac.yml — files[0] is the ZIP (writeUpdateInfoFiles
- *            sorts zip first) and the legacy top-level path/sha512 point
- *            at it.
+ *            Squirrel.Mac actualiza desde el ZIP: ES la carga del actualizador)
+ *     feed   latest-mac.yml — files[0] es el ZIP (writeUpdateInfoFiles
+ *            ordena el zip primero) y los campos heredados de nivel superior
+ *            path/sha512 apuntan a él.
  *   win (nsis x64; artifactName "${productName}-${version}-${arch}-setup.${ext}"):
  *     exe    LearnHarness-<v>-x64-setup.exe   + .blockmap (createBlockmap)
- *     feed   latest.yml — a single file entry, the exe.
+ *     feed   latest.yml — una única entrada de fichero, el exe.
  *   linux (AppImage + deb, x64; artifactName "${productName}-${version}-${arch}.${ext}"
- *            is user-forced at the linux level, so it overrides BOTH targets'
- *            default name formats, and ${arch} expands per target ext:
- *            x64→x86_64 for AppImage, x64→amd64 for deb):
- *     image  LearnHarness-<v>-x86_64.AppImage (no blockmap in 26.15.3)
- *     deb    LearnHarness-<v>-amd64.deb       (no blockmap)
- *     feed   latest-linux.yml — the AppImage and deb entries merged by
- *            writeUpdateInfoFiles (order not deterministic; checked as a set).
+ *            lo fuerza el usuario a nivel linux, así que sustituye los formatos
+ *            de nombre por defecto de AMBOS destinos, y ${arch} se expande según
+ *            la ext de cada destino: x64→x86_64 en AppImage, x64→amd64 en deb):
+ *     image  LearnHarness-<v>-x86_64.AppImage (sin blockmap en 26.15.3)
+ *     deb    LearnHarness-<v>-amd64.deb       (sin blockmap)
+ *     feed   latest-linux.yml — las entradas de AppImage y deb fusionadas por
+ *            writeUpdateInfoFiles (orden no determinista; se comprueba como conjunto).
  *
- * GitHub asset names equal these file names (all are already "safe" GitHub
- * names, so electron-publish uploads under the plain name) and every yml
- * files[].url equals the uploaded asset name.
+ * Los nombres de los assets de GitHub son iguales a estos nombres de fichero
+ * (todos son ya nombres «seguros» para GitHub, así que electron-publish los
+ * sube con el nombre tal cual) y cada files[].url de los yml es igual al
+ * nombre del asset subido.
  *
- * Draft selection is FAIL-CLOSED and replicates the existing matching used
- * by the workflow's draft job and electron-builder's GitHub publisher:
- * tag_name equals the tag ("v0.2.0") OR the bare version ("0.2.0"). Zero
- * matches, 2+ matches, or a published match → fail. A draft matched only
- * via the bare unprefixed form is a reported hazard: electron-builder
- * matches both spellings, so a later run could create a SECOND draft under
- * the v-tag and split the assets across two releases.
+ * La selección del borrador FALLA EN CERRADO y replica el emparejamiento
+ * existente que usan el job de borrador del flujo y el publicador de GitHub
+ * de electron-builder: tag_name es igual a la etiqueta ("v0.2.0") O a la
+ * versión sin prefijo ("0.2.0"). Cero coincidencias, 2 o más, o una
+ * coincidencia ya publicada → fallo. Un borrador que solo coincide por la
+ * forma sin prefijo es un riesgo que se informa: electron-builder empareja
+ * ambas grafías, así que una ejecución posterior podría crear un SEGUNDO
+ * borrador con la etiqueta v y repartir los assets entre dos publicaciones.
  *
- * CLI (cwd = the checked-out tag revision):
+ * CLI (cwd = la revisión de la etiqueta extraída):
  *   tsx scripts/verify-release.ts select <releases.json> --tag <tag>
- *     → one JSON object on stdout: {releaseId, matchedTagName, warnings,
- *       assets:[{id,name,size,state}]}; diagnostics on stderr. Used by the
- *       workflow to locate the draft and its asset ids.
+ *     → un objeto JSON en stdout: {releaseId, matchedTagName, warnings,
+ *       assets:[{id,name,size,state}]}; diagnósticos en stderr. Lo usa el
+ *       flujo para localizar el borrador y los ids de sus assets.
  *   tsx scripts/verify-release.ts verify <releases.json> <metadata-dir> --tag <tag>
- *     → full gate; human report on stdout; exit 0 only when everything
- *       below passes.
+ *     → la barrera completa; informe legible en stdout; sale con 0 solo
+ *       cuando todo lo de abajo se cumple.
  *
- * The gate checks, and fails closed on any of:
- *   - tag ≠ "v" + package.json version, or a malformed release list;
- *   - electron-builder.yml/package.json drifting from the shapes the
- *     expected names were derived from (update this file's expectations
- *     when the packaging config changes — deliberately strict);
- *   - draft selection problems (above);
- *   - expected assets missing, zero-size, not in state "uploaded",
- *     duplicated, or unexpected extras (stale names from an older run);
- *   - update feeds that do not parse, carry the wrong version, reference
- *     a path/URL instead of a bare asset name (traversal / untrusted
- *     origin), reference an asset the release does not hold, disagree
- *     with the API-reported asset size, lack/misplace entries (mac ZIP
- *     must be first and back the legacy path/sha512), or carry an
- *     implausible sha512.
+ * La barrera comprueba, y falla en cerrado ante cualquiera de estos casos:
+ *   - etiqueta ≠ "v" + la versión de package.json, o una lista de
+ *     publicaciones mal formada;
+ *   - que electron-builder.yml/package.json se desvíen de las formas de las
+ *     que se derivaron los nombres esperados (actualiza las expectativas de
+ *     este fichero cuando cambie la configuración de empaquetado: es
+ *     estricto a propósito);
+ *   - problemas en la selección del borrador (arriba);
+ *   - assets esperados que faltan, de tamaño cero, que no están en el estado
+ *     "uploaded", duplicados, o extras inesperados (nombres obsoletos de una
+ *     ejecución anterior);
+ *   - fuentes de actualización que no se pueden analizar, llevan la versión
+ *     equivocada, referencian una ruta/URL en vez de un nombre de asset
+ *     simple (recorrido de directorios / origen no fiable), referencian un
+ *     asset que la publicación no contiene, no coinciden con el tamaño del
+ *     asset que informa la API, tienen entradas que faltan o mal colocadas
+ *     (el ZIP de mac debe ir primero y respaldar los campos heredados
+ *     path/sha512) o llevan un sha512 inverosímil.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -76,7 +85,7 @@ const require = createRequire(import.meta.url);
 const yaml = require("js-yaml") as { load(source: string): unknown };
 
 // ---------------------------------------------------------------------------
-// Types
+// Tipos
 // ---------------------------------------------------------------------------
 
 export type ReleaseAsset = { id: number; name: string; size: number; state: string };
@@ -87,13 +96,13 @@ export type DraftSelection =
 	| { ok: true; release: ReleaseRecord; warnings: string[] }
 	| Failures;
 
-/** The full expected asset inventory for one version (11 files). */
+/** El inventario completo de assets esperados para una versión (11 ficheros). */
 export type ExpectedAssets = {
 	version: string;
 	mac: { dmg: string; zip: string; feed: string };
 	win: { exe: string; feed: string };
 	linux: { appImage: string; deb: string; feed: string };
-	/** Every asset name the draft must hold, and no others. */
+	/** Todos los nombres de asset que debe contener el borrador, y ninguno más. */
 	files: string[];
 };
 
@@ -101,10 +110,10 @@ type Issue = string;
 type Issues = Issue[];
 
 // ---------------------------------------------------------------------------
-// Version + expected assets
+// Versión + assets esperados
 // ---------------------------------------------------------------------------
 
-/** Verified product name spelled into every artifact (electron-builder.yml productName). */
+/** Nombre de producto verificado que aparece en cada artefacto (productName de electron-builder.yml). */
 const PRODUCT_NAME = "LearnHarness";
 
 const VERSION_PATTERN = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
@@ -116,7 +125,7 @@ export function checkVersion(version: unknown): { ok: true; version: string } | 
 	return { ok: true, version };
 }
 
-/** The exact asset set the installed builder emits for this repo's config. */
+/** El conjunto exacto de assets que emite el builder instalado para la configuración de este repo. */
 export function expectedAssets(version: string): ExpectedAssets {
 	const mac = {
 		dmg: `${PRODUCT_NAME}-${version}-arm64.dmg`,
@@ -132,8 +141,8 @@ export function expectedAssets(version: string): ExpectedAssets {
 		deb: `${PRODUCT_NAME}-${version}-amd64.deb`,
 		feed: "latest-linux.yml",
 	};
-	// Sidecar differential-update blockmaps: emitted for dmg, mac zip and
-	// NSIS exe (createBlockmap); AppImage/deb have none in app-builder-lib 26.15.3.
+	// Blockmaps adjuntos de actualización diferencial: se emiten para el dmg, el zip de mac y
+	// el exe de NSIS (createBlockmap); AppImage/deb no tienen en app-builder-lib 26.15.3.
 	const blockmaps = [mac.dmg, mac.zip, win.exe].map((name) => `${name}.blockmap`);
 	return {
 		version,
@@ -145,13 +154,13 @@ export function expectedAssets(version: string): ExpectedAssets {
 }
 
 // ---------------------------------------------------------------------------
-// Release-list parsing (fail closed on any malformed entry)
+// Análisis de la lista de publicaciones (falla en cerrado ante cualquier entrada mal formada)
 // ---------------------------------------------------------------------------
 
 /**
- * `gh api --paginate --slurp` emits an array of pages ([[...], [...]]); a
- * hand-made single page is a plain array. Both are accepted, everything
- * else fails.
+ * `gh api --paginate --slurp` emite un array de páginas ([[...], [...]]);
+ * una sola página hecha a mano es un array simple. Se aceptan ambos; todo lo
+ * demás falla.
  */
 export function normalizeReleasePages(input: unknown): { ok: true; releases: unknown[] } | { ok: false; errors: Issues } {
 	if (!Array.isArray(input)) {
@@ -213,7 +222,7 @@ export function parseReleases(entries: unknown[]): { ok: true; releases: Release
 }
 
 // ---------------------------------------------------------------------------
-// Draft selection (replicates the draft job's + builder's matching, fail-closed)
+// Selección del borrador (replica el emparejamiento del job de borrador + del builder, falla en cerrado)
 // ---------------------------------------------------------------------------
 
 export function selectDraft(releases: ReleaseRecord[], tag: string, version: string): DraftSelection {
@@ -249,12 +258,13 @@ export function selectDraft(releases: ReleaseRecord[], tag: string, version: str
 }
 
 // ---------------------------------------------------------------------------
-// Packaging-config drift guard
+// Protección contra la deriva de la configuración de empaquetado
 // ---------------------------------------------------------------------------
 
-/** Names below were derived from these exact config shapes; drift means the
- *  expectations in this file must be re-derived against the new builder
- *  output. Failing here is deliberate: a silently stale gate is worse. */
+/** Los nombres de abajo se derivaron de estas formas exactas de la
+ * configuración; una deriva significa que las expectativas de este fichero
+ * deben volver a derivarse a partir de la salida del nuevo builder. Fallar
+ * aquí es intencionado: una barrera obsoleta en silencio es peor. */
 export function verifyConfigAssumptions(config: unknown, pkg: unknown): { ok: true } | { ok: false; errors: Issues } {
 	const errors: Issues = [];
 	const bad = (message: string) => errors.push(message);
@@ -304,7 +314,7 @@ export function verifyConfigAssumptions(config: unknown, pkg: unknown): { ok: tr
 }
 
 // ---------------------------------------------------------------------------
-// Asset inventory
+// Inventario de assets
 // ---------------------------------------------------------------------------
 
 export function verifyAssets(release: ReleaseRecord, expected: ExpectedAssets): { ok: true } | { ok: false; errors: Issues } {
@@ -313,7 +323,7 @@ export function verifyAssets(release: ReleaseRecord, expected: ExpectedAssets): 
 	for (const asset of release.assets) {
 		if (seen.has(asset.name)) errors.push(`duplicate asset name on the release: ${asset.name}`);
 		else seen.set(asset.name, asset);
-		// Checked for EVERY entry, duplicates included — fail closed.
+		// Se comprueba para CADA entrada, duplicados incluidos; falla en cerrado.
 		if (asset.state !== "uploaded") errors.push(`${asset.name}: state is "${asset.state}", not "uploaded"`);
 		if (!(asset.size > 0)) errors.push(`${asset.name}: zero-size asset (size=${asset.size})`);
 		if (!expected.files.includes(asset.name)) {
@@ -328,14 +338,14 @@ export function verifyAssets(release: ReleaseRecord, expected: ExpectedAssets): 
 }
 
 // ---------------------------------------------------------------------------
-// Update-feed (latest*.yml) verification
+// Verificación de las fuentes de actualización (latest*.yml)
 // ---------------------------------------------------------------------------
 
 type FeedExpectation = {
 	file: string;
-	/** Every files[].url the feed must reference — exactly these, no more. */
+	/** Todos los files[].url que debe referenciar la fuente: exactamente estos, ni uno más. */
 	urls: string[];
-	/** If set, files[0].url must be this entry (mac: the updater ZIP). */
+	/** Si está definido, files[0].url debe ser esta entrada (mac: el ZIP del actualizador). */
 	first?: string;
 };
 
@@ -347,9 +357,10 @@ export function feedExpectations(expected: ExpectedAssets): FeedExpectation[] {
 	];
 }
 
-/** An updater reference must be a bare file name: no directories, no
- *  traversal, no URI scheme, no query/fragment. Anything else is a path the
- *  updater could be steered with. */
+/** Una referencia del actualizador debe ser un nombre de fichero simple: sin
+ * directorios, sin recorrido de directorios, sin esquema URI, sin
+ * consulta/fragmento. Cualquier otra cosa es una ruta con la que se podría
+ * desviar al actualizador. */
 export function isPlainAssetName(url: unknown): url is string {
 	return typeof url === "string" && url !== "" && url !== "." && url !== ".." &&
 		!url.includes("/") && !url.includes("\\") && !url.includes(":") && !url.includes("?") && !url.includes("#") && !url.startsWith("~");
@@ -436,8 +447,8 @@ export function verifyMetadataFiles(
 		if (expectation.first != null && urls[0] !== expectation.first) {
 			errors.push(`${expectation.file}: files[0] must be "${expectation.first}" (got "${urls[0] ?? "nothing"}")`);
 		}
-		// Legacy single-file fields electron-updater still reads on some paths:
-		// the builder backs them with files[0].
+		// Campos heredados de un solo fichero que electron-updater sigue leyendo en algunas vías:
+		// el builder los respalda con files[0].
 		const first = entries[0];
 		if (first) {
 			if (info.path !== first.url) {
@@ -453,7 +464,7 @@ export function verifyMetadataFiles(
 }
 
 // ---------------------------------------------------------------------------
-// CLI (thin: parse args, read files, run the pure core, print, exit)
+// CLI (fina: analiza los argumentos, lee los ficheros, ejecuta el núcleo puro, imprime y sale)
 // ---------------------------------------------------------------------------
 
 function usage(): string {
@@ -486,8 +497,8 @@ function loadReleases(file: string): { ok: true; releases: ReleaseRecord[] } | {
 	return parseReleases(normalized.releases);
 }
 
-/** Reads package.json (version) + electron-builder.yml from the cwd — the
- *  workflow checks out the tagged revision before running the gate. */
+/** Lee package.json (versión) + electron-builder.yml del cwd: el flujo extrae
+ * la revisión etiquetada antes de ejecutar la barrera. */
 function loadRepoConfig(): { ok: true; pkg: unknown; config: unknown } | { ok: false; errors: Issues } {
 	const pkg = readJson("package.json");
 	if (!pkg.ok) return { ok: false, errors: [pkg.error] };
@@ -527,7 +538,7 @@ function parseArgs(argv: string[]): { ok: true; command: string; positional: str
 	return { ok: true, command, positional: positional.slice(1), tag };
 }
 
-/** Tag ↔ version agreement + release-list load, shared by both commands. */
+/** Concordancia etiqueta ↔ versión + carga de la lista de publicaciones, compartidas por ambos comandos. */
 function startGate(argv: string[]):
 	| { ok: true; tag: string; version: string; releases: ReleaseRecord[]; config: unknown; pkg: unknown; positional: string[] }
 	| { ok: false; errors: Issues } {
@@ -594,7 +605,7 @@ function main(argv: string[]): number {
 		try {
 			files[name] = fs.readFileSync(path.join(metadataDir, name), "utf8");
 		} catch {
-			// verifyMetadataFiles reports the missing feed by name.
+			// verifyMetadataFiles informa de la fuente que falta por su nombre.
 		}
 	}
 	const metadata = verifyMetadataFiles(files, selection.release, expected);

@@ -1,6 +1,7 @@
-/** Off-network external-plugin proof for the packaged server smoke. The package
- * is created AFTER the build, outside the source/standalone trees. No provider
- * credentials, real learning data, or source-tree imports are involved. */
+/** Prueba sin red de plugins externos para la prueba de humo del servidor
+ * empaquetado. El paquete se crea DESPUÉS de la compilación, fuera de los
+ * árboles fuente/standalone. No intervienen credenciales de proveedores,
+ * datos de aprendizaje reales ni imports del árbol fuente. */
 import * as fs from "node:fs";
 import * as path from "node:path";
 
@@ -533,8 +534,8 @@ export function activate(ctx) {
   }});
 }
 `);
-	// Separate frontend-only custom Settings page: preserve native-smoke's
-	// existing schema registration/update-handle proof, without host injection.
+	// Página de Settings personalizada aparte, solo de frontend: conserva la prueba existente
+	// de native-smoke del registro del esquema/manejador de actualización, sin inyección en el host.
 	const settingsFixture = PLUGIN_PICKER_SETTINGS_FIXTURE;
 	const settingsDirectory = path.join(home, "data", "plugins", settingsFixture.id, "dist");
 	fs.mkdirSync(path.join(settingsDirectory, "assets"), { recursive: true });
@@ -552,10 +553,10 @@ export function activate(ctx) {
 `);
 	fs.mkdirSync(path.join(pluginRoot, "data"), { recursive: true });
 	fs.writeFileSync(path.join(pluginRoot, "data", "private.json"), '{"private":true}\n');
-	// Seed native history. Admission opens only held LOOPBACK protocol requests;
-	// the separate question proof later generates scripted offline native turns.
-	// No external provider calls, accounts, or personal learning data are used.
-	// Browser proof exercises the SAME shared Markdown/tool surfaces as lessons.
+	// Siembra el historial nativo. La admisión solo abre peticiones de protocolo de LOOPBACK retenidas;
+	// la prueba aparte de preguntas genera más tarde turnos nativos sin conexión guionizados.
+	// No se usan llamadas a proveedores externos, cuentas ni datos personales de aprendizaje.
+	// La prueba en el navegador ejercita las MISMAS superficies compartidas de Markdown/herramientas que las lecciones.
 	const chats = path.join(home, "data", "chats");
 	fs.mkdirSync(chats, { recursive: true });
 	fs.writeFileSync(path.join(chats, "chat_plugin_smoke.json"), JSON.stringify({
@@ -583,8 +584,8 @@ export function activate(ctx) {
 			},
 		],
 	}, null, 2));
-	// Only prerequisite teaching truth is seeded. Plugin question authority and
-	// answers MUST be minted by real native turns against the loopback provider.
+	// Solo se siembra la verdad de enseñanza previa necesaria. La autoridad de las preguntas del plugin y
+	// las respuestas DEBEN acuñarlas turnos nativos reales contra el proveedor de loopback.
 	const questionFixture = PLUGIN_QUESTION_FIXTURE;
 	const tree = { nodes: [{ id: questionFixture.nodeId, title: "Offline text node" }], edges: [], version: 1 };
 	const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
@@ -603,8 +604,8 @@ export function activate(ctx) {
 			{ ...assistant("question_seed_notes", [{ type: "text", text: Array.from({ length: 80 }, (_, index) => "Offline lesson paragraph " + index + ": preserve whitespace and keep thinking separate.").join("\n\n") }]), stopReason: "stop" },
 		],
 	}, null, 2));
-	// Duplicate only the established ordinary prerequisite teaching history.
-	// New pending questions/results are exclusively authored by native turns.
+	// Duplica solo el historial de enseñanza previo normal ya establecido.
+	// Las nuevas preguntas/resultados pendientes los escriben exclusivamente turnos nativos.
 	const session = PLUGIN_SESSION_FIXTURE;
 	const bootstrap = JSON.parse(fs.readFileSync(path.join(chats, questionFixture.chatId + ".json"), "utf8"));
 	fs.writeFileSync(path.join(chats, session.chatId + ".json"), JSON.stringify({ ...bootstrap,
@@ -615,9 +616,9 @@ export function activate(ctx) {
 		createdAt: new Date(0).toISOString(), updatedAt: new Date().toISOString(),
 		settings: { model: { provider: "custom", id: session.model } }, messages: [],
 	}, null, 2));
-	// Inert graph truth is seeded by the HOST fixture before boot, never by
-	// plugin code. The caller must set LH_DATA_DIR to this disposable home/data
-	// (as smoke-server.mjs does). Exclusive writes refuse existing graph data.
+	// La verdad inerte del grafo la siembra la fixture del HOST antes de arrancar, nunca el
+	// código del plugin. El llamante debe fijar LH_DATA_DIR a este home/data desechable
+	// (como hace smoke-server.mjs). Las escrituras exclusivas rechazan los datos de grafo existentes.
 	const graph = path.join(home, "data", "graph");
 	fs.mkdirSync(graph, { recursive: true });
 	const fixture = PLUGIN_KNOWLEDGE_FIXTURE;
@@ -669,14 +670,14 @@ export async function verifyPluginServer(url, home, headers = {}) {
 	}
 	await jsonRequest("/api/plugins/native-smoke", "PUT", { enabled: false });
 	if (!fs.existsSync(disabled) || !fs.existsSync(path.join(directory, "data", "private.json"))) throw new Error("Disable failed cleanup or deleted plugin data");
-	// Do not configure this activation's URL: browser enable creates a fresh
-	// ephemeral listener. Disable must await closure of the retained handle.
+	// No configures la URL de esta activación: activar desde el navegador crea un listener
+	// efímero nuevo. Desactivar debe esperar al cierre del identificador conservado.
 	let mockStillListening = false;
 	try {
 		const response = await fetch(mock + "/models", { signal: AbortSignal.timeout(2_000) });
 		await response.text();
 		mockStillListening = true;
-	} catch { /* Connection refusal/abort is expected after cooperative cleanup. */ }
+	} catch { /* Tras una limpieza cooperativa se espera un rechazo/aborto de la conexión. */ }
 	if (mockStillListening) throw new Error("Disabled plugin leaked its loopback mock listener");
 	const stopped = await fetch(url + "/api/plugins/native-smoke/call", { method: "POST", headers: { ...headers, "content-type": "application/json" }, body: JSON.stringify({ operation: "proof" }) });
 	if (stopped.ok) throw new Error("Disabled plugin accepted operations");

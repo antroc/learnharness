@@ -1,8 +1,10 @@
 /**
- * OFFLINE native Pi Google/Bedrock initialization gate (no generation or provider calls).
- * Unlike /api/models, this traverses Pi's lazy adapters and constructs real SDK clients.
- * The real onPayload hook throws a unique sentinel BEFORE SDK request dispatch.
- * All file modules must resolve inside the payload, including nested dependencies.
+ * Barrera SIN CONEXIÓN de inicialización nativa de Pi para Google/Bedrock
+ * (sin generación ni llamadas a proveedores). A diferencia de /api/models,
+ * esto recorre los adaptadores perezosos de Pi y construye clientes reales
+ * del SDK. El hook onPayload real lanza un centinela único ANTES de
+ * despachar la petición del SDK. Todos los módulos de fichero deben
+ * resolverse dentro de la carga, incluidas las dependencias anidadas.
  *
  * node scripts/smoke-provider-runtime.mjs [--standalone <dir>] [--runtime <Node/Electron>]
  */
@@ -33,8 +35,8 @@ export function verifyProviderRuntime(standalone, runtime = process.execPath) {
 	} finally { fs.rmSync(home, { recursive: true, force: true }); }
 }
 
-// Dedicated child only: nothing delegates to a live transport, even if the SDK
-// changes its fetch path. Count attempts as well: a swallowed guard error fails.
+// Solo en un hijo dedicado: nada delega en un transporte vivo, aunque el SDK
+// cambie su vía de fetch. Cuenta también los intentos: un error de protección tragado falla.
 function closeNetwork() {
 	let attempts = 0;
 	const deny = () => { attempts++; throw new Error("OFFLINE provider gate: network forbidden"); };
@@ -76,12 +78,12 @@ async function probe(standalone) {
 		},
 	});
 	try {
-		// Pi is an explicit server external. Import its shipped public entry and
-		// factories, never the checkout's module or a direct/fake Google adapter.
+		// Pi es un externo explícito del servidor. Importa su entrada pública distribuida y sus
+		// factorías, nunca el módulo del checkout ni un adaptador de Google directo/falso.
 		const entry = pathToFileURL(path.join(root, "node_modules/@earendil-works/pi-ai/dist/index.js"));
 		const { createModels } = await import(entry.href);
-		// Keep every native chat implementation evaluable in the standalone
-		// payload even though the custom-provider UI intentionally exposes one API.
+		// Mantén evaluables en la carga standalone todas las implementaciones nativas de chat,
+		// aunque la UI de proveedores personalizados exponga a propósito una sola API.
 		for (const api of ["anthropic-messages", "openai-completions", "openai-responses", "openai-codex-responses", "azure-openai-responses", "google-generative-ai", "google-vertex", "bedrock-converse-stream", "mistral-conversations", "pi-messages"]) {
 			const implementation = await import(new URL(`api/${api}.js`, entry).href);
 			assert.equal(typeof implementation.streamSimple, "function", `${api}: native implementation missing`);
@@ -116,8 +118,8 @@ async function probe(standalone) {
 			noNetwork();
 			console.log(`[smoke-provider-runtime] ${name}: native lazy ${label} adapter reached onPayload; generation stopped`);
 		}
-		// Exercise the public lazy OAuth surface offline. toAuth evaluates the
-		// real flow module and its imports but neither logs in nor refreshes.
+		// Ejercita sin conexión la superficie pública perezosa de OAuth. toAuth evalúa el
+		// módulo de flujo real y sus imports, pero no inicia sesión ni refresca.
 		for (const [name, factory] of [["github-copilot", "githubCopilotProvider"], ["xai", "xaiProvider"]]) {
 			const provider = (await import(new URL(`providers/${name}.js`, entry).href))[factory]();
 			const credential = { type: "oauth", access: name === "github-copilot" ? "tid=offline;proxy-ep=proxy.individual.githubcopilot.com;" : "offline-xai-oauth-not-a-token", refresh: "offline-refresh-not-a-token", expires: Date.now() + 3600000, availableModelIds: provider.getModels().map((model) => model.id) };
@@ -139,8 +141,8 @@ async function probe(standalone) {
 			noNetwork();
 			console.log(`[smoke-provider-runtime] ${name}: public native OAuth and ${seenApis.size} transport APIs initialized offline`);
 		}
-		// Resolution/evaluation, not folder-exists checks. This also covers the
-		// previously missing transitive edge and permits legitimate nested deps.
+		// Resolución/evaluación, no comprobaciones de que existe la carpeta. Esto cubre también la
+		// arista transitiva que faltaba antes y admite dependencias anidadas legítimas.
 		for (const name of ["@google/genai", "google-auth-library", "gcp-metadata", "json-bigint", "bignumber.js"]) {
 			assert.ok([...loaded].some((file) => file.includes(`${path.sep}node_modules${path.sep}${name.replaceAll("/", path.sep)}${path.sep}`)),
 				`Google runtime chain was not loaded: ${name}`);
