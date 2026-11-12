@@ -129,8 +129,8 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 | C5 | Comentarios: `components/*` raíz (1ª mitad) | 37 | 32.633 | [x] |
 | C6 | Comentarios: `components/*` raíz (2ª mitad) | 89 | 31.871 | [x] |
 | C7 | Comentarios: `components/{settings,artifacts,ui,ai-elements}`, `app`, `electron`, `scripts`, `plugins`, configuración | 201 | 33.875 | [x] |
-| C8 | Comentarios: `tests/` (1ª mitad) | 124 | 23.181 | [~] parcial |
-| C9 | Comentarios: `tests/` (2ª mitad) + los 7 `.py` (a mano) | 178 | 23.180 | [ ] |
+| C8 | Comentarios: `tests/` (1ª mitad) | 124 | 23.181 | [x] |
+| C9 | Comentarios: `tests/` (2ª mitad) + los 7 `.py` (a mano) | 178 | 23.180 | [~] parcial |
 
 Las listas exactas de ficheros están en `.traduccion/lotes/<lote>.txt`.
 `components/dock-height.ts` y `components/ui/button.tsx` ya están hechos (prueba de la herramienta)
@@ -424,3 +424,47 @@ falsos positivos).
   comentario): chat-flow.test.ts (≈3.400) y extraction.test.ts (≈3.400), conviene partirlos
   por ids en dos tandas cada uno; jobs.test.ts (≈2.500), graph.test.ts (≈1.600),
   demos.test.tsx (≈1.000), graph-canvas.test.ts (≈650).
+- Sesión 13: C8 terminado: línea 21 y líneas 26–124 de `.traduccion/lotes/C8.txt` en trece
+  tandas con su commit (chat-flow.test.ts en dos tandas por ids 1–72 y 73–144;
+  chatgpt-background…compaction-service; compaction…demo-runtime-payload; demos.test.tsx
+  solo; desktop-api…external-links; extraction.test.ts en dos tandas por ids 1–75 y 76–157;
+  file-access-settings…graph-view-filters; graph.test.ts solo; headless-helper-lifecycle…
+  job-delivery-recovery; jobs.test.ts solo; katex-security…light-surfaces). Ningún JSDoc de
+  C8 estaba en `docs/plugin-api/` (0 coincidencias de 1.020); no había directivas
+  `turbopackIgnore`/`eslint-disable` ni JSDoc de solo etiquetas de tipo, ni referencias a
+  encabezados de docs traducidos (solo rutas de fichero y `§N`). En extraction.test.ts los
+  tres grupos `// 4096 budget…` terminan en «responsable» porque la línea siguiente
+  `// 2026-10-13).` no se extrae. En la tabla de directivas de
+  tests/fixtures/claude-code/fake-claude.mjs se tradujeron las descripciones, no el JSON.
+  Literales que se dejan en inglés: "question posed", "propositions.0: must be object",
+  "Back with the brief.", ", and 2 more", "Use '<query>'", "No matches found", Cancel/Delete,
+  "node"/"nodes" (palabra de la interfaz), "view full research", los valores `running`/
+  `record-changed`/`settled` y los tipos de evento de pi (message_update, tool_execution_end…).
+  Glosario añadido en la práctica: *faux* (proveedor/modelo) → simulado; *scripted* →
+  guionizado; *wire* → cable; *ack* → acuse (acusar recibo); *reattach* → reenganche;
+  *drain* → vaciar/vaciado; *settle* → asentar(se); *pump* → bomba; *wake* → despertar;
+  *dangling* → colgante; *pin* (en pruebas) → fijación/fijar; *seam* → frontera; *gate* →
+  barrera; *owner* → responsable; *fork 1* → bifurcación 1; *Wave X* → oleada X; *ledger* →
+  registro; *checkpoint* → registro de control; *fold* → plegado; *batch* → lote; *chunk* →
+  fragmento; *stretch* → tramo; *finding* → hallazgo; *merger* → fusionador; *linkTo verdict* →
+  veredicto linkTo; *anchor* → ancla; *digest* → resumen; *fan-out* → difusión; *mint* →
+  acuñar; *respawn* → reaparición; *sweep* → barrido; *orphan* → huérfano; *fence* → valla;
+  *stopper* → detenedor; *steering queue* → cola de reorientación; *harness* → se evita
+  (prueba/arnés según contexto); *fixture* y *mock* se dejan; *suite* → batería;
+  *stub* → sustituto (de relleno); *shim* → parche; *rim* → borde; *hull* → envolvente;
+  *ladder* → escalera; *clamp* → acotar; *floor/ceiling* → suelo/techo; *wobble* → titubeo.
+  C9 empezado: líneas 1–20 de `.traduccion/lotes/C9.txt` (tests/mac-signing-toolchain.test.ts
+  a pdf-ops.test.ts) en una tanda. En tests/model-catalog-setup.test.tsx la línea
+  `// Global Strong is unavailable, but this existing session owns a valid` no la extrae la
+  herramienta: se tradujo a mano para que encaje con el grupo siguiente («… tiene un / modelo
+  válido.»). Antes de cerrar cada tanda conviene buscar líneas `//` en inglés que la
+  herramienta no extraiga, p. ej.:
+  `grep -nE '^\s*(//|\*)\s.*\b(the|and|is|must|with)\b' FICHEROS | grep -vE '[áéíóúñ]|\b(el|la|los|de)\b'`.
+  C9 pendiente: líneas 21–178 de `.traduccion/lotes/C9.txt` (desde tests/pdf-reader.test.ts;
+  ≈21.500 palabras) y los 7 `.py`, que NO figuran en C9.txt: skills/learnharness/scripts/
+  {_data,graph,sessions}.py y tests/skills/{test_data_helpers,test_graph,test_sessions,
+  test_skill}.py (a mano: comentarios `#` y docstrings; no se tocan las cadenas que comprueban
+  las pruebas). Ficheros grandes (palabras de comentario): session-core.test.ts (≈1.480, en
+  dos tandas por ids), prompt-overrides.test.ts (≈870), render-cards.test.tsx (≈810),
+  render-plan-block.test.tsx (≈755), question-core.test.ts (≈725), render-chain-table.test.tsx
+  (≈715), render-settings.test.ts (≈700), question-tools.test.ts (≈610).
