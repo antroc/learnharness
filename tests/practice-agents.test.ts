@@ -244,9 +244,9 @@ describe("persistent practice nudges", () => {
 	const doctrine = readFileSync(new URL("../src/agent/prompts/practice/10-doctrine.md", import.meta.url), "utf8");
 	const normalizeWhitespace = (text: string) => text.replace(/\s+/g, " ").trim();
 	const approvedParagraphs = [
-		"- When a nudge does not land, reassess where the learner is stuck and offer only the next necessary piece of information. Do not jump to the full solution. Tentative answers, questions, and thinking aloud remain work in progress.",
-		"**On a wrong answer**, state the verdict plainly and localize the first break without giving the correction. Give the smallest nudge that lets the learner make the next move, then wait. If that nudge does not land, give another minimal nudge based on the new thinking. A failed attempt is never a reason to reveal the correction or conclude the problem. Continue until the learner finds and completes the correct solution.",
-		"Conclude when the learner has solved the problem correctly or explicitly asks to end it. Do not infer permission to end it from mistakes, elapsed time, the number of attempts, frustration, or an apparent inability to proceed.",
+		"- Cuando un empujón no funciona, vuelve a evaluar dónde está atascado el alumno y ofrece solo la siguiente información necesaria. No saltes a la solución completa. Las respuestas tentativas, las preguntas y el pensar en voz alta siguen siendo trabajo en curso.",
+		"**Ante una respuesta incorrecta**, di el veredicto sin rodeos y localiza la primera ruptura sin dar la corrección. Da el empujón más pequeño que permita al alumno hacer el siguiente movimiento y espera. Si ese empujón no funciona, da otro empujón mínimo basado en el nuevo razonamiento. Un intento fallido nunca es motivo para revelar la corrección ni para concluir el problema. Continúa hasta que el alumno encuentre y complete la solución correcta.",
+		"Concluye cuando el alumno haya resuelto el problema correctamente o pida explícitamente terminarlo. No deduzcas permiso para terminarlo a partir de errores, del tiempo transcurrido, del número de intentos, de la frustración ni de una aparente incapacidad para avanzar.",
 	];
 
 	it("preserves the approved paragraphs in source and the effective default prompt", () => {
@@ -262,49 +262,49 @@ describe("persistent practice nudges", () => {
 	it("does not compose the retired attempt cutoff, failed-repair reveal, or automatic-abort instructions", () => {
 		for (const text of [doctrine, composeInstructions("practice")]) {
 			const normalized = normalizeWhitespace(text);
-			assert.doesNotMatch(normalized, /\b(?:one|single|1) bounded attempt\b/i);
-			assert.doesNotMatch(normalized, /If the repair attempt fails, reveal and move on/i);
-			assert.doesNotMatch(normalized, /A correction found by the learner after a confident error consolidates more/i);
-			assert.doesNotMatch(normalized, /when the trace shows genuine inability, drop straight to R5 and reveal/i);
-			assert.doesNotMatch(normalized, /when the learner surrenders or cannot proceed/i);
-			assert.doesNotMatch(normalized, /when the marginal yield of staying is exhausted/i);
-			assert.doesNotMatch(normalized, /do not withhold them past the point of exhaustion/i);
+			assert.doesNotMatch(normalized, /\b(?:un|un único|1) intento acotado\b/i);
+			assert.doesNotMatch(normalized, /Si el intento de reparación falla, revela y sigue/i);
+			assert.doesNotMatch(normalized, /Una corrección que encuentra el alumno tras un error seguro consolida más/i);
+			assert.doesNotMatch(normalized, /cuando la traza muestra una incapacidad real, baja directamente a R5 y revela/i);
+			assert.doesNotMatch(normalized, /cuando el alumno se rinde o no puede avanzar/i);
+			assert.doesNotMatch(normalized, /cuando se agota el rendimiento marginal de quedarse/i);
+			assert.doesNotMatch(normalized, /no las retengas más allá del punto de agotamiento/i);
 		}
 	});
 
 	it("preserves the approved concluded-problem switch and unbounded structural repair in source and the effective default prompt", () => {
-		const approvedDifficulty = "3. **Difficulty** — from the last outcomes on this target: clean success, one notch up; success that needed hints, hold; a miss, one notch down and consider dropping a mode. Two missed concluded problems in a row on this target: switch targets for the next demand. Never switch away from an active problem because of the number of attempts.";
-		const approvedClassification = "Classify every miss: cue miss (nothing came), discrimination error (wrong candidate won), execution slip (right proposition, wrong run), careless, or structural (the retrieved proposition is itself wrong — a misconception). The first four are practice information. Structural misses call for minimal nudges toward repairing the misconception, not an immediate correction or re-teaching. Keep each nudge surgical; do not impose a one-line or one-attempt limit on the repair as a whole.";
+		const approvedDifficulty = "3. **Dificultad**: según los últimos resultados en este objetivo: éxito limpio, un punto más; éxito que necesitó pistas, se mantiene; un fallo, un punto menos y plantéate bajar un modo. Dos problemas concluidos seguidos fallados en este objetivo: cambia de objetivo en la siguiente exigencia. No abandones nunca un problema activo por el número de intentos.";
+		const approvedClassification = "Clasifica cada fallo: fallo de pista (no vino nada), error de discriminación (ganó el candidato equivocado), despiste de ejecución (proposición correcta, ejecución equivocada), descuido o estructural (la propia proposición recuperada es errónea: una idea equivocada). Los cuatro primeros son información de práctica. Los fallos estructurales piden empujones mínimos hacia la reparación de la idea equivocada, no una corrección inmediata ni volver a enseñar. Mantén cada empujón quirúrgico; no impongas un límite de una línea o de un intento a la reparación en su conjunto.";
 		for (const text of [doctrine, composeInstructions("practice")]) {
 			const normalized = normalizeWhitespace(text);
 			assert.ok(normalized.includes(approvedDifficulty), "preserve the difficulty readout and exact approved switching rule");
 			assert.ok(normalized.includes(approvedClassification), "preserve the miss taxonomy and exact approved structural-repair rule");
-			assert.doesNotMatch(normalized, /two misses in a row, switch targets/i);
-			assert.doesNotMatch(normalized, /Structural gets one surgical line/i);
-			assert.doesNotMatch(normalized, /the correction, stated once/i);
-			assert.doesNotMatch(normalized, /if a repair needs more than a line/i);
+			assert.doesNotMatch(normalized, /dos fallos seguidos, cambia de objetivo/i);
+			assert.doesNotMatch(normalized, /Lo estructural recibe una línea quirúrgica/i);
+			assert.doesNotMatch(normalized, /la corrección, dicha una vez/i);
+			assert.doesNotMatch(normalized, /si una reparación necesita más de una línea/i);
 		}
 	});
 
 	it("preserves the approved misconception introduction without an affirmative one-line repair cap", () => {
-		const approvedIntroduction = "- **Not a teaching session.** You will find misconceptions. Address them with minimal, surgical nudges, over as many exchanges as needed. A practice session that drifts into re-teaching has stopped practicing.";
+		const approvedIntroduction = "- **No es una sesión de enseñanza.** Encontrarás ideas equivocadas. Abórdalas con empujones mínimos y quirúrgicos, durante tantos intercambios como haga falta. Una sesión de práctica que deriva en volver a enseñar ha dejado de practicar.";
 		for (const text of [doctrine, composeInstructions("practice")]) {
 			const normalized = normalizeWhitespace(text);
 			assert.ok(normalized.includes(approvedIntroduction), "preserve the exact approved introduction and the rest of the not-teaching bullet");
-			assert.doesNotMatch(normalized, /Repair them in a line, surgically, and return to practice\./i);
+			assert.doesNotMatch(normalized, /Repáralas en una línea, de forma quirúrgica, y vuelve a la práctica\./i);
 		}
 	});
 
 	it("keeps the many-claims default, hint ladder, dismissal, and explicit-go-ahead pause", () => {
 		const prompt = normalizeWhitespace(composeInstructions("practice"));
-		assert.match(prompt, /A problem may take many claims; staying is the default/);
+		assert.match(prompt, /Un problema puede llevar muchas respuestas declaradas; quedarse es lo normal/);
 		for (const rung of ["R0", "R1", "R2", "R3", "R4", "R5"]) {
-			assert.ok(prompt.includes(`**${rung} —`));
+			assert.ok(prompt.includes(`**${rung}:`));
 		}
-		assert.match(prompt, /Concluding ends your turn; the next problem is posed only when the learner explicitly moves on/);
-		assert.match(prompt, /After the conclude's result.*END YOUR TURN: no further tool calls in that reply, never another problem/);
-		assert.match(prompt, /A clarification question is never the go-ahead; when in doubt, answer and wait/);
-		assert.match(prompt, /The learner may discard a problem without concluding it/);
+		assert.match(prompt, /Concluir termina tu turno; el siguiente problema solo se plantea cuando el alumno pasa explícitamente al siguiente/);
+		assert.match(prompt, /Después del resultado de conclude.*TERMINAS TU TURNO: ninguna llamada a herramientas más en esa respuesta, nunca otro problema/);
+		assert.match(prompt, /Una pregunta de aclaración nunca es el visto bueno; en caso de duda, responde y espera/);
+		assert.match(prompt, /El alumno puede descartar un problema sin concluirlo/);
 	});
 
 	it("aligns the conclude description with the canonical ack without changing outcomes or the runtime pause mechanism", async () => {
@@ -330,14 +330,14 @@ describe("practice prompt composition (own directory + the formatting appendix)"
 	it("composes base + doctrine — never the teaching base or question/confidence mechanics", () => {
 		const prompt = composeInstructions("practice");
 		// La sección de voz de la base y la columna vertebral de la doctrina están presentes…
-		assert.match(prompt, /Everything in this section deletes a default/);
-		assert.match(prompt, /You run practice sessions\./);
-		assert.match(prompt, /## Standing prohibitions/);
+		assert.match(prompt, /Todo lo que hay en esta sección elimina un comportamiento por defecto/);
+		assert.match(prompt, /Diriges sesiones de práctica\./);
+		assert.match(prompt, /## Prohibiciones permanentes/);
 		// …y nada del system prompt de enseñanza ni de los fragmentos compartidos.
-		assert.doesNotMatch(prompt, /install understanding/);
+		assert.doesNotMatch(prompt, /instalar comprensión/);
 		// La doctrina compartida 20-question-tools (predict/check) no debe
 		// componerse: la práctica tiene su propia teoría de la demanda.
-		assert.doesNotMatch(prompt, /predict/i);
+		assert.doesNotMatch(prompt, /predic/i);
 	});
 
 	it("the SHARED voice + accuracy compose (owner round 13): ONE law across every agent, and the stale line is dead", () => {
@@ -345,41 +345,41 @@ describe("practice prompt composition (own directory + the formatting appendix)"
 		// precisión (ronda de refinamiento de prompts, 2026-10-07): el listón de la duda
 		// sentida, una ley para todos los agentes; el antiguo puntero de la ronda 10 vivía
 		// en el fragmento de precisión; la mecánica vive ahora en las secciones de cada agente
-		assert.match(prompt, /one confidently-delivered hallucination poisons that/);
-		assert.match(prompt, /The bar is the doubt itself/);
+		assert.match(prompt, /una sola alucinación dicha con seguridad lo envenena/);
+		assert.match(prompt, /El listón es la propia duda/);
 		// la ley propia de verificación de hechos de la práctica (el enfoque de «rara vez hace falta» está muerto)
-		assert.match(prompt, /grades the learner against a lie/);
-		assert.ok(!prompt.includes("exceptions, not habits"), "the rarely-needed framing is gone");
-		assert.ok(!prompt.includes("no research tool here"), "the stale line is gone");
+		assert.match(prompt, /evalúa al alumno frente a una mentira/);
+		assert.ok(!prompt.includes("excepciones, no hábitos"), "the rarely-needed framing is gone");
+		assert.ok(!prompt.includes("ninguna herramienta de investigación aquí"), "the stale line is gone");
 		// la doctrina de los campos de razonamiento también se compone en la práctica (una ley)
-		assert.match(prompt, /primary data/);
+		assert.match(prompt, /datos principales/);
 		// el profesor compone los mismos fragmentos compartidos (una ley)
 		const teacher = composeInstructions("teacher");
-		assert.match(teacher, /one confidently-delivered hallucination poisons that/);
-		assert.match(teacher, /Everything in this section deletes a default/);
-		assert.match(teacher, /The bar is the doubt itself/);
-		assert.match(teacher, /primary data/);
+		assert.match(teacher, /una sola alucinación dicha con seguridad lo envenena/);
+		assert.match(teacher, /Todo lo que hay en esta sección elimina un comportamiento por defecto/);
+		assert.match(teacher, /El listón es la propia duda/);
+		assert.match(teacher, /datos principales/);
 		// la regla de no duplicar el plan (informado por el responsable: plan dibujado dos veces)
-		assert.match(teacher, /Never draw the plan again in your prose/);
+		assert.match(teacher, /No vuelvas a dibujar nunca el plan en tu prosa/);
 		// reescribir el plan es normal, no excepcional (adaptación continua)
-		assert.match(teacher, /Rewriting is a normal, common event/);
+		assert.match(teacher, /Reescribir es algo normal y frecuente/);
 		// planificar es el momento natural de verificación
-		assert.match(teacher, /planning is the natural moment for verification/);
+		assert.match(teacher, /la planificación es el momento natural para verificar/);
 		// sin techos de tamaño, y el desvío mantiene el ritmo (ronda del responsable, 2026-10-07)
-		assert.ok(!teacher.includes("Typically 5–15 nodes"), "the node-count cap is dead");
-		assert.match(teacher, /No size ceiling/);
-		assert.match(teacher, /never rush the repair/);
-		assert.match(teacher, /one and only pace/);
-		assert.match(teacher, /nothing to rush/, "the goal reiteration composes");
+		assert.ok(!teacher.includes("Normalmente 5–15 nodos"), "the node-count cap is dead");
+		assert.match(teacher, /Sin límite de tamaño/);
+		assert.match(teacher, /no apresures nunca la reparación/);
+		assert.match(teacher, /al único ritmo de la sesión/);
+		assert.match(teacher, /ni nada que apresurar/, "the goal reiteration composes");
 	});
 
 	it("the prober doctrine steers difficulty by evidence (owner round, 2026-10-07)", () => {
 		const prober = composeInstructions("prober");
-		assert.match(prober, /Enter near the top, not the bottom/);
-		assert.match(prober, /Strands inform each other/);
-		assert.match(prober, /never descending into already-bracketed territory/);
+		assert.match(prober, /Entra cerca de arriba, no de abajo/);
+		assert.match(prober, /Las líneas se informan entre sí/);
+		assert.match(prober, /nunca bajar a un terreno ya acotado/);
 		// las señales de confianza + razonamiento están cableadas a la selección de preguntas
-		assert.match(prober, /the verdict, his confidence, and his thinking field together set where the next question should sit/);
+		assert.match(prober, /el veredicto, su confianza y su campo de razonamiento determinan juntos dónde debe situarse la siguiente pregunta/);
 	});
 
 	it("the SHARED formatting guide composes (owner, 2026-10-04 late): LaTeX delimiters in every setting", () => {
@@ -387,15 +387,15 @@ describe("practice prompt composition (own directory + the formatting appendix)"
 		// La ley estándar de delimitadores la comparten los tres agentes de autoría.
 		for (const agent of ["practice", "prober", "teacher"] as const) {
 			const instructions = composeInstructions(agent);
-			assert.ok(instructions.includes("Inline `$f(x)$`, display `$$` fenced on its own lines."));
-			assert.ok(!instructions.includes("NEVER `$` or `$$`"));
+			assert.ok(instructions.includes("En línea `$f(x)$`, destacadas con `$$` en sus propias líneas."));
+			assert.ok(!instructions.includes("NUNCA `$` ni `$$`"));
 		}
-		assert.ok(prompt.indexOf("# The practice session") < prompt.indexOf("## Formatting"), "formatting rides as the appendix");
+		assert.ok(prompt.indexOf("# La sesión de práctica") < prompt.indexOf("## Formato"), "formatting rides as the appendix");
 	});
 
 	it("base precedes doctrine (00- sorts before 10-)", () => {
 		const prompt = composeInstructions("practice");
-		assert.ok(prompt.indexOf("The agent") < prompt.indexOf("# The practice session"));
+		assert.ok(prompt.indexOf("# El agente") < prompt.indexOf("# La sesión de práctica"));
 	});
 
 	it("the segment registry knows practice (override paths resolve)", () => {
