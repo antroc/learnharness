@@ -37,8 +37,8 @@ class SkillFolderTest(unittest.TestCase):
         self.assertLess(len(text.splitlines()), 500)
         self.assertIn("references/data-format.md", text)
         self.assertTrue((SKILL / "references" / "data-format.md").is_file())
-        self.assertIn("Never modify LearnHarness's data", text)
-        self.assertIn("archival view", text)
+        self.assertIn("No modifiques nunca los datos de LearnHarness", text)
+        self.assertIn("vista de archivo", text)
         self.assertNotIn("/Users/amos/", text)
 
     def test_license_is_bundled_for_a_standalone_copy(self):
