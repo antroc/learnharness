@@ -283,13 +283,13 @@ describe("composeInstructions: override honoring + the byte-identical source pat
 		try {
 			const on = composeInstructions("teacher", { "teacher/20-teaching.md": true });
 			assert.ok(on.includes("CUSTOM TEACHING LOOP"), "override composes when switch on");
-			assert.ok(!on.includes("# Teach — one step at a time"), "source text is replaced");
+			assert.ok(!on.includes("# Enseñar: un paso cada vez"), "source text is replaced");
 			// interruptor apagado → valor por defecto de la fuente (el fichero sigue en disco)
 			const off = composeInstructions("teacher", {});
-			assert.ok(off.includes("# Teach — one step at a time"), "source composes when switch off");
+			assert.ok(off.includes("# Enseñar: un paso cada vez"), "source composes when switch off");
 			// interruptor encendido para un segmento SIN fichero → fuente (activarlo requiere ambos)
 			const noFile = composeInstructions("teacher", { "teacher/10-planning.md": true });
-			assert.ok(noFile.includes("# Planning"), "file absent → source default");
+			assert.ok(noFile.includes("# Planificación"), "file absent → source default");
 		} finally {
 			promptOverrides.deleteOverride("teacher/20-teaching.md");
 		}
@@ -302,10 +302,10 @@ describe("composeInstructions: override honoring + the byte-identical source pat
 			for (const kind of ["teacher", "prober"] as const) {
 				const composed = composeInstructions(kind, switches);
 				assert.ok(composed.includes("MY SHARED FILES DOCTRINE"), `${kind} composes the override`);
-				assert.ok(!composed.includes("## Learner files"), `${kind} source fragment is replaced`);
+				assert.ok(!composed.includes("## Ficheros del alumno"), `${kind} source fragment is replaced`);
 			}
 			// sin interruptores: los dos conservan el fragmento de la fuente (la ruta en caché)
-			assert.ok(composeInstructions("teacher").includes("## Learner files"));
+			assert.ok(composeInstructions("teacher").includes("## Ficheros del alumno"));
 		} finally {
 			promptOverrides.deleteOverride("shared/30-learner-files.md");
 		}
