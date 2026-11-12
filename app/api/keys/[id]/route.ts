@@ -1,19 +1,24 @@
 /**
- * PUT /api/keys/:id — save one key; DELETE — remove it (auth-keys wave,
- * 2026-09-19). `id` is the env-var/file key name (OPENROUTER_API_KEY, …).
+ * PUT /api/keys/:id — guarda una clave; DELETE — la elimina (oleada de
+ * claves de autenticación, 2026-09-19). `id` es el nombre de la clave como
+ * variable de entorno/fichero (OPENROUTER_API_KEY, …).
  *
- * PUT body {value}: shape-gated (owner decision — bad pastes are 400s
- * naming the expected format, never stored; validation is SHAPE-ONLY, no
- * live pings). Saves take effect immediately (file + env reflected; no
- * restart). A var owned by the REAL env is persisted for later but NOT
- * reflected — the response's status row carries shadowedByEnv so the page
- * can explain why the saved key is not the live one.
+ * Cuerpo del PUT {value}: con barrera de forma (decisión del responsable:
+ * los pegados erróneos son 400 que nombran el formato esperado y nunca se
+ * guardan; la validación es SOLO DE FORMA, sin pings en directo). Los
+ * guardados surten efecto de inmediato (se reflejan en fichero y entorno;
+ * sin reiniciar). Una variable que pertenece al entorno REAL se persiste
+ * para más tarde pero NO se refleja: la fila de estado de la respuesta lleva
+ * shadowedByEnv para que la página explique por qué la clave guardada no es
+ * la activa.
  *
- * DELETE: gone from the file always; the env copy goes only when it was
- * the store's own reflection (a real env var stays — env wins). Idempotent
- * (absent key = success). Writable ids are the CURATED CATALOG ∪ THE
- * MODEL-PROVIDER env vars (provider-keys interlude); anything else is 404
- * — unknown file vars are preserved, not editable.
+ * DELETE: siempre desaparece del fichero; la copia del entorno solo se va
+ * cuando era el propio reflejo del almacén (una variable de entorno real se
+ * queda: el entorno gana). Idempotente (clave ausente = éxito). Los ids
+ * escribibles son el CATÁLOGO CURADO ∪ LAS variables de entorno de los
+ * PROVEEDORES DE MODELOS (interludio de claves de proveedor); cualquier otra
+ * cosa es 404: las variables desconocidas del fichero se conservan, pero no
+ * se pueden editar.
  */
 import { isWritableAuthKey } from "@/src/server";
 import { deleteKey, saveKey } from "@/src/server";

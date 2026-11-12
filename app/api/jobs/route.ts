@@ -3,13 +3,14 @@ import { isTurnRunning, listJobs } from "@/src/server";
 export const dynamic = "force-dynamic";
 
 /**
- * Job status endpoint (contracts.ts "THE ASYNC PROTOCOL" §4): the chat
- * view's jobs fetch lands here — once on mount, per jobs-changed
- * announcement (the store emits post-write, debounced client-side), and
- * on channel resync (push-architecture S4, 2026-10-02 — the old interval
- * poll is retired). It drives the dispatch cards, the sub-agents panel,
- * and the re-sync when a job settles. `turnInFlight` rides along for the
- * settle logic's idle check.
+ * Endpoint de estado de las tareas (contracts.ts "THE ASYNC PROTOCOL" §4):
+ * aquí llega la petición de tareas de la vista de chat, una vez al montar,
+ * con cada anuncio de jobs-changed (el almacén emite tras escribir, con
+ * antirrebote en el cliente) y al resincronizar el canal (arquitectura push
+ * S4, 2026-10-02; el antiguo sondeo por intervalo está retirado). Alimenta
+ * las tarjetas de despacho, el panel de subagentes y la resincronización
+ * cuando una tarea se asienta. `turnInFlight` viaja junto para la
+ * comprobación de reposo de la lógica de asentamiento.
  */
 export async function GET(req: Request) {
 	const chatId = new URL(req.url).searchParams.get("chatId");

@@ -1,28 +1,30 @@
 /**
- * PUT/DELETE /api/settings/prompts/[...segment] — the override TEXT for
- * one prompt segment (settings-storage wave, 2026-09-19).
+ * PUT/DELETE /api/settings/prompts/[...segment] — el TEXTO de sustitución
+ * de un segmento de prompt (oleada de almacenamiento de ajustes, 2026-09-19).
  *
- *   PUT    body {text} → writes data/prompts/<segment path mirror>. 200.
- *          The segment must be a CURRENT source segment (allSegmentPaths
- *          — derived from src/agent/prompts at runtime): overriding a
- *          segment that doesn't compose is a typo or a vanished fragment,
- *          a 400, never a silent orphan.
- *   DELETE → removes the override file (idempotent) AND clears the
- *          record's switch for that segment in the same operation
- *          (contract fix, interlude 2026-09-26 — overrules the 2026-09-19
- *          "switch survives a delete/re-write cycle" note). The old
- *          behavior orphaned the on-switch: the write validation then
- *          400'd every agent-section write while the UI's disabled toggle
- *          couldn't reach the OFF escape hatch — a user stuck unable to
- *          write settings. Delete clears the switch so the route and the
- *          record agree BY CONSTRUCTION; the write path additionally heals
- *          any orphan that still arises (disk-level wipes outside the
- *          app's control) — see [section]/route.ts. Order here: clear the
- *          switch first, then unlink — a crash between the two leaves
- *          "off + file", a valid state, never an orphan.
+ *   PUT    cuerpo {text} → escribe data/prompts/<espejo de la ruta del segmento>. 200.
+ *          El segmento debe ser un segmento fuente ACTUAL (allSegmentPaths,
+ *          derivado de src/agent/prompts en tiempo de ejecución): sustituir
+ *          un segmento que no forma parte de la composición es una errata o
+ *          un fragmento desaparecido, un 400, nunca un huérfano silencioso.
+ *   DELETE → elimina el fichero de sustitución (idempotente) Y desactiva el
+ *          interruptor del registro para ese segmento en la misma operación
+ *          (arreglo del contrato, interludio 2026-09-26; anula la nota del
+ *          2026-09-19 de que «el interruptor sobrevive a un ciclo de
+ *          borrar/reescribir»). El comportamiento antiguo dejaba huérfano el
+ *          interruptor activado: la validación de escritura respondía 400 a
+ *          toda escritura de la sección agent mientras el interruptor
+ *          desactivado de la UI no llegaba a la salida de emergencia de OFF,
+ *          y el usuario quedaba atascado sin poder escribir ajustes. Borrar
+ *          desactiva el interruptor para que la ruta y el registro coincidan
+ *          POR CONSTRUCCIÓN; la vía de escritura repara además cualquier
+ *          huérfano que aún surja (borrados a nivel de disco fuera del
+ *          control de la app); ver [section]/route.ts. Orden aquí: primero se
+ *          desactiva el interruptor y luego se borra el fichero; un fallo
+ *          entre ambos deja "off + fichero", un estado válido, nunca un huérfano.
  *
- * The ON/OFF switch itself lives in the record's agent.prompts map
- * (PUT /api/settings/agent) — file presence alone is never the override.
+ * El interruptor ON/OFF en sí vive en el mapa agent.prompts del registro
+ * (PUT /api/settings/agent); la sola presencia del fichero nunca es la sustitución.
  */
 
 import {
@@ -35,8 +37,9 @@ import {
 
 export const dynamic = "force-dynamic";
 
-/** Re-join the catch-all segments into the mirror-layout path; null when
- *  the shape is invalid (traversal, wrong layout — the store re-guards). */
+/** Vuelve a unir los segmentos comodín en la ruta con disposición de espejo;
+ * null cuando la forma no es válida (recorrido de directorios, disposición
+ * incorrecta; el almacén vuelve a comprobarlo). */
 function segmentPathFrom(segments: string[]): string | null {
 	const joined = segments.map(decodeURIComponent).join("/");
 	return isValidSegmentPath(joined) ? joined : null;
@@ -64,8 +67,8 @@ export async function DELETE(_request: Request, ctx: { params: Promise<{ segment
 	const { segment } = await ctx.params;
 	const path = segmentPathFrom(segment);
 	if (!path) return Response.json({ error: "invalid segment path" }, { status: 400 });
-	// Clear the record's switch FIRST (crash between the two leaves "off +
-	// file" — valid — never an orphaned ON), then unlink the file.
+	// Desactiva PRIMERO el interruptor del registro (un fallo entre ambos deja "off +
+	// fichero" —válido—, nunca un ON huérfano) y luego borra el fichero.
 	const record = readSettingsRecord();
 	const hadSwitch = record?.agent?.prompts?.[path] === true;
 	if (record && record.agent?.prompts?.[path] !== undefined) {
@@ -74,7 +77,7 @@ export async function DELETE(_request: Request, ctx: { params: Promise<{ segment
 		writeSettingsRecord({ ...record, agent: { ...record.agent, prompts } });
 	}
 	promptOverrides.deleteOverride(path);
-	// switchCleared tells the caller their on-switch went off WITH the file
-	// (additive; the GET view derives the same truth from record+file).
+	// switchCleared indica al llamante que su interruptor activado se apagó JUNTO con el
+	// fichero (aditivo; la vista GET deriva la misma verdad del registro + fichero).
 	return Response.json({ path, deleted: true, switchCleared: hadSwitch });
 }

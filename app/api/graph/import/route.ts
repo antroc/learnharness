@@ -1,24 +1,28 @@
 /**
- * POST /api/graph/import — the format-agnostic front door's transport
- * (vision §1, 2026-09-13): raw personal-notes files in, one extraction run
- * per file through the SAME pipeline the sessions use. Multipart form data
- * (field "files"); the pipeline mints a deterministic source id per file
- * path, persists the source record (the file's provenance + the run's usage),
- * and runs
- * extractor → auditor → merger over the raw text.
+ * POST /api/graph/import — el transporte de la puerta de entrada agnóstica
+ * del formato (visión §1, 2026-09-13): entran ficheros de notas personales
+ * en bruto y se hace una ejecución de extracción por fichero con el MISMO
+ * proceso que usan las sesiones. Datos de formulario multipart (campo
+ * "files"); el proceso acuña un id de fuente determinista por cada ruta de
+ * fichero, persiste el registro de la fuente (la procedencia del fichero y
+ * el uso de la ejecución) y ejecuta extractor → auditor → fusionador sobre
+ * el texto en bruto.
  *
- * Only filename extensions listed in lib/notes-import-limits.ts are taken.
- * Among those files, a PDF (spotted by its %PDF- header) is converted to
- * Markdown first. Other files are decoded as UTF-8 unless a zero byte in
- * their first 8 KiB causes refusal. This is a binary-file heuristic, not
- * complete text or encoding validation. These refusals, and PDFs with
- * nothing to extract, occur before any source record or model call.
+ * Solo se aceptan las extensiones de fichero que figuran en
+ * lib/notes-import-limits.ts. De esos ficheros, un PDF (detectado por su
+ * cabecera %PDF-) se convierte antes a Markdown. Los demás se decodifican
+ * como UTF-8, salvo que un byte cero en sus primeros 8 KiB provoque el
+ * rechazo. Es una heurística de fichero binario, no una validación completa
+ * del texto ni de la codificación. Estos rechazos, y los PDF sin nada que
+ * extraer, se producen antes de cualquier registro de fuente o llamada al
+ * modelo.
  *
- * Small concurrency cap: the model calls are the slow part, and a burst of
- * 25 simultaneous runs would trip provider rate limits — a 3-wide worker
- * pool keeps the run registry (the dock's status chips) and the ledgers
- * healthy. The dock's chips + graph refetch track progress live through
- * /api/graph/status, as with session runs.
+ * Tope de concurrencia pequeño: las llamadas al modelo son la parte lenta, y
+ * una ráfaga de 25 ejecuciones simultáneas haría saltar los límites de tasa
+ * del proveedor; un grupo de 3 workers mantiene sanos el registro de
+ * ejecuciones (las etiquetas de estado del dock) y los registros. Las
+ * etiquetas del dock y la nueva petición del grafo siguen el progreso en
+ * directo mediante /api/graph/status, igual que con las ejecuciones de sesión.
  */
 import { convertPdf, extraction, joinPages, NotesImportError, sourceDirectory } from "@/src/server";
 import { IMPORT_EXTENSIONS, MAX_IMPORT_BODY_BYTES, MAX_IMPORT_BYTES, UNSUPPORTED_TYPE_MESSAGE, validNotesPath } from "@/lib/notes-import-limits.ts";
@@ -40,15 +44,16 @@ interface ImportResult {
 	ok: boolean;
 	stats?: EmissionStats;
 	error?: string;
-	/** The machine discriminator when ok:false is a config refusal — the
-	 * BYOK models refusal (owner, 2026-09-22) or the provider-key refusal
-	 * (2026-09-25); the client can open the setup/keys flow off it. */
+	/** El discriminador para máquinas cuando ok:false es un rechazo de
+	 * configuración: el rechazo de modelos BYOK (responsable, 2026-09-22) o el
+	 * de clave de proveedor (2026-09-25); el cliente puede abrir con él el
+	 * flujo de configuración/claves. */
 	code?: "models_not_configured" | (typeof PROVIDER_KEY_MISSING_CODE);
 	missing?: string[];
-	/** The key-refusal specifics (provider_key_missing only). */
+	/** Los detalles del rechazo por clave (solo provider_key_missing). */
 	provider?: string;
 	slots?: string[];
-	/** Shown beside a completed import (every PDF: scanner text may be wrong). */
+	/** Se muestra junto a una importación completada (todo PDF: el texto escaneado puede estar mal). */
 	notice?: string;
 }
 
@@ -57,7 +62,7 @@ const PDF_MAGIC = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
 
 type NotesFile = { kind: "notes"; text: string; notice?: string } | { kind: "refused"; error: string };
 
-/** A PDF becomes page-marked Markdown; any other accepted file is read as text. */
+/** Un PDF pasa a Markdown con marcas de página; cualquier otro fichero aceptado se lee como texto. */
 async function readNotesFile(file: File): Promise<NotesFile> {
 	if (!IMPORT_EXTENSIONS.test(file.name)) return { kind: "refused", error: UNSUPPORTED_TYPE_MESSAGE };
 	const bytes = new Uint8Array(await file.arrayBuffer());
@@ -99,8 +104,8 @@ export async function POST(request: Request) {
 		return Response.json({ results: [] as ImportResult[], error: "no files" }, { status: 400 });
 	}
 
-	// PR198: folder-relative identity, matched to either browser filename form.
-	// Validate every path before conversions, metadata writes, or model calls.
+	// PR198: identidad relativa a la carpeta, casada con cualquiera de las dos formas de nombre del navegador.
+	// Valida todas las rutas antes de conversiones, escrituras de metadatos o llamadas al modelo.
 	const suppliedPaths = form.getAll("paths");
 	if (suppliedPaths.length > 0 && (suppliedPaths.length !== files.length || suppliedPaths.some((p) => typeof p !== "string"))) {
 		return Response.json({ results: [], error: "Invalid import paths" }, { status: 400 });

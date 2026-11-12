@@ -3,7 +3,7 @@ import { createPluginDocumentRoute, pluginTransport } from "@/src/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// This exact route skips Proxy body cloning, NOT desktop authentication.
+// Esta ruta exacta se salta la clonación del cuerpo en Proxy, NO la autenticación de escritorio.
 const handlers = createPluginDocumentRoute(pluginTransport);
 export const POST = handlers.POST;
 export const OPTIONS = handlers.OPTIONS;

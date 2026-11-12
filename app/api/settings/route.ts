@@ -1,17 +1,19 @@
 /**
- * GET /api/settings — THE user settings record (settings-storage wave,
- * 2026-09-19): the whole delta record at data/settings.json (config.
- * SETTINGS_FILE, via the SettingsStore port). Non-secret by construction —
- * secrets live in auth.json / .env.local and never enter this record.
+ * GET /api/settings — EL registro de ajustes del usuario (oleada de
+ * almacenamiento de ajustes, 2026-09-19): el registro delta completo en
+ * data/settings.json (config.SETTINGS_FILE, a través del puerto
+ * SettingsStore). No secreto por construcción: los secretos viven en
+ * auth.json / .env.local y nunca entran en este registro.
  *
- *   GET → 200 {settings} (the sanitized delta record — absent keys mean
- *         "factory default", never guessed server-side) or 200
- *         {settings: null} on first boot.
+ *   GET → 200 {settings} (el registro delta saneado; las claves ausentes
+ *         significan «valor de fábrica» y nunca se adivinan en el servidor)
+ *         o 200 {settings: null} en el primer arranque.
  *
- * Section writes go through PUT /api/settings/[section]; the chat defaults
- * also remain writable via the legacy /api/settings/defaults alias.
- * Resolution to concrete values is the client's/core's job
- * (core/settings-resolution.ts resolveSettings — browser-safe).
+ * Las escrituras de sección van por PUT /api/settings/[section]; los
+ * valores por defecto del chat siguen siendo escribibles también mediante el
+ * alias heredado /api/settings/defaults. La resolución a valores concretos es
+ * cosa del cliente/núcleo (resolveSettings de core/settings-resolution.ts,
+ * seguro para el navegador).
  */
 
 import { settingsStore, fileAccessConfigurationError } from "@/src/server";

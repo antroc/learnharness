@@ -1,17 +1,21 @@
 /**
- * POST-less BYOK mint: the renderer never holds the real Deepgram key.
+ * Acuñado BYOK sin cuerpo POST: el renderer nunca tiene la clave real de
+ * Deepgram.
  *
- * The key lives server-side only (auth.json → process.env in the desktop
- * app; .env.local in dev — same seam as OPENROUTER_API_KEY). A dictation
- * run starts here: mint a short-lived access token (TTL 300s — a run can
- * outlast the 30s default), the renderer opens its WebSocket to Deepgram
- * with it, and audio flows renderer → Deepgram directly, never through
- * this server. The token is only checked at the WebSocket handshake, so
- * long dictation sessions survive the TTL fine (Deepgram docs).
+ * La clave vive solo en el servidor (auth.json → process.env en la app de
+ * escritorio; .env.local en desarrollo; la misma frontera que
+ * OPENROUTER_API_KEY). Una ejecución de dictado empieza aquí: se acuña un
+ * token de acceso de vida corta (TTL de 300 s; una ejecución puede durar
+ * más que los 30 s por defecto), el renderer abre con él su WebSocket a
+ * Deepgram y el audio fluye directamente renderer → Deepgram, nunca a
+ * través de este servidor. El token solo se comprueba en el handshake del
+ * WebSocket, así que las sesiones de dictado largas sobreviven sin problema
+ * al TTL (documentación de Deepgram).
  *
- * NOTE: the key needs ≥ Member permission in the Deepgram console to call
- * /auth/grant (their docs, token-based auth FAQ) — plain read/transcribe
- * keys return FORBIDDEN here.
+ * NOTA: la clave necesita al menos el permiso Member en la consola de
+ * Deepgram para llamar a /auth/grant (su documentación, FAQ de
+ * autenticación por token); las claves simples de lectura/transcripción
+ * devuelven FORBIDDEN aquí.
  */
 import { keyValue } from "@/src/server";
 

@@ -1,21 +1,24 @@
 /**
- * GET /api/keys — the auth page's key list (auth-keys wave, 2026-09-19;
- * providers added by the provider-keys interlude same wave).
+ * GET /api/keys — la lista de claves de la página de autenticación (oleada
+ * de claves de autenticación, 2026-09-19; los proveedores se añadieron en el
+ * interludio de claves de proveedor de la misma oleada).
  *
- * Every curated key (present or not) plus unknown file vars surfaced as
- * generic rows — ABSENT provider keys deliberately do NOT spam status
- * rows; the provider dropdown is the discovery surface. `providers`
- * carries it: {id, envVar, label} for every pi-ai plain-key provider,
- * derived from pi-ai's own provider→env-var table (no-drift pin in
- * tests/auth-provider-keys.test.ts) — the settings UI reads it optionally
- * with a graceful fallback.
+ * Todas las claves curadas (presentes o no) más las variables desconocidas
+ * del fichero mostradas como filas genéricas; las claves de proveedor
+ * AUSENTES, a propósito, NO llenan de filas de estado: el desplegable de
+ * proveedores es la superficie de descubrimiento. `providers` lo alimenta:
+ * {id, envVar, label} para cada proveedor de pi-ai de clave simple,
+ * derivado de la propia tabla proveedor→variable de entorno de pi-ai
+ * (fijación anti-deriva en tests/auth-provider-keys.test.ts); la UI de
+ * ajustes lo lee como opcional, con una alternativa elegante.
  *
- * Masked only — last 4 + length for ordinary keys; custom keys are fully
- * redacted at every length (no credential suffix). PLAINTEXT NEVER LEAVES THE STORE THROUGH
- * THIS API (owner decision). `source` tells the page whether the live
- * value comes from the environment (dev .env.local / launch env) or the
- * file, and `shadowedByEnv` explains why a saved key is not the live one
- * (env always wins).
+ * Solo enmascaradas: los 4 últimos caracteres + la longitud para las claves
+ * normales; las claves personalizadas se ocultan por completo a cualquier
+ * longitud (sin sufijo de la credencial). EL TEXTO EN CLARO NUNCA SALE DEL
+ * ALMACÉN A TRAVÉS DE ESTA API (decisión del responsable). `source` indica
+ * a la página si el valor activo viene del entorno (.env.local en
+ * desarrollo / entorno de arranque) o del fichero, y `shadowedByEnv`
+ * explica por qué una clave guardada no es la activa (el entorno siempre gana).
  */
 import { keyStatuses, providerKeyList } from "@/src/server";
 

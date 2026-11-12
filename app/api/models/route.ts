@@ -1,10 +1,11 @@
 import { modelCatalog, refreshConnectionCatalog } from "@/src/server";
 
 /**
- * The model picker's data (model-control wave): pi-ai's configured-provider
- * catalog as client-safe DTOs — id/name/cost/context/modality plus each
- * model's SUPPORTED thinking levels (per its thinkingLevelMap). Static
- * catalog: no network, stable within a pi-ai version.
+ * Los datos del selector de modelos (oleada de control de modelos): el
+ * catálogo de proveedores configurados de pi-ai como DTO seguros para el
+ * cliente —id/nombre/coste/contexto/modalidad más los niveles de
+ * razonamiento ADMITIDOS por cada modelo (según su thinkingLevelMap).
+ * Catálogo estático: sin red, estable dentro de una versión de pi-ai.
  */
 export async function GET() {
 	await refreshConnectionCatalog();

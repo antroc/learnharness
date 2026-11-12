@@ -1,12 +1,13 @@
 /**
- * GET /api/search — the search engines' status (search wave, 2026-09-20):
- * the honest availability signal the settings UI explains from (the
- * gray-out affordance) and any client surface can read.
+ * GET /api/search — el estado de los motores de búsqueda (oleada de
+ * búsqueda, 2026-09-20): la señal honesta de disponibilidad a partir de la
+ * cual se explica la UI de ajustes (la indicación de atenuado) y que
+ * cualquier superficie del cliente puede leer.
  *
- * { available, engine, reason } — never a key, never a secret: `engine` is
- * the ACTIVE engine when live (auto-detection or the explicit pin), and
- * `reason` is the one-line state explanation (missing search API key or
- * pinned-engine-key-missing case).
+ * { available, engine, reason } — nunca una clave, nunca un secreto:
+ * `engine` es el motor ACTIVO cuando está disponible (autodetección o la
+ * fijación explícita), y `reason` es la explicación del estado en una línea
+ * (falta la clave de la API de búsqueda, o falta la del motor fijado).
  */
 
 import { searchStatus } from "@/src/server";

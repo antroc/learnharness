@@ -1,12 +1,13 @@
 /**
- * /api/themes (theme wave, 2026-11-04) — the theme catalog.
+ * /api/themes (oleada de temas, 2026-11-04) — el catálogo de temas.
  *
- *   GET  → 200 { themes: Theme[] }: the built-in presets, then the
- *          imported customs (config.THEMES_DIR) sorted by id.
- *   POST → body = a ThemeFile { name, mode, colors: {…12 hex} }. Invalid
- *          → 400 naming the first bad field, nothing written. Valid → the
- *          id is the name's slug (builtin ids reserved, collisions get
- *          -2, -3, …), the file lands at <id>.json → 201 { theme }.
+ *   GET  → 200 { themes: Theme[] }: los predefinidos integrados y después
+ *          los personalizados importados (config.THEMES_DIR) ordenados por id.
+ *   POST → cuerpo = un ThemeFile { name, mode, colors: {…12 hex} }. Si no es
+ *          válido → 400 nombrando el primer campo erróneo, sin escribir nada.
+ *          Si es válido → el id es el slug del nombre (los ids integrados
+ *          están reservados; las colisiones reciben -2, -3, …), el fichero
+ *          queda en <id>.json → 201 { theme }.
  */
 
 import { BUILTIN_THEMES, isBuiltinThemeId, isThemeId, parseThemeFile, themeIdFromName } from "@/src/core";

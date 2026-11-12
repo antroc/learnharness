@@ -1,16 +1,18 @@
 /**
- * GET/PUT /api/graph/render-settings — server persistence for the graph
- * view's rendering controls (node/edge/arrow/label sizes, the label-zoom
- * threshold, the cluster-labels toggle). The file lives at
- * data/render-settings.json (config.RENDER_SETTINGS_FILE).
+ * GET/PUT /api/graph/render-settings — persistencia en servidor de los
+ * controles de renderizado de la vista del grafo (tamaños de nodo, arista,
+ * flecha y etiqueta, el umbral de zoom de las etiquetas y el interruptor de
+ * etiquetas de clúster). El fichero vive en data/render-settings.json
+ * (config.RENDER_SETTINGS_FILE).
  *
- *   GET → 200 {settings} once saved, 200 null on first boot (client keeps
- *         in-memory defaults until the user changes something).
- *   PUT → 200 {settings} (the sanitized copy actually persisted — the
- *         client may echo it to stay honest with clamped values).
+ *   GET → 200 {settings} una vez guardado, 200 null en el primer arranque
+ *         (el cliente mantiene los valores por defecto en memoria hasta que
+ *         el usuario cambia algo).
+ *   PUT → 200 {settings} (la copia saneada que se persistió de verdad; el
+ *         cliente puede reflejarla para ser honesto con los valores acotados).
  *
- * Every body is passed through sanitizeRenderSettings (src/core) before
- * touching disk: garbage clamps or falls back to defaults, never throws.
+ * Todo cuerpo pasa por sanitizeRenderSettings (src/core) antes de tocar el
+ * disco: la basura se acota o vuelve a los valores por defecto, nunca lanza.
  */
 import { readRenderSettings, writeRenderSettings } from "@/src/server";
 

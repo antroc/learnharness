@@ -1,8 +1,9 @@
 /**
- * DELETE /api/themes/[id] (theme wave, 2026-11-04) — remove an imported
- * theme. Presets cannot be removed (400); an unknown id is a 404. When
- * the removed theme was active, the record falls back to "default" and
- * every color override stays exactly as it was.
+ * DELETE /api/themes/[id] (oleada de temas, 2026-11-04) — elimina un tema
+ * importado. Los predefinidos no se pueden eliminar (400); un id
+ * desconocido es un 404. Si el tema eliminado estaba activo, el registro
+ * vuelve a "default" y todas las sustituciones de color se quedan
+ * exactamente como estaban.
  */
 
 import { isBuiltinThemeId } from "@/src/core";

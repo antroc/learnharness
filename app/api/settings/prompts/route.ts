@@ -1,19 +1,22 @@
 /**
- * GET /api/settings/prompts — the system-prompt segment view
- * (settings-storage wave, 2026-09-19): the effective prompt segments for
- * Teacher, Prober and Practice, derived from SOURCE at runtime (src/agent/prompts — the
- * list adapts when the code ships/renames/removes fragments), each with
- * its source text, override text (if a file exists), and effective switch
- * state (settings record's agent.prompts map AND file presence).
+ * GET /api/settings/prompts — la vista de segmentos del prompt de sistema
+ * (oleada de almacenamiento de ajustes, 2026-09-19): los segmentos de prompt
+ * efectivos de Teacher, Prober y Practice, derivados de la FUENTE en tiempo
+ * de ejecución (src/agent/prompts; la lista se adapta cuando el código
+ * publica, renombra o elimina fragmentos), cada uno con su texto fuente, su
+ * texto de sustitución (si existe el fichero) y el estado efectivo del
+ * interruptor (el mapa agent.prompts del registro de ajustes Y la presencia
+ * del fichero).
  *
  *   GET → 200 {prober: SegmentInfo[], teacher: SegmentInfo[], practice: SegmentInfo[]}
  *   SegmentInfo = {path, sourceText, overrideText, enabled, shared}
  *
- * Shared usage is discoverable by path membership in these lists. The
- * shared base appears in Teacher and Prober, NOT Practice; Practice has
- * its own base and a subset of shared fragments. Writes: the switches go
- * through PUT /api/settings/agent; the TEXT goes through
- * PUT/DELETE /api/settings/prompts/[...segment].
+ * El uso compartido se descubre por la pertenencia de la ruta a estas
+ * listas. La base compartida aparece en Teacher y Prober, NO en Practice;
+ * Practice tiene su propia base y un subconjunto de los fragmentos
+ * compartidos. Escrituras: los interruptores van por PUT
+ * /api/settings/agent; el TEXTO va por PUT/DELETE
+ * /api/settings/prompts/[...segment].
  */
 
 import { effectivePromptSegments, readSettingsRecord } from "@/src/server";

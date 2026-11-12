@@ -5,15 +5,16 @@ import { slotsConfigured } from "@/src/core";
 export const dynamic = "force-dynamic";
 
 /**
- * The draft view behind "+ New session" (owner, 2026-09-13): NO session is
- * created until the first message is sent — the view is a sessionless empty
- * chat; on send it creates the chat (title = that message) and redirects to
- * the real page, whose initialPrompt path delivers the message as turn 1.
- * Static segment beats the dynamic [id] route — "new" is never a chat id.
+ * La vista de borrador tras "+ New session" (responsable, 2026-09-13): NO se
+ * crea ninguna sesión hasta enviar el primer mensaje; la vista es un chat
+ * vacío sin sesión. Al enviar, crea el chat (título = ese mensaje) y
+ * redirige a la página real, cuya vía initialPrompt entrega el mensaje como
+ * turno 1. El segmento estático gana a la ruta dinámica [id]: "new" nunca es
+ * un id de chat.
  *
- * The draft's model control binds the STRONG SLOT (the new-session
- * default); the session the first send creates is stamped from it
- * server-side (per-session models, owner 2026-09-28).
+ * El control de modelo del borrador se vincula a la RANURA FUERTE (el valor
+ * por defecto de las sesiones nuevas); la sesión que crea el primer envío
+ * se sella con ella en el servidor (modelos por sesión, responsable 2026-09-28).
  */
 export default async function NewSessionPage({
 	searchParams,

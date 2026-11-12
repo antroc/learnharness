@@ -15,9 +15,9 @@ export default async function ChatPage({
 	const [{ id }, { prompt }] = await Promise.all([params, searchParams]);
 	const chat = getChat(id);
 	if (!chat) notFound();
-	// The persistent setup CTA's seed (BYOK, owner 2026-09-22): slotsConfigured
-	// over the settings record, server-read — the same gate home/new read. The
-	// server's 503 stays the truth; this only decides whether the pill rides.
+	// La semilla de la llamada a la acción persistente de configuración (BYOK, responsable
+	// 2026-09-22): slotsConfigured sobre el registro de ajustes, leído en el servidor; la misma barrera
+	// que leen home/new. El 503 del servidor sigue siendo la verdad; esto solo decide si la píldora aparece.
 	const record = readSettingsRecord();
 	return (
 		<Chat
@@ -25,15 +25,15 @@ export default async function ChatPage({
 			chatId={chat.id}
 			title={chat.title}
 			kind={chat.kind ?? "teach"}
-			// Wave D: the record IS native agent history — the client view is
-				// derived app-side (core/view.ts projectView; GET serves the same
-				// native messages).
+			// Oleada D: el registro ES el historial nativo del agente; la vista del cliente se
+				// deriva en la app (projectView de core/view.ts; GET sirve los mismos
+				// mensajes nativos).
 				initialMessages={chat.messages}
 			initialError={turnFailure(chat.id)}
 			initialConfigured={slotsConfigured(record?.models)}
 			initialPrompt={prompt}
-			// A teacher turn that outlived its client: the remounted view must
-			// attach (busy shimmer + poll), never resurrect the stale record.
+			// Un turno del profesor que sobrevivió a su cliente: la vista remontada debe
+			// engancharse (brillo de ocupado + sondeo), nunca resucitar el registro obsoleto.
 			initiallyInFlight={isTurnRunning(chat.id)}
 			initiallyCompacting={compactionInFlight(chat.id)}
 		/>

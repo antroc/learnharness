@@ -11,8 +11,8 @@ import UpdateBanner from "@/components/update-banner";
 import { PluginsProvider } from "@/components/plugins";
 import { readThemeBoot } from "@/src/server";
 
-// Chrome = JetBrains Mono, teaching prose = Source Sans 3, titles = CMU
-// Serif (the bundled lh-cmu @font-face in globals.css — no CDN).
+// Interfaz = JetBrains Mono, prosa de enseñanza = Source Sans 3, títulos = CMU
+// Serif (la @font-face empaquetada lh-cmu de globals.css; sin CDN).
 const ui = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" });
 const prose = Source_Sans_3({ subsets: ["latin"], variable: "--font-sans3" });
 
@@ -22,10 +22,10 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-	// The theme is server-rendered — its class AND its color variables —
-	// so no first frame ever shows the wrong theme. connection(): the
-	// record and the theme files are per-machine disk state — without it a
-	// prerendered route (settings) would bake the BUILD machine's record.
+	// El tema se renderiza en el servidor —su clase Y sus variables de color—,
+	// así que ningún primer fotograma muestra el tema equivocado. connection(): el
+	// registro y los ficheros de tema son estado de disco de cada máquina; sin ello, una
+	// ruta prerenderizada (settings) consolidaría el registro de la máquina de COMPILACIÓN.
 	await connection();
 	const { appearance, theme, vars } = readThemeBoot();
 	return (
@@ -36,8 +36,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 			suppressHydrationWarning
 		>
 			<body className="min-h-dvh antialiased">
-			{/* The notification channel rides OUTSIDE everything: sidebar, dock,
-				 and pages all subscribe as the polls retire (push S3, 2026-10-02). */}
+			{/* El canal de notificaciones va POR FUERA de todo: la barra lateral, el dock
+				 y las páginas se suscriben a medida que se retiran los sondeos (push S3, 2026-10-02). */}
 			<ServerEventsProvider>
 				<PluginsProvider>
 					<AppearanceProvider initialAppearance={appearance} initialTheme={theme}>
@@ -49,7 +49,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 					</AppearanceProvider>
 				</PluginsProvider>
 			</ServerEventsProvider>
-			{/* Auto-update banner (Wave C): fixed card, Electron-only pushes. */}
+			{/* Aviso de actualización automática (Oleada C): tarjeta fija, envíos solo de Electron. */}
 			<UpdateBanner />
 		</body>
 		</html>

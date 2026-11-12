@@ -1,13 +1,14 @@
 /**
- * PUT /api/graph/positions — the live-physics drag commit. The client
- * anneals a drag to rest and sends the new positions; the server
- * sanitizes (finite coords, known ids only), writes the ledger, and if
- * the graph grew mid-drag runs one incremental settle to absorb the new
- * nodes with the client's arrangement as anchors. See
+ * PUT /api/graph/positions — la confirmación del arrastre con física en
+ * vivo. El cliente recuece un arrastre hasta el reposo y envía las nuevas
+ * posiciones; el servidor las sanea (coordenadas finitas, solo ids
+ * conocidos), escribe el registro y, si el grafo creció durante el
+ * arrastre, ejecuta un asentamiento incremental para absorber los nodos
+ * nuevos con la disposición del cliente como anclas. Ver
  * src/server/commit-positions.ts.
  *
- *   PUT → 200 {positions: {...}} with whatever survived sanitizing
- *         (empty object = nothing written).
+ *   PUT → 200 {positions: {...}} con lo que haya sobrevivido al saneado
+ *         (objeto vacío = no se escribió nada).
  */
 import { commitPositions } from "@/src/server";
 
