@@ -1,7 +1,9 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { after, describe, it } from "node:test";
+import fsModule from "node:fs";
+import { syncBuiltinESMExports } from "node:module";
+import { after, describe, it, mock } from "node:test";
 import assert from "node:assert/strict";
 const testData = fs.mkdtempSync(path.join(os.tmpdir(), "lh-cli-catalog-data-"));
 process.env.LH_DATA_DIR = testData;
@@ -352,9 +354,25 @@ function withClaudeInstalled(installed: boolean, fn: () => void, enabled = true)
 	process.env.HOME = dir;
 	delete process.env.npm_config_prefix;
 
+	// La búsqueda de la CLI también mira carpetas fijas (p. ej. /usr/local/bin). Para que el resultado no
+	// dependa de la máquina, solo cuentan como ejecutables los ficheros dentro del directorio temporal.
+	const inDir = (p: unknown) => typeof p === "string" && path.resolve(p).startsWith(dir + path.sep);
+	const realAccess = fs.accessSync, realStat = fs.statSync;
+	mock.method(fsModule, "accessSync", ((p: fs.PathLike, mode?: number) => {
+		if (!inDir(p)) throw Object.assign(new Error("ENOENT (aislado por la prueba)"), { code: "ENOENT" });
+		return realAccess(p, mode);
+	}) as typeof fs.accessSync);
+	mock.method(fsModule, "statSync", ((p: fs.PathLike, ...rest: unknown[]) => {
+		if (!inDir(p)) throw Object.assign(new Error("ENOENT (aislado por la prueba)"), { code: "ENOENT" });
+		return (realStat as (...a: unknown[]) => unknown)(p, ...rest);
+	}) as typeof fs.statSync);
+	syncBuiltinESMExports();
+
 	try {
 		fn();
 	} finally {
+		mock.restoreAll();
+		syncBuiltinESMExports();
 		for (const [name, value] of Object.entries(saved)) {
 			if (value === undefined) delete process.env[name];
 			else process.env[name] = value;
