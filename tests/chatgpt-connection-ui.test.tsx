@@ -533,14 +533,14 @@ for (const holdSave of [false, true]) test(`real main/control bridge: immediate 
   const callback = new URL(authorize.searchParams.get("redirect_uri")!); callback.search = new URLSearchParams({ state: authorize.searchParams.get("state")!, code: "fixture-code", client_id: "oaiapp_ui_fixture" }).toString();
   await act(async () => {
    completionArmed = true;
-   // Callback acknowledgment is not verified login, nor is login completion
-   // the subsequent consent save. Wait for the actual control reply.
+   // El acuse del callback no es un inicio de sesión verificado, ni la finalización del inicio de sesión
+   // es el guardado posterior del consentimiento. Espera la respuesta de control real.
    const waiting = completedWithin(consentCompleted.promise, "verified sign-in and global draft persistence");
    let settled = false; void waiting.then(() => { settled = true; }, () => { settled = true; });
    const response = await originalFetch(callback); assert.equal(response.status, 200); await response.text();
    if (holdSave) {
     await completedWithin(saveEntered.promise, "held global draft save");
-    // Regression only: the OLD loop returns with the save still held.
+    // Solo regresión: el bucle ANTIGUO vuelve con el guardado aún retenido.
     for (let i = 0; i < 100 && (saved.allowBackgroundUse !== false || (await service.status()).pending); i++) await new Promise((r) => setImmediate(r));
     assert.equal((await service.status()).pending, false, "verification finished before the consent save");
     assert.equal(saved.allowBackgroundUse, undefined, "the old assertion would run before the global draft was saved");

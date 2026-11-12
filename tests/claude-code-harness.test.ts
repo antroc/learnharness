@@ -1,11 +1,11 @@
 /**
- * Claude Code provider driven through the real chat handler: a learner-facing
- * question ends the turn while the CLI process waits on the held MCP call, and
- * the learner's answer arrives later as that call's tool result.
+ * Proveedor de Claude Code ejercitado a través del manejador de chat real: una pregunta
+ * dirigida al alumno termina el turno mientras el proceso de la CLI espera en la llamada MCP retenida, y
+ * la respuesta del alumno llega después como resultado de herramienta de esa llamada.
  *
- * The runClaude seam spawns tests/fixtures/claude-code/fake-claude.mjs, one
- * scenario per spawn, so the spawn count shows whether the answer continued
- * the waiting process or started a fresh one with a replay.
+ * La frontera runClaude lanza tests/fixtures/claude-code/fake-claude.mjs, un
+ * escenario por lanzamiento, así que el número de lanzamientos muestra si la respuesta continuó
+ * el proceso en espera o inició uno nuevo con una reproducción.
  */
 import assert from "node:assert/strict";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
@@ -20,7 +20,7 @@ import test, { after, type TestContext } from "node:test";
 import type { RunClaude } from "../src/agent/claude-code/stream.ts";
 import type { PiEngine } from "../src/agent/models.ts";
 
-// Opt-in writes must not race another test process's settings record.
+// Las escrituras de activación no deben competir con el registro de ajustes de otro proceso de pruebas.
 const testData = mkdtempSync(join(tmpdir(), "lh-cli-harness-data-"));
 process.env.LH_DATA_DIR = testData;
 after(() => rmSync(testData, { recursive: true, force: true }));
@@ -73,8 +73,8 @@ function createFakeRun(t: TestContext, scenarios: string[][]): FakeRun {
 	t.after(() => { if (settings) writeSettings(settings); else rmSync(SETTINGS_FILE, { force: true }); });
 	const dir = mkdtempSync(join(tmpdir(), "claude-code-harness-"));
 	t.after(() => rmSync(dir, { recursive: true, force: true }));
-	// Satisfy the real presence gate; this marker is NEVER executed. All work
-	// below goes through the injected Node fake-CLI seam, not an installed CLI.
+	// Satisface la barrera de presencia real; este marcador NUNCA se ejecuta. Todo el trabajo
+	// de abajo pasa por la frontera inyectada de la CLI falsa en Node, no por una CLI instalada.
 	writeFileSync(join(dir, process.platform === "win32" ? "claude.exe" : "claude"), "", { mode: 0o755 });
 	const savedPath = process.env.PATH;
 	process.env.PATH = `${dir}${delimiter}${savedPath ?? ""}`;

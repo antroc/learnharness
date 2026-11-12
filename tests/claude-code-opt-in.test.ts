@@ -25,7 +25,7 @@ function setup(t: TestContext) {
 	const previous = readSettings();
 	const path = process.env.PATH;
 	const dir = mkdtempSync(join(tmpdir(), "claude-opt-in-"));
-	// Never executed: only installation discovery observes this marker.
+	// Nunca se ejecuta: solo el descubrimiento de la instalación observa este marcador.
 	writeFileSync(join(dir, process.platform === "win32" ? "claude.exe" : "claude"), "", { mode: 0o755 });
 	process.env.PATH = `${dir}${delimiter}${path ?? ""}`;
 	t.after(() => {

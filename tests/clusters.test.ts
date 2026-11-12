@@ -1,8 +1,8 @@
 /**
- * Cluster presentation-rule tests. Wave 7 killed the semantic detection
- * AND the LLM label matcher (birth-session clusters, session-name labels —
- * core/session-clusters.ts has its own suite); what remains pinned here
- * is the render threshold and the hull-color spread the UI leans on.
+ * Pruebas de las reglas de presentación de clústeres. La oleada 7 eliminó la detección semántica
+ * Y el emparejador de etiquetas por LLM (clústeres por sesión de nacimiento, etiquetas con el nombre de la sesión;
+ * core/session-clusters.ts tiene su propia batería); lo que queda fijado aquí
+ * es el umbral de renderizado y la dispersión de colores de envolvente en la que se apoya la interfaz.
  */
 import { strict as assert } from "node:assert";
 import { describe, test } from "node:test";
@@ -17,7 +17,7 @@ describe("MIN_CLUSTER_SIZE", () => {
 
 describe("clusterHue", () => {
 	test("is stable per id and spreads", () => {
-		// Same id → same hue, always; different ids → usually different hues.
+		// Mismo id → mismo tono, siempre; ids distintos → normalmente tonos distintos.
 		assert.equal(clusterHue("cluster-a"), clusterHue("cluster-a"));
 		const hues = new Set<number>();
 		for (let i = 0; i < 40; i++) hues.add(clusterHue(`cluster-${i}`));

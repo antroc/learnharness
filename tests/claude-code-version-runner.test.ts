@@ -1,4 +1,4 @@
-/** Real execFile boundary, authored fixture executables only. Never the installed CLI. */
+/** Frontera execFile real, solo con ejecutables de fixture escritos a propósito. Nunca la CLI instalada. */
 import assert from "node:assert/strict";
 import { type spawn } from "node:child_process";
 import { accessSync, constants, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";

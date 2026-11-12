@@ -1,9 +1,9 @@
-/** Golden outputs from the verified published pi-coding-agent 1.4.0
- * findCutPoint + estimateTokens helpers, executed in isolation on synthetic
- * message/metadata entries. No coding-agent dependency or private data.
- * Source compaction.js SHA256:
+/** Salidas de referencia de los auxiliares findCutPoint + estimateTokens del
+ * pi-coding-agent 1.4.0 publicado y verificado, ejecutados de forma aislada sobre entradas
+ * sintéticas de mensaje/metadatos. Sin dependencia de coding-agent ni datos privados.
+ * SHA256 del compaction.js de origen:
  * f51e78ef1da66b5803fc91e185f07b968f8f989ab9326b7744958416aad3f6f6
- * Update deliberately alongside the documented local port, not automatically.
+ * Se actualiza deliberadamente junto con el port local documentado, no de forma automática.
  */
 import assert from "node:assert/strict";
 import test from "node:test";

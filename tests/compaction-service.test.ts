@@ -1,15 +1,15 @@
 /**
- * THE COMPACTION SERVICE (owner round 14, 2026-10-05): the trigger
- * plumbing — settle kick + turn-start gate, the registry mutex, the
- * summary call, usage, events. Pinned here with an injected summarizer
- * (the sub-agent one-shot needs a live engine; the SERVICE laws don't).
+ * EL SERVICIO DE COMPACTACIÓN (ronda 14 del responsable, 2026-10-05): la fontanería del
+ * disparador (empujón al asentarse + barrera de inicio de turno, el mutex del registro, la
+ * llamada de resumen, el uso, los eventos). Se fija aquí con un resumidor inyectado
+ * (el subagente de una sola llamada necesita un motor vivo; las leyes del SERVICIO no).
  *
- * The laws:
- * - the registry is a mutex: concurrent ensureCompacted → ONE summary;
- * - over-threshold → marker appended + usage logged + events emitted;
- * - under-threshold (or the projection post-marker) → no-op;
- * - chained compaction: the span carries the prior summary forward;
- * - the effective threshold: min(setting, window − reserve).
+ * Las leyes:
+ * - el registro es un mutex: ensureCompacted concurrentes → UN resumen;
+ * - por encima del umbral → marcador anexado + uso registrado + eventos emitidos;
+ * - por debajo del umbral (o la proyección tras el marcador) → no hace nada;
+ * - compactación encadenada: el tramo arrastra el resumen anterior;
+ * - el umbral efectivo: min(ajuste, ventana − reserva).
  */
 
 import assert from "node:assert/strict";
@@ -18,7 +18,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
 
-// ── the seam, BEFORE any config-loading import (the birth-stamp discipline) ─
+// ── la frontera, ANTES de cualquier importación que cargue la configuración (la disciplina de birth-stamp) ─
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-compaction-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 
@@ -47,7 +47,7 @@ after(() => {
 
 const big = (text: string, kb = 100): LhMessage => newUserMessage(`${text}: ${"x".repeat(kb * 1024)}`);
 
-/** A chat whose record projects far over any test threshold. */
+/** Un chat cuyo registro se proyecta muy por encima de cualquier umbral de prueba. */
 function overThresholdChat(label: string): string {
 	const chat = chatStore.createChat(label);
 	const messages = [big("m1"), big("m2"), big("m3"), newUserMessage("recent")];
@@ -58,8 +58,8 @@ function overThresholdChat(label: string): string {
 let summarizeCalls = 0;
 const depsOf = (chatId: string, thresholdTokens: number): CompactionDeps => ({
 	chatStore,
-	// The engine is never touched when summarize is injected (only its
-	// identity rides the marker's provenance) — a minimal stand-in.
+	// El motor nunca se toca cuando se inyecta summarize (solo su
+	// identidad viaja en la procedencia del marcador): un sustituto mínimo.
 	engine: { model: { provider: "faux", id: "test", contextWindow: 1_000_000 } } as never,
 	modelId: "faux:test",
 	kind: "teach",
@@ -75,12 +75,12 @@ const depsOf = (chatId: string, thresholdTokens: number): CompactionDeps => ({
 	},
 });
 
-// ── the laws ────────────────────────────────────────────────────────────────
+// ── las leyes ───────────────────────────────────────────────────────────────
 
 describe("the compaction service", () => {
 	it("compares identical pre-compaction snapshots with reasoning accounting off and on", async (t) => {
-		// A controlled comparison, not a claim about actual provider input tokens.
-		// Both modes compact; the snapshot, model, threshold and summary are fixed.
+		// Una comparación controlada, no una afirmación sobre los tokens de entrada reales del proveedor.
+		// Ambos modos compactan; la instantánea, el modelo, el umbral y el resumen son fijos.
 		for (const provider of ["chatgpt", "openai"]) {
 			const model = { provider, api: "openai-responses", id: "reasoning-comparison" };
 			const snapshot = [{
@@ -212,9 +212,9 @@ describe("the compaction service", () => {
 		const chatId = overThresholdChat("compact: late competing preflight");
 		const deps = depsOf(chatId, 40_000);
 		const before = summarizeCalls;
-		// Both requests passed their earlier request-level checks. The losing
-		// preflight is parked at ensureCompacted's structural await, while the
-		// accepted answer claims ownership and saves durable grading output.
+		// Ambas peticiones pasaron sus comprobaciones previas a nivel de petición. La comprobación
+		// previa perdedora queda aparcada en el await estructural de ensureCompacted, mientras la
+		// respuesta aceptada reclama la propiedad y guarda la salida de corrección duradera.
 		const competingPreflight = ensureCompacted(deps, chatId);
 		const prep = claimPreparingTurn(chatId)!;
 		assert.ok(prep);
@@ -246,8 +246,8 @@ describe("the compaction service", () => {
 		await started;
 		const owner: { prep: ReturnType<typeof claimPreparingTurn> } = { prep: null };
 		let accepted: LhMessage[] = [];
-		// The winning preflight finishes its structural wait first, claims the
-		// existing turn gate, and saves its grade before the loser resumes.
+		// La comprobación previa ganadora termina primero su espera estructural, reclama la
+		// barrera de turno existente y guarda su nota antes de que la perdedora se reanude.
 		const winner = (async () => {
 			await awaitCompaction(chatId);
 			owner.prep = claimPreparingTurn(chatId);
@@ -320,11 +320,11 @@ describe("the compaction service", () => {
 		assert.ok(marker!.content.includes("SUMMARY #"));
 		assert.ok(marker!.details.tokensBefore > 40_000, "provenance carries the trigger reading");
 		assert.equal(marker!.details.model, "faux:test");
-		// the projection now fits: the dropped span is gone from the wire view
+		// la proyección ahora cabe: el tramo descartado ya no está en la vista del cable
 		assert.ok(projectedContextTokens(record.messages, 100) < 40_000, "the cut brought the projection under threshold+summary");
-		// usage landed on the money channel, keyed by the marker
+		// el uso llegó al canal del dinero, con el marcador como clave
 		assert.ok((record.turns ?? []).some((t) => t.messageId === marker!.id && t.model === "faux:test"), "usage keyed by the marker");
-		// events: running true → record-changed → running false
+		// eventos: running true → record-changed → running false
 		assert.deepEqual(events, ["true", "record", "false"]);
 	});
 
@@ -425,9 +425,9 @@ describe("the compaction service", () => {
 			await gate;
 			return deps.summarize!(prompt, engine);
 		} }, chatId);
-		// Both calls see no running compaction at the first structural check.
-		// Their await continuations resume in order: first starts the stalled
-		// summary; second must join it, not return to grading admission.
+		// Ninguna de las dos llamadas ve una compactación en curso en la primera comprobación estructural.
+		// Sus continuaciones del await se reanudan en orden: la primera inicia el resumen
+		// atascado; la segunda debe unirse a él, no volver a la admisión de corrección.
 		let secondReturned = false;
 		const secondDeps = {
 			...deps,
@@ -480,7 +480,7 @@ describe("the compaction service", () => {
 			if (e.type === "compaction-changed" && c === chatId) events.push(`${running}`);
 		});
 		const p = ensureCompacted(depsOf(chatId, 40_000), chatId);
-		await awaitCompaction(chatId); // rides the same promise
+		await awaitCompaction(chatId); // viaja en la misma promesa
 		await p;
 		off();
 		assert.deepEqual(events, ["true", "false"], "no second compaction started");
@@ -499,11 +499,11 @@ describe("the compaction service", () => {
 				};
 			},
 		};
-		// first compaction
+		// primera compactación
 		await ensureCompacted({ ...depsOf(chatId, 40_000) }, chatId);
-		// grow the record past the threshold again (post-markers + new tail)
+		// vuelve a hacer crecer el registro por encima del umbral (tras los marcadores + cola nueva)
 		chatStore.saveMessages(chatId, [...chatStore.getChat(chatId)!.messages, big("m9"), big("m10"), big("m11")]);
-		// second compaction — the span must open with the FIRST summary
+		// segunda compactación: el tramo debe empezar con el PRIMER resumen
 		await ensureCompacted(deps, chatId);
 		assert.ok(seenPrompt.includes("prior compaction summary"), "the prior summary rides the span");
 		assert.ok(seenPrompt.includes(COMPACTED_HISTORY_HEADER), "as the marker's canonical text");
@@ -532,8 +532,8 @@ describe("the compaction service", () => {
 		for (let cycle = 1; cycle <= 10; cycle++) {
 			const messages = [...chatStore.getChat(chat.id)!.messages];
 			if (cycle > 1) messages.push(big(`growth-${cycle}`, 8));
-			// Controlled provider readings trigger compaction while the visible
-			// retained tail advances slowly enough to contain older markers.
+			// Lecturas controladas del proveedor disparan la compactación mientras la cola
+			// conservada visible avanza lo bastante despacio para contener marcadores anteriores.
 			messages.push({ id: `usage-${cycle}`, role: "assistant", content: [{ type: "text", text: "measured response" }], stopReason: "stop", usage: { input: 150_001, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 150_002 }, timestamp: cycle } as LhMessage);
 			chatStore.saveMessages(chat.id, messages);
 			await ensureCompacted(deps, chat.id);
@@ -597,8 +597,8 @@ describe("the compaction service", () => {
 			const { chatId: id, running } = event as { chatId?: string; running?: boolean };
 			if (event.type === "compaction-changed" && id === chatId) events.push(`${running}`);
 		});
-		// Exercise the actual zero-tool summarizer with an offline provider;
-		// NODE_ENV=test otherwise deliberately skips non-injected summaries.
+		// Ejercita el resumidor real sin herramientas con un proveedor sin conexión;
+		// NODE_ENV=test, si no, omite deliberadamente los resúmenes no inyectados.
 		const env: Record<string, string | undefined> = process.env;
 		const originalNodeEnv = env.NODE_ENV;
 		env.NODE_ENV = "development";
@@ -639,16 +639,16 @@ describe("the compaction service", () => {
 		assert.equal(built, 1, "deps built once");
 		await awaitCompaction(chatId);
 		assert.equal(summarizeCalls, before + 1);
-		// beneath threshold now → a second kick builds its deps, the
-		// pre-check refuses, and NO summary runs (building deps is the
-		// kick's discovery step — the run is what costs)
+		// ahora por debajo del umbral → un segundo empujón construye sus dependencias, la
+		// comprobación previa lo rechaza y NO se ejecuta ningún resumen (construir las dependencias es el
+		// paso de descubrimiento del empujón; lo que cuesta es la ejecución)
 		const afterFirst = summarizeCalls;
 		kickCompaction(() => {
 			built++;
 			return depsOf(chatId, 40_000);
 		}, chatId);
 		assert.equal(summarizeCalls, afterFirst, "post-compaction record is under threshold — no run");
-		// a null deps build (engineless) is a silent no-op
+		// una construcción de dependencias nula (sin motor) no hace nada, en silencio
 		kickCompaction(() => null, chatId);
 	});
 
@@ -694,7 +694,7 @@ describe("the compaction service", () => {
 		};
 		await ensureCompacted(failing, chatId);
 		assert.equal(activeCompactionOf(chatStore.getChat(chatId)!.messages), null, "no marker on failure");
-		// the next gate retries cleanly
+		// la siguiente barrera reintenta limpiamente
 		await ensureCompacted(depsOf(chatId, 40_000), chatId);
 		assert.ok(activeCompactionOf(chatStore.getChat(chatId)!.messages));
 		assert.equal(summarizeCalls, before + 1);

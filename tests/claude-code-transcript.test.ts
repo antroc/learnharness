@@ -1,8 +1,8 @@
 /**
- * Claude Code transcript replay (src/agent/claude-code/transcript.ts).
+ * Reproducción de la transcripción de Claude Code (src/agent/claude-code/transcript.ts).
  *
- * The CLI makes one model call per input user message, so earlier turns are
- * rendered as labelled text inside the single user message it receives.
+ * La CLI hace una llamada al modelo por cada mensaje de usuario de entrada, así que los turnos anteriores
+ * se muestran como texto etiquetado dentro del único mensaje de usuario que recibe.
  */
 import assert from "node:assert/strict";
 import test from "node:test";

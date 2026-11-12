@@ -75,8 +75,8 @@ for (const revokedAfterQueue of [false, true]) {
 		assert(contexts[0]!.includes("Please continue my learning"));
 		assert(!contexts[0]!.includes(marker.id), "automatic marker must not enter the foreground batch");
 		assert(!agent.hasQueuedMessages());
-		// Ordinary lease/catalog replies are not consent changes and must never
-		// reset/replay a learner steer that the agent has already consumed.
+		// Las respuestas normales de préstamo/catálogo no son cambios de consentimiento y nunca deben
+		// reiniciar/reproducir una reorientación del alumno que el agente ya ha consumido.
 		ipc({ channel: "lh:chatgpt", id: "ordinary-reply-with-no-pending-call", value: { accessToken: "scratch-only" } });
 		assert(!agent.hasQueuedMessages());
 		const persisted = persistTurn(stores.chatStore, chat.id, 0, agent.state.messages, false);

@@ -115,11 +115,11 @@ describe("text selector", () => {
 		assert.deepEqual(findCitationText("a\r\n\tb", s), { start: 0, end: 3 });
 	});
 	it("never splits a surrogate pair in context", () => {
-		// Context of 32 units from "z" would start on a low surrogate.
+		// Un contexto de 32 unidades desde "z" empezaría en un sustituto bajo.
 		const before = createTextSelector("x" + "😀".repeat(20) + "yz", 42, 43)!;
 		assert.equal(before.prefix.length, 31);
 		assert.doesNotMatch(before.prefix, /^[\uDC00-\uDFFF]/);
-		// Context of 32 units after "y" would end on a high surrogate.
+		// Un contexto de 32 unidades tras "y" terminaría en un sustituto alto.
 		const after = createTextSelector("yz" + "😀".repeat(20), 0, 1)!;
 		assert.equal(after.suffix.length, 31);
 		assert.doesNotMatch(after.suffix, /[\uD800-\uDBFF]$/);

@@ -14,8 +14,8 @@ process.env.LH_AUTH_FILE = path.join(root, "auth.json");
 process.env.OPENROUTER_API_KEY = "isolated-presence-only";
 const realFetch = globalThis.fetch;
 globalThis.fetch = async () => { throw Error("Unexpected external network"); };
-// Exercise the same public backend API as a distinct community fixture; the
-// production core ID is reserved and must not load code from a data directory.
+// Ejercita la misma API pública de backend como un fixture comunitario distinto; el
+// ID del núcleo de producción está reservado y no debe cargar código de un directorio de datos.
 const pluginId = "coding-questions-fixture";
 const dist = path.join(root, "data", "plugins", pluginId, "dist");
 fs.mkdirSync(dist, { recursive: true });
@@ -31,8 +31,8 @@ const { activeProblemOf, modelSolutionForConclude, newUserMessage } = await impo
 const { readPluginProblemSnapshot, readPluginProblemSubmission } = await import("../src/core/plugin-problems.ts");
 const host = await getPluginHost();
 await host.setEnabled(pluginId, true);
-// This test crosses the real dynamic plugin boundary. Use the consumer's SDK
-// context type rather than equating two installations of TypeBox's generic types.
+// Esta prueba cruza la frontera real de plugins dinámicos. Usa el tipo de contexto del SDK del
+// consumidor en vez de igualar dos instalaciones de los tipos genéricos de TypeBox.
 const ctx = await host.call(pluginId, "context") as Parameters<typeof activate>[0];
 const unregister = activate(ctx);
 after(async () => { unregister(); await host.dispose(); globalThis.fetch = realFetch; fs.rmSync(root, { recursive: true, force: true }); });

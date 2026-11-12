@@ -1,10 +1,10 @@
 /**
- * Claude Code stream function (src/agent/claude-code/stream.ts) and CLI line
- * parser (src/agent/claude-code/cli-events.ts).
+ * Función de stream de Claude Code (src/agent/claude-code/stream.ts) y analizador de
+ * líneas de la CLI (src/agent/claude-code/cli-events.ts).
  *
- * The runClaude seam spawns tests/fixtures/claude-code/fake-claude.mjs, which
- * replays recorded or synthetic stream-json lines, so the real process
- * plumbing (argv, stdin, stdout lines, stderr, exit, kill) runs end to end.
+ * La frontera runClaude lanza tests/fixtures/claude-code/fake-claude.mjs, que
+ * reproduce líneas stream-json grabadas o sintéticas, así que la fontanería real del
+ * proceso (argv, stdin, líneas de stdout, stderr, salida, terminación) se ejecuta de extremo a extremo.
  */
 import assert from "node:assert/strict";
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
@@ -1223,8 +1223,8 @@ for (const identicalHistory of [false, true]) test(`one registered stream isolat
 	const historyTwo: Message[] = identicalHistory ? [HI] : [{ role: "user", content: "another conversation", timestamp: 0 }];
 	const messageOne = await runTurn(stream, historyOne, { sessionId: "chat-one" });
 	const messageTwo = await runTurn(stream, historyTwo, { sessionId: "chat-two" });
-	// B returns first while A is earlier in the registry: IDs and even full
-	// history must not let B resolve A's authenticated MCP request.
+	// B vuelve primero mientras A está antes en el registro: ni los IDs ni el historial
+	// completo deben permitir que B resuelva la petición MCP autenticada de A.
 	const replyTwo = await runTurn(stream, [...historyTwo, messageTwo, toToolResult(call, "from two")], { sessionId: "chat-two" });
 	const replyOne = await runTurn(stream, [...historyOne, messageOne, toToolResult(call, "from one")], { sessionId: "chat-one" });
 	assert.equal(getText(replyTwo), "from two");

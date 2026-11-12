@@ -57,8 +57,8 @@ describe("Cite in learner thinking fields", () => {
 		const input = doc.querySelector('[data-file-path-input]')!;
 		assert.match(input.textContent!, /Tutor quote/);
 		assert.doesNotMatch(input.textContent!, /Continuity preserves limits/);
-		// PathInput materializes atomic DOM chips on mount, not during SSR.
-		// The isolated browser check exercises that mounted behavior.
+		// PathInput materializa etiquetas DOM atómicas al montarse, no durante el SSR.
+		// La comprobación aislada en el navegador ejercita ese comportamiento montado.
 		assert.equal(input.textContent, link);
 	});
 });

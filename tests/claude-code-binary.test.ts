@@ -1,9 +1,9 @@
 /**
- * Claude Code binary lookup (src/agent/claude-code/binary.ts).
+ * Búsqueda del binario de Claude Code (src/agent/claude-code/binary.ts).
  *
- * The packaged desktop app often starts with a minimal PATH, so lookup falls
- * back to the standard install locations. A fake isExecutable set stands in
- * for the filesystem.
+ * La aplicación de escritorio empaquetada suele arrancar con un PATH mínimo, así que la búsqueda
+ * recurre a las ubicaciones de instalación estándar. Un conjunto isExecutable falso sustituye
+ * al sistema de ficheros.
  */
 import assert from "node:assert/strict";
 import test from "node:test";

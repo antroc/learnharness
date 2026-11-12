@@ -1,16 +1,16 @@
 /**
- * The positions-commit sanitizer (PUT /api/graph/positions) — the arg_
- * fix (owner, 2026-10-06): the canvas persists the derived view's whole
- * world (stored propositions + derived arg_ implication nodes), and the
- * commit must KEEP both. Stripping the args purged their ledger entries
- * on every drag-commit, so each mount re-seeded them on a giant ring —
- * the "splattered from the middle" report. Also pins the grew-check:
- * a payload covering the whole view runs NO settle (the file equals the
- * payload exactly); a payload missing a view node (a merge landed
- * mid-drag) triggers exactly one absorbing settle.
+ * El saneador del commit de posiciones (PUT /api/graph/positions): el arreglo de
+ * arg_ (responsable, 2026-10-06): el lienzo persiste todo el mundo de la vista
+ * derivada (proposiciones almacenadas + nodos de implicación arg_ derivados), y el
+ * commit debe CONSERVAR ambos. Quitar los args purgaba sus entradas del registro
+ * en cada commit de arrastre, así que cada montaje los volvía a sembrar en un anillo gigante:
+ * el informe de «salpicado desde el centro». También fija la comprobación de crecimiento:
+ * una carga que cubre toda la vista NO ejecuta asentamiento (el fichero es exactamente
+ * igual a la carga); una carga a la que le falta un nodo de la vista (una fusión llegó
+ * a mitad del arrastre) dispara exactamente un asentamiento que lo absorbe.
  *
- * Hermetic: LH_DATA_DIR → a temp dir, set BEFORE the first import of
- * the server modules (the seam is env-at-module-load, see
+ * Hermética: LH_DATA_DIR → un directorio temporal, fijado ANTES de la primera importación de
+ * los módulos del servidor (la frontera es el entorno al cargar el módulo, ver
  * tests/data-dir-seam.test.ts).
  */
 import assert from "node:assert/strict";
@@ -34,8 +34,8 @@ before(async () => {
 	appendNode = stores.graphStore.appendNode as (node: unknown) => void;
 	appendChain = stores.graphStore.appendChain as (assertion: unknown) => void;
 
-	// Two propositions + one two-premise chain → the derived view is
-	// 2 props + 1 arg_ node.
+	// Dos proposiciones + una cadena de dos premisas → la vista derivada son
+	// 2 proposiciones + 1 nodo arg_.
 	const node = (id: string) => ({
 		id,
 		name: id,
@@ -86,7 +86,7 @@ describe("commitPositions (the arg_ fix)", () => {
 	});
 
 	it("a payload missing a view node (a merge landed mid-drag) triggers the absorbing settle", () => {
-		// The client never knew arg_chain1 (it merged after the drag began).
+		// El cliente nunca conoció arg_chain1 (se fusionó después de empezar el arrastre).
 		commitPositions({
 			n_a: { x: 1, y: 2 },
 			n_b: { x: 3, y: 4 },
@@ -94,7 +94,7 @@ describe("commitPositions (the arg_ fix)", () => {
 		});
 		const after = readPositions();
 		assert.ok("arg_chain1" in after, "the settle laid out the node the client missed");
-		// The client's anchors are honored (warm start), not clobbered to 0.
+		// Se respetan las anclas del cliente (arranque en caliente), no se machacan a 0.
 		assert.ok(Math.abs(after.n_a!.x - 1) < 50, `anchor n_a near its committed rest (got ${after.n_a!.x})`);
 	});
 

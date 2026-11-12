@@ -1,9 +1,9 @@
 /**
- * Claude Code MCP tool bridge (src/agent/claude-code/tool-bridge.ts).
+ * Puente de herramientas MCP de Claude Code (src/agent/claude-code/tool-bridge.ts).
  *
- * A real MCP SDK client talks to the bridge over loopback HTTP, the same way
- * the claude CLI does, so listing, auth, pending calls and their results
- * are all exercised end to end.
+ * Un cliente real del SDK de MCP habla con el puente por HTTP de loopback, igual que
+ * la CLI claude, así que el listado, la autenticación, las llamadas pendientes y sus resultados
+ * se ejercitan todos de extremo a extremo.
  */
 import assert from "node:assert/strict";
 import * as net from "node:net";

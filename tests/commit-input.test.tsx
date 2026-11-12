@@ -63,9 +63,9 @@ async function fixture(run: (f: {
 	Object.assign(globalThis, globals);
 	const restoreModalDom = installModalDom(dom);
 	const modalFocus = proto.focus;
-	// Keep one observable active-element value for normal blur/save and the
-	// modal helper's focusin events. Blur must not synthesize a body focusin:
-	// native blur leaves body active without requesting focus outside a trap.
+	// Mantén un único valor observable de elemento activo para el blur/guardado normal y los
+	// eventos focusin del auxiliar modal. El blur no debe sintetizar un focusin en body:
+	// el blur nativo deja body activo sin pedir el foco fuera de una trampa.
 	Object.defineProperty(dom.document, "activeElement", { configurable: true, get: () => active });
 	Object.defineProperty(proto, "focus", { configurable: true, writable: true, value(this: HTMLElement) {
 		active = this; modalFocus.call(this);
@@ -82,7 +82,7 @@ async function fixture(run: (f: {
 			render: async node => {
 				let surface = node;
 				if (React.isValidElement<React.ComponentProps<typeof SettingsDialogBody>>(node) && node.type === SettingsDialogBody) {
-					// The writer body no longer owns a second dismissal listener.
+					// El cuerpo del editor ya no tiene un segundo listener de descarte.
 					surface = <HostDialog open onClose={node.props.onClose}>{node}</HostDialog>;
 				}
 				await act(async () => { root.render(<InteractionLayersProvider>{surface}</InteractionLayersProvider>); });
@@ -204,8 +204,8 @@ it("badInput is not an empty/unset write and rerenders do not overwrite the nati
 	const input = f.input(); await f.type(input, "");
 	Object.defineProperty(input, "validity", { configurable: true, value: { badInput: true } });
 	let assignments = 0;
-	// linkedom cannot model the separate visible numeric token. This seam
-	// pins the no-assignment guarantee; Chromium must verify actual "1e".
+	// linkedom no puede modelar el token numérico visible separado. Esta frontera
+	// fija la garantía de no asignación; Chromium debe verificar el "1e" real.
 	Object.defineProperty(input, "value", { configurable: true, get: () => "", set: () => { assignments++; } });
 	await f.key(input, "Escape");
 	await f.render(<CommitInput value="9" ariaLabel="Number" type="number" min={1} step={1} onCommit={callback} />);
@@ -254,7 +254,7 @@ it("worker/compaction adapters acknowledge invalid, accepted and unset outcomes"
 	}
 	await f.render(<Agent />);
 	let input = f.input('[data-testid="input-worker-request-concurrency"]');
-	// linkedom has no native ValidityState.
+	// linkedom no tiene ValidityState nativo.
 	Object.defineProperty(input, "validity", { value: { badInput: false } });
 	await f.type(input, "1.5"); await f.key(input, "Escape");
 	assert.equal(agent.length, 0); assert.equal(input.value, "1.5");

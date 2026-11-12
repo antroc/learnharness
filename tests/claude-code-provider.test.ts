@@ -1,8 +1,8 @@
 /**
- * Claude Code provider catalog (src/agent/claude-code/provider.ts).
+ * Catálogo del proveedor de Claude Code (src/agent/claude-code/provider.ts).
  *
- * Registered on a fresh pi model collection with a stub stream function, so
- * only the catalog and auth surface are under test here.
+ * Se registra en una colección de modelos de pi nueva con una función de stream de relleno, así que
+ * aquí solo se prueban el catálogo y la superficie de autenticación.
  */
 import assert from "node:assert/strict";
 import test from "node:test";
