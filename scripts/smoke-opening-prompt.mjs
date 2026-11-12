@@ -1,7 +1,8 @@
-/** Focused synthetic live-UI check. No model/provider calls: /api/chat is
- * intercepted, catalog is a fixture, app HOME/data/auth are throwaway, and
- * the browser uses a fresh profile. Creates only synthetic session records.
- * Run: node scripts/smoke-opening-prompt.mjs
+/** Comprobación sintética y centrada de la UI en vivo. Sin llamadas al
+ * modelo/proveedor: /api/chat se intercepta, el catálogo es una fixture, el
+ * HOME/datos/autenticación de la app son desechables y el navegador usa un
+ * perfil nuevo. Solo crea registros de sesión sintéticos.
+ * Ejecución: node scripts/smoke-opening-prompt.mjs
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -17,7 +18,7 @@ const root = path.resolve(import.meta.dirname, "..");
 const home = fs.mkdtempSync(path.join(os.tmpdir(), "lh154-ui-"));
 fs.mkdirSync(path.join(home, "data"));
 fs.writeFileSync(path.join(home, "auth.json"), "{}\n");
-// Next's supported font fixture avoids external font downloads in this check.
+// La fixture de fuentes admitida por Next evita descargas de fuentes externas en esta comprobación.
 const require = createRequire(import.meta.url);
 const { getFontAxes } = require("next/dist/compiled/@next/font/dist/google/get-font-axes.js");
 const { getGoogleFontsUrl } = require("next/dist/compiled/@next/font/dist/google/get-google-fonts-url.js");
@@ -81,8 +82,8 @@ try {
 			const pathname = url.pathname;
 			const respond = body => request.respond({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 			if (pathname === "/api/models") return await respond(catalog);
-			// Notifications are outside this handover check. 204 tells native
-			// EventSource not to reconnect or hold a test connection open.
+			// Las notificaciones quedan fuera de esta comprobación del traspaso. Un 204 indica al EventSource
+			// nativo que no se reconecte ni mantenga abierta una conexión de prueba.
 			if (pathname === "/api/events") return await request.respond({ status: 204 });
 			if (pathname === "/api/chat") {
 				const body = JSON.parse(request.postData()); posts.push(body);
@@ -93,7 +94,7 @@ try {
 				return await respond({ ok: true });
 			}
 			if (/^\/api\/chats\/[^/]+\/stream$/.test(pathname)) {
-				// Keep teacher delivery unfinished: cleanup must NOT wait for it.
+				// Mantén sin terminar la entrega del profesor: la limpieza NO debe esperarla.
 				held.push(request); return;
 			}
 			const match = pathname.match(/^\/api\/chats\/([^/]+)$/);
@@ -105,8 +106,8 @@ try {
 		} catch (err) { if (!/Target closed|Session closed|Invalid InterceptionId/.test(String(err))) errors.push(String(err)); }
 	});
 	async function open(route) {
-		// CDP-intercepted requests do not settle themselves on navigation.
-		// Release synthetic streams from prior cases rather than pin slots.
+		// Las peticiones interceptadas por CDP no se asientan solas al navegar.
+		// Libera los streams sintéticos de casos anteriores en vez de ocupar ranuras.
 		await Promise.all(held.splice(0).map(request => request.abort("aborted").catch(() => {})));
 		await page.goto(origin + route, { waitUntil: "domcontentloaded", timeout: 120000 });
 		await page.waitForSelector(route === "/" ? "[data-file-path-input]" : '[data-testid="composer"] [data-file-path-input]');
@@ -147,7 +148,7 @@ try {
 			checks.push(`${route}: ${text.length > 1000 ? "long" : "short"} input delivered intact through short URL; stash removed while stream held`);
 		}
 	}
-	// The old long-query mechanism really is rejected by this isolated Node server.
+	// El antiguo mecanismo de consulta larga de verdad lo rechaza este servidor Node aislado.
 	const oldResponse = await fetch(`${origin}${new URL(page.url()).pathname}?prompt=${encodeURIComponent(long)}`);
 	assert.equal(oldResponse.status, 431); await oldResponse.text();
 	checks.push("old long-query request returned431 (browser-shell blank appearance not asserted)");
@@ -202,7 +203,7 @@ try {
 		}
 	}
 	mode = "accepted";
-	// Marker-only session must still automatically deliver a fresh opening.
+	// Una sesión con solo el marcador debe seguir entregando automáticamente una apertura nueva.
 	await open("/chat/new");
 	const markerId = await page.evaluate(async () => {
 		const res = await fetch("/api/chats", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: "marker fixture", graphContext: { propositions: [{ id: "synthetic_node", name: "Fixture", statement: "Synthetic" }] } }) });
@@ -215,7 +216,7 @@ try {
 	assert.equal(posts.length, markerCount + 1);
 	assert.equal(posts.at(-1).input.text, "marker opening");
 	checks.push("graph-marker-only record still receives opening text");
-	// A real persisted user prevents delivery and cleans a stale copy on mount.
+	// Un usuario real persistido impide la entrega y limpia una copia obsoleta al montar.
 	const chatFile = path.join(home, "data", "chats", `${markerId}.json`);
 	const record = JSON.parse(fs.readFileSync(chatFile, "utf8"));
 	record.messages.push({ id: "confirmed_fixture", role: "user", content: "already received", timestamp: Date.now() });

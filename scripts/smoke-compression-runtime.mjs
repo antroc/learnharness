@@ -1,5 +1,6 @@
-/** Fake-input regression for Next's real compression/backpressure path.
- * Runs in a disposable child so zlib instrumentation cannot affect the app.
+/** Regresión con entrada falsa para la vía real de compresión/contrapresión
+ * de Next. Se ejecuta en un hijo desechable para que la instrumentación de
+ * zlib no pueda afectar a la app.
  * node scripts/smoke-compression-runtime.mjs [--standalone <dir>] [--runtime <Node/Electron>]
  */
 import assert from "node:assert/strict";
@@ -19,7 +20,7 @@ export function verifyCompressionRuntime(root, runtime = process.execPath) {
 	try {
 		for (const dir of ["data", "tmp"]) fs.mkdirSync(path.join(home, dir));
 		fs.writeFileSync(path.join(home, "auth.json"), "{}\n", { mode: 0o600 });
-		// Allowlist rather than inherit credentials, Node preloads, or app settings.
+		// Lista blanca en vez de heredar credenciales, precargas de Node o ajustes de la app.
 		const env = Object.fromEntries(["PATH", "SystemRoot", "WINDIR", "COMSPEC", "PATHEXT"].flatMap(key =>
 			process.env[key] === undefined ? [] : [[key, process.env[key]]]));
 		const result = spawnSync(runtime, [fileURLToPath(import.meta.url), "--probe", path.resolve(root)], {
@@ -82,7 +83,7 @@ async function probe(root) {
 		active = record;
 		records.push(record);
 		middleware(req, res, () => {});
-		// Match router-server's abort teardown; do not compensate for drain ownership.
+		// Igual que el desmontaje por aborto de router-server; no compenses la propiedad del drain.
 		record.closed = new Promise(resolve => res.once("close", () => {
 			if (!res.writableFinished) releaseCompressionStream(res);
 			record.finished = res.writableFinished;
@@ -104,7 +105,7 @@ async function probe(root) {
 			return resume.call(this);
 		};
 		record.pipe = req.url === "/web" ? pipeToNodeResponse(Readable.toWeb(source), res) : pipeNodeReadableToNodeResponse(source, res);
-		// Observe failures immediately, including client abort, without unhandled rejections.
+		// Observa los fallos de inmediato, incluido el aborto del cliente, sin rechazos sin gestionar.
 		record.pipe.catch(error => { record.error = error; res.destroy(); });
 	});
 	async function request(mode) {
@@ -115,7 +116,7 @@ async function probe(root) {
 				res.on("data", data => {
 					if (mode === "/abort") { res.destroy(); resolve(); return; }
 					chunks.push(data);
-					// A slow reader exercises both zlib and socket backpressure.
+					// Un lector lento ejercita la contrapresión tanto de zlib como del socket.
 					res.pause();
 					setTimeout(() => res.resume(), 1);
 				});
@@ -163,7 +164,7 @@ async function probe(root) {
 		} else {
 			assert.equal(record.maxListeners, 10, "do not raise or silence the listener limit");
 			if (mode !== "/web") {
-				// The gzip listener survives off() but must ignore post-teardown drain.
+				// El listener de gzip sobrevive a off() pero debe ignorar el drain posterior al desmontaje.
 				record.gzip.emit("drain");
 				assert.equal(record.lateResumes, 0);
 			}
@@ -173,7 +174,7 @@ async function probe(root) {
 		server.listen(0, "127.0.0.1");
 		await once(server, "listening");
 		for (const mode of ["/node", "/web", "/identity", "/no-transform", "/abort"]) await request(mode);
-		await new Promise(resolve => setImmediate(resolve)); // Node delivers warnings asynchronously.
+		await new Promise(resolve => setImmediate(resolve)); // Node entrega los avisos de forma asíncrona.
 		assert.deepEqual(warnings, []);
 		return { passed: true, node: process.version, cases: records.map(({ mode, backpressure, registrations, payloadVerified, finished }) => ({ mode, backpressure, registrations, payloadVerified, finished })) };
 	} finally {

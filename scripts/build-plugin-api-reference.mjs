@@ -1,4 +1,4 @@
-/** Generate offline Markdown from the exact portable SDK, not a parallel API schema. */
+/** Genera Markdown sin conexión a partir del SDK portable exacto, no de un esquema de API paralelo. */
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -42,7 +42,7 @@ function members(node, prefix = "") {
 	return result;
 }
 
-/** Only read SDK-local files. Do not follow imports into host code, peer packages or a linked tree. */
+/** Lee solo ficheros locales del SDK. No sigas imports hacia código del host, paquetes pares ni un árbol enlazado. */
 function sdkFiles(directory) {
 	const found = new Map();
 	function walk(current) {

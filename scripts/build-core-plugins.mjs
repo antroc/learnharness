@@ -1,4 +1,4 @@
-/** Build app-owned packages only. Never installs into a learning-data profile. */
+/** Compila solo los paquetes propios de la app. Nunca instala en un perfil de datos de aprendizaje. */
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -45,8 +45,8 @@ export function validateCorePackages(root, packages) {
 	for (const id of ids) validatePackage(root, path.join(packages, id), id);
 }
 function publicCodePermissions(root) {
-	// A mkdtemp staging root is 0700; app code must also be readable by users
-	// other than the build account. Never apply these modes to learner data.
+	// Una raíz de preparación de mkdtemp tiene 0700; el código de la app también debe poder leerlo
+	// usuarios distintos de la cuenta de compilación. Nunca apliques estos modos a los datos del alumno.
 	fs.chmodSync(root, 0o755);
 	for (const name of fs.readdirSync(root)) {
 		const file = path.join(root, name), stat = fs.lstatSync(file);
@@ -63,7 +63,7 @@ function runNpm(args, cwd) {
 export function buildCorePlugins(root, { run = runNpm } = {}) {
 	const ids = readCoreCatalog(root), source = path.join(root, "plugins"), out = path.join(root, "core-plugins");
 	directory(source);
-	if (exists(out)) safeTree(out); // Never clean away accidentally misplaced data or linked files.
+	if (exists(out)) safeTree(out); // Nunca borres datos colocados por error ni ficheros enlazados.
 	const staged = fs.mkdtempSync(path.join(root, ".core-plugins-build-"));
 	const previous = path.join(root, `.core-plugins-backup-${randomUUID()}`);
 	try {

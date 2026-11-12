@@ -1,5 +1,7 @@
-/** Offline synthetic browser smoke: shared snapshots, cards, fullscreen and downloads.
- * No inference, private files or ambient credentials; fresh HOME/data/browser profile.
+/** Prueba de humo sintética del navegador sin conexión: instantáneas
+ * compartidas, tarjetas, pantalla completa y descargas. Sin inferencia,
+ * ficheros privados ni credenciales del entorno; HOME/datos/perfil de
+ * navegador nuevos.
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -14,7 +16,7 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
 import puppeteer from "puppeteer-core";
 import { boundedSmokeOperation, stopOwnedSmokeServer } from "./lib/owned-smoke-lifetime.mjs";
 
-// This developer smoke needs detached POSIX groups to own descendant cleanup.
+// Esta prueba de humo de desarrollo necesita grupos POSIX separados para encargarse de limpiar los descendientes.
 if (process.platform === "win32") throw new Error("Learner-image UI smoke requires POSIX owned process groups");
 const root = path.resolve(import.meta.dirname, "..");
 const home = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "lh364-ui-"));
@@ -32,7 +34,7 @@ canvas.getContext("2d").fillRect(0, 0, 80, 60);
 const bytes = canvas.toBuffer("image/png");
 const snapshotId = createHash("sha256").update(bytes).digest("hex");
 const image = { mimeType: "image/png", data: bytes.toString("base64"), width: 80, height: 60 };
-const source = path.join(home, "deleted-source.png"); // Deliberately never exists.
+const source = path.join(home, "deleted-source.png"); // A propósito, nunca existe.
 const details = caption => ({ path: source, snapshotId, mimeType: image.mimeType, width: 80, height: 60, caption });
 const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
 const assistant = (id, content) => ({ id, role: "assistant", content, api: "openai-completions", provider: "fixture", model: "synthetic", usage, stopReason: "stop", timestamp: 2 });
@@ -122,9 +124,9 @@ try {
 		}
 	}
 	await page.setViewport({ width: 1100, height: 1100 });
-	// Paint the browser-decoded image at its observed CSS display size. This
-	// isolates source/annotation pixels from the transcript's moving scroll dock.
-	// Both corners must survive, and marks must keep their source coordinates.
+	// Pinta la imagen decodificada por el navegador a su tamaño de presentación CSS observado. Esto
+	// aísla los píxeles de la fuente/anotación del dock de scroll móvil de la transcripción.
+	// Ambas esquinas deben sobrevivir, y las marcas deben conservar sus coordenadas de origen.
 	for (const [selector, width] of [['[data-testid="image-card"] img', 600], ['[data-testid="visual-card"] img', 600], ['[data-testid="visual-card"] img', 1600]]) {
 		const images = await page.$$(selector);
 		const target = (await Promise.all(images.map(async image => ({ image, width: await image.evaluate(node => node.naturalWidth) })))).find(item => item.width === width).image;
@@ -193,8 +195,8 @@ try {
 	console.error(logs.slice(-16000));
 	throw error;
 } finally {
-	// Only retained own handles/groups. Server cleanup starts independently of
-	// browser diagnostics/close, and waits for the GROUP, not the CLI's exit.
+	// Solo identificadores/grupos propios conservados. La limpieza del servidor empieza con independencia de
+	// los diagnósticos/cierre del navegador, y espera al GRUPO, no a la salida de la CLI.
 	const browserProcess = browser?.process();
 	const cleanup = await Promise.allSettled([
 		stopOwnedSmokeServer(server),

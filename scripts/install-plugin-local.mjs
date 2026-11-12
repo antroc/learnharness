@@ -1,6 +1,7 @@
-/** Copy a built community package into an explicit plugins directory.
- * Portable: Node built-ins only. Run the project's build before this helper.
- * The host, not this helper, decides app compatibility and plugin enablement. */
+/** Copia un paquete comunitario compilado en un directorio de plugins
+ * explícito. Portable: solo módulos integrados de Node. Ejecuta antes la
+ * compilación del proyecto. El host, no este auxiliar, decide la
+ * compatibilidad con la app y la activación del plugin. */
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -9,7 +10,7 @@ function directoryRoot(input) {
 	const absolute = path.resolve(input);
 	const stat = fs.lstatSync(absolute);
 	if (stat.isSymbolicLink() || !stat.isDirectory()) throw Error(`Refusing non-directory or symlink root: ${absolute}`);
-	// Resolve OS aliases above the explicitly supplied root (e.g. macOS /tmp).
+	// Resuelve los alias del SO por encima de la raíz indicada explícitamente (p. ej. /tmp en macOS).
 	return fs.realpathSync(absolute);
 }
 function admit(root, filename, kind, optional = false) {
@@ -66,7 +67,7 @@ function targetDist(root, plugin) {
 	admit(root, plugin, "directory", true);
 	const dist = path.join(plugin, "dist");
 	const exists = admit(root, dist, "directory", true);
-	// Never delete misplaced data, including dangling links or non-directory entries.
+	// Nunca borres datos colocados por error, incluidos enlaces colgantes o entradas que no son directorios.
 	if (fs.lstatSync(path.join(dist, "data"), { throwIfNoEntry: false })) throw Error(`Refusing misplaced dist/data: ${dist}`);
 	return exists;
 }
@@ -94,7 +95,7 @@ export function installPluginLocal({ project = process.cwd(), pluginsDirectory }
 			fs.mkdirSync(path.dirname(output), { recursive: true });
 			fs.copyFileSync(filename, output);
 		}
-		// Finish admission before touching installed code, including a recheck after staging.
+		// Termina la admisión antes de tocar el código instalado, incluida una nueva comprobación tras la preparación.
 		manifest(stage, next);
 		if (targetDist(destinationRoot, plugin)) { fs.renameSync(destination, previous); movedOld = true; }
 		fs.renameSync(next, destination);

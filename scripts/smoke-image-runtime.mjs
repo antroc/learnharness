@@ -1,7 +1,8 @@
 /**
- * OFFLINE image runtime gate: exercise the shipped Photon/WASM resize core and
- * actual worker, with file modules confined to the standalone payload. No app,
- * provider, canvas, or network needed; a tiny synthetic PNG is generated here.
+ * Barrera SIN CONEXIÓN del runtime de imágenes: ejercita el núcleo de
+ * redimensionado Photon/WASM que se distribuye y el worker real, con los
+ * módulos de fichero limitados a la carga standalone. No hace falta app,
+ * proveedor, canvas ni red; aquí se genera un PNG sintético diminuto.
  *
  * node scripts/smoke-image-runtime.mjs [--standalone <dir>] [--runtime <Node/Electron>]
  */
@@ -33,9 +34,9 @@ export function verifyImageRuntime(standalone, runtime = process.execPath) {
 	} finally { fs.rmSync(home, { recursive: true, force: true }); }
 }
 
-// Self-contained so the eval worker can install the SAME guards using only
-// builtins, before importing any payload module. Module hooks do not otherwise
-// propagate from the dedicated probe process into Worker threads.
+// Autocontenido para que el worker de eval pueda instalar las MISMAS protecciones usando solo
+// módulos integrados, antes de importar ningún módulo de la carga. Si no, los hooks de módulos no
+// se propagan del proceso de sondeo dedicado a los hilos Worker.
 function installGuards(require, standalone) {
 	const assert = require("node:assert/strict");
 	const fs = require("node:fs");
@@ -105,7 +106,7 @@ function installGuards(require, standalone) {
 	};
 }
 
-/** Pure Node 2×2 RGBA PNG, with valid PNG CRCs and zlib image data. */
+/** PNG RGBA de 2×2 en Node puro, con CRC de PNG válidos y datos de imagen zlib. */
 function fixturePng() {
 	const chunk = (type, data) => {
 		const buffer = Buffer.alloc(data.length + 12);
@@ -123,7 +124,7 @@ function fixturePng() {
 	const header = Buffer.alloc(13);
 	header.writeUInt32BE(2, 0);
 	header.writeUInt32BE(2, 4);
-	header[8] = 8; // bit depth
+	header[8] = 8; // profundidad de bits
 	header[9] = 6; // RGBA
 	const pixels = Buffer.from([
 		0, 255, 0, 0, 255, 0, 255, 0, 255,

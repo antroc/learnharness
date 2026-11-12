@@ -1,7 +1,9 @@
-/** Offline synthetic UI + actual Electron preload smoke. No providers/accounts.
- * Run: node scripts/smoke-file-paths.mjs
- * App/profile/auth/OS-backed fixture files are temporary; only this script's
- * processes are stopped. Browser requests outside the owned origin are blocked.
+/** Prueba de humo sin conexión de UI sintética + el preload real de Electron.
+ * Sin proveedores ni cuentas.
+ * Ejecución: node scripts/smoke-file-paths.mjs
+ * Los ficheros de fixture de app/perfil/autenticación/respaldados por el SO
+ * son temporales; solo se detienen los procesos de este script. Las
+ * peticiones del navegador fuera del origen propio se bloquean.
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -78,8 +80,8 @@ async function instrument(target) {
 			const respond = body => request.respond({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
 			if (url.pathname === "/api/models") return await respond(fixtureCatalog);
 			if (url.pathname === "/api/events") return await request.respond({ status: 204 });
-			// Never forward agent, answer or import requests, even if a UI bug
-			// submits while dropping. Record their complete synthetic bodies.
+			// Nunca reenvíes peticiones de agente, respuesta o importación, aunque un fallo de la UI
+			// envíe mientras se suelta algo. Registra sus cuerpos sintéticos completos.
 			if (request.method() === "POST" && (/^\/api\/(chat|answer)(\/|$)/.test(url.pathname) || /\/(answer|import|turn|retry)(\/|$)/.test(url.pathname))) {
 				posts.push({ pathname: url.pathname, body: JSON.parse(request.postData() || "{}") });
 				return await request.respond({ status: 503, contentType: "application/json", body: JSON.stringify({ code: "models_not_configured", missing: ["strong"] }) });
@@ -140,8 +142,8 @@ async function shortcut(target, key, shift = false) {
 	if (shift) await target.keyboard.up("Shift"); await target.keyboard.up("Meta");
 }
 async function clipboardCommand(target, command, key, modifiers = 4) {
-	// Headless Chromium does not run the macOS menu accelerator for Meta+C/V.
-	// CDP's native edit command triggers the real browser clipboard event.
+	// Chromium headless no ejecuta el acelerador del menú de macOS para Meta+C/V.
+	// El comando de edición nativo de CDP dispara el evento real de portapapeles del navegador.
 	const session = await target.createCDPSession();
 	try { await session.send("Input.dispatchKeyEvent", { type: "rawKeyDown", key: key ?? (command === "copy" ? "c" : "v"), modifiers, commands: [command] }); }
 	finally { await session.detach(); }
@@ -180,14 +182,14 @@ function seedChatFixtures() {
 	}
 }
 async function foldDock(target, barSelector) {
-	// Let growth/geometry muting settle, then use a real wheel gesture so
-	// stick-to-bottom records user intent instead of a programmatic clamp.
-	// The explicit reveal owns a bounded 2s fold-suppression window.
+	// Deja que se asiente el silenciado del crecimiento/geometría y luego usa un gesto real de rueda para que
+	// stick-to-bottom registre la intención del usuario en vez de un acotado programático.
+	// La revelación explícita es dueña de una ventana acotada de 2 s de supresión del plegado.
 	await target.evaluate(() => new Promise(resolve => setTimeout(resolve, 2250)));
 	const log = await target.$('[role="log"]'); const box = await log.boundingBox();
 	await target.mouse.move(box.x + box.width / 2, box.y + 100);
-	// Multiple real wheel frames let stick-to-bottom publish isAtBottom
-	// before DockOverlay evaluates the next away-from-bottom scroll event.
+	// Varios fotogramas reales de rueda permiten que stick-to-bottom publique isAtBottom
+	// antes de que DockOverlay evalúe el siguiente evento de scroll que se aleja del fondo.
 	for (const deltaY of [-420, -420, -840]) {
 		await target.mouse.wheel({ deltaY });
 		await target.evaluate(() => new Promise(resolve => setTimeout(resolve, 100)));
@@ -220,15 +222,15 @@ try {
 	const token = "`/synthetic/course notes.pdf`";
 	for (const route of ["/", "/chat/new"]) {
 		await open(page, route);
-		// Sidebar drops prevent browser navigation but must not stage paths or
-		// activate the right-content attachment indicator.
+		// Soltar en la barra lateral impide la navegación del navegador, pero no debe preparar rutas
+		// ni activar el indicador de adjuntos del contenido de la derecha.
 		assert.equal(await page.$eval("aside", sidebar => {
 			const transfer = new DataTransfer(); transfer.items.add(new File(["not uploaded"], "sidebar.pdf"));
 			const event = new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: transfer }); sidebar.dispatchEvent(event); return event.defaultPrevented;
 		}), true);
 		assert.equal(await page.$('[data-testid="file-path-drop-indicator"]'), null);
 		await expectValue(page, "");
-		// Browser mode has no bridge: prevent file navigation with a clear notice.
+		// El modo navegador no tiene puente: impide la navegación a ficheros con un aviso claro.
 		const prevented = await page.$eval('[data-testid="file-path-drop-zone"]', zone => {
 			const transfer = new DataTransfer(); transfer.items.add(new File(["not uploaded"], "notes.pdf"));
 			const event = new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: transfer }); zone.dispatchEvent(event); return event.defaultPrevented;
@@ -238,7 +240,7 @@ try {
 		await fill(page, "read "); await page.keyboard.type(token + " now");
 		await expectValue(page, `read ${token} now`);
 		assert.equal(await page.$$eval('[data-file-path-input] [role="img"]', elements => elements.length), 1);
-		// Native browser arrows cross the atomic host without entering its label.
+		// Las flechas nativas del navegador cruzan el host atómico sin entrar en su etiqueta.
 		await caret(page, 5); await page.keyboard.press("ArrowRight");
 		assert.equal(await page.evaluate(() => !!document.getSelection().anchorNode?.parentElement?.closest('[role="img"]')), false);
 		await page.keyboard.press("Backspace"); await expectValue(page, "read  now");
@@ -246,7 +248,7 @@ try {
 		await shortcut(page, "KeyZ", true); await expectValue(page, "read  now");
 		await shortcut(page, "KeyZ"); await caret(page, 5); await page.keyboard.press("Delete"); await expectValue(page, "read  now");
 		await shortcut(page, "KeyZ"); await expectValue(page, `read ${token} now`);
-		// Select the actual rendered label; copy must emit the full source token.
+		// Selecciona la etiqueta realmente renderizada; copiar debe emitir el token fuente completo.
 		await page.$eval('[data-file-path-input] [role="img"] span', label => {
 			const range = document.createRange(); range.selectNodeContents(label); const selection = document.getSelection(); selection.removeAllRanges(); selection.addRange(range); document.dispatchEvent(new Event("selectionchange"));
 		});
@@ -256,14 +258,14 @@ try {
 		await expectValue(page, "read  now");
 		assert.equal(await page.evaluate(() => navigator.clipboard.readText()), token, "Shift+Delete is native cut, not editor-only deletion");
 		await shortcut(page, "KeyZ"); await expectValue(page, `read ${token} now`);
-		// Clipboard image-only input must not erase the current selected path.
+		// Una entrada del portapapeles solo con imagen no debe borrar la ruta seleccionada actual.
 		await page.$eval('[data-file-path-input]', editor => {
 			const host = editor.querySelector('[data-file-path-source]'); const range = document.createRange(); range.selectNode(host); const selection = document.getSelection(); selection.removeAllRanges(); selection.addRange(range); document.dispatchEvent(new Event("selectionchange"));
 			const data = new DataTransfer(); data.items.add(new File(["image fixture"], "image.png", { type: "image/png" }));
 			editor.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: data }));
 		});
 		await expectValue(page, `read ${token} now`);
-		// Pasting HTML-bearing clipboard content is plain text, at the range.
+		// Pegar contenido del portapapeles con HTML es texto simple, en el rango.
 		await page.evaluate(() => navigator.clipboard.writeText('<img src=x onerror="alert(1)">\n中'));
 		await clipboardCommand(page, "paste");
 		await expectValue(page, 'read <img src=x onerror="alert(1)">\n中 now');
@@ -280,8 +282,8 @@ try {
 			const range = document.getSelection().getRangeAt(0); const rect = range.getBoundingClientRect();
 			return { height: element.getBoundingClientRect().height, caret: { top: rect.top, height: rect.height }, html: element.innerHTML };
 		});
-		// Record this independently so a visual editor regression does not hide
-		// the higher-priority actual Electron/target-routing evidence below.
+		// Regístralo por separado para que una regresión visual del editor no oculte
+		// la evidencia más prioritaria de Electron real/enrutado de destinos de más abajo.
 		try { assert.ok(afterNewline.height > beforeNewline, `Trailing newline must occupy a visible blank line: ${JSON.stringify({ beforeNewline, afterNewline })}`); }
 		catch (error) { visualFailures.push({ route, message: error.message }); }
 		await page.keyboard.type("second line");
@@ -292,7 +294,7 @@ try {
 		await fill(page, "composer fallback"); await blur(page);
 		await syntheticDrop(page, ["/synthetic/default.pdf"]);
 		await expectValue(page, "composer fallback `/synthetic/default.pdf`");
-		// Small viewport: wrapped multiline content stays scrollable inside its editor.
+		// Viewport pequeño: el contenido de varias líneas ajustado sigue desplazable dentro de su editor.
 		await page.setViewport({ width: 900, height: 520 });
 		await fill(page, (`${token} a long synthetic line wrapping at narrow widths.\n`).repeat(24));
 		const sizing = await page.$eval(inputSelector, element => ({ height: element.clientHeight, scrollHeight: element.scrollHeight, overflowY: getComputedStyle(element).overflowY, bodyWidth: document.body.scrollWidth, viewport: innerWidth }));
@@ -303,7 +305,7 @@ try {
 		await page.setViewport({ width: 1280, height: 900 });
 		checks.push(`${route}: native typing/chips/arrows/deletion/undo-redo/full-source clipboard/plaintext paste/caret drop/newlines/wrap-scroll`);
 	}
-	// Only an explicit Enter may initiate a send; agent endpoint is refused.
+	// Solo un Enter explícito puede iniciar un envío; el endpoint del agente se rechaza.
 	await fill(page, "explicit synthetic send `/synthetic/one.pdf`");
 	await page.keyboard.press("Enter");
 	await page.waitForFunction(() => /^\/chat\/chat_/.test(location.pathname));
@@ -314,7 +316,7 @@ try {
 	assert.equal(posts.length, 1); assert.equal(posts[0].body.input.text, "explicit synthetic send `/synthetic/one.pdf`");
 	checks.push("Explicit Enter submitted exactly one full-source prompt; endpoint intercepted/refused");
 
-	// These raw JSON fixtures are synthetic native records, never store imports.
+	// Estas fixtures JSON en bruto son registros nativos sintéticos, nunca importaciones del almacén.
 	const reading = '[data-testid="reading-thinking-field"] [data-file-path-input]';
 	const question = '[data-testid="thinking-field"] [data-file-path-input]';
 	const practice = '[data-testid="practice-thinking-field"] [data-file-path-input]';
@@ -354,8 +356,8 @@ try {
 	checks.push("Expanded practice thinking is the unfocused drop default");
 	if (await foldDock(page, '[data-testid="practice-dock-bar"]')) {
 		await blur(page); await syntheticDrop(page, ["/synthetic/collapsed-practice.pdf"]);
-		// Practice keeps the owning hook/state mounted, but hides its field
-		// by returning the bar. Inspect the controlled text after expansion.
+		// La práctica mantiene montado el hook/estado dueño, pero oculta su campo
+		// devolviendo la barra. Inspecciona el texto controlado tras desplegar.
 		assert.equal(await page.$('[role="status"]'), null, "successful attachment has no confirmation bubble");
 		await page.locator('[data-testid="practice-dock-bar"]').click();
 		await page.waitForSelector(practice, { visible: true });
@@ -365,8 +367,8 @@ try {
 	assert.equal(posts.length, 1, "all claim/drop cases stage text only");
 
 	}
-	// Actual Electron main + actual sandboxed preload. Temporary launcher sets
-	// userData BEFORE production main appends its -dev suffix or takes a lock.
+	// El proceso principal real de Electron + el preload aislado real. El lanzador temporal fija
+	// userData ANTES de que el main de producción añada su sufijo -dev o tome un bloqueo.
 	const debugPort = await freePort();
 	const launcher = path.join(home, "electron-launcher.cjs");
 	fs.mkdirSync(path.join(home, "desktop-profile"), { recursive: true });

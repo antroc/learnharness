@@ -1,5 +1,6 @@
-/** Prepare source-plugin dependencies for checkout validation, never distribution.
- * Invoke through npm so npm_execpath works identically on Windows and Unix. */
+/** Prepara las dependencias de los plugins fuente para validar el checkout,
+ * nunca para distribuir. Invócalo a través de npm para que npm_execpath
+ * funcione igual en Windows y en Unix. */
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import * as path from "node:path";

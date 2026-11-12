@@ -1,10 +1,11 @@
 /**
- * Import the demo dependency graph from ONLY a standalone payload. With --browser,
- * also drive the packaged app's own --browser-service (never system Chrome).
- * No server, model, keys, installed app UI, or production diagnostic route needed.
+ * Importa el grafo de dependencias de las demos SOLO desde una carga
+ * standalone. Con --browser, maneja además el --browser-service propio de la
+ * app empaquetada (nunca el Chrome del sistema). No hace falta servidor,
+ * modelo, claves, UI de la app instalada ni ruta de diagnóstico de producción.
  *
  * node scripts/smoke-demo-runtime.mjs --standalone <dir> --runtime <electron binary> [--browser]
- * --runtime defaults to host Node for the import-only gate.
+ * --runtime usa por defecto el Node del host para la barrera solo de imports.
  */
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
@@ -31,8 +32,8 @@ export function probeEnv(env, home) {
 	};
 }
 
-// Keep fetch's nested cause (including AggregateError socket failures), but
-// never dump arbitrary error properties such as request headers or environment.
+// Conserva la causa anidada de fetch (incluidos los fallos de socket AggregateError), pero
+// nunca vuelques propiedades arbitrarias del error, como cabeceras de la petición o el entorno.
 export function formatProbeError(error, depth = 0) {
 	if (depth > 5) return "[cause chain truncated]";
 	if (!error || typeof error !== "object") return String(error);
@@ -74,7 +75,7 @@ async function importPayload(standalone) {
 	};
 	const require = createRequire(path.join(root, "server.js"));
 	const entry = require.resolve("puppeteer-core");
-	inside(entry); // require.resolve must not silently fall back to checkout node_modules.
+	inside(entry); // require.resolve no debe recurrir en silencio al node_modules del checkout.
 	const loaded = new Set();
 	const hooks = registerHooks({
 		resolve(specifier, context, nextResolve) {
@@ -99,9 +100,9 @@ async function importPayload(standalone) {
 	}
 }
 
-// Explicit IPC disconnect can omit ChildProcess 'close' even after Electron
-// exits. Wait for actual exit, boundedly; never infer shutdown intent from
-// Node's automatic stdin cleanup after an unexpected child exit.
+// Una desconexión IPC explícita puede omitir el 'close' de ChildProcess incluso después de que Electron
+// termine. Espera a la salida real, de forma acotada; nunca deduzcas la intención de apagado
+// de la limpieza automática de stdin de Node tras una salida inesperada del hijo.
 /** @returns {Promise<{code: number | null, signal: NodeJS.Signals | null, requested: boolean}>} */
 export async function stopBrowserService(helper) {
 	if (!helper.pid || helper.exitCode !== null || helper.signalCode !== null) {
@@ -148,7 +149,7 @@ async function browserProbe(puppeteer) {
 	const helper = spawn(process.execPath, [
 		"--browser-service", `--user-data-dir=${path.join(home, "browser-profile")}`,
 		"--disable-background-networking", "--disable-component-update", "--no-proxy-server",
-		// Hosted Linux runners disallow Chromium's unprivileged sandbox.
+		// Los ejecutores Linux alojados no permiten el sandbox sin privilegios de Chromium.
 		...(process.platform === "linux" ? ["--no-sandbox"] : []),
 	], { cwd: home, env, stdio: ["ignore", "pipe", "pipe", "ipc"] });
 	let output = "";
@@ -169,7 +170,7 @@ async function browserProbe(puppeteer) {
 		});
 		const info = await (await fetch(`http://127.0.0.1:${port}/json/version`, { signal: AbortSignal.timeout(5000) })).json();
 		browser = await puppeteer.connect({ browserWSEndpoint: info.webSocketDebuggerUrl, defaultViewport: null, protocolTimeout: 10_000 });
-		// Electron CDP has no Target.createTarget: use the helper's existing page.
+		// El CDP de Electron no tiene Target.createTarget: usa la página existente del auxiliar.
 		const pages = await browser.pages();
 		const page = pages.find((candidate) => candidate.target().type() === "page");
 		assert.ok(page, "browser-service has no page target");
@@ -177,8 +178,8 @@ async function browserProbe(puppeteer) {
 		page.on("console", (msg) => { if (msg.type() === "error") failures.push(msg.text()); });
 		page.on("pageerror", (err) => failures.push(String(err)));
 		page.on("requestfailed", (req) => failures.push(`failed request: ${req.url()}`));
-		// Import the actual production functions, not an independently implemented
-		// isolation recipe. Payload-only import tracing was checked separately.
+		// Importa las funciones reales de producción, no una receta de aislamiento
+		// implementada por separado. El rastreo de imports solo de la carga se comprobó aparte.
 		const { tsImport } = await import("tsx/esm/api");
 		const { loadIsolatedPage, runDemoOnPage } = await tsImport("../src/agent/subagents/headless.ts", import.meta.url);
 		const cleanup = await loadIsolatedPage(page, '<!doctype html><meta charset="utf-8"><button id="increment">Increment</button><output id="count">0</output><script>document.querySelector("#increment").onclick = () => { document.querySelector("#count").textContent = "1"; };</script>');
@@ -186,7 +187,7 @@ async function browserProbe(puppeteer) {
 		await page.click("#increment");
 		assert.equal(await page.$eval("#count", (element) => element.textContent), "1");
 		assert.deepEqual(failures, [], "demo console/page/network errors");
-		// A demo must not be able to read local files.
+		// Una demo no debe poder leer ficheros locales.
 		const canary = path.join(home, "canary.txt");
 		fs.writeFileSync(canary, "lh-demo-canary\n");
 		const leaked = await page.evaluate(async (url) => {
@@ -197,7 +198,7 @@ async function browserProbe(puppeteer) {
 			return { origin: location.origin, fetchAttempted, xhrAttempted, fetch: fetchRead, xhr: xhrRead };
 		}, pathToFileURL(canary).href);
 		assert.deepEqual(leaked, { origin: "null", fetchAttempted: true, xhrAttempted: true, fetch: false, xhr: false }, "active demo file-read attempts must be refused");
-		failures.length = 0; // the blocked reads above log expected errors
+		failures.length = 0; // las lecturas bloqueadas de arriba registran errores esperados
 		await cleanup();
 		assert.equal(page.url(), "about:blank");
 		assert.equal(await page.$("#increment"), null, "page state was not cleared");

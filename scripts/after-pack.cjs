@@ -1,18 +1,18 @@
-// electron-builder afterPack hook — mac only.
+// Hook afterPack de electron-builder; solo mac.
 //
-// WHY (owner ruling 2026-10-13): mac.icon is the Icon Composer document
-// (build/icon.icon); actool compiles it into Assets.car (the macOS 26
-// Liquid Glass render) PLUS a backwards-compat icns — but actool's
-// fallback icns caps at 256px (known actool behavior), which looks soft
-// at Finder/Launchpad sizes on pre-Tahoe macOS. This hook swaps in the
-// hand-packed full-res build/icon.icns (all 10 entries, 16→1024, packed
-// via iconutil from the design's PNG exports) AFTER packaging and BEFORE
-// signing, so:
+// POR QUÉ (decisión del responsable 2026-10-13): mac.icon es el documento de Icon Composer
+// (build/icon.icon); actool lo compila a Assets.car (el render Liquid Glass de
+// macOS 26) MÁS un icns de compatibilidad hacia atrás, pero el icns alternativo de
+// actool tiene un tope de 256px (comportamiento conocido de actool), que se ve borroso
+// en los tamaños de Finder/Launchpad en los macOS anteriores a Tahoe. Este hook pone en su lugar el
+// build/icon.icns de resolución completa empaquetado a mano (las 10 entradas, 16→1024, empaquetadas
+// con iconutil a partir de los PNG exportados del diseño) DESPUÉS de empaquetar y ANTES de
+// firmar, así que:
 //
-//   macOS 26+  → Assets.car (CFBundleIconName) — true layered glass icon;
-//   older mac  → icon.icns (CFBundleIconFile) — today's full-res flatten.
+//   macOS 26+   → Assets.car (CFBundleIconName): el verdadero icono de cristal por capas;
+//   mac antiguo → icon.icns (CFBundleIconFile): el aplanado actual a resolución completa.
 //
-// Windows/Linux builds return immediately (their icons are static files:
+// Las compilaciones de Windows/Linux vuelven de inmediato (sus iconos son ficheros estáticos:
 // build/icon.ico / build/icon.png).
 const fs = require("node:fs");
 const path = require("node:path");

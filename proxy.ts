@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { apiRequestRefusal } from "./src/server/desktop-access.ts";
 
-/** Protects API methods, including SSE and spending/settings routes. The one
- * streamed document route enforces the identical all-method request policy
- * inside its handler, avoiding Next's silently truncated Proxy body clone.
- * No public callback or worker bypass: legitimate self-HTTP still needs the capability. */
+/** Protege los métodos de la API, incluidas las rutas de SSE y las de
+ * gasto/ajustes. La única ruta de documentos en streaming impone la misma
+ * política de peticiones para todos los métodos dentro de su manejador,
+ * evitando el clon del cuerpo de Proxy que Next trunca en silencio. No hay
+ * callback público ni atajo para workers: el auto-HTTP legítimo sigue
+ * necesitando la capacidad. */
 export function proxy(request: NextRequest) {
 	const refusal = apiRequestRefusal(request);
 	if (refusal) {
@@ -17,7 +19,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-	// Keep /api itself covered; exempt only the exact streamed endpoint, not
-	// the documents subtree or other plugin routes. Must remain static literals.
+	// Mantén cubierto el propio /api; exime solo el endpoint exacto en streaming, no
+	// el subárbol de documentos ni otras rutas de plugins. Deben seguir siendo literales estáticos.
 	matcher: ["/api", "/api/((?!plugins/[^/]+/documents/markdown/?$).*)"],
 };

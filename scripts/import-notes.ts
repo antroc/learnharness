@@ -1,16 +1,18 @@
 /**
- * Import raw notes files through the format-agnostic front door (vision §1,
- * 2026-09-13) — every *.md / *.txt file in a directory becomes one
- * extraction run (extractor → auditor → merger) over its raw text. Run
- * from this worktree only — data never crosses trees:
+ * Importa ficheros de notas en bruto por la puerta de entrada agnóstica del
+ * formato (visión §1, 2026-09-13): cada fichero *.md / *.txt de un directorio
+ * se convierte en una ejecución de extracción (extractor → auditor →
+ * fusionador) sobre su texto en bruto. Ejecútalo solo desde este worktree;
+ * los datos nunca cruzan de un árbol a otro:
  *
  *   npx tsx --env-file=.env.local scripts/import-notes.ts <dir> [concurrency]
  *
- * Default dir: real-data-extraction/learn-sessions (the prototype
- * learning-session exports — deliberately NOT imported as chats: they run
- * through the notes path, raw). Runs in this process: the dev server's
- * status chips do NOT see them (registry is per-process) — the dev server
- * sees runs triggered through /api/graph/import.
+ * Directorio por defecto: real-data-extraction/learn-sessions (las
+ * exportaciones de sesiones de aprendizaje del prototipo; a propósito NO se
+ * importan como chats: pasan en bruto por la vía de notas). Se ejecuta en
+ * este proceso: las etiquetas de estado del servidor de desarrollo NO las ven
+ * (el registro es por proceso); el servidor de desarrollo ve las ejecuciones
+ * lanzadas mediante /api/graph/import.
  */
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -29,7 +31,7 @@ async function main() {
 
 	const pipeline = createExtractionPipeline({
 		...stores,
-		// Live budget: the graph section's setting, same as the app's trigger
+		// Presupuesto en vivo: el ajuste de la sección graph, igual que el disparador de la app
 		getChunkTokens: () => effectiveSettings().graph.extractionChunkTokens,
 	});
 	const queue = [...files];

@@ -1,4 +1,4 @@
-/** Build the complete offline authoring skill. No runtime/plugin discovery or learner data. */
+/** Compila la skill completa de autoría sin conexión. Sin descubrimiento de tiempo de ejecución/plugins ni datos del alumno. */
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -17,8 +17,9 @@ const PROJECT_FILES = [".gitignore", "README.md", "LICENSE", "THIRD-PARTY.md", "
 const PROJECT_DIRECTORIES = ["src", "scripts", "tests", "licenses"];
 export const AUTHORING_ZIP = "learnharness-plugins.zip";
 
-/** Admit every component below the intended source root before dereferencing it.
- * Final-component checks alone miss linked parent directories. */
+/** Admite cada componente por debajo de la raíz fuente prevista antes de
+ * desreferenciarlo. Las comprobaciones solo del componente final no ven los
+ * directorios padre enlazados. */
 function sourcePath(root, source, kind) {
 	root = path.resolve(root);
 	const filename = path.resolve(source), relative = path.relative(root, filename);
@@ -47,8 +48,9 @@ function files(directory, prefix = "", root = directory) {
 	});
 }
 
-/** Deterministic ZIP32, stored entries: the offline kit contains documentation and canonical source references.
- * Fixed DOS date, UTF-8 names and regular-file attributes; no platform zip executable. */
+/** ZIP32 determinista con entradas almacenadas: el kit sin conexión contiene
+ * documentación y referencias a la fuente canónica. Fecha DOS fija, nombres
+ * UTF-8 y atributos de fichero normal; sin ejecutable zip de la plataforma. */
 export function createAuthoringZip(entries) {
 	if (entries.length > 65535) throw Error("Too many authoring ZIP entries");
 	const local = [], central = [], names = new Set();
@@ -120,7 +122,7 @@ export function buildPluginAuthoring({ root = path.resolve(import.meta.dirname, 
 			manifest.minAppVersion = app.version;
 			fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, "\t") + "\n");
 		}
-		// Export canonical source references, never local builds, SDKs, dependencies or learner data.
+		// Exporta referencias a la fuente canónica, nunca compilaciones locales, SDK, dependencias ni datos del alumno.
 		for (const id of AUTHORING_PROJECTS) {
 			const source = sourcePath(root, path.join(root, "plugins", id), "directory"), destination = path.join(stage, "plugins", id);
 			for (const filename of PROJECT_FILES) if (fs.lstatSync(path.join(source, filename), { throwIfNoEntry: false })) copyFile(root, path.join(source, filename), path.join(destination, filename));

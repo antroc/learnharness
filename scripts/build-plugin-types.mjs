@@ -1,5 +1,6 @@
-/** Emit a portable, type-only API tree. Nothing is published and there is no
- * plugin runtime dependency on application internals. Use imports as types. */
+/** Emite un árbol de API portable solo de tipos. No se publica nada y no hay
+ * ninguna dependencia en tiempo de ejecución de los plugins respecto a los
+ * internos de la aplicación. Usa los imports como tipos. */
 import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import * as fs from "node:fs";

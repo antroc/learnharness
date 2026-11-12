@@ -1,5 +1,6 @@
-/** Actual packaged core loader/asset/storage gate. Call ONLY with the smoke's
- * disposable profile; no model calls, real learner data, or app installation. */
+/** Barrera real de cargador/recursos/almacenamiento del núcleo empaquetado.
+ * Llámala SOLO con el perfil desechable de la prueba de humo; sin llamadas al
+ * modelo, datos reales del alumno ni instalación de la app. */
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import * as path from "node:path";
