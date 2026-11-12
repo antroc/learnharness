@@ -1,26 +1,26 @@
 /**
- * Job infrastructure tests — deterministic, zero network:
+ * Pruebas de la infraestructura de tareas: deterministas, sin red:
  *
- *   1. job store CRUD (create → get → update → list → dedup by toolCallId)
- *   2. steer helpers (pure, contracts.ts): buildSubagentSteer shape per kind,
+ *   1. CRUD del almacén de tareas (crear → obtener → actualizar → listar → deduplicar por toolCallId)
+ *   2. auxiliares de reorientación (puros, contracts.ts): forma de buildSubagentSteer por tipo,
  *      isSubagentFailure, steerDelivered
- *   3. dispatch (async protocol §2): drive handleChatRequest with a scripted
- *      mock teacher that emits a research tool call → the tool part resolves
- *      IMMEDIATELY with the fire-and-forget ack (the teacher's turn
- *      CONTINUES — no turn break at the call), a job record exists, and the
- *      test runner (fake deliver) produces the steer
- *   4. runner completion: a fake researcher model (web_search call → final
- *      text brief, safeFetchOverride stubbed) → the job stores the result,
- *      the steer carries the brief + sources, the fake deliver flips the
- *      job done
- *   5. runner failure: a model that throws → the failure steer still fires
- *      (the teacher learns the outcome) and the job lands error
- *   6. the wake pipeline (src/server/jobs.ts): server-side steer delivery —
- *      happy path (fires the injected turn runner, flips the job), pending-
- *      quiz deferral, 409 retry, idempotent redelivery
+ *   3. despacho (protocolo asíncrono §2): ejercita handleChatRequest con un profesor
+ *      simulado guionizado que emite una llamada a la herramienta research → la parte de herramienta se resuelve
+ *      INMEDIATAMENTE con el acuse de lanzar y olvidar (el turno del profesor
+ *      CONTINÚA: no hay corte de turno en la llamada), existe un registro de tarea y el
+ *      ejecutor de prueba (entrega falsa) produce la reorientación
+ *   4. finalización del ejecutor: un modelo de investigador falso (llamada a web_search → informe
+ *      de texto final, safeFetchOverride sustituido) → la tarea guarda el resultado,
+ *      la reorientación lleva el informe + las fuentes y la entrega falsa marca la
+ *      tarea como terminada
+ *   5. fallo del ejecutor: un modelo que lanza → la reorientación de fallo se dispara igualmente
+ *      (el profesor conoce el resultado) y la tarea acaba en error
+ *   6. el proceso de despertar (src/server/jobs.ts): entrega de reorientaciones en el servidor:
+ *      ruta feliz (dispara el ejecutor de turnos inyectado, cambia el estado de la tarea), aplazamiento por
+ *      quiz pendiente, reintento ante 409, reentrega idempotente
  *
- * Cleanup follows tests/chat-flow.test.ts: created chat/job files removed in
- * finally blocks / the after() hook.
+ * La limpieza sigue a tests/chat-flow.test.ts: los ficheros de chat/tarea creados se borran en
+ * bloques finally / el hook after().
  */
 
 import assert from "node:assert/strict";
@@ -84,9 +84,9 @@ const JOBS_DIR = path.join(PATHS.data, "jobs");
 
 const createdChats: string[] = [];
 
-// The key-presence turn gate (provider-key interlude, 2026-09-25): scripted
-// turns pin openrouter per chat — the gate reads env-first truth, so the
-// key must be present in the test process like any real setup.
+// La barrera de turno por presencia de clave (interludio de la clave del proveedor, 2026-09-25): los turnos
+// guionizados fijan openrouter por chat; la barrera lee la verdad del entorno primero, así que la
+// clave debe estar presente en el proceso de la prueba, como en cualquier configuración real.
 process.env.OPENROUTER_API_KEY ??= "test-key-presence-gate";
 const createdJobs: string[] = [];
 
@@ -94,9 +94,9 @@ function trackChat(id: string) {
 	createdChats.push(id);
 }
 
-/** Wave B native fixture: user text + an assistant tool call + its ack —
- *  the record is agent history; the runner's transcript scan (input
- *  resolution) reads it through the projection. */
+/** Fixture nativo de la oleada B: texto del usuario + una llamada a herramienta del asistente + su acuse;
+ *  el registro es historial del agente; el recorrido de la transcripción del ejecutor (resolución
+ *  de la entrada) lo lee a través de la proyección. */
 function nativeToolMessages(text: string, tool: string, toolCallId: string, input: unknown): LhMessage[] {
 	return [
 		{ id: "u1", role: "user", content: text, timestamp: 1 } as never,
@@ -128,15 +128,15 @@ function trackJob(id: string) {
 	createdJobs.push(id);
 }
 
-/* THE HERMETICITY FENCE (owner round 7, 2026-10-05): the jobs seams are
- * MODULE-GLOBAL (setJobRespawn / setTurnRunner / the abort registry) and
- * the sweep scans EVERY job in the store. An async test that times out
- * under full-suite load leaves a "running" record and a late wake behind
- * — and that stray state then poisons the NEXT test (a foreign respawn
- * lands in its counter; a foreign orphan in its sweep). Under isolation
- * nothing ever times out, which is why the file passes alone and flaked
- * in the full run. The fence makes every test's start state identical:
- * all tracked jobs settled, aborts unregistered, seams inert. */
+/* LA VALLA DE HERMETICIDAD (ronda 7 del responsable, 2026-10-05): las fronteras de jobs son
+ * GLOBALES DEL MÓDULO (setJobRespawn / setTurnRunner / el registro de abortos) y
+ * el barrido recorre TODAS las tareas del almacén. Una prueba asíncrona que agota su tiempo
+ * con la carga de la batería completa deja atrás un registro "running" y un despertar tardío,
+ * y ese estado suelto envenena después la SIGUIENTE prueba (una reaparición ajena
+ * cae en su contador; un huérfano ajeno, en su barrido). Aislada,
+ * nada agota nunca su tiempo, y por eso el fichero pasa solo y fallaba de forma intermitente
+ * en la ejecución completa. La valla hace idéntico el estado inicial de cada prueba:
+ * todas las tareas seguidas asentadas, abortos sin registrar, fronteras inertes. */
 afterEach(() => {
 	for (const id of createdJobs) {
 		try {
@@ -147,12 +147,12 @@ afterEach(() => {
 			if (job?.delivery?.status === "pending") jobStore.updateJob(id, { delivery: { ...job.delivery, status: "delivered" } });
 			unregisterJobAbort(id);
 		} catch {
-			/* already gone */
+			/* ya no existe */
 		}
 	}
 	for (const chatId of createdChats) discardChatDeliveries(chatId);
-	// Late wakes from a prior test must be inert: a no-op respawn can't
-	// increment anyone's counter, a no-op runner can't spawn real work.
+	// Los despertares tardíos de una prueba anterior deben ser inertes: una reaparición que no hace nada no puede
+	// incrementar el contador de nadie, un ejecutor que no hace nada no puede lanzar trabajo real.
 	setJobRespawn(() => {});
 	setTurnRunner(async () => 200);
 });
@@ -162,32 +162,32 @@ after(() => {
 		try {
 			fs.unlinkSync(path.join(PATHS.chats, `${id}.json`));
 		} catch {
-			/* already gone */
+			/* ya no existe */
 		}
 	}
 	for (const id of createdJobs) {
 		try {
 			fs.unlinkSync(path.join(JOBS_DIR, `${id}.json`));
 		} catch {
-			/* already gone */
+			/* ya no existe */
 		}
 	}
 	researchModelOverride.current = undefined;
 });
 
-/** A scripted pi engine (faux provider): the response queue replaces the
- *  old doStream/doGenerate turn counters. tokenSize is set so every test
- *  string streams as ONE delta — the SSE-body assertions ("Back with the
- *  brief.") read contiguous text. */
+/** Un motor pi guionizado (proveedor simulado): la cola de respuestas sustituye a los
+ *  antiguos contadores de turnos de doStream/doGenerate. tokenSize está fijado para que cada cadena
+ *  de prueba se emita como UN delta: las aserciones sobre el cuerpo SSE ("Back with the
+ *  brief.") leen texto contiguo. */
 function fauxEngine(steps: FauxResponseStep[]): PiEngine {
 	const faux = createFauxCore({ tokenSize: { min: 64, max: 64 } });
 	faux.setResponses(steps);
 	return { model: faux.getModel(), streamFn: faux.streamSimple };
 }
 
-/** A scripted response factory whose model call never resolves until its
- *  abort signal fires (a cancelled provider request); an already-aborted
- *  signal resolves at once — the faux stream then ends the message aborted. */
+/** Una fábrica de respuestas guionizada cuya llamada al modelo nunca se resuelve hasta que se dispara su
+ *  señal de aborto (una petición al proveedor cancelada); una señal ya abortada
+ *  se resuelve enseguida: el stream simulado termina entonces el mensaje como abortado. */
 function abortableFactory(): FauxResponseStep {
 	const factory = (_context: unknown, options: { signal?: AbortSignal } | undefined) =>
 		new Promise<AssistantMessage>((resolve) => {
@@ -208,8 +208,8 @@ async function drain(res: Response): Promise<string> {
 	return res.text();
 }
 
-/** CONNECTION DIET B (owner, 2026-10-10): the POST acks and closes; drain
- *  the turn's wire through the reattach stream instead. */
+/** DIETA DE CONEXIONES B (responsable, 2026-10-10): el POST acusa recibo y cierra; vacía
+ *  en su lugar el cable del turno a través del stream de reenganche. */
 async function drainTurn(req: Request, factory: Parameters<typeof handleChatRequest>[1]): Promise<string> {
 	const cloned = req.clone();
 	const ack = await handleChatRequest(req, factory);
@@ -218,7 +218,7 @@ async function drainTurn(req: Request, factory: Parameters<typeof handleChatRequ
 	}
 	const { chatId } = (await cloned.json()) as { chatId: string };
 	const handle = runningTurn(chatId);
-	if (!handle) return ""; // the turn settled inside the handler — completion already happened
+	if (!handle) return ""; // el turno se asentó dentro del manejador: la finalización ya ocurrió
 	return new Response(handle.subscribe()).text();
 }
 
@@ -226,18 +226,18 @@ function post(chatId: string, input: unknown): Request {
 	return new Request("http://test/api/chat", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
-		// Wave B: the input-events contract — one explicit event, never a
-		// client transcript.
+		// Oleada B: el contrato de eventos de entrada: un evento explícito, nunca una
+		// transcripción del cliente.
 		body: JSON.stringify({ chatId, input }),
 	});
 }
 
-/* 30s budget (owner round, 2026-10-05): under the FULL suite's parallel
- * load the event loop starves and an 8s wall-clock budget expired before
- * healthy conditions were ever observed — and a timed-out delivery leaked
- * a late wake into the NEXT test (the respawn hook is module-global),
- * poisoning even synchronous neighbors. waitFor returns the instant the
- * condition holds, so the generous budget costs nothing when healthy. */
+/* Presupuesto de 30 s (ronda del responsable, 2026-10-05): con la carga paralela de la batería
+ * COMPLETA el bucle de eventos se queda sin turno y un presupuesto de 8 s de reloj caducaba antes
+ * de que se llegaran a observar condiciones sanas, y una entrega que agotaba su tiempo filtraba
+ * un despertar tardío a la SIGUIENTE prueba (el hook de reaparición es global del módulo),
+ * envenenando incluso a vecinas síncronas. waitFor vuelve en el instante en que se cumple
+ * la condición, así que el presupuesto generoso no cuesta nada cuando todo va bien. */
 function waitFor(cond: () => boolean, timeoutMs = 30_000, what = "condition"): Promise<void> {
 	return new Promise((resolve, reject) => {
 		const started = Date.now();
@@ -250,7 +250,7 @@ function waitFor(cond: () => boolean, timeoutMs = 30_000, what = "condition"): P
 	});
 }
 
-// ─── 1. job store CRUD ───────────────────────────────────────────────────────
+// ─── 1. CRUD del almacén de tareas ───────────────────────────────────────────
 
 describe("job store", () => {
 	it("create → get → update → list round-trips", () => {
@@ -269,7 +269,7 @@ describe("job store", () => {
 		assert.equal(updated.activity, 'web_search: "test"');
 		assert.equal(updated.status, "done");
 		assert.ok(updated.updatedAt >= job.updatedAt);
-		// immutable identity fields survive a patch
+		// los campos inmutables de identidad sobreviven a un parche
 		assert.equal(updated.toolCallId, "call-store");
 		assert.equal(jobStore.getJob(updated.id)!.toolCallId, "call-store");
 
@@ -282,8 +282,8 @@ describe("job store", () => {
 		assert.equal(jobStore.findJobByToolCallId("chat_storetest", "call-missing"), null);
 	});
 
-	// ── push-architecture S4 (2026-10-02): every WRITE announces on the
-	// events channel (notify-after-write); reads stay silent ──
+	// ── arquitectura push S4 (2026-10-02): toda ESCRITURA se anuncia en el
+	// canal de eventos (notificar tras escribir); las lecturas siguen en silencio ──
 	it("every mutation emits jobs-changed {chatId}; reads emit nothing", () => {
 		const got: { chatId?: string }[] = [];
 		const off = subscribe((e) => {
@@ -314,7 +314,7 @@ describe("job store", () => {
 	});
 });
 
-// ─── 2. steer helpers (pure) ─────────────────────────────────────────────────
+// ─── 2. auxiliares de reorientación (puros) ──────────────────────────────────
 
 describe("steer helpers (contracts.ts)", () => {
 	const research: ResearchResult = { brief: "BRIEF", sources: [{ title: "s", url: "https://x.test" }] };
@@ -325,8 +325,8 @@ describe("steer helpers (contracts.ts)", () => {
 		const job = { id: "job_x", kind: "research" as const, toolCallId: "call-x" };
 		const steer = buildSubagentSteer(job, research);
 		assert.equal(steer.id, "steer_job_x", "deterministic id per job — idempotent delivery");
-		// Wave B: steers are LhMarkerMessage customs — role "custom", the
-		// model reads `content`, the UI reads `details` (never model-visible).
+		// Oleada B: las reorientaciones son LhMarkerMessage personalizados: rol "custom", el
+		// modelo lee `content` y la interfaz lee `details` (nunca visible para el modelo).
 		assert.equal(steer.role, "custom");
 		assert.equal(steer.customType, "subagent-steer");
 		assert.equal(steer.display, true);
@@ -364,8 +364,8 @@ describe("steer helpers (contracts.ts)", () => {
 				reasoningTokens: undefined,
 			},
 		}, "lastStep is the most recent call's accounting, not cumulative");
-		// a later call that reports nothing new keeps reported fields summing
-		// (unreported contributes 0) and bumps the billing step count.
+		// una llamada posterior que no informa de nada nuevo mantiene la suma de los campos informados
+		// (lo no informado aporta 0) e incrementa el número de pasos facturados.
 		total = accumulateJobUsage(total, "z-ai/glm-5.3-flash", { inputTokens: 20, outputTokens: 0 });
 		assert.equal(total.inputTokens, 30);
 		assert.equal(total.outputTokens, 5);
@@ -390,15 +390,15 @@ describe("steer helpers (contracts.ts)", () => {
 		assert.equal(steer.role, "custom");
 		assert.equal(steer.customType, "subagent-abort");
 		assert.ok(/aborted/.test(steer.content), "the teacher-facing text names the abort");
-		// The marker's customType is the message type: the UI renders the
-		// abort badge off the projection (demos.test.tsx pins the card).
+		// El customType del marcador es el tipo de mensaje: la interfaz muestra la
+		// insignia de aborto a partir de la proyección (demos.test.tsx fija la tarjeta).
 		assert.deepEqual(steer.details, { jobId: "job_c", kind: "demo", toolCallId: "call-c", aborted: true });
 	});
 
 	it("isSubagentFailure: failure shapes only (empty html/svg, failure brief)", () => {
 		assert.equal(isSubagentFailure("research", research), false);
 		assert.equal(isSubagentFailure("research", { brief: "Research failed: x", sources: [] }), true);
-		// a brief with sources is a success even if the text mentions failure
+		// un informe con fuentes es un éxito aunque el texto mencione un fallo
 		assert.equal(isSubagentFailure("research", { brief: "Research failed: x", sources: [{ title: "s", url: "https://x" }] }), false);
 		assert.equal(isSubagentFailure("demo", demo), false);
 		assert.equal(isSubagentFailure("demo", { ...demo, html: "" }), true);
@@ -412,7 +412,7 @@ describe("steer helpers (contracts.ts)", () => {
 		assert.equal(steerDelivered([], steer.id), false);
 		assert.equal(steerDelivered([steer], steer.id), true);
 		assert.equal(steerDelivered([steer], "steer_job_z"), false);
-		// the probe handoff shares the id-space contract
+		// el traspaso del sondeo comparte el contrato del espacio de ids
 		const handoff = buildProbeHandoffSteer("chat_q");
 		assert.equal(handoff.id, "steer_probe_chat_q");
 		assert.equal(steerDelivered([handoff], handoff.id), true);
@@ -436,23 +436,23 @@ describe("steer helpers (contracts.ts)", () => {
 		assert.ok(ok.content.includes("The formula is on p. 2."));
 		assert.equal((ok.details as { kind: string }).kind, "pdf");
 		assert.deepEqual((ok.details as { result: unknown }).result, pdf);
-		// failure shape mirrors research
+		// la forma del fallo refleja la de research
 		assert.equal(isSubagentFailure("pdf", pdf), false);
 		assert.equal(isSubagentFailure("pdf", { ...pdf, brief: "PDF failed: unreadable" }), true);
 		const fail = buildSubagentSteer({ id: "jf", kind: "pdf", toolCallId: "cf" }, { ...pdf, brief: "PDF failed: unreadable" });
 		assert.ok(fail.content.includes("flag the gap"));
-		// abort wording names the PDF job
+		// la redacción del aborto nombra la tarea de PDF
 		const aborted = buildAbortSteer({ id: "ja", kind: "pdf", toolCallId: "ca" });
 		assert.ok(aborted.content.includes("PDF reading job"));
 	});
 });
 
-// ─── fake deliver (the wake pipeline's stand-in for runner tests) ───────────
+// ─── entrega falsa (el sustituto del proceso de despertar en las pruebas del ejecutor) ───
 
 /**
- * A fake deliver seam: capture the steer and mimic the pipeline's final
- * status flip (done/error by isSubagentFailure) so the job record reads
- * exactly as it will in production after the wake turn completes.
+ * Una frontera de entrega falsa: captura la reorientación e imita el cambio de estado final
+ * del proceso (done/error según isSubagentFailure) para que el registro de la tarea se lea
+ * exactamente como se leerá en producción tras completarse el turno de despertar.
  */
 function fakeDeliver() {
 	const steers: SteerMessage[] = [];
@@ -467,7 +467,7 @@ function fakeDeliver() {
 	};
 }
 
-/** Fake wakes model canonical input acceptance, not just HTTP acknowledgement. */
+/** Los despertares falsos modelan la aceptación canónica de la entrada, no solo el acuse HTTP. */
 function setTurnRunner(run: TurnRunner): void {
 	setRawTurnRunner(async (chatId, input) => {
 		const status = await run(chatId, input);
@@ -479,14 +479,14 @@ function setTurnRunner(run: TurnRunner): void {
 	});
 }
 
-// ─── 3. dispatch: the tool call acks mid-turn and spawns ─────────────────────
+// ─── 3. despacho: la llamada a la herramienta acusa recibo a mitad de turno y lanza ──
 
 const RESEARCH_INPUT = {
 	question: "What is the latest stable sigma.js version?",
 	context: "Choosing a graph rendering library for the lesson.",
 };
 
-/** A teacher that calls research (text → call), then plain text thereafter. */
+/** Un profesor que llama a research (texto → llamada) y después solo texto plano. */
 function researchCallingTeacher(): PiEngine {
 	return fauxEngine([
 		fauxAssistantMessage(
@@ -501,8 +501,8 @@ describe("dispatch (async protocol §2)", () => {
 	it("the research call resolves immediately with an ack; the turn continues and the runner steers", async () => {
 		const chat = chatStore.createChat("Test: research dispatch");
 		trackChat(chat.id);
-		// BYOK turn gate (owner, 2026-09-22): the scripted chat needs a
-		// conversation model — the per-chat pin, exactly like the setup flow.
+		// Barrera de turno BYOK (responsable, 2026-09-22): el chat guionizado necesita un
+		// modelo de conversación: la fijación por chat, exactamente como el flujo de configuración.
 		chatStore.saveSettings(chat.id, { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" } });
 
 		const delivery = fakeDeliver();
@@ -515,15 +515,15 @@ describe("dispatch (async protocol §2)", () => {
 			jobStore,
 			spawn: (job, input) => void testRunner.runJob(job.id, input),
 		});
-		// The handler hands the factory the native build options — the
-		// record IS the agent state (Wave B: no adapter conversion).
+		// El manejador pasa a la fábrica las opciones de construcción nativas: el
+		// registro ES el estado del agente (oleada B: sin conversión de adaptador).
 		const agent: Parameters<typeof handleChatRequest>[1] = (opts) =>
 			createTeacherAgent(undefined, { engine, tools, messages: opts.messages });
 
 		researchModelOverride.current = researcherModel();
 		const body = await drainTurn(post(chat.id, { type: "text", text: "teach me graph rendering" }), agent);
 
-		// The teacher's SAME turn carried on past the tool call.
+		// El MISMO turno del profesor siguió adelante tras la llamada a la herramienta.
 		assert.ok(body.includes("Back with the brief."), "the turn continued after the dispatch");
 
 		const saved = projectNative(chatStore.getChat(chat.id)!.messages);
@@ -533,7 +533,7 @@ describe("dispatch (async protocol §2)", () => {
 		assert.equal(typeof (part as { output?: unknown }).output, "string", "the output is the ack, not the result");
 		assert.match(String((part as { output?: unknown }).output), /fire-and-forget/);
 
-		// The job record exists and the background runner completed it.
+		// El registro de la tarea existe y el ejecutor en segundo plano la completó.
 		const job = jobStore.findJobByToolCallId(chat.id, "call-r1");
 		assert.ok(job, "dispatch created a job record");
 		trackJob(job!.id);
@@ -543,21 +543,21 @@ describe("dispatch (async protocol §2)", () => {
 		assert.equal(done.status, "done");
 		assert.equal(done.activity, "finished");
 
-		// The steer carries the brief on its model-facing content; the
-		// artifact payload rides details for the (UI) renderer.
+		// La reorientación lleva el informe en su contenido de cara al modelo; la
+		// carga del artefacto viaja en details para el renderizador (de la interfaz).
 		assert.equal(delivery.steers.length, 1, "exactly one steer — one job, one result");
 		const steer = delivery.steers[0]!;
 		assert.equal((steer.details as { jobId: string }).jobId, job!.id);
 		assert.ok(steer.content.includes("sigma.js v3 is current"), "steer text carries the brief");
 
-		// Search threading (2026-09-20): the researcher's web_search ran on
-		// the INJECTED port — the stub saw the scripted query, no network.
+		// Hilo de la búsqueda (2026-09-20): el web_search del investigador se ejecutó en
+		// el puerto INYECTADO: el sustituto vio la consulta guionizada, sin red.
 		assert.deepEqual(search.queries, ["sigma.js latest version (5)"]);
 		researchModelOverride.current = undefined;
 	});
 });
 
-// ─── the researcher loop with a fake model + stubbed fetch ──────────────────
+// ─── el bucle del investigador con un modelo falso + fetch sustituido ───────
 
 const BRIEF = `## Summary
 sigma.js v3 is current.
@@ -568,8 +568,8 @@ sigma.js v3 is current.
 ## Sources
 - sigma.js docs (https://www.sigmajs.org/docs)`;
 
-/** The researcher loop's scripted engine. Turn 1: a web_search tool call;
- *  turn 2: the final text brief. */
+/** El motor guionizado del bucle del investigador. Turno 1: una llamada a la herramienta web_search;
+ *  turno 2: el informe de texto final. */
 function researcherModel(): PiEngine {
 	return fauxEngine([
 		fauxAssistantMessage([fauxToolCall("web_search", { query: "sigma.js latest version" }, { id: "ws1" })], {
@@ -579,8 +579,8 @@ function researcherModel(): PiEngine {
 	]);
 }
 
-/** A recording stub provider (search port wave, 2026-09-20): the runner's
- *  injected search seam — no network, queries captured for assertions. */
+/** Un proveedor sustituto que graba (oleada del puerto de búsqueda, 2026-09-20): la frontera
+ *  de búsqueda inyectada del ejecutor; sin red, con las consultas capturadas para las aserciones. */
 function stubSearch(): SearchProvider & { queries: string[] } {
 	const queries: string[] = [];
 	return {
@@ -598,8 +598,8 @@ describe("research runner (async protocol §3)", () => {
 		const chat = chatStore.createChat("Test: runner completion");
 		trackChat(chat.id);
 
-		// A dispatched research part in the stored chat (the input is also
-		// what the runner falls back to on a crash-recovery re-spawn).
+		// Una parte de research despachada en el chat almacenado (la entrada es también
+		// a lo que recurre el ejecutor en una reaparición de recuperación tras un fallo).
 		chatStore.saveMessages(chat.id, nativeToolMessages("which sigma version?", "research", "call-run1", RESEARCH_INPUT));
 
 		const job = jobStore.createJob({ kind: "research", chatId: chat.id, toolCallId: "call-run1" });
@@ -615,7 +615,7 @@ describe("research runner (async protocol §3)", () => {
 			researchModelOverride.current = undefined;
 		}
 
-		// The job is done, with the activity line from the tool call.
+		// La tarea ha terminado, con la línea de actividad de la llamada a la herramienta.
 		const done = jobStore.getJob(job.id)!;
 		assert.equal(done.status, "done");
 		assert.equal(done.activity, "finished", "delivery does not own the worker status");
@@ -624,9 +624,9 @@ describe("research runner (async protocol §3)", () => {
 		assert.ok(result.sources.length > 0, "sources parsed from the brief");
 		assert.equal(result.sources[0]!.url, "https://www.sigmajs.org/docs");
 
-				// The activity trail: the last recorded activity is the deliver
-		// flip; the search line fired before it. The search itself ran on
-		// the INJECTED port — the stub saw the query (no network):
+				// El rastro de actividad: la última actividad registrada es el cambio de estado
+		// de la entrega; la línea de búsqueda se disparó antes. La búsqueda en sí se ejecutó en
+		// el puerto INYECTADO: el sustituto vio la consulta (sin red):
 		assert.deepEqual(search.queries, ["sigma.js latest version (5)"]);
 	});
 
@@ -713,7 +713,7 @@ describe("research runner (async protocol §3)", () => {
 		});
 		researchModelOverride.current = researcherModel();
 		try {
-			// no input passed — as a recovery re-spawn would call it
+			// sin entrada: como la llamaría una reaparición de recuperación
 			await runner.runJob(job.id);
 		} finally {
 			researchModelOverride.current = undefined;
@@ -725,7 +725,7 @@ describe("research runner (async protocol §3)", () => {
 	});
 });
 
-// ─── the researcher agent construction (model resolution seam) ──────────────
+// ─── la construcción del agente investigador (frontera de resolución del modelo) ──
 
 
 describe("pdf runner (sources v0)", () => {
@@ -742,8 +742,8 @@ describe("pdf runner (sources v0)", () => {
 		const target = path.join(home, relativePath);
 		fs.mkdirSync(path.dirname(target), { recursive: true });
 		fs.copyFileSync(PDF_FIXTURE, target);
-		// Exercise a genuine alias even when the outer test HOME/TMPDIR are
-		// canonical. Callers need not canonicalize their environment first.
+		// Ejercita un alias real aunque el HOME/TMPDIR de la prueba exterior sean
+		// canónicos. Los llamadores no tienen por qué canonicalizar antes su entorno.
 		homeAlias = `${home}-alias`;
 		fs.symlinkSync(home, homeAlias, process.platform === "win32" ? "junction" : "dir");
 		process.env.HOME = homeAlias;
@@ -759,7 +759,7 @@ describe("pdf runner (sources v0)", () => {
 		fs.rmSync(home, { recursive: true, force: true });
 	});
 
-	/** A pdf-reader that triages, extracts pages 1-2, then briefs. */
+	/** Un lector de PDF que clasifica, extrae las páginas 1-2 y luego informa. */
 	function pdfReaderModel(): PiEngine {
 		return fauxEngine([
 			fauxAssistantMessage([fauxToolCall("pdf_info", {}, { id: "i1" })], { stopReason: "toolUse" }),
@@ -822,8 +822,8 @@ describe("pdf runner (sources v0)", () => {
 				pdfModelOverride.current = undefined;
 			}
 
-			// Worker completion is not the delivery barrier: wait for canonical
-			// acceptance before asserting the history prefix and appended result.
+			// La finalización del worker no es la barrera de entrega: espera a la
+			// aceptación canónica antes de comprobar el prefijo del historial y el resultado anexado.
 			await waitFor(() => jobStore.getJob(job.id)?.delivery?.status === "delivered", 8000, "canonical PDF delivery acknowledgement");
 			const done = jobStore.getJob(job.id)!;
 			assert.equal(done.status, "done");
@@ -880,12 +880,12 @@ describe("pdf runner (sources v0)", () => {
 
 describe("researcher agent", () => {
 	it("runs with the web tool set (no network touched)", () => {
-		// The researcher is a runSubagent call over the webTools registry —
-		// the tool set is what the loop sees.
+		// El investigador es una llamada a runSubagent sobre el registro webTools:
+		// el conjunto de herramientas es lo que ve el bucle.
 		assert.ok(webTools.web_search, "web_search available");
 		assert.ok(webTools.web_fetch, "web_fetch available");
 		assert.equal(Object.keys(webTools).length, 2, "ONLY the web tools — no question/plan tools");
-		// reset any accidental global override
+		// restablece cualquier sustitución global accidental
 		researchModelOverride.current = undefined;
 	});
 
@@ -893,23 +893,23 @@ describe("researcher agent", () => {
 		const { createPdfTools } = await import("../src/agent/subagents/pdf-reader.ts");
 		const tools = createPdfTools(path.join(import.meta.dirname, "fixtures", "sample-3page.pdf"));
 		assert.deepEqual(Object.keys(tools).sort(), ["pdf_extract", "pdf_info", "pdf_render", "pdf_search"]);
-		// reset any accidental global override
+		// restablece cualquier sustitución global accidental
 		pdfModelOverride.current = undefined;
 	});
 });
 
-// ─── 6. the wake pipeline (server-side steer delivery) ────────────────────────
+// ─── 6. el proceso de despertar (entrega de reorientaciones en el servidor) ───
 
 /**
- * Pipeline tests drive deliverJobResult with an injected fake turn runner
- * (setTurnRunner) — the real wiring (chat-handler's handleChatRequest
- * adapter) never fires here, so no teacher model is touched.
+ * Las pruebas del proceso ejercitan deliverJobResult con un ejecutor de turnos falso inyectado
+ * (setTurnRunner): el cableado real (el adaptador handleChatRequest de
+ * chat-handler) nunca se dispara aquí, así que no se toca ningún modelo del profesor.
  *
- * Timing: the pump polls at 400ms with a 1.5s grace after the gates open —
- * each happy-path test takes ~2s; waitFor tolerates it.
+ * Tiempos: la bomba sondea cada 400ms con 1,5 s de margen tras abrirse las barreras;
+ * cada prueba de ruta feliz tarda ~2 s; waitFor lo tolera.
  */
 describe("wake pipeline (src/server/jobs.ts)", () => {
-	/** A chat with a finished job ready for delivery. */
+	/** Un chat con una tarea terminada lista para entregarse. */
 	function setup(kind: "research" | "demo" = "research"): { chatId: string; jobId: string; steer: SteerMessage } {
 		const chat = chatStore.createChat("Test: wake pipeline");
 		trackChat(chat.id);
@@ -926,9 +926,9 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 	it("delivers a PROBE HANDOFF steer the same way — the teacher's wake turn", async () => {
 		const chat = chatStore.createChat("Test: probe handoff wake");
 		trackChat(chat.id);
-		// The concluded probe: a persisted probe_done call + result (the
-		// native seam the chat-handler's construction branch keys on) and no
-		// open question.
+		// El sondeo concluido: una llamada probe_done persistida + su resultado (la
+		// frontera nativa en la que se basa la rama de construcción de chat-handler) y ninguna
+		// pregunta abierta.
 		chatStore.saveMessages(chat.id, nativeToolMessages("teach me calc", "probe_done", "call-pd", { ok: true }));
 		const handoff = buildProbeHandoffSteer(chat.id);
 		let seen: { chatId: string; steers: SteerMessage[] } | undefined;
@@ -949,7 +949,7 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 		const chat = chatStore.createChat("Test: handoff idempotent");
 		trackChat(chat.id);
 		const handoff = buildProbeHandoffSteer(chat.id);
-		// The transcript already carries the steer (a previous wake completed).
+		// La transcripción ya lleva la reorientación (un despertar anterior se completó).
 		chatStore.saveMessages(chat.id, [handoff as never]);
 		let fired = 0;
 		setTurnRunner(async () => {
@@ -988,8 +988,8 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 			return 200;
 		});
 
-		// A dangling question call blocks the wake (the model would reject an
-		// unanswered tool call — fork 1: the record ends at the call).
+		// Una llamada de pregunta colgante bloquea el despertar (el modelo rechazaría una
+		// llamada a herramienta sin responder; bifurcación 1: el registro termina en la llamada).
 		chatStore.saveMessages(chatId, [
 			{ id: "u1", role: "user", content: "hello", timestamp: 1 } as never,
 			{
@@ -1005,8 +1005,8 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 			} as never,
 		]);
 
-		// The delivery promise floats while the quiz blocks — awaiting it now
-		// would deadlock the test (the pump defers until the gate opens).
+		// La promesa de entrega flota mientras el quiz bloquea; esperarla ahora
+		// interbloquearía la prueba (la bomba aplaza hasta que se abre la barrera).
 		const delivery = deliverJobResult(steer);
 
 		await delay(1200);
@@ -1014,7 +1014,7 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 		assert.equal(jobStore.getJob(jobId)!.status, "done", "worker is finished while delivery waits");
 		assert.equal(jobStore.getJob(jobId)!.delivery?.status, "pending");
 
-		// The learner answers: the real tool result clears the dangling call.
+		// El alumno responde: el resultado de herramienta real despeja la llamada colgante.
 		const record = chatStore.getChat(chatId)!;
 		chatStore.saveMessages(chatId, [
 			...record.messages,
@@ -1031,7 +1031,7 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 		]);
 
 		await waitFor(() => fired > 0, 8000, "wake after the quiz answer");
-		await delivery; // now it resolves — the steer was delivered
+		await delivery; // ahora se resuelve: la reorientación se entregó
 		await waitFor(() => jobStore.getJob(jobId)!.status !== "running", 8000, "job flip after the deferred wake");
 		assert.equal(jobStore.getJob(jobId)!.status, "done");
 	});
@@ -1044,9 +1044,9 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 			return 200;
 		});
 
-		// Both resolutions clear the dangling call, so only the persisted
-		// manual-only pause holds the wake. Recovery can be interrupted after
-		// write-ahead but before any replacement output is persisted.
+		// Ambas resoluciones despejan la llamada colgante, así que solo la pausa
+		// persistida de solo manual retiene el despertar. La recuperación puede interrumpirse tras
+		// la persistencia anticipada, pero antes de persistir ninguna salida de sustitución.
 		chatStore.saveMessages(chatId, [
 			{ id: "u1", role: "user", content: "hello", timestamp: 1 } as never,
 			{
@@ -1078,8 +1078,8 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 		assert.equal(fired, 0, `no wake while the session sits ${pause}-paused`);
 		assert.equal(jobStore.getJob(jobId)!.delivery?.status, "pending", "the delivery holds (queued, not lost)");
 
-		// The user's next message is the wake — its turn settles, and the
-		// settlement re-pump lands the held delivery right after it.
+		// El siguiente mensaje del usuario es el despertar: su turno se asienta y el
+		// rebombeo del asentamiento coloca la entrega retenida justo después.
 		const record = chatStore.getChat(chatId)!;
 		const afterUser = [...record.messages, { id: "u2", role: "user", content: "moving on", timestamp: 2 } as never];
 		chatStore.saveMessages(chatId, afterUser);
@@ -1107,7 +1107,7 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 
 	it("is idempotent: a steer already in the transcript flips the job without firing a turn", async () => {
 		const { chatId, jobId, steer } = setup();
-		// Simulate the crash window: the wake completed but the flip didn't.
+		// Simula la ventana del fallo: el despertar se completó, pero el cambio de estado no.
 		const record = chatStore.getChat(chatId)!;
 		chatStore.saveMessages(chatId, [...record.messages, steer] as never);
 
@@ -1122,10 +1122,10 @@ describe("wake pipeline (src/server/jobs.ts)", () => {
 		assert.equal(jobStore.getJob(jobId)!.status, "done", "the job still flips — recovery completes");
 	});
 
-// ─── continuation coalescing (the delivery-starvation fix) ───────────────────
+// ─── agrupación de continuaciones (el arreglo de la inanición de entregas) ───
 
 describe("Wave C: live steering handoff + settlement reconciliation", () => {
-	/** A minimal stand-in for pi's Agent — the pump touches only steer(). */
+	/** Un sustituto mínimo del Agent de pi: la bomba solo toca steer(). */
 	function fakeAgent(): { handed: SteerMessage[]; agent: unknown } {
 		const handed: SteerMessage[] = [];
 		return { handed, agent: { steer: (m: SteerMessage) => handed.push(m) } };
@@ -1140,18 +1140,18 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 			return 200;
 		});
 
-		// A live turn is streaming (turn registry + live agent registered).
+		// Un turno vivo está haciendo streaming (registro de turnos + agente vivo registrado).
 		assert.ok(beginTurn(chatId));
 		registerLiveAgent(chatId, agent as never);
 
-		const delivery = deliverJobResult(steer); // floats — resolves at settlement
+		const delivery = deliverJobResult(steer); // flota: se resuelve al asentarse
 		await waitFor(() => handed.length === 1, 8000, "marker handed to the live agent");
 		await delay(1200);
 		assert.equal(fired, 0, "no wake while the run is live");
 		assert.equal(jobStore.getJob(jobId)!.status, "done", "worker finished before delivery");
 		assert.equal(jobStore.getJob(jobId)!.delivery?.status, "pending");
 
-		// Settlement: the run persisted the injected marker.
+		// Asentamiento: la ejecución persistió el marcador inyectado.
 		unregisterLiveAgent(chatId);
 		settleSteers(chatId, [steer as never]);
 		await delivery;
@@ -1174,13 +1174,13 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 
 		const delivery = deliverJobResult(steer);
 		await waitFor(() => handed.length === 1, 8000, "handed");
-		// The run settles WITHOUT the marker (question stopper exited before
-		// the follow-up poll) — reconcile against the persisted truth.
+		// La ejecución se asienta SIN el marcador (el detenedor de preguntas salió antes del
+		// sondeo de follow-ups): concilia con la verdad persistida.
 		unregisterLiveAgent(chatId);
 		settleSteers(chatId, []);
 		endTurn(chatId);
 
-		// The marker returned to pending — the pump's idle wake delivers it.
+		// El marcador volvió a pendiente: el despertar en reposo de la bomba lo entrega.
 		await delivery;
 		assert.equal(fired, 1, "the stranded marker rode the idle wake");
 		assert.equal(jobStore.getJob(jobId)!.status, "done");
@@ -1206,7 +1206,7 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 		assert.equal(handed.length, 0, "the handoff was NOT handed to the live agent");
 		assert.equal(fired.length, 0, "no wake while the prober's turn streams");
 
-		// The prober's turn settles — now the handoff wakes the TEACHER.
+		// El turno del sondeador se asienta: ahora el traspaso despierta al PROFESOR.
 		unregisterLiveAgent(chat.id);
 		settleSteers(chat.id, []);
 		endTurn(chat.id);
@@ -1224,8 +1224,8 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 			return 200;
 		});
 
-		// A dangling question has the pump parked in waitForIdle: the
-		// marker is pending but no live run exists to take it.
+		// Una pregunta colgante tiene la bomba aparcada en waitForIdle: el
+		// marcador está pendiente, pero no existe ninguna ejecución viva que lo recoja.
 		chatStore.saveMessages(chatId, [
 			...nativeToolMessages("teach me", "probe_done", "call-q", { ok: true }),
 			{
@@ -1241,19 +1241,19 @@ describe("Wave C: live steering handoff + settlement reconciliation", () => {
 			} as never,
 		]);
 		const delivery = deliverJobResult(steer);
-		await delay(300); // let the pump park behind the dangling question
+		await delay(300); // deja que la bomba se aparque tras la pregunta colgante
 		assert.equal(handed.length, 0, "nothing to hand to — no live agent");
 
-		// The learner answers: the handler registers the answer run's agent
-		// BEFORE runPiTurn, so the marker is steered into it synchronously —
-		// it rides the run's START steering poll (first LLM call).
+		// El alumno responde: el manejador registra el agente de la ejecución de la respuesta
+		// ANTES de runPiTurn, así que el marcador se reorienta hacia él de forma síncrona:
+		// viaja en el sondeo de reorientación del INICIO de la ejecución (la primera llamada al LLM).
 		assert.ok(beginTurn(chatId));
 		registerLiveAgent(chatId, agent as never);
 		assert.equal(handed.length, 1, "registration itself steered the marker in");
 		assert.equal(handed[0]!.id, steer.id);
 
-		// The answer run persisted the marker — the parked pump's wake
-		// re-check resolves it without ever firing a turn.
+		// La ejecución de la respuesta persistió el marcador: la nueva comprobación del despertar de la
+		// bomba aparcada lo resuelve sin llegar a disparar ningún turno.
 		unregisterLiveAgent(chatId);
 		settleSteers(chatId, [steer as never]);
 		endTurn(chatId);
@@ -1322,7 +1322,7 @@ function delay(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// ─── persist id hygiene (the duplicate-empty-key bug) ────────────────────────
+// ─── higiene de ids al persistir (el fallo de la clave vacía duplicada) ──────
 
 describe("persistTurn (native history, Wave B)", () => {
 	it("stamps EMPTY ids (pi minted no id) at the canonical write and preserves existing ones", () => {
@@ -1356,9 +1356,9 @@ describe("persistTurn (native history, Wave B)", () => {
 		chatStore.saveMessages(chat.id, [
 			{ id: "base_1", role: "user", content: "first", timestamp: 1 } as never,
 		]);
-		// The agent's state at onFinish: the base record + the turn's OWN new
-		// messages (Wave B: onFinish receives the full native history — the
-		// slice keeps persist append-only).
+		// El estado del agente en onFinish: el registro base + los mensajes nuevos PROPIOS
+		// del turno (oleada B: onFinish recibe el historial nativo completo; el
+		// troceado mantiene la persistencia de solo anexado).
 		const state = [
 			{ id: "base_1", role: "user", content: "first", timestamp: 1 } as never,
 			{
@@ -1395,7 +1395,7 @@ describe("persistTurn (native history, Wave B)", () => {
 				stopReason: "toolUse",
 				timestamp: 1,
 			} as never,
-			// The loop's synthetic "question posed" result — never a fact.
+			// El resultado sintético "question posed" del bucle: nunca es un hecho.
 			{
 				id: "",
 				role: "toolResult",
@@ -1406,7 +1406,7 @@ describe("persistTurn (native history, Wave B)", () => {
 				isError: false,
 				timestamp: 1,
 			} as never,
-			// An ERRORED authoring call DOES persist — the model's retry context.
+			// Una llamada de autoría con ERROR SÍ se persiste: el contexto de reintento del modelo.
 			{
 				id: "",
 				role: "toolResult",
@@ -1425,14 +1425,14 @@ describe("persistTurn (native history, Wave B)", () => {
 	});
 });
 
-// ─── prompt composition hygiene (the README leak) ─────────────────────────────
+// ─── higiene de la composición del prompt (la fuga del README) ───────────────
 
 describe("prompt composition", () => {
 	it("loads ONLY numeric-prefix fragments — README.md never enters the system prompt", () => {
 		const instructions = composeInstructions("teacher");
 		assert.ok(!instructions.includes("Prompt fragments"), "README content must not leak");
 		assert.ok(!instructions.includes("Rules for adding a fragment"), "README content must not leak (rules)");
-		// every numeric fragment DOES compose, verbatim, after the base prompt
+		// todo fragmento numerado SÍ se compone, literal, tras el prompt base
 		const base = fs.readFileSync("src/agent/system-prompt.md", "utf-8").trim();
 		assert.ok(instructions.startsWith(base), "base prompt first");
 		for (const f of fs.readdirSync("src/agent/prompts").filter((f) => /^\d+-[\w.-]+\.md$/.test(f)).sort()) {
@@ -1443,7 +1443,7 @@ describe("prompt composition", () => {
 
 	it("the question principles compose into the teacher prompt; the probe's quick-measurement revision landed", () => {
 		const teacher = composeInstructions("teacher");
-		// the T2a doctrine fragment (user-locked wording 2026-09-15): verbatim presence
+		// el fragmento de doctrina T2a (redacción fijada por el usuario el 2026-09-15): presencia literal
 		for (const pin of [
 			"Answerable by reasoning from the session",
 			"Never just reciting your words back",
@@ -1452,12 +1452,12 @@ describe("prompt composition", () => {
 		]) {
 			assert.ok(teacher.includes(pin), `teacher prompt lost the principle: ${pin}`);
 		}
-		// it loads in sorted fragment order: right after 20-teaching, before 30-jobs
+		// se carga en el orden de los fragmentos: justo después de 20-teaching, antes de 30-jobs
 		assert.ok(
 			teacher.indexOf("Question principles") > teacher.indexOf("# Teach — one step at a time"),
 			"principles sit after the teaching loop",
 		);
-		// the prober's doctrine: the "no rush" framing is gone, quick measurement in
+		// la doctrina del sondeador: desaparece el planteamiento de «sin prisa» y entra la medición rápida
 		const prober = composeInstructions("prober");
 		assert.ok(!prober.includes("There is no rush"), "the old no-rush framing is retired");
 		assert.ok(
@@ -1469,12 +1469,12 @@ describe("prompt composition", () => {
 
 	it("the predict-check cycle composes into the teacher; the craft chunk reaches BOTH agents (owner 2026-10-03)", () => {
 		const teacher = composeInstructions("teacher");
-		// the cycle doctrine (28-predictions.md) — teacher-only
+		// la doctrina del ciclo (28-predictions.md): solo del profesor
 		assert.ok(teacher.includes("predict → teach → check"), "the cycle line is in");
 		assert.ok(teacher.includes('The prediction (`type: "predict"`)'), "the prediction role section is in");
 		assert.ok(teacher.includes("Skip the prediction"), "the skip rule is in");
 		assert.ok(teacher.includes('The check (`type: "check"`)'), "the check role section is in");
-		// the craft + thinking channels (shared/20-question-tools.md) — BOTH agents
+		// los canales de oficio + razonamiento (shared/20-question-tools.md): AMBOS agentes
 		const prober = composeInstructions("prober");
 		for (const [name, prompt] of [
 			["teacher", teacher],
@@ -1484,7 +1484,7 @@ describe("prompt composition", () => {
 			assert.ok(prompt.includes("TRANSCRIBED SPEECH"), `${name} reads dictated thinking leniently`);
 			assert.ok(prompt.includes("thinkingWhileReading"), `${name} knows the reading channel`);
 		}
-		// the cycle is teach-phase doctrine — it never composes into the prober
+		// el ciclo es doctrina de la fase de enseñanza: nunca se compone en el sondeador
 		assert.ok(!prober.includes("predict → teach → check"), "the teaching cycle stays out of the prober");
 	});
 
@@ -1503,8 +1503,8 @@ describe("prompt composition", () => {
 			assert.ok(instructions.includes("find it yourself with `find`"), `${kind} knows to locate files itself`);
 			assert.ok(instructions.includes("home directory"), `${kind} knows the home-anchored path rule`);
 		}
-		// the agent's OWN fragments compose before the shared appendix
-		// (the reorder's order rule, 2026-09-27: job and method lead)
+		// los fragmentos PROPIOS del agente se componen antes del apéndice compartido
+		// (la regla de orden de la reordenación, 2026-09-27: primero la tarea y el método)
 		const teacher = composeInstructions("teacher");
 		assert.ok(
 			teacher.indexOf("## Learner source files") < teacher.indexOf("## Learner files"),
@@ -1513,11 +1513,11 @@ describe("prompt composition", () => {
 	});
 
 	it("guards prompt size — no fragment can silently balloon (the README-leak class)", () => {
-		// The wave-1 leak: README.md (815 bytes / ~200 tokens) rode into every
-		// teacher turn until the numeric-prefix filter stopped it. This guard
-		// catches the sibling failure mode — an accidental dump pasted into a
-		// fragment. Thresholds: largest real fragment is 40-demos.md at ~3.2k
-		// chars; 8k is generous headroom. Composed total ≤ 60k chars.
+		// La fuga de la oleada 1: README.md (815 bytes / ~200 tokens) se colaba en cada
+		// turno del profesor hasta que el filtro de prefijo numérico lo paró. Esta guarda
+		// detecta el modo de fallo hermano: un volcado accidental pegado en un
+		// fragmento. Umbrales: el fragmento real más grande es 40-demos.md, con ~3,2k
+		// caracteres; 8k es un margen generoso. Total compuesto ≤ 60k caracteres.
 		for (const f of fs.readdirSync("src/agent/prompts").filter((f) => /^\d+-[\w.-]+\.md$/.test(f))) {
 			const body = fs.readFileSync(`src/agent/prompts/${f}`, "utf-8").trim();
 			assert.ok(body.length <= 8_000, `fragment ${f} is ${body.length} chars — over the 8k guard`);
@@ -1526,16 +1526,16 @@ describe("prompt composition", () => {
 	});
 });
 
-// ─── abort (2026-09 semantics: real kill, cancelled status, teacher told) ───
+// ─── aborto (semántica de 2026-09: terminación real, estado cancelado, se avisa al profesor) ──
 
 describe("abort (src/server/jobs.ts abortJob)", () => {
-	/** A hanging model whose call never resolves until its abort signal
-	 *  fires — the real-kill path: the in-flight call itself is killed. */
+	/** Un modelo que se cuelga y cuya llamada nunca se resuelve hasta que se dispara su señal
+	 *  de aborto: la ruta de terminación real: se mata la propia llamada en curso. */
 	function hangingModel(): PiEngine {
 		return fauxEngine([abortableFactory()]);
 	}
 
-	/** One step (billed) then a hang — proves usage-so-far survives the kill. */
+	/** Un paso (facturado) y luego un cuelgue: demuestra que el uso hasta ese momento sobrevive a la terminación. */
 	function oneStepThenHangModel(): PiEngine {
 		return fauxEngine([
 			fauxAssistantMessage([fauxToolCall("web_search", { query: "anything" }, { id: "ws1" })], {
@@ -1548,7 +1548,7 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 	function newChatWithResearchJob(label: string, toolCallId: string): { chatId: string; jobId: string } {
 		const chat = chatStore.createChat(`Test: ${label}`);
 		trackChat(chat.id);
-		// Native fixture — the record is agent history (Wave B).
+		// Fixture nativo: el registro es historial del agente (oleada B).
 		chatStore.saveMessages(chat.id, [
 			{ id: "u1", role: "user", content: "hi", timestamp: 1 } as never,
 			{
@@ -1607,7 +1607,7 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 			assert.equal(killed.error, "Aborted by learner", "abort reads as an error with a reason, not a failure");
 			assert.equal(killed.activity, "aborted");
 
-			await settled; // unwinds — no hang
+			await settled; // se deshace: sin cuelgue
 			assert.equal(jobStore.getJob(jobId)!.status, "error", "the runner never overwrites the flip");
 			assert.equal(jobStore.getJob(jobId)!.error, "Aborted by learner");
 			assert.equal(jobStore.getJob(jobId)!.result, undefined, "no result on an aborted job");
@@ -1617,7 +1617,7 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 			assert.equal((last.details as { aborted: boolean }).aborted, true);
 			assert.equal(last.id, `steer_${jobId}`);
 			assert.equal(last.customType, "subagent-abort", "the abort marker — no artifact");
-			// aborted is terminal: the wake completing must not flip it
+			// abortado es terminal: que el despertar se complete no debe cambiarle el estado
 			assert.equal(jobStore.getJob(jobId)!.status, "error", "terminal after the wake");
 		} finally {
 			researchModelOverride.current = undefined;
@@ -1638,11 +1638,11 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 			assert.equal(job.status, "error");
 		assert.equal(job.error, "Aborted by learner");
 			assert.equal(job.usage!.steps, 1, "usage-so-far persisted by the runner's finally");
-			// model slots wave: the stamp is the ENGINE's actual model,
-			// provider-qualified — the scripted faux engine here.
+			// oleada de ranuras de modelo: el sello es el modelo real del MOTOR,
+			// cualificado con el proveedor: aquí, el motor simulado guionizado.
 			assert.equal(job.usage!.model, "faux:faux-1");
-			// faux estimates tokens from the prompt/response text — the
-			// pinned fact is that the ONE completed step's spend survived.
+			// el simulado estima los tokens a partir del texto del prompt/respuesta; el
+			// hecho fijado es que el gasto del ÚNICO paso completado sobrevivió.
 			assert.ok(job.usage!.inputTokens! > 0, "input tokens billed");
 			assert.ok(job.usage!.outputTokens! > 0, "output tokens billed");
 		} finally {
@@ -1659,7 +1659,7 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 		const result: ResearchResult = { brief: "Done: it works.", sources: [{ title: "s", url: "https://x.test" }] };
 		jobStore.updateJob(job.id, { result, status: "done", activity: "finished", delivery: { kind: "result", status: "pending" } });
 
-		// Block the pump's idle gates so the result steer sits QUEUED, not in flight.
+		// Bloquea las barreras de reposo de la bomba para que la reorientación del resultado quede EN COLA, no en curso.
 		assert.ok(beginTurn(chat.id));
 		const fired: SteerMessage[] = [];
 		setTurnRunner(async (_cid, input) => {
@@ -1667,7 +1667,7 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 			return 200;
 		});
 		void deliverJobResult(buildSubagentSteer(job, result)).catch(() => {
-			/* dropped by the abort below */
+			/* lo descarta el aborto de abajo */
 		});
 		assert.equal(jobStore.getJob(job.id)!.delivery?.status, "pending");
 
@@ -1676,7 +1676,7 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 		assert.equal(jobStore.getJob(job.id)!.status, "done");
 		assert.equal(jobStore.getJob(job.id)!.error, undefined);
 
-		endTurn(chat.id); // gates open — whatever is left in the queue fires
+		endTurn(chat.id); // las barreras se abren: se dispara lo que quede en la cola
 		await waitFor(() => fired.length > 0, 8000, "wake fired");
 		assert.equal(fired.length, 1, "exactly one result delivery");
 		assert.equal(fired[0]!.customType, "subagent-steer");
@@ -1694,24 +1694,24 @@ describe("abort (src/server/jobs.ts abortJob)", () => {
 	});
 });
 
-// ─── 7. crash recovery, LIVENESS-GATED (observability-accuracy wave, 2026-09-19) ──
+// ─── 7. recuperación tras fallos, CON BARRERA DE VIDA (oleada de precisión de la observabilidad, 2026-09-19) ──
 //
-// The sweep (recoverStaleJobs) keys on the abort registry (subagents/aborts.ts
-// isJobLive), not record age: a "running" record with a live registration
-// belongs to a loop executing in THIS process (hung or slow — never re-run
-// beside itself); without one it is a process-death orphan and recovers at
-// once. The old 15-minute STALE_JOB_MS heuristic is gone — these tests prove
-// immediacy by running the sweep on FRESH records.
+// El barrido (recoverStaleJobs) se basa en el registro de abortos (isJobLive de
+// subagents/aborts.ts), no en la antigüedad del registro: un registro "running" con un registro vivo
+// pertenece a un bucle que se ejecuta en ESTE proceso (colgado o lento; nunca se vuelve a ejecutar
+// a su lado); sin él, es un huérfano de una muerte del proceso y se recupera
+// enseguida. La antigua heurística STALE_JOB_MS de 15 minutos ha desaparecido; estas pruebas demuestran
+// la inmediatez ejecutando el barrido sobre registros RECIENTES.
 
 describe("stale-job recovery sweep (liveness-gated)", () => {
-	/** Reset the sweep's 30s throttle — tests fire it directly, repeatedly. */
+	/** Restablece la limitación de 30 s del barrido: las pruebas lo disparan directamente, una y otra vez. */
 	function resetSweepThrottle(): void {
 		const g = globalThis as { __lhWakePipeline?: { lastSweepAt: number } };
 		if (g.__lhWakePipeline) g.__lhWakePipeline.lastSweepAt = 0;
 	}
 
-	/** A FRESH "running" record (no loop registration): the orphan shape.
-	 *  Freshness is the point — the old code needed 15 minutes of age. */
+	/** Un registro "running" RECIENTE (sin registro del bucle): la forma del huérfano.
+	 *  Lo reciente es la clave: el código antiguo necesitaba 15 minutos de antigüedad. */
 	function orphanJob(withResult?: ResearchResult): { chatId: string; jobId: string } {
 		const chat = chatStore.createChat("Test: stale sweep");
 		trackChat(chat.id);
@@ -1724,15 +1724,15 @@ describe("stale-job recovery sweep (liveness-gated)", () => {
 
 	it("a running record with a LIVE loop registration is never recovered — however old (the double-run guard)", () => {
 		const { jobId } = orphanJob();
-		// Backdate the record well past every plausible in-flight run: age
-		// alone must NOT trigger recovery anymore.
+		// Atrasa la fecha del registro mucho más allá de cualquier ejecución en curso plausible: la
+		// antigüedad por sí sola ya NO debe disparar la recuperación.
 		jobStore.updateJob(jobId, { updatedAt: new Date(Date.now() - 30 * 60_000).toISOString() });
-		registerJobAbort(jobId, new AbortController()); // a loop is executing
-		// JURISDICTIONAL (owner round 8, 2026-10-05): the sweep scans the
-		// SHARED jobs dir — under the full suite, OTHER FILES' processes
-		// legitimately leave running records this sweep may respawn. Only
-		// THIS test's job is this test's business: collect ids, assert ours
-		// never respawns (the counter form saw foreign respawns as failures).
+		registerJobAbort(jobId, new AbortController()); // hay un bucle en ejecución
+		// JURISDICCIONAL (ronda 8 del responsable, 2026-10-05): el barrido recorre el
+		// directorio de tareas COMPARTIDO: con la batería completa, los procesos de OTROS FICHEROS
+		// dejan legítimamente registros "running" que este barrido puede hacer reaparecer. Solo
+		// la tarea de ESTA prueba es asunto de esta prueba: recoge ids y comprueba que la nuestra
+		// nunca reaparece (la versión con contador veía las reapariciones ajenas como fallos).
 		const respawnedIds: string[] = [];
 		setJobRespawn((id) => {
 			respawnedIds.push(id);
@@ -1741,16 +1741,16 @@ describe("stale-job recovery sweep (liveness-gated)", () => {
 		recoverStaleJobs();
 		assert.ok(!respawnedIds.includes(jobId), "a live loop is provably executing — no respawn beside it");
 		assert.equal(jobStore.getJob(jobId)!.activity, "starting", "the record is untouched");
-		// Hermetic teardown: settle + unregister so later sweeps in THIS suite
-		// never see this fixture as a fresh orphan.
+		// Desmontaje hermético: asienta + quita el registro para que los barridos posteriores de ESTA batería
+		// nunca vean este fixture como un huérfano reciente.
 		jobStore.updateJob(jobId, { status: "done", activity: "settled (test)" });
 		unregisterJobAbort(jobId);
 	});
 
 	it("a running record WITHOUT a registration is an orphan: the loop is re-spawned immediately (no age wait)", () => {
 		const { jobId } = orphanJob();
-		// JURISDICTIONAL (see above): foreign respawns may interleave under
-		// the full suite — ours must be among them, at once.
+		// JURISDICCIONAL (ver arriba): las reapariciones ajenas pueden intercalarse con
+		// la batería completa; la nuestra debe estar entre ellas, de inmediato.
 		const respawnedIds: string[] = [];
 		setJobRespawn((id) => {
 			respawnedIds.push(id);
@@ -1759,8 +1759,8 @@ describe("stale-job recovery sweep (liveness-gated)", () => {
 		recoverStaleJobs();
 		assert.ok(respawnedIds.includes(jobId), "the orphan's loop is re-spawned at once");
 		assert.equal(jobStore.getJob(jobId)!.activity, "recovering: re-running");
-		// Hermetic teardown (see above) — the respawned loop is the TEST's
-		// fake seam, nothing real runs.
+		// Desmontaje hermético (ver arriba): el bucle que reaparece es la frontera falsa
+		// de la PRUEBA; no se ejecuta nada real.
 		jobStore.updateJob(jobId, { status: "done", activity: "settled (test)" });
 	});
 
@@ -1779,7 +1779,7 @@ describe("stale-job recovery sweep (liveness-gated)", () => {
 	});
 });
 
-// ─── BYOK: the unresolvable-engine refusal (owner, 2026-09-22) ──────────────
+// ─── BYOK: el rechazo por motor irresoluble (responsable, 2026-09-22) ────────
 
 describe("BYOK job refusal (no factory floor)", () => {
 	it("runJob with NO resolvable engine lands the job as error — the envelope wording, no phantom run", async () => {
@@ -1791,17 +1791,17 @@ describe("BYOK job refusal (no factory floor)", () => {
 		trackJob(job.id);
 
 		const delivery = fakeDeliver();
-		// NO test override, NO engineFor: the chain (override → slot → floor)
-		// comes up empty — the runner must refuse honestly, not fall back.
+		// SIN sustitución de prueba, SIN engineFor: la cadena (sustitución → ranura → suelo)
+		// sale vacía; el ejecutor debe rechazar honestamente, no recurrir a una alternativa.
 		const runner = createJobRunner({ chatStore, jobStore, deliver: delivery.deliver });
 		await runner.runJob(job.id);
 
 		const done = jobStore.getJob(job.id)!;
-		// The refusal lands through the SAME convention as every other
-		// failed job (BYOK review fix, Teacher stream 2026-09-22): the kind's
-		// failure result steers the teacher — a dispatched job is never
-		// stranded waiting for a result that will never come — and
-		// finalizeJob flips the record to error after the delivery.
+		// El rechazo llega por la MISMA convención que cualquier otra
+		// tarea fallida (arreglo de la revisión BYOK, stream Teacher 2026-09-22): el resultado de
+		// fallo del tipo reorienta al profesor (una tarea despachada nunca queda
+		// varada esperando un resultado que nunca llegará) y
+		// finalizeJob pasa el registro a error tras la entrega.
 		assert.equal(done.status, "error", "the job lands error, never a phantom run");
 		assert.match(done.error ?? "", /No model configured/);
 		assert.match(done.error ?? "", /missing: cheap/);
@@ -1815,7 +1815,7 @@ describe("BYOK job refusal (no factory floor)", () => {
 	});
 });
 
-// ─── provider-key: the key-presence job refusal (owner, 2026-09-25) ─────────
+// ─── clave del proveedor: el rechazo de tareas por presencia de clave (responsable, 2026-09-25) ──
 
 describe("provider-key job refusal (key-presence interlude)", () => {
 	it("an engine whose provider key is gone refuses the spawn — envelope wording, no phantom run", async () => {
@@ -1827,9 +1827,9 @@ describe("provider-key job refusal (key-presence interlude)", () => {
 		trackJob(job.id);
 
 		const delivery = fakeDeliver();
-		// The chain RESOLVES (an engine exists) — the KEY is what's missing.
-		// The injected check is the server seam's stand-in: it sees the
-		// engine's provider + the kind's slot tier, exactly as wired.
+		// La cadena SE RESUELVE (existe un motor): lo que falta es la CLAVE.
+		// La comprobación inyectada es el sustituto de la frontera del servidor: ve el
+		// proveedor del motor + el nivel de ranura del tipo, exactamente como está cableado.
 		const engine = fauxEngine([]);
 		const seen: Array<[string, ModelSlotName]> = [];
 		const runner = createJobRunner({
@@ -1844,8 +1844,8 @@ describe("provider-key job refusal (key-presence interlude)", () => {
 		});
 		await runner.runJob(job.id);
 
-		// The refusal lands through the SAME convention as every failed job:
-		// honest record, kind failure shape steered, terminal flip after.
+		// El rechazo llega por la MISMA convención que cualquier tarea fallida:
+		// registro honesto, forma de fallo del tipo reorientada y cambio a terminal después.
 		const done = jobStore.getJob(job.id)!;
 		assert.equal(done.status, "error", "the job lands error, never a phantom run");
 		assert.equal(done.error, providerKeyMissing(engine.model.provider, ["cheap"]).error, "the envelope's error line verbatim");
@@ -1860,10 +1860,10 @@ describe("provider-key job refusal (key-presence interlude)", () => {
 	});
 });
 
-// ─── composer steering (owner arc 2026-10-03): the user-steer registry ──────
+// ─── reorientación desde el compositor (arco del responsable 2026-10-03): el registro de reorientaciones del usuario ──
 
 describe("composer steering: steerLiveChat + the deliver-or-requeue lifecycle", () => {
-	/** A minimal stand-in for pi's Agent — only steer() is touched. */
+	/** Un sustituto mínimo del Agent de pi: solo se toca steer(). */
 	function fakeAgent(): { handed: unknown[]; agent: unknown } {
 		const handed: unknown[] = [];
 		return { handed, agent: { steer: (m: unknown) => handed.push(m) } };
@@ -1874,7 +1874,7 @@ describe("composer steering: steerLiveChat + the deliver-or-requeue lifecycle", 
 		const msg = { id: "steer_x1", role: "user", content: "hold on", timestamp: 1 };
 		assert.equal(steerLiveChat(chatId, msg as never), false);
 		const { handed, agent } = fakeAgent();
-		registerLiveAgent(chatId, agent as never); // a later run hands NOTHING
+		registerLiveAgent(chatId, agent as never); // una ejecución posterior no entrega NADA
 		assert.equal(handed.length, 0, "nothing was parked by the refused steer");
 		unregisterLiveAgent(chatId);
 	});
@@ -1886,7 +1886,7 @@ describe("composer steering: steerLiveChat + the deliver-or-requeue lifecycle", 
 		registerLiveAgent(chatId, agent as never);
 		assert.equal(steerLiveChat(chatId, msg as never), true);
 		assert.equal(handed.length, 1, "handed to the live agent's steering queue");
-		// Re-registering the SAME agent never re-hands (double-handoff guard).
+		// Volver a registrar el MISMO agente nunca vuelve a entregar (guarda contra el doble traspaso).
 		registerLiveAgent(chatId, agent as never);
 		assert.equal(handed.length, 1);
 		unregisterLiveAgent(chatId);
@@ -1901,17 +1901,17 @@ describe("composer steering: steerLiveChat + the deliver-or-requeue lifecycle", 
 		assert.equal(steerLiveChat(chatId, delivered as never), true);
 		assert.equal(steerLiveChat(chatId, stranded as never), true);
 
-		// Settlement: the run persisted ONLY the delivered one (the stranded
-		// copy died with the agent — question termination / abort).
+		// Asentamiento: la ejecución persistió SOLO la entregada (la copia varada
+		// murió con el agente: terminación por pregunta / aborto).
 		unregisterLiveAgent(chatId);
 		reconcileUserSteers(chatId, [delivered] as never);
 
-		// The chat's next run (the answer turn) picks up the stranded steer.
+		// La siguiente ejecución del chat (el turno de la respuesta) recoge la reorientación varada.
 		const next = fakeAgent();
 		registerLiveAgent(chatId, next.agent as never);
 		assert.equal(next.handed.length, 1, "exactly the stranded steer rides the next run");
 		assert.deepEqual((next.handed[0] as { id: string }).id, "steer_s1");
 		unregisterLiveAgent(chatId);
-		reconcileUserSteers(chatId, [stranded, delivered] as never); // cleanup
+		reconcileUserSteers(chatId, [stranded, delivered] as never); // limpieza
 	});
 });
