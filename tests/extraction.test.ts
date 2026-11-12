@@ -1,24 +1,24 @@
 /**
- * The extraction pipeline tests (vision §1 construction, 2026-09-02 redesign;
- * relinked 2026-09-27): extractor → auditor → merger, the sole graph writer —
- * the extractor alone sees the source (whole-session markdown), the auditor
- * never does (identity linking through graph tools), the merger is
- * deterministic.
+ * Pruebas del proceso de extracción (visión §1 construcción, rediseño del 2026-09-02;
+ * reenlazado el 2026-09-27): extractor → auditor → fusionador, el único escritor del grafo;
+ * solo el extractor ve la fuente (markdown de la sesión completa), el auditor
+ * nunca (enlace de identidad mediante herramientas de grafo), el fusionador es
+ * determinista.
  *
- *   transcriptView  — the markdown rendering the extractor sees (pure):
- *                     id-anchored Teacher/Learner blocks + check blocks
- *   pipeline        — scripted faux engines drive both agents: findings out,
- *                     audit verdict (with linkTo identity) in, deterministic
- *                     merge applied; failure paths checkpoint nothing;
- *                     single-flight per chat
+ *   transcriptView  — el renderizado markdown que ve el extractor (puro):
+ *                     bloques Teacher/Learner anclados por id + bloques de comprobación
+ *   pipeline        — motores simulados guionizados controlan ambos agentes: salen hallazgos,
+ *                     entra el veredicto de auditoría (con identidad linkTo), se aplica una
+ *                     fusión determinista; las rutas de fallo no registran nada;
+ *                     una sola ejecución en curso por chat
  *
- * The merger itself (identity verdicts, idempotency) is tested in
- * tests/graph.test.ts directly against mergeFindings — here it is the
- * integration: what one full pipeline run does to the ledgers.
+ * El fusionador en sí (veredictos de identidad, idempotencia) se prueba en
+ * tests/graph.test.ts directamente contra mergeFindings; aquí se prueba la
+ * integración: lo que una ejecución completa del proceso hace a los registros.
  *
- * Ledger: in-memory (the GraphStore port) — this suite never touches
- * data/graph. Chats: real ChatRecords in the real chat store (created and
- * deleted by this suite).
+ * Registro: en memoria (el puerto GraphStore); esta batería nunca toca
+ * data/graph. Chats: ChatRecords reales en el almacén de chats real (creados y
+ * borrados por esta batería).
  */
 
 import assert from "node:assert/strict";
@@ -67,17 +67,17 @@ import { PATHS } from "../config.ts";
 
 const createdChats: string[] = [];
 
-/** A scripted pi engine (faux provider, docs/archive/pi-engine-swap.md §7): the
- *  response queue replaces the old doGenerate turn counter. Usage is
- *  ESTIMATED by faux from the prompt/response text (deterministic, > 0) —
- *  the tests assert structure and positivity, not flat mock numbers. */
+/** Un motor pi guionizado (proveedor simulado, docs/archive/pi-engine-swap.md §7): la
+ *  cola de respuestas sustituye al antiguo contador de turnos de doGenerate. El simulado
+ *  ESTIMA el uso a partir del texto del prompt/respuesta (determinista, > 0); las
+ *  pruebas comprueban la estructura y que sea positivo, no números fijos de un mock. */
 function fauxEngine(steps: FauxResponseStep[]): PiEngine {
 	const faux = createFauxCore({});
 	faux.setResponses(steps);
 	return { model: faux.getModel(), streamFn: faux.streamSimple };
 }
 
-/** An in-memory GraphStore (core/ports.ts) — this suite never touches data/graph. */
+/** Un GraphStore en memoria (core/ports.ts): esta batería nunca toca data/graph. */
 function memoryLedgers() {
 	const nodes: GraphNode[] = [];
 	const chains: GraphChain[] = [];
@@ -92,12 +92,12 @@ function memoryLedgers() {
 		readChains: () => chains.map((c) => ({ ...c, premises: [...c.premises], provenance: [...c.provenance] })),
 		appendCheckpoint: (c: SessionCheckpoint) => void checkpoints.push(c),
 		readCheckpoints: () => checkpoints.map((c) => ({ ...c })),
-		// Extraction coverage (vision-extraction-coverage.md) — append-only;
-		// the chat pipeline checkpoints one entry per covered message.
+		// Cobertura de extracción (vision-extraction-coverage.md): solo anexado;
+		// el proceso del chat registra una entrada por cada mensaje cubierto.
 		appendCoverage: (e) => void coverage.push({ ...e }),
 		readCoverage: () => coverage.map((e) => ({ ...e })),
 		upsertSource: (s: NotesSource) => {
-			// Mirrors the real store: an upsert KEEPS the existing usage log.
+			// Refleja el almacén real: un upsert CONSERVA el registro de uso existente.
 			const prev = sources.get(s.id);
 			sources.set(s.id, { ...s, extractions: [...(prev?.extractions ?? [])] });
 		},
@@ -110,15 +110,15 @@ function memoryLedgers() {
 				source.extractions = [...(source.extractions ?? []), entry];
 			}
 		},
-		// Cluster labelings — mirrors the real store: append dedupes by id.
-		// The layout ledger — settleGraphLayout writes it after each merge.
+		// Etiquetados de clústeres: refleja el almacén real: anexar elimina duplicados por id.
+		// El registro de layout: settleGraphLayout lo escribe tras cada fusión.
 		readPositions: () => Object.fromEntries([...positions].map(([id, p]) => [id, { ...p }])),
 		writePositions: (next) => {
 			positions.clear();
 			for (const [id, p] of Object.entries(next)) positions.set(id, { x: p.x, y: p.y });
 		},
-		// The destructive seam (wave 6 session deletion) — mirrors the real
-		// store: replace the provided ledgers' full contents.
+		// La frontera destructiva (borrado de sesiones de la oleada 6): refleja el almacén
+		// real: reemplaza el contenido completo de los registros proporcionados.
 		rewriteLedgers: (next) => {
 			if (next.nodes) nodes.splice(0, nodes.length, ...next.nodes.map((n) => ({ ...n, provenance: [...n.provenance], aliases: [...n.aliases] })));
 			if (next.chains) chains.splice(0, chains.length, ...next.chains.map((c) => ({ ...c, premises: [...c.premises], provenance: [...c.provenance] })));
@@ -128,9 +128,9 @@ function memoryLedgers() {
 	} satisfies GraphStore;
 }
 
-// Native fixture builders (Wave B): the record holds pi-native history —
-// an assistant message with its tool calls + one result message per call;
-// the projection reproduces the part shapes these view tests pin.
+// Constructores de fixtures nativos (oleada B): el registro contiene historial nativo de pi:
+// un mensaje del asistente con sus llamadas a herramientas + un mensaje de resultado por llamada;
+// la proyección reproduce las formas de las partes que fijan estas pruebas de vista.
 interface NativeCallDesc {
 	name: string;
 	toolCallId: string;
@@ -191,8 +191,8 @@ function planPart(toolCallId: string, name: string, input: Record<string, unknow
 	return { name, toolCallId, input, output: { ok: true, tree } };
 }
 
-/** A session-shaped fixture chat: probe → teaching text → check. Tree-blind
- *  world: the plan tree is NOT part of extraction — it is noise. */
+/** Un chat de fixture con forma de sesión: sondeo → texto de enseñanza → comprobación. Mundo
+ *  ciego al árbol: el árbol del plan NO forma parte de la extracción; es ruido. */
 function fixtureChat() {
 	const chat = chatStore.createChat("Extraction fixture");
 	createdChats.push(chat.id);
@@ -205,9 +205,9 @@ function fixtureChat() {
 				correct: false, dontKnow: false, answeredAt: "2026-08-22T01:00:00.000Z",
 			}),
 		]),
-		// Distinct TURNS: the native grouping canon merges consecutive
-		// assistant messages into one view group, so the fixture separates
-		// its turns with learner messages (the real record's shape).
+		// TURNOS distintos: el canon de agrupación nativo fusiona mensajes consecutivos
+		// del asistente en un grupo de vista, así que el fixture separa
+		// sus turnos con mensajes del alumno (la forma del registro real).
 		user("u2", "go on"),
 		...assistant("a2", [
 			{ type: "text", text: "The derivative measures how fast a function changes." },
@@ -229,16 +229,16 @@ after(() => {
 		try {
 			fs.unlinkSync(`${PATHS.chats}/${id}.json`);
 		} catch {
-			/* already gone */
+			/* ya no existe */
 		}
 	}
 });
 
-/** What the extractor SUBMITS for the fixture session (owner redesign,
- *  2026-09-30): propositions + REASONING CHAINS on the wire — one chain
- *  (p1 ⟹ p2). Each proposition carries its passage anchor (2026-10-13):
- *  the fixture's teacher-prose messages are a1 (chain rule prose) and a2
- *  (derivative prose) — p1 anchors to a2, p2 to a1. */
+/** Lo que el extractor ENVÍA para la sesión del fixture (rediseño del responsable,
+ *  2026-09-30): proposiciones + CADENAS DE RAZONAMIENTO por el cable: una cadena
+ *  (p1 ⟹ p2). Cada proposición lleva el ancla de su pasaje (2026-10-13):
+ *  los mensajes de prosa del profesor del fixture son a1 (prosa de la regla de la cadena) y a2
+ *  (prosa de la derivada): p1 se ancla a a2 y p2 a a1. */
 const FINDINGS = {
 	propositions: [
 		{
@@ -264,11 +264,11 @@ const FINDINGS = {
 	],
 };
 
-/** An engine whose ONE response is the `name` tool call with the given
- *  input — the whole deliverable; the pipeline stops after a clean submit
- *  (shouldStop), so no trailing text step exists anymore. `onCall` fires at
- *  the moment of the model call — the observation point for mid-run
- *  assertions. */
+/** Un motor cuya ÚNICA respuesta es la llamada a la herramienta `name` con la
+ *  entrada dada: todo el entregable; el proceso se detiene tras un envío limpio
+ *  (shouldStop), así que ya no existe un paso final de texto. `onCall` se dispara en
+ *  el momento de la llamada al modelo: el punto de observación para las aserciones
+ *  a mitad de ejecución. */
 function submitModel(name: string, input: unknown, onCall?: () => void): PiEngine {
 	return fauxEngine([
 		(context) => {
@@ -282,10 +282,10 @@ function submitModel(name: string, input: unknown, onCall?: () => void): PiEngin
 	]);
 }
 
-/** A submit model whose single response WAITS on a gate before answering —
- *  the timing control for the serialized-audit tests (owner 2026-09-28):
- *  the model call has STARTED (onCall fired, the run holds the audit
- *  gate) but will not resolve until the test opens the gate. */
+/** Un modelo de envío cuya única respuesta ESPERA en una barrera antes de responder:
+ *  el control de tiempos para las pruebas de auditoría serializada (responsable 2026-09-28):
+ *  la llamada al modelo ha EMPEZADO (onCall se disparó, la ejecución tiene la barrera
+ *  de auditoría), pero no se resolverá hasta que la prueba abra la barrera. */
 function gatedSubmitModel(name: string, input: unknown, gate: Promise<void>, onCall?: () => void): PiEngine {
 	return fauxEngine([
 		async () => {
@@ -299,7 +299,7 @@ function gatedSubmitModel(name: string, input: unknown, gate: Promise<void>, onC
 	]);
 }
 
-/** Poll until true — the queued-phase observations need real ticks. */
+/** Sondea hasta que sea cierto: las observaciones de la fase en cola necesitan ticks reales. */
 async function until(cond: () => boolean, ms = 2000): Promise<void> {
 	for (const t0 = Date.now(); !cond(); ) {
 		if (Date.now() - t0 > ms) throw new Error("condition never became true in time");
@@ -307,11 +307,11 @@ async function until(cond: () => boolean, ms = 2000): Promise<void> {
 	}
 }
 
-/** An engine whose model call never resolves until its abort signal fires
- *  — mimicking a cancelled provider request (the abort path). Like a real
- *  provider, an ALREADY-aborted signal resolves immediately (the abort can
- *  win the race before the call attaches its listener); the faux stream
- *  then sees the aborted signal and ends the message as aborted. */
+/** Un motor cuya llamada al modelo nunca se resuelve hasta que se dispara su señal de aborto,
+ *  imitando una petición cancelada al proveedor (la ruta de aborto). Como un proveedor
+ *  real, una señal YA abortada se resuelve de inmediato (el aborto puede
+ *  ganar la carrera antes de que la llamada enganche su listener); el stream simulado
+ *  ve entonces la señal abortada y termina el mensaje como abortado. */
 function hangingModel(): PiEngine {
 	return fauxEngine([
 		(_context, options) =>
@@ -326,28 +326,28 @@ function hangingModel(): PiEngine {
 	]);
 }
 
-/** An engine that never calls a tool (the failure path). */
+/** Un motor que nunca llama a una herramienta (la ruta de fallo). */
 function silentModel(): PiEngine {
 	return fauxEngine([fauxAssistantMessage("I refuse to use tools"), fauxAssistantMessage("…")]);
 }
 
-// ─── transcriptView (pure) ───────────────────────────────────────────────────
+// ─── transcriptView (puro) ───────────────────────────────────────────────────
 
 describe("transcriptView (pure — teacher prose only, owner 2026-09-28)", () => {
 	it("renders ONLY the teacher's prose — no learner, no checks, no tool notes", () => {
 		const { record } = fixtureChat();
 		const view = transcriptView(record);
 
-		// The document header is the session title; the body is the
-		// teacher's text blocks as labeled passages.
+		// La cabecera del documento es el título de la sesión; el cuerpo son los
+		// bloques de texto del profesor como pasajes etiquetados.
 		assert.match(view, /^# Extraction fixture$/m);
 		assert.match(view, /^TEACHER \[a1\] The chain rule composes rates of change along a path\.$/m);
 		assert.match(view, /^TEACHER \[a2\] The derivative measures how fast a function changes\.$/m);
 
-		// MESSAGE-ID LABELS (owner, 2026-10-13): the passages carry their
-		// ACTUAL message ids, in exactly messageViewLines' shape — the same
-		// seam the coverage fingerprints hash. No label without prose: a3
-		// (quiz only) and the learner messages are not passages.
+		// ETIQUETAS CON ID DE MENSAJE (responsable, 2026-10-13): los pasajes llevan sus
+		// ids de mensaje REALES, exactamente con la forma de messageViewLines: la misma
+		// frontera sobre la que se calculan las huellas de cobertura. Ninguna etiqueta sin prosa: a3
+		// (solo quiz) y los mensajes del alumno no son pasajes.
 		assert.doesNotMatch(view, /TEACHER \[a3\]/);
 		assert.doesNotMatch(view, /TEACHER \[u1\]/);
 		assert.equal(
@@ -356,8 +356,8 @@ describe("transcriptView (pure — teacher prose only, owner 2026-09-28)", () =>
 			"the view body IS the messageViewLines of the transcript — one shared seam",
 		);
 
-		// EVERYTHING else is gone: learner text, quiz blocks, tool notes,
-		// speaker headers — the ruling strips it all.
+		// TODO lo demás desaparece: texto del alumno, bloques de quiz, notas de herramientas,
+		// cabeceras de interlocutor; la decisión lo elimina todo.
 		assert.doesNotMatch(view, /teach me the chain rule/);
 		assert.doesNotMatch(view, /go on/);
 		assert.doesNotMatch(view, /check me/);
@@ -390,7 +390,7 @@ describe("transcriptView (pure — teacher prose only, owner 2026-09-28)", () =>
 	});
 });
 
-// ─── the pipeline ───────────────────────────────────────────────────────────
+// ─── el proceso ─────────────────────────────────────────────────────────────
 
 describe("the extraction pipeline (extractor → auditor → merger)", () => {
 	it("push S5: every registry mutation announces activity-changed; reads stay silent", async () => {
@@ -408,14 +408,14 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		const off = subscribe((e) => {
 			if (e.type === "activity-changed") announces++;
 		});
-		// A read announces nothing (reads are silent — the bus hygiene law).
+		// Una lectura no anuncia nada (las lecturas son silenciosas: la ley de higiene del bus).
 		extractionStatuses();
 		assert.equal(announces, 0);
 
 		await pipeline.runExtraction(chatId);
-		// The run announced its lifecycle: setPhase at registration and every
-		// phase transition, finishExtraction at the exit — several events,
-		// and NONE after settle (the registry is empty; nothing left to say).
+		// La ejecución anunció su ciclo de vida: setPhase al registrarse y en cada
+		// transición de fase, finishExtraction a la salida: varios eventos,
+		// y NINGUNO tras asentarse (el registro está vacío; no queda nada que decir).
 		assert.ok(announces >= 2, `phases + finish announced (got ${announces})`);
 		const afterSettle = announces;
 		extractionStatuses();
@@ -428,10 +428,10 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		const ledgers = memoryLedgers();
 		const verdict: AuditVerdicts = { links: [] };
 
-		// The weak-model failure from the OpenRouter log: the whole array
-		// emitted as a JSON-STRING ("propositions.0: must be object").
-		// pi-agent-core's prepareArguments shim runs BEFORE TypeBox — the
-		// heal parses it, validation passes, no retry burned.
+		// El fallo del modelo débil del log de OpenRouter: todo el array
+		// emitido como CADENA JSON ("propositions.0: must be object").
+		// El parche prepareArguments de pi-agent-core se ejecuta ANTES de TypeBox: la
+		// reparación lo analiza, la validación pasa y no se gasta ningún reintento.
 		const extractor = submitModel("submit_findings", {
 			propositions: JSON.stringify(FINDINGS.propositions),
 			chains: FINDINGS.chains,
@@ -462,8 +462,8 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
 
-		// The auditor passes p1 through and LINKS it to a pre-existing node
-		// (identity verdict); p2 stays a verdict-free create.
+		// El auditor deja pasar p1 y lo ENLAZA a un nodo preexistente
+		// (veredicto de identidad); p2 sigue siendo una creación sin veredicto.
 		const existingId = "n_existing";
 		ledgers.appendNode({
 			id: existingId,
@@ -485,22 +485,22 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		});
 		const stats = await pipeline.runExtraction(chatId);
 
-		// VERDICTS-ONLY (2026-09-28): findings merge in FULL — the linked
-		// p1 creates no node, p2 creates one, and the extractor's edge
-		// resolves through them. (The old echo form could silently drop
-		// content by omitting it; that accidental drop channel is gone.)
+		// SOLO VEREDICTOS (2026-09-28): los hallazgos se fusionan COMPLETOS: el p1
+		// enlazado no crea ningún nodo, p2 crea uno y la arista del extractor
+		// se resuelve a través de ellos. (La antigua forma de eco podía descartar contenido
+		// en silencio por omisión; ese canal de descarte accidental ya no existe).
 		assert.deepEqual(stats, { nodes: 1, chains: 1 });
 
-		// Link-append: the phrasing joined the existing node's aliases and
-		// the provenance unioned; p2's create line is its own node.
-		assert.equal(ledgers.readNodes().length, 3); // pre-seeded + link line + p2's create
+		// Anexado por enlace: la redacción se unió a los alias del nodo existente y
+		// la procedencia se unió; la línea de creación de p2 es su propio nodo.
+		assert.equal(ledgers.readNodes().length, 3); // presembrado + línea de enlace + creación de p2
 		const linkedLines = ledgers.readNodes().filter((n) => n.id === existingId);
 		assert.ok(
 			linkedLines.some((line) => line.provenance.some((pt) => pt.chatId === chatId)),
 			"the link-append unions provenance",
 		);
-		// ANCHORS (2026-10-13): both lines carry their proposition's passage
-		// id — p1's link-append anchors to a2 (its passage), p2's create to a1.
+		// ANCLAS (2026-10-13): ambas líneas llevan el id del pasaje de su proposición:
+		// el anexado por enlace de p1 se ancla a a2 (su pasaje) y la creación de p2 a a1.
 		assert.ok(
 			linkedLines.some((line) => line.provenance.some((pt) => pt.chatId === chatId && pt.messageId === "a2")),
 			"the link-append line carries p1's passage id",
@@ -508,14 +508,14 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		const created = ledgers.readNodes().find((n) => n.name === "Chain rule")!;
 		assert.deepEqual(created.provenance, [{ chatId, messageId: "a1" }], "the created node anchors to p2's passage");
 
-		// COVERAGE checkpointed per message (not a whole-chat checkpoint):
-		// one entry per transcript message, fingerprinted content each —
-		// the same turns are never extracted twice.
+		// COBERTURA registrada por mensaje (no un registro del chat completo):
+		// una entrada por mensaje de la transcripción, cada una con la huella de su contenido;
+		// los mismos turnos nunca se extraen dos veces.
 		const record = chatStore.getChat(chatId)!;
 		const covered = ledgers.readCoverage();
-		// Wave D: the coverage unit is the VISIBLE native message — bonded
-		// riders with no view lines (a textless call message) are context,
-		// never checkpointed.
+		// Oleada D: la unidad de cobertura es el mensaje nativo VISIBLE: los
+		// acompañantes vinculados sin líneas de vista (un mensaje de llamada sin texto) son contexto,
+		// nunca se registran.
 		const visible = record.messages.filter(
 			(m) => messageViewLines(m, m.id).length > 0,
 		).length;
@@ -533,15 +533,15 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 	it("BYOK refusal: no stage engines anywhere → the run throws honestly before any stage (owner, 2026-09-22)", async () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
-		// No direct engines AND no engineFor — the chain came up empty.
+		// Ni motores directos NI engineFor: la cadena salió vacía.
 		const pipeline = createExtractionPipeline({ chatStore, graphStore: ledgers });
 		await assert.rejects(pipeline.runExtraction(chatId), (err: unknown) => {
 			assert.ok(err instanceof ModelsNotConfiguredError);
-			assert.deepEqual(err.envelope.missing, ["cheap"]); // extractor + auditor, both cheap-tier
+			assert.deepEqual(err.envelope.missing, ["cheap"]); // extractor + auditor, ambos de nivel barato
 			assert.equal(err.envelope.code, "models_not_configured");
 			return true;
 		});
-		// nothing ran: no phase residue, no usage, no coverage writes
+		// no se ejecutó nada: sin restos de fase, sin uso, sin escrituras de cobertura
 		assert.equal(ledgers.readCoverage().length, 0);
 	});
 
@@ -568,8 +568,8 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 			assert.deepEqual(err.envelope.slots, ["cheap"], "extractor + auditor are the cheap tier");
 			return true;
 		});
-		// FIRST offender surfaces (extractor before auditor) — and nothing
-		// ran: the refusal lands before any batch, no coverage writes.
+		// Aflora el PRIMER infractor (el extractor antes que el auditor) y no se
+		// ejecutó nada: el rechazo llega antes de cualquier lote, sin escrituras de cobertura.
 		assert.deepEqual(seen, [[extractor.model.provider, "cheap"]]);
 		assert.equal(ledgers.readCoverage().length, 0);
 	});
@@ -596,7 +596,7 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 	it("the LLM cluster-namer is DEAD (wave 7): a merge mints no naming runs — labels are session names now", async () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
-		// Empty verdicts: everything creates (verdicts-only, 2026-09-28).
+		// Veredictos vacíos: todo se crea (solo veredictos, 2026-09-28).
 		const verdict: AuditVerdicts = { links: [] };
 		const pipeline = createExtractionPipeline({
 			chatStore,
@@ -605,10 +605,10 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 			auditor: submitModel("submit_review", verdict),
 		});
 		const stats = await pipeline.runExtraction(chatId);
-		assert.deepEqual(stats, { nodes: 2, chains: 1 }); // full findings merge (verdicts-only)
-		// Wave 7 (950ddfd): birth-session clusters carry session-name labels,
-		// so the post-merge naming garnish is gone — no model spend, no
-		// naming-run records, no label writes.
+		assert.deepEqual(stats, { nodes: 2, chains: 1 }); // fusión completa de los hallazgos (solo veredictos)
+		// Oleada 7 (950ddfd): los clústeres por sesión de nacimiento llevan etiquetas con el nombre de la sesión,
+		// así que el adorno de nombrado tras la fusión ha desaparecido: sin gasto de modelo, sin
+		// registros de ejecuciones de nombrado, sin escrituras de etiquetas.
 	});
 
 
@@ -621,9 +621,9 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		const pipeline = createExtractionPipeline({
 			chatStore,
 			graphStore: ledgers,
-			// NO direct values — the stages resolve ENTIRELY through engineFor
-			// (the role override → slot → factory-pin chain, read fresh per
-			// stage call in production; here, the scripted chain).
+			// SIN valores directos: las etapas se resuelven ENTERAMENTE a través de engineFor
+			// (la cadena sustitución del rol → ranura → fijación de fábrica, leída de nuevo en cada
+			// llamada de etapa en producción; aquí, la cadena guionizada).
 			engineFor: (role) => {
 				consulted.push(role);
 				if (role === "extractor") return submitModel("submit_findings", FINDINGS);
@@ -633,9 +633,9 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		});
 		const stats = await pipeline.runExtraction(chatId);
 		assert.equal(stats.nodes, 2, "the chain-fed pipeline ran end to end — both propositions merged");
-		// The stages were resolved through the chain, in pipeline order
-		// (extractor → auditor; the labeler is fire-and-forget
-		// garnish for any other role).
+		// Las etapas se resolvieron a través de la cadena, en el orden del proceso
+		// (extractor → auditor; el etiquetador es un adorno de lanzar y olvidar
+		// para cualquier otro rol).
 		assert.deepEqual(consulted.slice(0, 2), ["extractor", "auditor"]);
 	});
 
@@ -648,7 +648,7 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 			graphStore: ledgers,
 			extractor: submitModel("submit_findings", FINDINGS),
 			auditor: submitModel("submit_review", verdict),
-			// If the direct values did NOT win, this throw would surface.
+			// Si los valores directos NO ganaran, afloraría este throw.
 			engineFor: (role) => {
 				throw new Error(`engineFor should not be consulted for ${role} when a direct value is set`);
 			},
@@ -665,10 +665,10 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 			chatStore,
 			graphStore: ledgers,
 			extractor: submitModel("submit_findings", FINDINGS),
-			auditor: silentModel(), // never submits the review
+			auditor: silentModel(), // nunca envía la revisión
 		});
-		// The old run-level throw is gone: one failed job is absorbed at
-		// the fan-out — the run resolves with what actually merged (zeros).
+		// El antiguo throw a nivel de ejecución ha desaparecido: una tarea fallida se absorbe en
+		// la difusión; la ejecución se resuelve con lo que realmente se fusionó (ceros).
 		assert.deepEqual(await pipeline.runExtraction(chatId), { nodes: 0, chains: 0 });
 		assert.equal(ledgers.readNodes().length, 0);
 		assert.equal(ledgers.readCheckpoints().length, 0, "no checkpoint — the next trigger re-runs");
@@ -683,10 +683,10 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		assert.deepEqual(await failingExtractor.runExtraction(chatId), { nodes: 0, chains: 0 });
 		assert.equal(ledgers.readCheckpoints().length, 0);
 
-		// THE isolation pin: a two-batch chat whose SECOND extractor call
-		// never submits — batch 1 still merges, batch 2 stays uncovered
-		// (honestly re-runnable). Count at stream-INVOKE time: readiness
-		// probes mint engines without ever calling them.
+		// LA fijación del aislamiento: un chat de dos lotes cuya SEGUNDA llamada al extractor
+		// nunca envía: el lote 1 se fusiona igualmente y el lote 2 queda sin cubrir
+		// (honestamente reejecutable). Cuenta en el momento de INVOCAR el stream: los sondeos
+		// de disponibilidad acuñan motores sin llegar a llamarlos.
 		const { chatId: chunkyId, record } = chunkyChat();
 		let invocations = 0;
 		const findings = findingsStep();
@@ -699,8 +699,8 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		const mixed = createExtractionPipeline({
 			chatStore,
 			graphStore: ledgers,
-			// 4096 budget: the fixture is sized to split in two (the factory
-			// default again — halved back from the digest-era 8192, owner
+			// Presupuesto de 4096: el fixture tiene el tamaño justo para partirse en dos (otra vez el valor
+			// de fábrica, reducido a la mitad desde los 8192 de la época del resumen, responsable
 			// 2026-10-13).
 			getChunkTokens: () => 4096,
 			engineFor: (role) =>
@@ -738,8 +738,8 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		const pipeline = createExtractionPipeline({
 			chatStore,
 			graphStore: ledgers,
-			// Each stage's first generate is the observation point: the
-			// registry must already carry this chat at the right phase.
+			// La primera generación de cada etapa es el punto de observación: el
+			// registro ya debe tener este chat en la fase correcta.
 			extractor: submitModel("submit_findings", FINDINGS, () => seen.push(phaseOf())),
 			auditor: submitModel("submit_review", verdict, () => seen.push(phaseOf())),
 		});
@@ -781,9 +781,9 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 			chatStore,
 			graphStore: ledgers,
 			extractor: submitModel("submit_findings", findingsB),
-			// THE pin: when B's auditor is finally invoked, A's merge must
-			// already be in the ledgers — B explores the post-merge graph,
-			// which is the entire point of the gate.
+			// LA fijación: cuando por fin se invoca el auditor de B, la fusión de A ya
+			// debe estar en los registros: B explora el grafo posterior a la fusión,
+			// que es todo el sentido de la barrera.
 			auditor: submitModel("submit_review", { links: [] }, () => {
 				bAuditorCalled = true;
 				bSawAlphasMerge = ledgers.readNodes().some((n) => n.name === "Alpha claim");
@@ -838,15 +838,15 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		const runB = pipelineB.runExtraction(b.chatId);
 		await until(() => extractionStatuses().some((r) => r.chatId === b.chatId && r.phase === "waiting"));
 
-		// The dock's abort button, pressed while B queues.
+		// El botón de abortar del dock, pulsado mientras B está en cola.
 		assert.equal(abortExtraction(b.chatId), true);
 		assert.deepEqual(await runB, { nodes: 0, chains: 0 }, "aborted before auditing — zero emissions");
 		assert.ok(!bAuditorCalled, "B's auditor was never invoked");
 		assert.ok(!extractionStatuses().some((r) => r.chatId === b.chatId), "B left the registry");
 		assert.equal(ledgers.readCoverage().some((row) => row.chatId === b.chatId), false, "B checkpointed nothing");
 
-		// The chain link B abandoned still resolved: A finishes, and a
-		// THIRD run audits normally — no deadlock residue.
+		// El eslabón de la cadena que abandonó B se resolvió igualmente: A termina, y una
+		// TERCERA ejecución audita con normalidad; sin restos de interbloqueo.
 		gateOpen();
 		assert.deepEqual(await runA, { nodes: 1, chains: 0 });
 		const pipelineC = createExtractionPipeline({
@@ -886,8 +886,8 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		const pipeline = createExtractionPipeline({
 			chatStore,
 			graphStore: ledgers,
-			// During the auditor's generate, the registry must already carry
-			// the extractor's fully accumulated live usage (2 steps × 10/5).
+			// Durante la generación del auditor, el registro ya debe llevar
+			// el uso vivo totalmente acumulado del extractor (2 pasos × 10/5).
 			extractor: recordUsage("extractor", submitModel("submit_findings", FINDINGS)),
 			auditor: recordUsage("auditor", submitModel("submit_review", verdict, () =>
 				usageSeen.push(extractionStatuses().find((r) => r.chatId === chatId)?.usage.extractor?.steps.at(-1)?.inputTokens),
@@ -895,21 +895,21 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		});
 		await pipeline.runExtraction(chatId);
 
-		// Live: mid-audit the extractor's usage was fully accumulated (faux
-		// estimates tokens from the prompt/response text — deterministic,
-		// positive, with native first-conversation cache writes in 1.4).
+		// En vivo: a mitad de la auditoría, el uso del extractor estaba totalmente acumulado (el simulado
+		// estima los tokens a partir del texto del prompt/respuesta: determinista,
+		// positivo, con escrituras nativas de caché de la primera conversación en 1.4).
 		assert.equal(usageSeen.length, 1);
 		assert.ok(typeof usageSeen[0] === "number" && usageSeen[0]! > 0, "the extractor's step billed input tokens");
 
-		// Persisted: the run appended ONE usage entry to the chat's
-		// extractions log — per-stage model + steps, with merge stats.
+		// Persistido: la ejecución anexó UNA entrada de uso al registro de
+		// extracciones del chat: modelo + pasos por etapa, con estadísticas de fusión.
 		const record = chatStore.getChat(chatId)!;
 		assert.equal(record.extractions?.length, 1);
 		const run = record.extractions![0]!;
-		assert.equal(run.stats?.nodes, 1); // p2 created; p1 linked, not created
-		// the scripted engine's model, provider-qualified (model slots wave)
+		assert.equal(run.stats?.nodes, 1); // p2 creado; p1 enlazado, no creado
+		// el modelo del motor guionizado, cualificado con el proveedor (oleada de ranuras de modelo)
 		assert.equal(run.stages.extractor.model, "faux:faux-1");
-		assert.equal(run.stages.extractor.steps.length, 1); // the submit call — the run STOPS after a clean submit
+		assert.equal(run.stages.extractor.steps.length, 1); // la llamada de envío: la ejecución SE DETIENE tras un envío limpio
 		const step = run.stages.extractor.steps[0]!;
 		assert.ok(step.inputTokens! > 0 && step.outputTokens! > 0, "estimated usage captured");
 		assert.equal(step.cacheReadTokens, 0);
@@ -934,24 +934,24 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		const pipeline = createExtractionPipeline({
 			chatStore,
 			graphStore: ledgers,
-			extractor: hangingModel(), // hangs until aborted — no step finishes
+			extractor: hangingModel(), // se cuelga hasta que se aborta: ningún paso termina
 			auditor: submitModel("submit_review", { links: [] }),
 		});
 		const runPromise = pipeline.runExtraction(chatId);
 
-		// The registry entry exists synchronously after the call (setPhase
-		// runs before the first await); abort is TRUE cancellation.
+		// La entrada del registro existe de forma síncrona tras la llamada (setPhase
+		// se ejecuta antes del primer await); el aborto es una cancelación VERDADERA.
 		assert.equal(abortExtraction(chatId), true);
 		const stats = await runPromise;
 
-		// A deliberate stop, not a failure: zero emissions, no throw.
+		// Una parada deliberada, no un fallo: cero emisiones, sin throw.
 		assert.deepEqual(stats, { nodes: 0, chains: 0 });
 		assert.equal(extractionStatuses().length, 0, "the registry clears");
 		assert.equal(ledgers.readNodes().length, 0, "nothing merged");
 		assert.equal(ledgers.readCheckpoints().length, 0, "nothing checkpointed — the next trigger re-runs");
 
-		// Partial usage still persisted (money was spent): stats absent,
-		// no completed steps in either stage.
+		// El uso parcial se persiste igualmente (se gastó dinero): sin estadísticas,
+		// sin pasos completados en ninguna etapa.
 		const record = chatStore.getChat(chatId)!;
 		assert.equal(record.extractions?.length, 1);
 		const run = record.extractions![0]!;
@@ -959,7 +959,7 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		assert.equal(run.stages.extractor.steps.length, 0);
 		assert.equal(run.stages.auditor.steps.length, 0);
 
-		// Aborting a non-running chat is an idempotent no-op.
+		// Abortar un chat que no está en ejecución no hace nada y es idempotente.
 		assert.equal(abortExtraction(chatId), false);
 	});
 
@@ -967,7 +967,7 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
 
-		// The extractor's first call hangs until we release it.
+		// La primera llamada del extractor se cuelga hasta que la liberamos.
 		let release!: () => void;
 		const gate = new Promise<void>((resolve) => {
 			release = resolve;
@@ -989,13 +989,13 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		});
 
 		const first = pipeline.runExtraction(chatId);
-		const second = await pipeline.runExtraction(chatId); // in-flight → zeros
+		const second = await pipeline.runExtraction(chatId); // en curso → ceros
 		assert.deepEqual(second, { nodes: 0, chains: 0 });
 
 		release();
-		// The gated extractor never submits — an ISOLATED job failure now
-		// (per-chunk jobs, owner 2026-09-28): the run resolves with zeros
-		// instead of throwing.
+		// El extractor con barrera nunca envía: ahora es un fallo de tarea AISLADO
+		// (tareas por fragmento, responsable 2026-09-28): la ejecución se resuelve con ceros
+		// en vez de lanzar.
 		assert.deepEqual(await first, { nodes: 0, chains: 0 });
 	});
 
@@ -1003,8 +1003,8 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
 
-		// Gated extractor: the first call hangs until released, so the run
-		// stays registered while we observe it.
+		// Extractor con barrera: la primera llamada se cuelga hasta que se libera, así que la ejecución
+		// sigue registrada mientras la observamos.
 		let release!: () => void;
 		const gate = new Promise<void>((resolve) => {
 			release = resolve;
@@ -1023,9 +1023,9 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 			extractor: gatedExtractor,
 			auditor: silentModel(),
 		});
-		// A SECOND instance over DIFFERENT ledgers — the observer a separate
-		// route entry's module instance is in dev (the turn-liveness lesson:
-		// module instances split; globalThis does not).
+		// Una SEGUNDA instancia sobre registros DISTINTOS: el observador que es la instancia del
+		// módulo de otra entrada de ruta en desarrollo (la lección de la vida del turno: las
+		// instancias de módulo se separan; globalThis no).
 		const observer = createExtractionPipeline({
 			chatStore,
 			graphStore: memoryLedgers(),
@@ -1034,8 +1034,8 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 		});
 
 		const first = pipeline.runExtraction(chatId);
-		// The synchronous prefix (setPhase at batch start) registers BEFORE
-		// the first await — the run is visible the moment it starts.
+		// El prefijo síncrono (setPhase al inicio del lote) se registra ANTES del
+		// primer await: la ejecución es visible en el momento en que empieza.
 		assert.ok(
 			extractionStatuses().some((run) => run.chatId === chatId && run.phase === "extracting"),
 			"the run is registered at start",
@@ -1062,10 +1062,10 @@ describe("the extraction pipeline (extractor → auditor → merger)", () => {
 	});
 });
 
-// ─── message anchors (messageId — owner, 2026-10-13) ────────────────────────
+// ─── anclas de mensaje (messageId; responsable, 2026-10-13) ─────────────────
 
 describe("message anchors (session propositions carry their passage's id)", () => {
-	/** A single-proposition submit with an explicit anchor. */
+	/** Un envío de una sola proposición con un ancla explícita. */
 	const anchored = (messageId: string) => ({
 		propositions: [
 			{ id: "p1", name: "Anchor claim", statement: "Anchor claim, full precision.", aliases: [], messageId },
@@ -1073,7 +1073,7 @@ describe("message anchors (session propositions carry their passage's id)", () =
 		chains: [],
 	});
 
-	/** One scripted extractor turn: a submit_findings tool call. */
+	/** Un turno guionizado del extractor: una llamada a la herramienta submit_findings. */
 	const submitStep = (payload: unknown): FauxResponseStep => () =>
 		fauxAssistantMessage(
 			[fauxToolCall("submit_findings", payload as ToolCall["arguments"], { id: "anchor-call" })],
@@ -1083,10 +1083,10 @@ describe("message anchors (session propositions carry their passage's id)", () =
 	it("a submit MISSING messageId never passes: the schema rejects every turn — nothing merges, nothing checkpoints", async () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
-		// The degraded shape: propositions without anchors, chains present —
-		// only the REQUIRED field is missing, and the schema refuses it on
-		// every turn until the budget is gone (the required-field doctrine,
-		// 2026-09-28, now covering the anchor too).
+		// La forma degradada: proposiciones sin anclas y cadenas presentes;
+		// solo falta el campo OBLIGATORIO, y el esquema lo rechaza en
+		// cada turno hasta agotar el presupuesto (la doctrina de los campos obligatorios,
+		// 2026-09-28, que ahora cubre también el ancla).
 		const bare = () =>
 			fauxEngine(
 				Array.from({ length: 4 }, () =>
@@ -1109,9 +1109,9 @@ describe("message anchors (session propositions carry their passage's id)", () =
 	it("an EMPTY or UNKNOWN anchor rides the error-back channel: refused, the model re-anchors clean, then merges", async () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
-		// Three bad anchors, all schema-valid (messageId is a string) — only
-		// the anchor law refuses them: empty, a LEARNER message of this very
-		// chat (real id, not a teacher passage), and pure fiction.
+		// Tres anclas malas, todas válidas para el esquema (messageId es una cadena); solo
+		// la ley de anclas las rechaza: vacía, un mensaje del ALUMNO de este mismo
+		// chat (id real, no un pasaje del profesor) y pura ficción.
 		const extractor = fauxEngine([
 			submitStep(anchored("")),
 			submitStep(anchored("u1")),
@@ -1130,11 +1130,11 @@ describe("message anchors (session propositions carry their passage's id)", () =
 	});
 
 	it("the boundary is the CURRENT BATCH: a real teacher message id from another batch is refused, the in-batch retry merges", async () => {
-		const { chatId } = chunkyChat(); // deterministic batches [a1,a2,a3] + [a4,a5] at the 4096 budget
+		const { chatId } = chunkyChat(); // lotes deterministas [a1,a2,a3] + [a4,a5] con el presupuesto de 4096
 		const ledgers = memoryLedgers();
-		// Batch 1: "a5" is a REAL teacher-prose id of this very chat — but it
-		// lives in batch 2, so this stretch refuses it; the re-anchor to "a2"
-		// merges. Batch 2 anchors to its own "a4".
+		// Lote 1: "a5" es un id REAL de prosa del profesor de este mismo chat, pero
+		// está en el lote 2, así que este tramo lo rechaza; el reanclaje a "a2"
+		// se fusiona. El lote 2 se ancla a su propio "a4".
 		const extractor = fauxEngine([
 			submitStep(anchored("a5")),
 			submitStep(anchored("a2")),
