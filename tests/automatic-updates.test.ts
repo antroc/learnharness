@@ -1,5 +1,6 @@
-/** Actual shell functions with fake Electron/updater/filesystem. No app,
- * profile, network, timer or updater download/install operation is run. */
+/** Funciones reales del armazón con Electron/actualizador/sistema de ficheros
+ * falsos. No se ejecuta ninguna app, perfil, red, temporizador ni operación
+ * de descarga/instalación del actualizador. */
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
@@ -88,8 +89,8 @@ function fixture({ packaged = true, updaterMissing = false } = {}) {
 	const context = createContext({
 		require: (id: string) => {
 			if (id === "electron") return electron;
-			// The actual dev readiness helper is tested separately; keep this
-			// updater shell fixture entirely offline and already ready.
+			// El auxiliar real de disponibilidad de desarrollo se prueba aparte; mantén esta
+			// fixture del armazón del actualizador totalmente sin conexión y ya lista.
 			if (id === "./dev-server-readiness.cjs") return { waitForDevServer: async () => {} };
 			if (id === "electron-updater") {
 				if (updaterMissing) throw new Error("missing updater");

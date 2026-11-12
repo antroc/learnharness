@@ -1,12 +1,14 @@
 /**
- * SESSION-KIND PINS (practice sessions, owner 2026-10-04): ChatRecord.kind
- * is ABSENT-BY-DEFAULT — absence reads as teach, so pre-practice records
- * never migrate; "practice" marks an adaptive-practice session (the
- * practice agent + its two tools from turn 1, no extraction, no graph
- * writes). The store normalizes at the summary projection; createChat
- * stamps the marker only for practice. Runs under an isolated LH_DATA_DIR
- * (the chat-birth-stamp discipline: the seam is set before any
- * config-loading import, so every app-module import is dynamic).
+ * FIJACIONES DEL TIPO DE SESIÓN (sesiones de práctica, responsable
+ * 2026-10-04): ChatRecord.kind está AUSENTE POR DEFECTO; la ausencia se lee
+ * como enseñanza, así que los registros anteriores a la práctica nunca
+ * migran; "practice" marca una sesión de práctica adaptativa (el agente de
+ * práctica + sus dos herramientas desde el turno 1, sin extracción ni
+ * escrituras en el grafo). El almacén normaliza en la proyección del resumen;
+ * createChat sella el marcador solo para la práctica. Se ejecuta con un
+ * LH_DATA_DIR aislado (la disciplina de chat-birth-stamp: la frontera se fija
+ * antes de cualquier import que cargue la configuración, así que todos los
+ * imports de módulos de la app son dinámicos).
  */
 
 import assert from "node:assert/strict";
@@ -15,7 +17,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
 
-// ── the seam, BEFORE any config-loading import ──────────────────────────────
+// ── la frontera, ANTES de cualquier import que cargue la configuración ──────
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-chat-kind-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 

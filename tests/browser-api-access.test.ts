@@ -1,7 +1,8 @@
 /**
- * Browser-only mode (`npm run dev` / `npm start`) has no desktop secret, so
- * the API is guarded by where it listens, a Host check against DNS rebinding,
- * and a cross-site check on writes. None of this is user authentication.
+ * El modo solo navegador (`npm run dev` / `npm start`) no tiene secreto de
+ * escritorio, así que la API se protege por el lugar donde escucha, una
+ * comprobación de Host contra el DNS rebinding y una comprobación entre
+ * sitios en las escrituras. Nada de esto es autenticación de usuarios.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

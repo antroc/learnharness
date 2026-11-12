@@ -181,7 +181,7 @@ test("rotated-token persistence failure invalidates existing leases and never re
 		const catalog = await f.service.models();
 		const expected = { expectedAccountId: catalog.accountId, expectedAuthorityRevision: catalog.authorityRevision, selectedModelId: "gpt-5" };
 		await f.rawLease(false, expected);
-		// Advance time rather than mutating the service's private state.
+		// Avanza el tiempo en vez de mutar el estado privado del servicio.
 		const now = Date.now; Date.now = () => now() + 3600000;
 		try {
 			failWrite = true;
@@ -310,12 +310,12 @@ for (const holdVerification of [false, true]) test(`invalid rotating replacement
 			await restarted.service.logout(restricted.id);
 			assert.equal(restarted.requests.find((r) => r.form?.has("token_type_hint"))!.form!.get("token"), "likely-latest-revoke-handle");
 			assert.equal(restarted.saved.registrations[0].reconnectRequired, true);
-			// Earlier select/consent/logout notifications have already settled changed.
-			// Arm before this login and await its pending -> terminal transition instead.
+			// Las notificaciones anteriores de selección/consentimiento/cierre de sesión ya asentaron changed.
+			// Arma antes de este login y espera su transición de pendiente -> terminal.
 			reconnectArmed = true;
 			await restarted.service.login(restricted.id);
 			assert.equal(sawPending, true);
-			await restarted.callback(); // HTTP acknowledgement precedes verification/save.
+			await restarted.callback(); // El acuse HTTP precede a la verificación/guardado.
 			if (holdVerification) {
 				await verificationEntered.promise;
 				assert.equal(completed, false, "the current attempt cannot complete before identity verification");
@@ -370,7 +370,7 @@ for (const holdVerification of [false, true]) test(`observed file write failure 
 		assert.equal((await f.service.status()).accounts[0].connected, false);
 		assert.equal(reads, 1, "a recovered disk never causes a stale credential reload");
 		const writesBeforeReconnect = f.writeCount;
-		// The initial login already settled fixture.changed; observe this attempt instead.
+		// El login inicial ya asentó fixture.changed; observa este intento en su lugar.
 		reconnectArmed = true;
 		await f.service.login(f.saved.activeId); assert.equal(sawPending, true); await f.callback();
 		if (holdVerification) {
@@ -467,7 +467,7 @@ for (const holdVerification of [false, true]) test(`repeated real verified sign-
 	try {
 		const original = f.saved.registrations[0];
 		const writesBeforeRepeat = f.writeCount;
-		// Initial login already settled fixture.changed; arm for this attempt's terminal notification.
+		// El login inicial ya asentó fixture.changed; arma para la notificación terminal de este intento.
 		repeatArmed = true;
 		await f.service.login(); assert.equal(sawPending, true);
 		assert.equal((await f.callback({ client_id: "oaiapp_repeat" })).status, 200);
@@ -633,8 +633,8 @@ for (const holdToken of [false, true]) test(`one app-wide background preference 
 		await f.service.lease(false);
 		const id = f.saved.activeId;
 		await f.service.select(id); assert.equal((await f.service.status()).allowBackgroundUse, false);
-		// A fresh signal per attempt: the fixture's original changed promise
-		// was already resolved by earlier account/consent notifications.
+		// Una señal nueva por intento: la promesa changed original de la fixture
+		// ya la resolvieron las notificaciones anteriores de cuenta/consentimiento.
 		completion = deferred<ChatGPTStatus>();
 		await f.service.login(id);
 		const response = await f.callback(); assert.equal(response.status, 200); await response.text();
@@ -642,8 +642,8 @@ for (const holdToken of [false, true]) test(`one app-wide background preference 
 		let settled = false; void waiting.then(() => { settled = true; }, () => { settled = true; });
 		if (holdToken) {
 			await completedWithin(tokenEntered.promise, "held token request");
-			// Regression only: exhaust the OLD wait while real completion is
-			// explicitly held, rather than relying on machine speed or sleeps.
+			// Solo regresión: agota la espera ANTIGUA mientras la finalización real se
+			// retiene de forma explícita, en vez de depender de la velocidad de la máquina o de esperas.
 			for (let i = 0; i < 100 && (await f.service.status()).pending; i++) await new Promise((r) => setImmediate(r));
 			assert.equal((await f.service.status()).pending, true);
 			assert.equal(f.saved.registrations[0].background, false, "the old assertion would run before replacement was saved");

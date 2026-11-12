@@ -1,9 +1,11 @@
 /**
- * Activity-feed tests — the dock's composition (server/observability.ts).
+ * Pruebas del feed de actividad: la composición del dock
+ * (server/observability.ts).
  *
- * Real stores with fixture chats/jobs, cleaned up in a top-level test.
- * Verifies the cross-chat gathering, running-only filtering, title joins,
- * stable oldest-first ordering, and busy-chat reporting.
+ * Almacenes reales con chats/tareas de fixture, que se limpian en una prueba
+ * de nivel superior. Verifica la recopilación entre chats, el filtrado de
+ * solo las que están en curso, el cruce con los títulos, el orden estable de
+ * la más antigua a la más nueva y el informe de los chats ocupados.
  */
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -18,10 +20,10 @@ import { activityFeed } from "../src/server/observability.ts";
 test("activityFeed: running jobs across ALL chats, running-only, title-joined, oldest first", () => {
 	const chatA = chatStore.createChat("feed chat A");
 	const chatB = chatStore.createChat("feed chat B");
-	// job ids tracked as created — the finally cleanup stays scoped to them even
-	// if the test throws mid-way (test files run as concurrent processes over
-	// the shared data/ scratch; wiping the whole jobs dir would delete other
-	// processes' live fixtures — the wave-4 flake lesson)
+	// ids de tarea registrados al crearse: la limpieza del finally se limita a ellos aunque
+	// la prueba lance a mitad (los ficheros de prueba se ejecutan como procesos concurrentes sobre
+	// el data/ temporal compartido; borrar todo el directorio de tareas eliminaría las fixtures
+	// vivas de otros procesos: la lección de la prueba inestable de la oleada 4)
 	const createdJobs: string[] = [];
 	try {
 		const jobA = jobStore.createJob({ kind: "research", chatId: chatA.id, toolCallId: "tc_a" });
@@ -31,24 +33,24 @@ test("activityFeed: running jobs across ALL chats, running-only, title-joined, o
 		jobStore.updateJob(jobDone.id, { status: "done" });
 		const jobB2 = jobStore.createJob({ kind: "research", chatId: chatB.id, toolCallId: "tc_b2" });
 		createdJobs.push(jobB2.id);
-		// make jobB2 the MOST recently active → should still sort AFTER jobA/jobB (oldest-first).
-		// Explicit later timestamp: the real bump can land in the same ms as creation.
+		// hace que jobB2 sea la activa MÁS reciente → aun así debe ordenarse DESPUÉS de jobA/jobB (de la más antigua a la más nueva).
+		// Marca de tiempo posterior explícita: la actualización real puede caer en el mismo ms que la creación.
 		jobStore.updateJob(jobB2.id, { activity: "second step", updatedAt: new Date(Date.now() + 10).toISOString() });
 
 		const feed = activityFeed();
 		const feedJobs = feed.jobs.filter((j) => [jobA.id, jobB.id, jobB2.id].includes(j.id));
-		assert.equal(feedJobs.length, 3); // done job filtered out
+		assert.equal(feedJobs.length, 3); // la tarea terminada se filtra
 		for (const j of feedJobs) {
 			assert.ok(j.title.length > 0, "title joined onto every job");
 			assert.equal(typeof j.chatId, "string");
 		}
-		// title join is the chat's title
+		// el cruce de título es el título del chat
 		assert.equal(feedJobs.find((j) => j.id === jobA.id)?.title, "feed chat A");
-		// oldest-first on updatedAt: jobA/jobB created before jobB2's bump
+		// de la más antigua a la más nueva según updatedAt: jobA/jobB se crearon antes de la actualización de jobB2
 		const order = feedJobs.map((j) => j.id);
 		assert.equal(order.indexOf(jobB2.id), order.length - 1);
 
-		// extraction runs are absent when the pipeline is idle (registry empty)
+		// las ejecuciones de extracción no aparecen cuando el proceso está en reposo (registro vacío)
 		assert.deepEqual(feed.extractions, []);
 	} finally {
 		fs.unlinkSync(`${PATHS.chats}/${chatA.id}.json`);
@@ -61,8 +63,8 @@ test("activityFeed: running jobs across ALL chats, running-only, title-joined, o
 });
 
 test("activityFeed: contextLimit is the server's live-catalog join (owner amendment, 2026-09-23)", () => {
-	// keyed-provider federation — the same env-key pattern as the
-	// model-catalog tests; file-local (each test file is its own process)
+	// federación de proveedores con clave: el mismo patrón de claves de entorno que las
+	// pruebas del catálogo de modelos; local al fichero (cada fichero de prueba es su propio proceso)
 	process.env.OPENROUTER_API_KEY ??= "test-key-openrouter-catalog";
 	const chat = chatStore.createChat("limit join chat");
 	const createdJobs: string[] = [];
@@ -85,8 +87,8 @@ test("activityFeed: contextLimit is the server's live-catalog join (owner amendm
 
 		const feed = activityFeed();
 		const knownJob = feed.jobs.find((j) => j.id === known.id)!;
-		// pi 1.0.2's catalog: glm-5.3-flash contextWindow 1_048_575 (was
-		// 1_048_576 at 0.87.1 — upstream models.dev refresh).
+		// catálogo de pi 1.0.2: contextWindow de glm-5.3-flash 1_048_575 (era
+		// 1_048_576 en la 0.87.1: actualización de models.dev aguas arriba).
 		assert.equal(knownJob.contextLimit, 1_048_575, "pi's catalog, joined server-side onto the feed");
 		assert.ok(knownJob.costUsd !== null && Math.abs(knownJob.costUsd - 0.0002) < 1e-12, "Pi's price is projected on the server");
 		const unknownJob = feed.jobs.find((j) => j.id === unknown.id)!;

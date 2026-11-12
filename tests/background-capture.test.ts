@@ -79,8 +79,8 @@ function fakeEngine(failSecond = false, fixtureModel = model): PiEngine {
 		fetch: async (_url, init) => {
 			const request = JSON.parse(String(init?.body));
 			assert.equal(request.stream, true);
-			// Exercise the final prepared observer inside asynchronous transport
-			// work as well, so parallel workers test async-local association.
+			// Ejercita también el observador preparado final dentro del trabajo de transporte
+			// asíncrono, para que los workers en paralelo prueben la asociación asíncrona local.
 			await Promise.resolve();
 			capturePreparedBackgroundPayload(request, fixtureModel);
 			calls++;

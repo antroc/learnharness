@@ -1,13 +1,15 @@
 /**
- * The AuthStore fs adapter (auth-keys wave, 2026-09-19) — flat {VAR: value}
- * map at config.AUTH_FILE. THIS FILE is the sole owner of its auth file:
- * LH_AUTH_FILE is redirected to a fresh tmp dir BEFORE the first config
- * import (the seam is module-load-bound — data-dir-seam precedent), so no
- * hand-edited dev/desktop auth.json is ever touched.
+ * El adaptador fs de AuthStore (oleada de claves de autenticación,
+ * 2026-09-19): mapa plano {VAR: valor} en config.AUTH_FILE. ESTE FICHERO es el
+ * único dueño de su fichero de autenticación: LH_AUTH_FILE se redirige a un
+ * directorio temporal nuevo ANTES del primer import de la configuración (la
+ * frontera está ligada a la carga del módulo; precedente de data-dir-seam),
+ * así que nunca se toca un auth.json de desarrollo/escritorio editado a mano.
  *
- * Pinning: absent/corrupt = {} ("no keys yet"); set/delete round-trip with
- * unknown vars preserved verbatim; the file is ALWAYS mode 0600 (secrets);
- * writes are atomic (tmp+rename — no partial JSON state).
+ * Se fija: ausente/corrupto = {} («aún no hay claves»); ida y vuelta de
+ * set/delete conservando tal cual las variables desconocidas; el fichero
+ * SIEMPRE tiene modo 0600 (secretos); las escrituras son atómicas
+ * (temporal+rename: sin estado JSON parcial).
  */
 
 import assert from "node:assert/strict";
@@ -19,7 +21,7 @@ import { after, before, describe, it } from "node:test";
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "lh-auth-store-"));
 process.env.LH_AUTH_FILE = path.join(TMP, "auth.json");
 
-// Import AFTER the env redirect — module-load-bound seam.
+// Importa DESPUÉS de la redirección del entorno: frontera ligada a la carga del módulo.
 const { authStore } = await import("../src/store/auth.ts");
 const { AUTH_FILE } = await import("../config.ts");
 const { isSensitivePath, resolveSourcePath } = await import("../src/agent/tools/fs-shared.ts");
@@ -112,6 +114,6 @@ describe("AuthStore adapter", () => {
 		authStore.setAuthVar("OPENROUTER_API_KEY", "sk-or-v1-final");
 		const files = fs.readdirSync(TMP).filter((f) => f.includes(".tmp-"));
 		assert.deepEqual(files, [], "no tmp file survives the rename");
-		JSON.parse(fs.readFileSync(AUTH_FILE, "utf-8")); // must parse
+		JSON.parse(fs.readFileSync(AUTH_FILE, "utf-8")); // debe poder analizarse
 	});
 });

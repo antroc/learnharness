@@ -15,11 +15,13 @@ import {
 import type { ModelCatalogEntry, ModelSlotName } from "../src/core/index.ts";
 
 /**
- * The BYOK universal gate rendered honestly (owner, 2026-09-22): the server
- * refuses ALL turns with 503 {error, code: "models_not_configured", missing}
- * when a slot tier is unset. These pin the client's pure seams: the refusal
- * detector (the transport throws the 503 body verbatim as the error text),
- * the job-record refusal matcher, and the SetupDialog's prefill.
+ * La barrera universal BYOK renderizada con honestidad (responsable,
+ * 2026-09-22): el servidor rechaza TODOS los turnos con 503 {error, code:
+ * "models_not_configured", missing} cuando no hay un nivel de ranura
+ * definido. Estas pruebas fijan las fronteras puras del cliente: el detector
+ * del rechazo (el transporte lanza el cuerpo del 503 tal cual como texto del
+ * error), el comparador de rechazos de los registros de tareas y el
+ * prerrelleno del SetupDialog.
  */
 
 const REFUSAL = JSON.stringify(modelsNotConfigured(["strong"]));
@@ -35,10 +37,10 @@ describe("parseModelsRefusal — the send refusal detector", () => {
 
 	it("anything else is a real error — null, the honest banner stays", () => {
 		assert.equal(parseModelsRefusal(undefined), null);
-		assert.equal(parseModelsRefusal("Something went wrong"), null); // not JSON
-		assert.equal(parseModelsRefusal('{"error":"A turn is already running"}'), null); // JSON, wrong code
-		assert.equal(parseModelsRefusal('{"code":"models_not_configured","missing":"strong"}'), null); // missing not an array
-		assert.equal(parseModelsRefusal('{"code":"models_not_configured","missing":[42]}'), null); // tiers are strings
+		assert.equal(parseModelsRefusal("Something went wrong"), null); // no es JSON
+		assert.equal(parseModelsRefusal('{"error":"A turn is already running"}'), null); // JSON, código equivocado
+		assert.equal(parseModelsRefusal('{"code":"models_not_configured","missing":"strong"}'), null); // missing no es un array
+		assert.equal(parseModelsRefusal('{"code":"models_not_configured","missing":[42]}'), null); // los niveles son cadenas
 	});
 });
 
@@ -65,8 +67,8 @@ describe("Retry owns no composer recovery draft", () => {
 			await request;
 			assert.equal(model.getState().error?.message, body, "503 stays raw for existing setup/picker routing");
 			assert.ok(parseModelsRefusal(body) || parseProviderKeyRefusal(body));
-			// The existing refusal effect restores only an owned submitted
-			// draft. Retry must leave this slot empty, not replace B with A.
+			// El efecto de rechazo existente solo restaura un borrador enviado propio.
+			// Reintentar debe dejar esta ranura vacía, no sustituir B por A.
 			if (submittedDraft.current !== null) composer = submittedDraft.current;
 			assert.equal(composer, "Unsent text B");
 			assert.deepEqual(model.getState().nativeMessages, durable, "Retry adds no optimistic learner message");
@@ -135,7 +137,7 @@ describe("parseProviderKeyRefusal — the send refusal detector's twin (zero-key
 	});
 
 	it("anything else is a real error — false, the honest banner stays", () => {
-		assert.equal(parseProviderKeyRefusal(REFUSAL), false); // the models refusal is NOT this one
+		assert.equal(parseProviderKeyRefusal(REFUSAL), false); // el rechazo por modelos NO es este
 		assert.equal(parseProviderKeyRefusal("FAILED: headless crashed"), false);
 		assert.equal(parseProviderKeyRefusal(undefined), false);
 		assert.equal(parseProviderKeyRefusal("{not json"), false);

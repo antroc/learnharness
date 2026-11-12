@@ -1,4 +1,4 @@
-/** Execute the real helper entry with fake Electron; no display or user profile. */
+/** Ejecuta la entrada real del auxiliar con un Electron falso; sin pantalla ni perfil de usuario. */
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
@@ -23,7 +23,7 @@ function helperFixture(connected = true, channel = true) {
 	const state = { quits: 0, exits: [] as number[], windows: 0, readinessCalls: 0, stdinReads: 0, signal: undefined as AbortSignal | undefined };
 	const logs: string[] = [];
 	const errors: string[] = [];
-	// Match Electron 44's Windows override, not a native pipe.
+	// Igual que la sustitución de Electron 44 en Windows, no una tubería nativa.
 	const stdin = new Readable({ read() {} });
 	stdin.push(null);
 	const process = Object.assign(new EventEmitter(), {

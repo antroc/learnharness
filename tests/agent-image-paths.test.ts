@@ -1,6 +1,7 @@
-/** Offline integration contracts at the provider boundary: real shared image
- * processing, faux model streams, synthetic rasters, and fake headless I/O.
- * No real browser, provider, learner data, or ambient credentials are used. */
+/** Contratos de integración sin conexión en el límite con el proveedor:
+ * procesado de imágenes compartido real, streams de modelo falsos, rásteres
+ * sintéticos y E/S headless falsa. No se usa ningún navegador, proveedor,
+ * dato del alumno ni credencial del entorno reales. */
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
 import os from "node:os";
@@ -21,7 +22,7 @@ import type { PiEngine } from "../src/agent/models.ts";
 import type { ModelImageResizeOptions } from "../src/agent/image-processing/index.ts";
 import type { HeadlessApi } from "../src/agent/subagents/headless.ts";
 
-// Install storage/auth seams BEFORE importing the agent composition root.
+// Instala las fronteras de almacenamiento/autenticación ANTES de importar la raíz de composición del agente.
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "lh-agent-image-paths-"));
 const originalEnv = process.env;
 const originalFetch = globalThis.fetch;
@@ -91,7 +92,7 @@ function scripted(steps: FauxResponseStep[], resize?: ModelImageResizeOptions, v
 	const engine: PiEngine = {
 		model,
 		streamFn: (model, context, options) => {
-			// Snapshot the actual provider-facing context, not mutable agent state.
+			// Toma una instantánea del contexto real que ve el proveedor, no del estado mutable del agente.
 			requests.push(structuredClone(context));
 			return faux.streamSimple(model, context, options);
 		},
@@ -139,8 +140,8 @@ test("shared teacher read detects valid image content under a non-image extensio
 	const file = path.join(scratch, "lecture-notes.txt");
 	fs.writeFileSync(file, bytes);
 	const { engine, requests } = scripted(readSteps(file));
-	// Pass the actual shared read tool, exercising the teacher's native clone
-	// of read.execute rather than a pre-bound test-only implementation.
+	// Pasa la herramienta read compartida real, ejercitando el clon nativo del profesor
+	// de read.execute en vez de una implementación previnculada solo para pruebas.
 	const agent = createTeacherAgent(undefined, { engine, tools: { read: readTool } });
 	await agent.prompt("Inspect the supplied local file.");
 	assert.equal(requests.length, 2);
@@ -153,7 +154,7 @@ test("shared teacher read detects valid image content under a non-image extensio
 });
 
 test("shared read omits corrupt recognized images without exposing a raw image fallback", async () => {
-	// Valid signature/IHDR, missing pixel data: sniff succeeds, decode fails.
+	// Firma/IHDR válidos, faltan los datos de píxeles: la detección tiene éxito, la decodificación falla.
 	const bytes = png(24, 16).subarray(0, 33);
 	const file = path.join(scratch, "corrupt.png");
 	fs.writeFileSync(file, bytes);
@@ -202,16 +203,16 @@ for (const [role, resize, expected] of [
 		fs.writeFileSync(textFile, "first\nsecond\nthird\nfourth\nfifth");
 		const { engine, requests } = scripted([
 			fauxAssistantMessage([fauxToolCall("read", { path: imageFile }, { id: "registry-image" })], { stopReason: "toolUse" }),
-			// Exact existing heal contract: schema-integer fields encoded as
-			// JSON number strings heal before validation. The path stays intact.
+			// Contrato de reparación existente exacto: los campos enteros del esquema codificados como
+			// cadenas numéricas JSON se reparan antes de la validación. La ruta queda intacta.
 			fauxAssistantMessage([fauxToolCall("read", { path: textFile, offset: "2", limit: "2" }, { id: "registry-text" })], { stopReason: "toolUse" }),
 			fauxAssistantMessage([fauxText("Inspected the image and selected text lines.")]),
 		], resize);
 		const originalExecute = readTool.execute;
 		const forbidden = () => { throw new Error("unexpected job dispatch or handoff"); };
 		const chatStore = { getChat: () => null };
-		// Only context ports are mocked; no app/store imports or explicit
-		// tool overrides. Job/handoff operations must never execute here.
+		// Solo se simulan los puertos de contexto; sin imports de la app/almacén ni sustituciones
+		// explícitas de herramientas. Las operaciones de tarea/traspaso nunca deben ejecutarse aquí.
 		const agent = role === "prober"
 			? createProberAgent({
 				chatId: "offline-read-prober", chatStore,

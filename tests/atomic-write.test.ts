@@ -1,10 +1,11 @@
 /**
- * Crash-safe store writes (#403): src/store/atomic-write.ts. Each save must
- * leave the old bytes or the complete new bytes on the rename path. The
- * opt-in Windows in-place fallback retains the old interruption risk and
- * keeps the temp if writing fails midway. The Windows cases fake the
- * rename errors that held files raise; scripts in the verify skill hold real
- * files open.
+ * Escrituras del almacén a prueba de fallos (#403): src/store/atomic-write.ts.
+ * Cada guardado debe dejar los bytes antiguos o los nuevos completos en la vía
+ * con rename. La alternativa opcional de escritura en el sitio de Windows
+ * mantiene el antiguo riesgo de interrupción y conserva el temporal si la
+ * escritura falla a mitad. Los casos de Windows simulan los errores de rename
+ * que provocan los ficheros retenidos; los scripts de la skill de verificación
+ * mantienen abiertos ficheros reales.
  */
 
 import assert from "node:assert/strict";
@@ -29,7 +30,7 @@ const temps = (file: string) => fs.readdirSync(path.dirname(file)).filter((f) =>
 const fail = (code: string) => Object.assign(new Error(code), { code });
 
 function modelWindows(t: TestContext): void {
-	// Only the platform gate is modeled. These are not native held-handle tests.
+	// Solo se modela la barrera de plataforma. No son pruebas de identificadores retenidos nativos.
 	const platform = Object.getOwnPropertyDescriptor(process, "platform")!;
 	Object.defineProperty(process, "platform", { value: "win32" });
 	t.after(() => Object.defineProperty(process, "platform", platform));
@@ -99,7 +100,7 @@ describe("writeFileAtomicSync", () => {
 		const rename = fs.renameSync;
 		let refusals = 2;
 		t.mock.method(fs, "renameSync", (...args: Parameters<typeof rename>) => {
-			if (refusals-- > 0) throw fail("EPERM"); // scanners holding the fresh temp file
+			if (refusals-- > 0) throw fail("EPERM"); // escáneres que retienen el fichero temporal recién creado
 			return rename(...args);
 		});
 		const warn = t.mock.method(console, "warn", () => {});
@@ -144,7 +145,7 @@ describe("writeFileAtomicSync", () => {
 		const write = fs.writeFileSync;
 		let writes = 0;
 		t.mock.method(fs, "writeFileSync", (...args: Parameters<typeof write>) => {
-			if (++writes === 2) throw fail("ENOSPC"); // the in-place write, after the temp's
+			if (++writes === 2) throw fail("ENOSPC"); // la escritura en el sitio, después de la del temporal
 			return write(...args);
 		});
 		assert.throws(() => writeFileAtomicSync(file, "new", { allowInPlaceFallback: true }), { code: "ENOSPC" });

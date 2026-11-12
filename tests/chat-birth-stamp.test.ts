@@ -1,15 +1,17 @@
 /**
- * The BIRTH STAMP (per-session models, owner ruling 2026-09-28): every
- * session owns its model + thinking level from birth — POST /api/chats
- * stamps the newborn chat verbatim from the settings record's STRONG
- * slot, the new-session default. From then on the strong slot never
- * reaches the session again (in-session picks write the session's own
- * record; resolveConversationSpec prefers chat.settings.model).
+ * EL SELLO DE NACIMIENTO (modelos por sesión, decisión del responsable
+ * 2026-09-28): cada sesión es dueña de su modelo + nivel de razonamiento
+ * desde su nacimiento: POST /api/chats sella el chat recién nacido tal cual a
+ * partir de la ranura STRONG del registro de ajustes, el valor por defecto de
+ * las sesiones nuevas. A partir de ahí la ranura strong nunca vuelve a llegar
+ * a la sesión (las elecciones dentro de la sesión escriben en el registro
+ * propio de la sesión; resolveConversationSpec prefiere chat.settings.model).
  *
- * This pin drives the actual route handler (framework-free
- * Request/Response) under an isolated LH_DATA_DIR — the seam must be set
- * before the first import that transitively loads config.ts, so every
- * app-module import is dynamic (the prompt-overrides discipline).
+ * Esta fijación maneja el manejador de ruta real (Request/Response sin
+ * framework) con un LH_DATA_DIR aislado: la frontera debe fijarse antes del
+ * primer import que cargue de forma transitiva config.ts, así que todos los
+ * imports de módulos de la app son dinámicos (la disciplina de
+ * prompt-overrides).
  */
 
 import assert from "node:assert/strict";
@@ -18,7 +20,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
 
-// ── the seam, BEFORE any config-loading import ──────────────────────────────
+// ── la frontera, ANTES de cualquier import que cargue la configuración ──────
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-birth-stamp-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 
@@ -95,10 +97,10 @@ describe("POST /api/chats — the birth stamp", () => {
 			models: { strong: { model: { provider: "openai", id: "gpt-6-luna" }, thinkingLevel: "low" } },
 		});
 		const second = (await (await post()).json()) as { id: string };
-		// The pre-change session keeps its stamp; the post-change session
-		// carries the new default. This is the regression pin for the
-		// reported bug (2026-09-28): both UIs showed the strong slot while
-		// every chat ran a fossil stamp.
+		// La sesión anterior al cambio conserva su sello; la sesión posterior al cambio
+		// lleva el nuevo valor por defecto. Es la fijación de regresión del
+		// fallo comunicado (2026-09-28): ambas UI mostraban la ranura strong mientras
+		// todos los chats se ejecutaban con un sello fosilizado.
 		const firstRecord = chatStore.getChat(first.id);
 		const secondRecord = chatStore.getChat(second.id);
 		assert.ok(firstRecord && secondRecord);

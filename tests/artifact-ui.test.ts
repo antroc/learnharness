@@ -1,15 +1,16 @@
 /**
- * THE ARTIFACT-UI ROUTE (owner, 2026-10-07): POST /api/chats/:id/artifact-ui
- * persists the learner's invert switch onto a demo/figure steer message
- * (details.ui.inverted) — the silent record-write route (no wake, no SSE).
- * The pure core (setSteerUiInverted) is pinned in tests/demos.test.tsx;
- * this file pins the ROUTE contract: 404 unknown chat, 400 for a bad body
- * or a non-artifact message id, and the record actually carrying the flag
- * after a write.
+ * LA RUTA ARTIFACT-UI (responsable, 2026-10-07): POST
+ * /api/chats/:id/artifact-ui persiste el interruptor de inversión del alumno
+ * en un mensaje de reorientación de demo/figura (details.ui.inverted): la
+ * ruta silenciosa de escritura del registro (sin despertar, sin SSE). El
+ * núcleo puro (setSteerUiInverted) se fija en tests/demos.test.tsx; este
+ * fichero fija el contrato de la RUTA: 404 para un chat desconocido, 400 para
+ * un cuerpo erróneo o un id de mensaje que no es un artefacto, y que el
+ * registro lleve de verdad el indicador tras una escritura.
  *
- * Runs under an isolated LH_DATA_DIR (the chat-birth-stamp discipline:
- * the seam is set before any config-loading import, so every app-module
- * import is dynamic).
+ * Se ejecuta con un LH_DATA_DIR aislado (la disciplina de chat-birth-stamp:
+ * la frontera se fija antes de cualquier import que cargue la configuración,
+ * así que todos los imports de módulos de la app son dinámicos).
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -17,7 +18,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, describe, it } from "node:test";
 
-// ── the seam, BEFORE any config-loading import ──────────────────────────────
+// ── la frontera, ANTES de cualquier import que cargue la configuración ──────
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-artifact-ui-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 

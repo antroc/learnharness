@@ -8,8 +8,8 @@ import { CACHE_RETENTIONS, sanitizeUserSettings, ROLE_SLOT, type UserSettings } 
 import { resolveSettings, resolveConversationSpec, resolveRoleSpec } from "../src/core/settings-resolution.ts";
 import { parseModelsSettingsBody, parseAgentSettingsBody, parseSettingsBody } from "../src/server/settings-body.ts";
 
-// All runtime/store imports follow isolation. No ambient auth, profiles, models,
-// data, provider/CLI calls or network: real adapters stop at payload capture.
+// Todos los imports de tiempo de ejecución/almacén van tras el aislamiento. Sin autenticación del entorno, perfiles, modelos,
+// datos, llamadas a proveedores/CLI ni red: los adaptadores reales se detienen en la captura de la carga.
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), "lh-cache-retention-"));
 const originalEnv = process.env, originalFetch = globalThis.fetch;
 process.env = { PATH: originalEnv.PATH, HOME: directory, NODE_ENV: "test", NODE_TEST_CONTEXT: originalEnv.NODE_TEST_CONTEXT, LH_DATA_DIR: directory, LH_AUTH_FILE: path.join(directory, "auth.json"), ANTHROPIC_API_KEY: "fixture", OPENAI_API_KEY: "fixture", OPENROUTER_API_KEY: "fixture" };
@@ -165,7 +165,7 @@ test("slot source passes native values unchanged; freshness and in-flight snapsh
 		for (const value of [undefined, "long", "short", "none", undefined] as const) {
 			retention = value;
 			const request = engine.streamFn(engine.model, context, { sessionId: "same-agent" });
-			retention = value === "long" ? "short" : "long"; // does not change an operation already started
+			retention = value === "long" ? "short" : "long"; // no cambia una operación ya iniciada
 			await request.result();
 			assert.equal(seen.at(-1)!.cacheRetention, value);
 			assert.equal(Object.hasOwn(seen.at(-1)!, "cacheRetention"), value !== undefined, "default must not inject even an undefined request property");

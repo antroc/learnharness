@@ -1,21 +1,25 @@
 /**
- * THE NO-DRIFT PIN (provider-keys interlude, 2026-09-19): core/auth-keys.ts
- * AUTH_PROVIDER_KEYS claims to be exactly pi-ai's provider→env-var table
- * (minus the owner-spec exclusions). This test re-derives the TRUTH from
- * pi-ai itself and asserts exact equality — so a pi-ai upgrade that adds,
- * renames, or re-labels a provider key FAILS the gate loudly instead of
- * the table drifting silently from what pi actually reads.
+ * LA FIJACIÓN ANTI-DERIVA (interludio de claves de proveedor, 2026-09-19):
+ * AUTH_PROVIDER_KEYS de core/auth-keys.ts dice ser exactamente la tabla
+ * proveedor→variable de entorno de pi-ai (menos las exclusiones de la
+ * especificación del responsable). Esta prueba vuelve a derivar la VERDAD a
+ * partir del propio pi-ai y afirma la igualdad exacta, así que una
+ * actualización de pi-ai que añade, renombra o reetiqueta una clave de
+ * proveedor HACE FALLAR la barrera de forma ruidosa en vez de que la tabla se
+ * desvíe en silencio de lo que pi lee de verdad.
  *
- * Derivation (same mechanism that generated the table): pi-ai's exports
- * map doesn't expose env-api-keys.js as a subpath, so this test
- * deep-imports it by RELATIVE path — tests may; runtime code never does.
- * findEnvKeys with a Proxy env that resolves every var name truthy returns
- * ALL the env vars a provider reads as API keys.
+ * Derivación (el mismo mecanismo que generó la tabla): el mapa de exports de
+ * pi-ai no expone env-api-keys.js como subruta, así que esta prueba lo
+ * importa en profundidad por ruta RELATIVA (las pruebas pueden; el código de
+ * tiempo de ejecución nunca). findEnvKeys con un env Proxy que resuelve como
+ * verdadero cualquier nombre de variable devuelve TODAS las variables de
+ * entorno que un proveedor lee como claves de API.
  *
- * Owner-spec exclusions (asserted ABSENT): github-copilot (OAuth),
- * amazon-bedrock (AWS creds), google-vertex (ADC), azure
- * (needs base URL), the cloudflare account-scoped pair; anthropic keeps
- * ANTHROPIC_API_KEY only (AUTH_TOKEN/OAUTH_TOKEN stay env-only).
+ * Exclusiones de la especificación del responsable (se afirma que FALTAN):
+ * github-copilot (OAuth), amazon-bedrock (credenciales de AWS), google-vertex
+ * (ADC), azure (necesita URL base), la pareja de cloudflare acotada a la
+ * cuenta; anthropic conserva solo ANTHROPIC_API_KEY (AUTH_TOKEN/OAUTH_TOKEN
+ * se quedan solo en el entorno).
  */
 
 import assert from "node:assert/strict";
@@ -24,8 +28,9 @@ import { AUTH_PROVIDER_KEYS, isProviderEnvVar } from "../src/core/auth-keys.ts";
 import { builtinProviders } from "../node_modules/@earendil-works/pi-ai/dist/providers/all.js";
 import { findEnvKeys } from "../node_modules/@earendil-works/pi-ai/dist/env-api-keys.js";
 
-/** pi-ai reads anthropic via AUTH_TOKEN/OAUTH_TOKEN alternates too — those
- *  stay env-only by owner spec; asserted absent below. */
+/** pi-ai lee anthropic también mediante las alternativas AUTH_TOKEN/
+ * OAUTH_TOKEN; por especificación del responsable se quedan solo en el
+ * entorno; más abajo se afirma que faltan. */
 const ANTHROPIC_ALTERNATES = ["ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_OAUTH_TOKEN"];
 
 const EXCLUDED_PROVIDERS = new Set([
@@ -37,21 +42,22 @@ const EXCLUDED_PROVIDERS = new Set([
 	"cloudflare-ai-gateway",
 ]);
 
-/** A proxy env where EVERY var name resolves truthy — findEnvKeys then
- *  returns every env var the provider reads as an API-key source. */
+/** Un env proxy en el que TODO nombre de variable resuelve como verdadero:
+ * findEnvKeys devuelve entonces todas las variables de entorno que el
+ * proveedor lee como fuente de clave de API. */
 const truthyEnv = new Proxy({} as Record<string, string>, {
 	get: (_t, key) => (typeof key === "string" ? "x" : undefined),
 	has: () => true,
 });
 
-/** The truth, derived from pi-ai at test time. */
+/** La verdad, derivada de pi-ai al ejecutar la prueba. */
 function deriveProviders() {
 	const rows: Array<{ id: string; envVar: string; label: string }> = [];
 	for (const p of builtinProviders()) {
 		const keys = findEnvKeys(p.id, truthyEnv);
 		if (!keys || EXCLUDED_PROVIDERS.has(p.id)) continue;
 		const first = keys[0];
-		if (!first) continue; // unreachable with the truthy proxy — satisfies the checker
+		if (!first) continue; // inalcanzable con el proxy verdadero; satisface al comprobador
 		const envVar = p.id === "anthropic" ? "ANTHROPIC_API_KEY" : first;
 		rows.push({ id: p.id, envVar, label: p.name });
 	}

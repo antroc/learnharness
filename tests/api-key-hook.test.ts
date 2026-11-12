@@ -1,23 +1,26 @@
 /**
- * The getApiKey-hook fix (owner, 2026-09-26): both Agent constructions
- * (baseAgentOptions in teacher-agent.ts, runSubagent's loop in
- * subagents/pi-run.ts) used to pass `getApiKey: () => openRouterApiKey()` —
- * and pi-agent-core resolves
+ * El arreglo del hook getApiKey (responsable, 2026-09-26): las dos
+ * construcciones de Agent (baseAgentOptions en teacher-agent.ts y el bucle de
+ * runSubagent en subagents/pi-run.ts) pasaban
+ * `getApiKey: () => openRouterApiKey()`, y pi-agent-core resuelve
  * `(config.getApiKey ? await config.getApiKey(provider) : undefined) || config.apiKey`
- * (agent-loop.js:191), so a provided hook OVERRIDES pi-ai's native
- * per-provider env resolution. The hook ignored its provider arg, so every
- * non-OpenRouter provider was sent the OpenRouter key and 401'd (owner repro:
- * openai:gpt-5.6-luna, anthropic:claude-haiku-4-5 direct).
+ * (agent-loop.js:191), así que un hook aportado SUSTITUYE la resolución
+ * nativa por proveedor desde el entorno de pi-ai. El hook ignoraba su
+ * argumento de proveedor, así que a todos los proveedores que no eran
+ * OpenRouter se les enviaba la clave de OpenRouter y respondían 401
+ * (reproducción del responsable: openai:gpt-5.6-luna,
+ * anthropic:claude-haiku-4-5 directo).
  *
- * The fix is DELETION: with no hook, pi-ai resolves keys natively from the
- * environment per request — the architecture's stated intent (models.ts:
- * "the keys seam reflects file-saved keys into env"). This file pins that
- * the deletion holds: the built agents must expose NO getApiKey hook, so
- * native resolution runs for every provider.
+ * El arreglo es BORRARLO: sin hook, pi-ai resuelve las claves de forma
+ * nativa desde el entorno en cada petición, que es la intención declarada de
+ * la arquitectura (models.ts: "the keys seam reflects file-saved keys into
+ * env"). Este fichero fija que el borrado se mantiene: los agentes construidos
+ * NO deben exponer ningún hook getApiKey, para que la resolución nativa se
+ * ejecute con todos los proveedores.
  *
- * runSubagent's Agent is internal to its promise (no exposed seam); its
- * hook was deleted in the same commit and its behavior is covered by the
- * sub-agent suite's faux engines.
+ * El Agent de runSubagent es interno a su promesa (no expone frontera); su
+ * hook se borró en el mismo commit y su comportamiento lo cubren los motores
+ * falsos de la batería de subagentes.
  */
 
 import assert from "node:assert/strict";
@@ -29,8 +32,9 @@ import { chatStore } from "../src/store/chats.ts";
 import { createFauxCore } from "@earendil-works/pi-ai";
 import type { PiEngine } from "../src/agent/models.ts";
 
-/** A scripted pi engine — the agent builds need an injected engine since
- * BYOK removed the factory pins (owner, 2026-09-22). */
+/** Un motor pi guionizado: las construcciones de agentes necesitan un motor
+ * inyectado desde que BYOK eliminó las fijaciones de fábrica (responsable,
+ * 2026-09-22). */
 function fauxEngine(): PiEngine {
 	const faux = createFauxCore({});
 	return { model: faux.getModel(), streamFn: faux.streamSimple };

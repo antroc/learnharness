@@ -174,7 +174,7 @@ describe("session text fields keep keystrokes local", () => {
 		assert.equal(readPathInput(editor), "");
 		assert.equal(host.querySelector<HTMLButtonElement>('button[aria-label="Send"]')!.disabled, true);
 
-		// The seed is already empty; a new explicit reset must still clear local edits.
+		// La semilla ya está vacía; un nuevo restablecimiento explícito debe seguir borrando las ediciones locales.
 		await typeText(editor, "unsent");
 		await act(async () => { replace(""); });
 		assert.equal(readPathInput(editor), "");

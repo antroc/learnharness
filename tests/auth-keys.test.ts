@@ -1,10 +1,11 @@
 /**
- * The curated auth-key catalog + shape rules (auth-keys wave, 2026-09-19;
- * search wave 2026-09-20: the Google CSE pair retired, Tavily + Brave in)
- * — PURE module, so this file owns no fs. Owner decisions being pinned:
- *  - the catalog contains the known keys, ids = env-var names;
- *  - validation is SHAPE-ONLY (no live pings) and bad pastes are 400s;
- *  - masking is last-4 + length — plaintext never leaves the store.
+ * El catálogo curado de claves de autenticación + las reglas de forma (oleada
+ * de claves de autenticación, 2026-09-19; oleada de búsqueda 2026-09-20: se
+ * retiró la pareja de Google CSE y entraron Tavily + Brave); módulo PURO, así
+ * que este fichero no tiene fs propio. Decisiones del responsable que se fijan:
+ *  - el catálogo contiene las claves conocidas, ids = nombres de variables de entorno;
+ *  - la validación es SOLO DE FORMA (sin pings en directo) y los pegados erróneos son 400;
+ *  - el enmascarado es los últimos 4 + la longitud: el texto en claro nunca sale del almacén.
  */
 
 import assert from "node:assert/strict";
@@ -22,9 +23,9 @@ describe("the catalog", () => {
 			assert.ok(k.description.length > 0, `${k.id} has a description`);
 			assert.ok(k.docsUrl.startsWith("https://"), `${k.id} has a docs link`);
 		}
-		// OPENROUTER_API_KEY graduated to the provider table (owner decision,
-		// provider-keys interlude) — not curated anymore. The Google CSE
-		// pair retired with its engine (search wave, 2026-09-20).
+		// OPENROUTER_API_KEY se graduó a la tabla de proveedores (decisión del responsable,
+		// interludio de claves de proveedor): ya no está curada. La pareja de Google CSE
+		// se retiró con su motor (oleada de búsqueda, 2026-09-20).
 		assert.ok(!isKnownAuthKey("OPENROUTER_API_KEY"));
 		assert.ok(!isKnownAuthKey("GOOGLE_SEARCH_API_KEY"), "the CSE pair is retired");
 		assert.ok(!isKnownAuthKey("GOOGLE_CSE_ID"));

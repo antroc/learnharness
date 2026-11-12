@@ -1,10 +1,11 @@
 /**
- * Wave E stage 3 (owner 2026-10-10): demos run in the app's own Chromium
- * via a --browser-service helper (main.cjs boots a hidden window with a CDP
- * port), system Chrome as fallback. These pin the pure halves of that
- * chain: the handshake line parser and the spawn-env sanitizer. The live
- * chain (spawn → connect → pages() → run) is exercised on dev machines,
- * not in the suite.
+ * Oleada E etapa 3 (responsable 2026-10-10): las demos se ejecutan en el
+ * propio Chromium de la app mediante un auxiliar --browser-service (main.cjs
+ * arranca una ventana oculta con un puerto CDP), con el Chrome del sistema
+ * como alternativa. Estas pruebas fijan las mitades puras de esa cadena: el
+ * analizador de la línea de handshake y el saneador del entorno de
+ * lanzamiento. La cadena en vivo (lanzar → conectar → pages() → ejecutar) se
+ * ejercita en las máquinas de desarrollo, no en la batería.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";

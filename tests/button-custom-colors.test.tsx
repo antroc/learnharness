@@ -16,7 +16,7 @@ function render(props: Props = {}) {
 	return { html, button: document.querySelector<HTMLButtonElement>("button")! };
 }
 const classes = (button: HTMLElement) => button.className.split(" ");
-// Linkedom retains cleared properties as `name:`, unlike browser CSSOM.
+// Linkedom conserva las propiedades borradas como `name:`, a diferencia del CSSOM del navegador.
 const variables = (button: HTMLElement) => Object.fromEntries(
 	(button.getAttribute("style") ?? "").split(";").filter(Boolean).map(value => {
 		const separator = value.indexOf(":"); return [value.slice(0, separator), value.slice(separator + 1)];

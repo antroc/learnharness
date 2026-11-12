@@ -7,9 +7,10 @@ import { parseHTML } from "linkedom";
 import { useBackdropDismiss } from "../components/backdrop-dismiss";
 import { AbortTurnBody } from "../components/abort-turn-dialog";
 
-/** Mounted React handlers, including portal propagation and the browser's
- * common-ancestor click after a cross-boundary press/release. Linkedom does
- * not synthesize that click for us, so each test dispatches it explicitly. */
+/** Manejadores de React montados, incluida la propagación por portales y el
+ * clic del ancestro común del navegador tras pulsar/soltar a través de un
+ * límite. Linkedom no sintetiza ese clic, así que cada prueba lo despacha de
+ * forma explícita. */
 describe("backdrop dismissal requires a whole primary gesture on the scrim", () => {
 	const dom = parseHTML("<html><body></body></html>");
 	const globals = globalThis as Record<string, unknown>;
@@ -24,8 +25,8 @@ describe("backdrop dismissal requires a whole primary gesture on the scrim", () 
 		for (const [key, value] of Object.entries({
 			window: dom.window,
 			document: dom.document,
-			// ReactDOM reads navigator once it sees a DOM; Node can disable
-			// that global. Keep this fallback local and platform-neutral.
+			// ReactDOM lee navigator en cuanto ve un DOM; Node puede desactivar
+			// ese global. Mantén esta alternativa local y neutral respecto a la plataforma.
 			navigator: globals.navigator ?? { userAgent: "", platform: "" },
 			HTMLElement: dom.window.HTMLElement,
 			IS_REACT_ACT_ENVIRONMENT: true,
