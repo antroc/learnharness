@@ -15,8 +15,8 @@ import { applyExifOrientation } from "../src/agent/image-processing/exif-orienta
 import { resizeImageInProcess } from "../src/agent/image-processing/resize-core.mjs";
 import { resizeImage } from "../src/agent/image-processing/resize.ts";
 
-// Synthetic, offline fixtures only. Canvas generates inputs; Photon is the
-// actual processing implementation and supplies independent encoding oracles.
+// Solo fixtures sintéticos y sin conexión. Canvas genera las entradas; Photon es la
+// implementación real del procesado y aporta oráculos de codificación independientes.
 function png(width = 96, height = 96, noise = false): Buffer {
 	const canvas = createCanvas(width, height);
 	const context = canvas.getContext("2d");
@@ -53,7 +53,7 @@ function encodings(bytes: Uint8Array, width: number, height: number, qualities =
 }
 
 function bmp(): Buffer {
-	// A 2x1, uncompressed, 24-bit Windows BMP (padded scanline).
+	// Un BMP de Windows de 2x1, sin comprimir, de 24 bits (línea de barrido con relleno).
 	const bytes = Buffer.alloc(62);
 	bytes.write("BM");
 	bytes.writeUInt32LE(bytes.length, 2);
@@ -126,14 +126,14 @@ test("model dimensions use sequential rounding, not a one-step scale", async () 
 	assert.equal(result.data, encodings(png(301, 503), 60, 100)[0]!.data);
 	const rounding = await resizeImage(png(50, 77), "image/png", { maxWidth: 10, maxHeight: 10 });
 	assert.ok(rounding);
-	assert.equal(rounding.width, 7); // round(100 / round(77 * 10 / 50)); one-step gives 6.
+	assert.equal(rounding.width, 7); // round(100 / round(77 * 10 / 50)); en un solo paso da 6.
 	assert.equal(rounding.height, 10);
 });
 
 test("native cap is strict and measures base64 bytes, not binary bytes", async () => {
 	const source = png(24, 24);
-	// A valid PNG with ignored trailing bytes: under 4.5 MiB binary, exactly
-	// 4.5 MiB base64. At equality the unchanged fast path must NOT run.
+	// Un PNG válido con bytes finales ignorados: por debajo de 4,5 MiB en binario, exactamente
+	// 4,5 MiB en base64. En la igualdad NO debe ejecutarse la vía rápida sin cambios.
 	const padded = Buffer.alloc((4.5 * 1024 * 1024 / 4) * 3);
 	source.copy(padded);
 	assert.ok(padded.length < 4.5 * 1024 * 1024);
@@ -169,7 +169,7 @@ test("JPEG quality selection is native first-fit [80,85,70,55,40], not smallest 
 	const at80 = await resizeImage(bytes, "image/png", { maxBytes: candidates[1]!.data.length + 1 });
 	assert.ok(at80);
 	assert.equal(at80.data, candidates[1]!.data);
-	// Strict equality excludes 80; 85 is larger, so 70 is the next fit.
+	// La igualdad estricta excluye 80; 85 es mayor, así que 70 es el siguiente que cabe.
 	const at70 = await resizeImage(bytes, "image/png", { maxBytes: candidates[1]!.data.length });
 	assert.ok(at70);
 	assert.equal(at70.data, candidates[3]!.data);
@@ -240,21 +240,21 @@ test("EXIF-oriented dimensions govern resizing, with native unchanged-byte behav
 
 test("EXIF mirrors and rotations preserve exact pixel placement for JPEG and both WebP EXIF layouts", () => {
 	const expected = [
-		[1, 2, 3, 4, 5, 6], // unchanged
-		[3, 2, 1, 6, 5, 4], // horizontal mirror
-		[6, 5, 4, 3, 2, 1], // 180 degrees
-		[4, 5, 6, 1, 2, 3], // vertical mirror
-		[1, 4, 2, 5, 3, 6], // transpose
-		[4, 1, 5, 2, 6, 3], // 90 degrees clockwise
-		[6, 3, 5, 2, 4, 1], // transverse
-		[3, 6, 2, 5, 1, 4], // 90 degrees counterclockwise
+		[1, 2, 3, 4, 5, 6], // sin cambios
+		[3, 2, 1, 6, 5, 4], // espejo horizontal
+		[6, 5, 4, 3, 2, 1], // 180 grados
+		[4, 5, 6, 1, 2, 3], // espejo vertical
+		[1, 4, 2, 5, 3, 6], // transposición
+		[4, 1, 5, 2, 6, 3], // 90 grados en sentido horario
+		[6, 3, 5, 2, 4, 1], // transversal
+		[3, 6, 2, 5, 1, 4], // 90 grados en sentido antihorario
 	];
 	for (let orientation = 1; orientation <= 8; orientation++) {
 		const jpeg = exifJpeg(orientation);
-		// Only metadata is needed here: decoding is covered by the resize test.
+		// Aquí solo hacen falta los metadatos: la decodificación la cubre la prueba de redimensionado.
 		const exif = jpeg.subarray(6, 38);
 		for (const metadata of [jpeg, ...[exif, exif.subarray(6)].map((data) => {
-			// Odd-size RIFF chunk before EXIF verifies native even-byte padding.
+			// Un fragmento RIFF de tamaño impar antes de EXIF verifica el relleno nativo a byte par.
 			const webp = Buffer.alloc(12 + 10 + 8 + data.length);
 			webp.write("RIFF", 0);
 			webp.writeUInt32LE(webp.length - 8, 4);
@@ -306,7 +306,7 @@ test("MIME sniffing matches native supported signatures and rejects APNG/JPEG-LS
 	assert.equal(detectSupportedImageMimeType(Buffer.from("not an image")), null);
 	const truncatedPng = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 	assert.equal(detectSupportedImageMimeType(truncatedPng), null);
-	// MIME sniffing, like Pi, walks chunk headers without checking CRCs.
+	// La detección del MIME, como en Pi, recorre las cabeceras de los fragmentos sin comprobar los CRC.
 	const source = png(2, 2);
 	const acTL = Buffer.alloc(20);
 	acTL.writeUInt32BE(8, 0);

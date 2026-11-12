@@ -1,25 +1,25 @@
-/** Hand-built PDFs for the pdf-markdown tests: every run is placed Helvetica text, so each test
- * states the exact page layout it means (positions, sizes, stream order, hidden scanner text). */
+/** PDF hechos a mano para las pruebas de pdf-markdown: cada secuencia es texto Helvetica colocado, así que cada prueba
+ * declara la maquetación exacta de página que pretende (posiciones, tamaños, orden del stream, texto oculto del escáner). */
 export interface Run {
 	text: string;
 	x: number;
 	y: number;
 	size?: number;
-	/** Render mode 3: the hidden text layer a scanner lays over its page image. */
+	/** Modo de renderizado 3: la capa de texto oculta que un escáner coloca sobre la imagen de su página. */
 	invisible?: boolean;
-	/** Turned 90°, like an arXiv margin stamp. */
+	/** Girado 90°, como un sello en el margen de arXiv. */
 	rotated?: boolean;
 }
 
 export interface TinyPage {
 	runs?: Run[];
-	/** A full-page picture: ordinary XObject, stencil mask, or inline bitmap. */
+	/** Una imagen a página completa: XObject normal, máscara de estarcido o mapa de bits en línea. */
 	image?: boolean | "mask" | "inline";
 }
 
 const WIDTH = 612;
 const HEIGHT = 792;
-// WinAnsiEncoding bytes for the punctuation the tests use.
+// Bytes WinAnsiEncoding de los signos de puntuación que usan las pruebas.
 const WIN_ANSI: Record<string, number> = { "•": 0x95, "–": 0x96, "—": 0x97, "’": 0x92 };
 
 function pdfString(text: string): string {
@@ -43,7 +43,7 @@ function content(page: TinyPage): string {
 	return ops.join("\n");
 }
 
-// "~" maps to U+0014, a control character real fonts emit for stretchy math glyphs (math-for-ml).
+// "~" corresponde a U+0014, un carácter de control que las fuentes reales emiten para los glifos matemáticos extensibles (math-for-ml).
 const TO_UNICODE = "/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CMapName /Tiny def /CMapType 2 def\n"
 	+ "1 begincodespacerange <00> <FF> endcodespacerange\n1 beginbfchar <7E> <0014> endbfchar\n"
 	+ "endcmap CMapName currentdict /CMap defineresource pop end end";
@@ -64,7 +64,7 @@ export function tinyPdf(pages: readonly TinyPage[]): Uint8Array<ArrayBuffer> {
 			`<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`,
 		);
 	}
-	// Two distinct stencil rows avoid pdfjs's solid-color-mask fast path.
+	// Dos filas de estarcido distintas evitan la vía rápida de máscara de color sólido de pdfjs.
 	objects.push("<< /Type /XObject /Subtype /Image /Width 2 /Height 2 /ImageMask true /BitsPerComponent 1 /Length 2 >>\nstream\n\x80\x40\nendstream");
 	let pdf = "%PDF-1.4\n";
 	const offsets: number[] = [];

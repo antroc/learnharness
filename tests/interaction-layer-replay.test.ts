@@ -19,8 +19,8 @@ it("a hook can detach/reconnect its same logical lease without duplicate registr
 	const f = fixture(); const first = f.store.getLayer("picker")!;
 	f.detach();
 	assert.equal(f.store.getLayer("picker"), undefined); assert.equal(f.lease.owns(), true); assert.equal(f.revokes, 0);
-	f.store.register(f.input, {}); // Another hook cannot claim this still-owned lease.
-	f.store.register(f.input); // Neither can an unqualified imperative registration.
+	f.store.register(f.input, {}); // Otro hook no puede reclamar este préstamo que aún tiene responsable.
+	f.store.register(f.input); // Tampoco puede un registro imperativo sin cualificar.
 	assert.equal(f.store.getLayer("picker"), undefined); assert.equal(f.lease.owns(), true);
 	const detachAgain = f.store.register(f.input, f.effectOwner);
 	const second = f.store.getLayer("picker")!;

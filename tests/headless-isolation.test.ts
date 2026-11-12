@@ -1,8 +1,8 @@
 /**
- * Demo pages run model-written markup. They must load in
- * memory (opaque origin), never as a file:// document that can read local
- * files, and requests for schemes other than web/data ones are aborted while
- * they run. The helper's page is reused, so the filter must come off again.
+ * Las páginas de demo ejecutan marcado escrito por el modelo. Deben cargarse en
+ * memoria (origen opaco), nunca como un documento file:// que pueda leer ficheros
+ * locales, y las peticiones a esquemas distintos de los web/data se abortan mientras
+ * se ejecutan. La página del auxiliar se reutiliza, así que el filtro debe volver a quitarse.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -40,7 +40,7 @@ function fakePage(opts: { url?: string; setContentError?: Error; resetError?: Er
 			return page;
 		},
 	};
-	/** Send one request through every registered handler; returns what they decided. */
+	/** Envía una petición a través de todos los manejadores registrados; devuelve lo que decidieron. */
 	const request = (url: string) => {
 		const decisions: string[] = [];
 		const req = {

@@ -28,10 +28,10 @@ function fixture() {
 	const originalFocus = prototype.focus;
 	const originalSetAttribute = prototype.setAttribute;
 	const legacyInputDescriptors = new Map(["attachEvent", "detachEvent"].map(key => [key, Object.getOwnPropertyDescriptor(prototype, key)]));
-	// ReactDOM was imported for SSR before a browser existed; its legacy
-	// input-event branch needs these stubs in linkedom (not in Chromium).
+	// ReactDOM se importó para el SSR antes de que existiera un navegador; su rama antigua
+	// de eventos de entrada necesita estos parches en linkedom (no en Chromium).
 	Object.assign(prototype, { attachEvent() {}, detachEvent() {} });
-	// linkedom preserves camel-cased HTML attributes, unlike Chromium.
+	// linkedom conserva los atributos HTML en camelCase, a diferencia de Chromium.
 	prototype.setAttribute = function (name: string, value: string) { originalSetAttribute.call(this, name.toLowerCase(), value); };
 	let focusCalls = 0;
 	prototype.focus = function () {
@@ -79,8 +79,8 @@ function fixture() {
 afterEach(async () => {
 	await act(async () => { root?.unmount(); });
 	root = null;
-	// Flush only our and FocusScope's documented delayed cleanup, before
-	// removing this fixture's DOM. No browser, app server or user data involved.
+	// Vacía solo nuestra limpieza diferida documentada y la de FocusScope, antes de
+	// quitar el DOM de este fixture. No intervienen navegador, servidor de la aplicación ni datos de usuario.
 	await new Promise(resolve => setTimeout(resolve, 5));
 	cleanupGlobals?.();
 	cleanupGlobals = null;
@@ -176,8 +176,8 @@ it("routes React leaf Escape before modal dismissal and still delivers prevented
 		const event = new f.dom.window.Event("keydown", { bubbles: true, cancelable: true });
 		Object.assign(event, { key: name });
 		await act(async () => {
-			// linkedom does not implement window capture. Exercise that exact
-			// provider step before the real React target/document bubble path.
+			// linkedom no implementa la captura de window. Ejercita ese paso exacto del
+			// proveedor antes de la ruta real de burbujeo del destino/documento de React.
 			f.controller().captureKeyDown(event as unknown as KeyboardEvent);
 			target.dispatchEvent(event);
 		});

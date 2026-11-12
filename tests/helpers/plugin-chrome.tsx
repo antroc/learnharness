@@ -13,7 +13,7 @@ export const pluginInfo = (id = "fixture"): PluginInfo => ({
 	manifest: { apiVersion: 1, id, name: `Plugin ${id}`, version: "1.0.0", minAppVersion: "0.4.1", main: "main.js" },
 });
 
-/** In-memory plugins/fetch only: never opens a real data directory or provider. */
+/** Solo plugins/fetch en memoria: nunca abre un directorio de datos ni un proveedor reales. */
 export async function mountPluginChrome(frontend: PluginFrontendModule, children: ReactNode) {
 	const dom = parseHTML("<html><head></head><body><div id='root'></div></body></html>");
 	const globals = {
@@ -34,8 +34,8 @@ export async function mountPluginChrome(frontend: PluginFrontendModule, children
 	const saved = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
 	Object.assign(globalThis, globals);
 	const restoreModalDom = installModalDom(dom);
-	// Chrome measurement keeps its fixture-specific geometry; modal shims
-	// still supply focus, legacy-input, traversal and event support.
+	// La medición del envoltorio conserva su geometría específica del fixture; los parches modales
+	// siguen aportando el soporte de foco, entrada antigua, recorrido y eventos.
 	Object.assign(globalThis, { getComputedStyle: globals.getComputedStyle });
 	Object.assign(dom.window, { getComputedStyle: globals.getComputedStyle });
 	Object.defineProperty(dom.window, "innerWidth", { configurable: true, value: 900, writable: true });
@@ -76,7 +76,7 @@ export async function mountPluginChrome(frontend: PluginFrontendModule, children
 		async click(element: HTMLElement) { await act(async () => { element.dispatchEvent(new dom.window.Event("click", { bubbles: true })); }); },
 		async close() {
 			await act(async () => { root.unmount(); });
-			// FocusScope's delayed unmount event still needs the fixture DOM.
+			// El evento de desmontaje diferido de FocusScope sigue necesitando el DOM del fixture.
 			await new Promise(resolve => setTimeout(resolve, 5));
 			restore();
 		},

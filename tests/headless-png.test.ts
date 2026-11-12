@@ -4,22 +4,22 @@ import * as zlib from "node:zlib";
 import { providerSafePng } from "../src/agent/subagents/headless.ts";
 
 /**
- * The 2026-09-19 visual-maker fix (the "image format is illegal" 400s):
- * Chrome writes PNGs with a SPLIT IDAT stream (4KB chunks); Alibaba's vision
- * decoder — behind OpenRouter's qwen3.8-flash, the visual-maker's look-model —
- * rejected those during the 2026-09-18/19 window while every single-IDAT form
- * passed. providerSafePng merges the split back into the canonical ONE-IDAT
- * form (PNG spec: the IDAT chunks are an arbitrary split of ONE zlib stream —
- * the merged form carries the byte-identical stream). Pure Node on purpose:
- * historically the process already carried a native image lib via
- * @huggingface/transformers' nested sharp/libvips, and a second copy (root
- * sharp) triggered macOS's duplicate-libvips ObjC warning — the transformers
- * embedder died with wave 6 (2026-09-23) but the no-native-deps rule lives
- * on: app code carries no image library. These tests pin the property with
- * no native deps at all.
+ * El arreglo de visual-maker del 2026-09-19 (los 400 de "image format is illegal"):
+ * Chrome escribe PNG con un stream IDAT PARTIDO (fragmentos de 4KB); el decodificador
+ * de visión de Alibaba (detrás del qwen3.8-flash de OpenRouter, el modelo que mira de visual-maker)
+ * los rechazaba durante la ventana del 2026-09-18/19 mientras que todas las formas de un solo IDAT
+ * pasaban. providerSafePng vuelve a unir la partición en la forma canónica de UN IDAT
+ * (especificación PNG: los fragmentos IDAT son una partición arbitraria de UN stream zlib;
+ * la forma unida lleva el stream idéntico byte a byte). Node puro a propósito:
+ * históricamente el proceso ya llevaba una biblioteca de imagen nativa a través del
+ * sharp/libvips anidado de @huggingface/transformers, y una segunda copia (sharp en la
+ * raíz) provocaba el aviso ObjC de libvips duplicada en macOS; el embedder de transformers
+ * murió con la oleada 6 (2026-09-23), pero la regla de no tener dependencias nativas sigue
+ * viva: el código de la aplicación no lleva ninguna biblioteca de imágenes. Estas pruebas fijan la propiedad sin
+ * ninguna dependencia nativa.
  */
 
-// ── a tiny PNG toolchain (spec-level, no image library) ─────────────────────
+// ── una cadena de herramientas PNG mínima (a nivel de especificación, sin biblioteca de imágenes) ──
 
 const PNG_SIG = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
@@ -54,23 +54,23 @@ function walkChunks(png: Buffer): Array<{ type: string; data: Buffer }> {
 	return chunks;
 }
 
-/** Build a VALID multi-IDAT PNG — exactly Chrome's shape: one IHDR, the
- *  compressed scanlines split across ≥2 IDAT chunks, one IEND. */
+/** Construye un PNG multi-IDAT VÁLIDO, exactamente con la forma de Chrome: un IHDR, las
+ *  líneas de barrido comprimidas repartidas en ≥2 fragmentos IDAT, un IEND. */
 function chromeStyleMultiIdatPng(width = 4, height = 4): Buffer {
-	// Raw scanlines: filter byte 0 + width × RGB pixels (white) — the filter
-	// byte MUST be 0–4 (libpng rejects anything else).
+	// Líneas de barrido en bruto: byte de filtro 0 + ancho × píxeles RGB (blancos); el byte
+	// de filtro DEBE estar entre 0 y 4 (libpng rechaza cualquier otro).
 	const stride = 1 + width * 3;
 	const raw = Buffer.alloc(stride * height);
 	for (let y = 0; y < height; y++) {
 		const row = raw.subarray(y * stride, (y + 1) * stride);
-		row[0] = 0; // filter: none
+		row[0] = 0; // filtro: ninguno
 		row.fill(255, 1);
 	}
 	const ihdr = Buffer.alloc(13);
 	ihdr.writeUInt32BE(width, 0);
 	ihdr.writeUInt32BE(height, 4);
-	ihdr[8] = 8; // bit depth
-	ihdr[9] = 2; // color type: truecolor RGB
+	ihdr[8] = 8; // profundidad de bits
+	ihdr[9] = 2; // tipo de color: truecolor RGB
 	const compressed = zlib.deflateSync(raw);
 	const split = Math.max(1, Math.floor(compressed.length / 2));
 	return Buffer.concat([
@@ -82,7 +82,7 @@ function chromeStyleMultiIdatPng(width = 4, height = 4): Buffer {
 	]);
 }
 
-// ─── the tests ───────────────────────────────────────────────────────────────
+// ─── las pruebas ─────────────────────────────────────────────────────────────
 
 test("providerSafePng merges a Chrome-style split IDAT stream into ONE chunk, byte-identical stream", async () => {
 	const chromeStyle = chromeStyleMultiIdatPng();
@@ -97,14 +97,14 @@ test("providerSafePng merges a Chrome-style split IDAT stream into ONE chunk, by
 	const outChunks = walkChunks(fixed);
 	const outIdats = outChunks.filter((c) => c.type === "IDAT");
 	assert.equal(outIdats.length, 1, "exactly one IDAT chunk — the form Alibaba's decoder accepts");
-	// The canonical property: the merged chunk's payload is the BYTE-IDENTICAL
-	// zlib stream (a transparent re-split, no re-encoding at all).
+	// La propiedad canónica: la carga del fragmento unido es el stream zlib IDÉNTICO
+	// BYTE A BYTE (una repartición transparente, sin recodificar nada).
 	assert.ok(
 		outIdats[0]!.data.equals(Buffer.concat(inChunks.filter((c) => c.type === "IDAT").map((c) => c.data))),
 		"the zlib stream is untouched",
 	);
-	// Structure preserved: same non-IDAT chunks in order, valid CRCs (walkChunks
-	// is dumb, so verify CRC explicitly for the merged chunk).
+	// Estructura conservada: los mismos fragmentos no IDAT en orden, CRC válidos (walkChunks
+	// es tonto, así que verifica el CRC explícitamente para el fragmento unido).
 	assert.deepEqual(
 		outChunks.map((c) => c.type),
 		["IHDR", "IDAT", "IEND"],
@@ -117,8 +117,8 @@ test("providerSafePng merges a Chrome-style split IDAT stream into ONE chunk, by
 		assert.equal(crc, crc32(fixedBuf.subarray(off + 4, off + 8 + len)), `valid CRC on ${fixedBuf.subarray(off + 4, off + 8).toString("ascii")}`);
 		off += 12 + len;
 	}
-	// And it is still a decodable image: the stream inflates to EXACTLY the
-	// original scanlines (filter byte 0 + white RGB pixels).
+	// Y sigue siendo una imagen decodificable: el stream se descomprime EXACTAMENTE en las
+	// líneas de barrido originales (byte de filtro 0 + píxeles RGB blancos).
 	const stream = walkChunks(fixed).find((c) => c.type === "IDAT")!.data;
 	const stride = 1 + 4 * 3;
 	const expected = Buffer.alloc(stride * 4);
@@ -131,8 +131,8 @@ test("providerSafePng merges a Chrome-style split IDAT stream into ONE chunk, by
 });
 
 test("a single-IDAT PNG is already canonical: returned byte-identical (no-op)", () => {
-	// One-IDAT input → one IDAT out, same bytes — the normal case (e.g. the
-	// doctrine-gate re-render of an already-canonical PNG).
+	// Entrada de un IDAT → sale un IDAT, los mismos bytes: el caso normal (p. ej. el
+	// nuevo renderizado de la barrera de doctrina de un PNG que ya es canónico).
 	const stride = 1 + 4 * 3;
 	const raw = Buffer.alloc(stride * 4);
 	for (let y = 0; y < 4; y++) {

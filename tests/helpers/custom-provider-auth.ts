@@ -1,4 +1,4 @@
-/** Synthetic authorized records, imported only after each test's isolated env. */
+/** Registros autorizados sintéticos, importados solo después del entorno aislado de cada prueba. */
 import { randomBytes } from "node:crypto";
 import type { CustomProviderSettings } from "../../src/core/settings.ts";
 import { persistCustomAuth } from "../../src/server/custom-provider-auth.ts";

@@ -1,6 +1,6 @@
-/** Child-process fixture (#403): `create` makes one chat and prints its id;
- *  `crash <id>` dies right before that chat's save would land; `read <id>`
- *  reports what fresh boots see. Runs on the caller's LH_DATA_DIR. */
+/** Fixture de proceso hijo (#403): `create` crea un chat e imprime su id;
+ *  `crash <id>` muere justo antes de que se produzca el guardado de ese chat; `read <id>`
+ *  informa de lo que ven los arranques nuevos. Se ejecuta sobre el LH_DATA_DIR del llamador. */
 import fs from "node:fs";
 const [mode, id = ""] = process.argv.slice(2);
 const { chatStore } = await import("../../src/store/chats.ts");

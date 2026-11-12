@@ -13,8 +13,8 @@ function deferred() {
 	return { promise, resolve };
 }
 
-/** Production entry point, with only process/CDP transport mocked. No process,
- * browser, DNS lookup or socket is actually opened by this fixture. */
+/** Punto de entrada de producción, con solo el transporte de proceso/CDP simulado. Este fixture
+ * no abre realmente ningún proceso, navegador, consulta DNS ni socket. */
 function lifecycleFixture() {
 	const killed: number[] = [];
 	const spawned = deferred(), heldLoad = deferred(), releaseLoad = deferred();
@@ -72,8 +72,8 @@ function lifecycleFixture() {
 		pauseHandshake() { pauseHandshake = true; },
 		releaseHandshakes() { pauseHandshake = false; for (const helper of helpers) helper.handshake(); },
 		dispose() {
-			// Mark mocks dead before restoring spawn: the next test must not reuse
-			// this fixture's module-global helper, or start a real process.
+			// Marca los simulacros como muertos antes de restaurar spawn: la siguiente prueba no debe reutilizar
+			// el auxiliar global del módulo de este fixture ni iniciar un proceso real.
 			for (const helper of helpers) { helper.owner.alive = false; helper.proc.exitCode = 0; }
 			mock.restoreAll(); syncBuiltinESMExports();
 		},
@@ -90,8 +90,8 @@ it("a queued production demo acquires a fresh helper after the active helper can
 		const first = realHeadless.runDemo("<p>failed retirement</p>", { settleMs: 0 });
 		await fixture.heldLoad.promise;
 		const second = realHeadless.runDemo("<p>queued success</p>", { settleMs: 0 });
-		// Drain cached-import microtasks while the first document is explicitly
-		// held; the queue must not acquire/capture another Browser yet.
+		// Vacía las microtareas de las importaciones en caché mientras el primer documento está retenido
+		// explícitamente; la cola aún no debe adquirir/capturar otro Browser.
 		await setImmediate();
 		const acquiredWhileHeld = fixture.connections();
 		fixture.releaseLoad.resolve();

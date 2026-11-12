@@ -1,4 +1,4 @@
-/** Child-process fixture: owned profile only; every upstream fetch is synthetic. */
+/** Fixture de proceso hijo: solo perfil propio; todo fetch hacia arriba es sintético. */
 import fs from "node:fs";
 import { AUTH_FILE, SETTINGS_FILE } from "../../config.ts";
 const [mode, action = "key", fault = "none"] = process.argv.slice(2);

@@ -7,8 +7,8 @@ import { parseHTML } from "linkedom";
 import { HostMarkdown } from "../components/host-markdown.tsx";
 import { ToolContentResponse } from "../components/ai-elements/message.tsx";
 
-// Exact learner-facing strings from the reported determinant question. Recovery
-// is display-only: neither persisted source nor option/answer identities change.
+// Cadenas exactas de cara al alumno de la pregunta del determinante que se informó. La recuperación
+// es solo de visualización: no cambian ni la fuente persistida ni las identidades de opción/respuesta.
 const determinant = String.raw`Expand the determinant $\\det\\begin{pmatrix} 1-\\lambda & 2 \\\\ 3 & 4-\\lambda \\end{pmatrix}$ and simplify.`;
 const options = [String.raw`$\lambda^2 - 5\lambda + 4$`, String.raw`$\lambda^2 + 5\lambda + 2$`,
   String.raw`$\lambda^2 - 5\lambda + 14$`, String.raw`$\lambda^2 - 5\lambda - 2$`];

@@ -9,7 +9,7 @@ import { createFauxCore, fauxAssistantMessage } from "@earendil-works/pi-ai";
 import { toLlmMessages, type LhMessage } from "../src/core/native-messages.ts";
 import { buildSubagentSteer, type JobKind, type SteerMessage } from "../src/core/contracts.ts";
 
-// Install isolation before importing any storage/configuration composition.
+// Instala el aislamiento antes de importar ninguna composición de almacenamiento/configuración.
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), "lh-job-delivery-"));
 process.env.LH_DATA_DIR = path.join(directory, "data");
 process.env.LH_AUTH_FILE = path.join(directory, "auth.json");
@@ -212,8 +212,8 @@ test("a racing foreground settlement cannot release an outstanding staged wake",
 	setTurnRunner(async (id, input) => {
 		assert.equal(input.type, "steers"); if (input.type !== "steers") return 500;
 		started = true;
-		// Subscription wake startup can await catalog refresh before claiming
-		// the session. Its cargo is not yet a durable input prefix.
+		// El arranque del despertar de la suscripción puede esperar a que se actualice el catálogo antes de reclamar
+		// la sesión. Su carga aún no es un prefijo de entrada duradero.
 		await startup;
 		const faux = createFauxCore({});
 		faux.setResponses([(context) => {

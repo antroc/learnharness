@@ -1,8 +1,8 @@
-/** Seed canonical reference material, without dependencies/builds/data, in isolated curator fixtures. */
+/** Siembra material de referencia canónico, sin dependencias/builds/datos, en fixtures aislados del curador. */
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-/** Code examples can contain [index](argument) syntax that is not a Markdown link. */
+/** Los ejemplos de código pueden contener la sintaxis [índice](argumento), que no es un enlace Markdown. */
 export function markdownProse(text: string): string {
 	let fence: { marker: string; length: number } | undefined;
 	return text.split("\n").map(line => {
@@ -38,7 +38,7 @@ export function seedAuthoringReferenceFixture(root: string) {
 	for (const id of ["hello-plugin", "managed-agent", "teaching-extension"]) fs.cpSync(path.join(source, "examples/plugins", id, "dist"), path.join(root, "examples/plugins", id, "dist"), { recursive: true });
 	fs.cpSync(path.join(source, "docs/plugin-api"), path.join(root, "docs/plugin-api"), { recursive: true });
 	fs.mkdirSync(path.join(root, "scripts"), { recursive: true });
-	// The real generator and compiler have independent coverage tests. Curator fixtures
-	// exercise archive/source admission and link integrity, not repeated compiler builds.
+	// El generador y el compilador reales tienen pruebas de cobertura independientes. Los fixtures del curador
+	// ejercitan la admisión de archivos/fuentes y la integridad de los enlaces, no builds repetidos del compilador.
 	fs.writeFileSync(path.join(root, "scripts/build-plugin-api-reference.mjs"), `import fs from 'node:fs';import path from 'node:path';fs.cpSync(path.resolve('docs/plugin-api'),process.argv[3],{recursive:true});`);
 }
