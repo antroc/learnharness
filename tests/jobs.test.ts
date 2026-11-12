@@ -1430,8 +1430,8 @@ describe("persistTurn (native history, Wave B)", () => {
 describe("prompt composition", () => {
 	it("loads ONLY numeric-prefix fragments — README.md never enters the system prompt", () => {
 		const instructions = composeInstructions("teacher");
-		assert.ok(!instructions.includes("Prompt fragments"), "README content must not leak");
-		assert.ok(!instructions.includes("Rules for adding a fragment"), "README content must not leak (rules)");
+		assert.ok(!instructions.includes("# Composición de los prompts"), "README content must not leak");
+		assert.ok(!instructions.includes("## Editar fragmentos"), "README content must not leak (rules)");
 		// todo fragmento numerado SÍ se compone, literal, tras el prompt base
 		const base = fs.readFileSync("src/agent/system-prompt.md", "utf-8").trim();
 		assert.ok(instructions.startsWith(base), "base prompt first");
@@ -1445,69 +1445,69 @@ describe("prompt composition", () => {
 		const teacher = composeInstructions("teacher");
 		// el fragmento de doctrina T2a (redacción fijada por el usuario el 2026-09-15): presencia literal
 		for (const pin of [
-			"Answerable by reasoning from the session",
-			"Never just reciting your words back",
-			"Prefer problems that apply the knowledge",
-			"Catch confusion early, and make it nameable",
+			"Respondible razonando a partir de la sesión",
+			"Nunca solo repetir tus palabras",
+			"Prefiere problemas que apliquen el conocimiento",
+			"Detecta la confusión pronto y haz que se pueda nombrar",
 		]) {
 			assert.ok(teacher.includes(pin), `teacher prompt lost the principle: ${pin}`);
 		}
 		// se carga en el orden de los fragmentos: justo después de 20-teaching, antes de 30-jobs
 		assert.ok(
-			teacher.indexOf("Question principles") > teacher.indexOf("# Teach — one step at a time"),
+			teacher.indexOf("Principios de las preguntas") > teacher.indexOf("# Enseñar: un paso cada vez"),
 			"principles sit after the teaching loop",
 		);
 		// la doctrina del sondeador: desaparece el planteamiento de «sin prisa» y entra la medición rápida
 		const prober = composeInstructions("prober");
-		assert.ok(!prober.includes("There is no rush"), "the old no-rush framing is retired");
+		assert.ok(!prober.includes("No hay prisa"), "the old no-rush framing is retired");
 		assert.ok(
-			prober.includes("every wasted question is resolution the final map doesn't get"),
+			prober.includes("cada pregunta desperdiciada es resolución que el mapa final no obtiene"),
 			"the efficiency-is-resolution directive is in",
 		);
-		assert.ok(!prober.includes("Question principles"), "the teach-phase fragment never composes into the prober");
+		assert.ok(!prober.includes("Principios de las preguntas"), "the teach-phase fragment never composes into the prober");
 	});
 
 	it("the predict-check cycle composes into the teacher; the craft chunk reaches BOTH agents (owner 2026-10-03)", () => {
 		const teacher = composeInstructions("teacher");
 		// la doctrina del ciclo (28-predictions.md): solo del profesor
-		assert.ok(teacher.includes("predict → teach → check"), "the cycle line is in");
-		assert.ok(teacher.includes('The prediction (`type: "predict"`)'), "the prediction role section is in");
-		assert.ok(teacher.includes("Skip the prediction"), "the skip rule is in");
-		assert.ok(teacher.includes('The check (`type: "check"`)'), "the check role section is in");
+		assert.ok(teacher.includes("predecir → enseñar → comprobar"), "the cycle line is in");
+		assert.ok(teacher.includes('La predicción (`type: "predict"`)'), "the prediction role section is in");
+		assert.ok(teacher.includes("Omite la predicción"), "the skip rule is in");
+		assert.ok(teacher.includes('La comprobación (`type: "check"`)'), "the check role section is in");
 		// los canales de oficio + razonamiento (shared/20-question-tools.md): AMBOS agentes
 		const prober = composeInstructions("prober");
 		for (const [name, prompt] of [
 			["teacher", teacher],
 			["prober", prober],
 		] as const) {
-			assert.ok(prompt.includes("asymmetry"), `${name} carries the option craft (moved out of tool descriptions)`);
-			assert.ok(prompt.includes("TRANSCRIBED SPEECH"), `${name} reads dictated thinking leniently`);
+			assert.ok(prompt.includes("asimetría"), `${name} carries the option craft (moved out of tool descriptions)`);
+			assert.ok(prompt.includes("HABLA TRANSCRITA"), `${name} reads dictated thinking leniently`);
 			assert.ok(prompt.includes("thinkingWhileReading"), `${name} knows the reading channel`);
 		}
 		// el ciclo es doctrina de la fase de enseñanza: nunca se compone en el sondeador
-		assert.ok(!prober.includes("predict → teach → check"), "the teaching cycle stays out of the prober");
+		assert.ok(!prober.includes("predecir → enseñar → comprobar"), "the teaching cycle stays out of the prober");
 	});
 
 	it("the sources-v0 prompt lines compose: read/pdf doctrine in the teacher, the read line in the prober", () => {
 		const teacher = composeInstructions("teacher");
-		assert.ok(teacher.includes("Learner source files"), "the teacher carries the source-files section");
-		assert.ok(teacher.includes("brief with page citations"), "the pdf brief's citation duty is stated");
+		assert.ok(teacher.includes("Ficheros fuente del alumno"), "the teacher carries the source-files section");
+		assert.ok(teacher.includes("informe con citas de página"), "the pdf brief's citation duty is stated");
 		const prober = composeInstructions("prober");
-		assert.ok(prober.includes("the `read` tool can inspect it directly"), "the prober knows it can read learner files");
+		assert.ok(prober.includes("la herramienta `read` puede examinarlo directamente"), "the prober knows it can read learner files");
 	});
 
 	it("the sources-v1 shared fragment composes into BOTH agents (find/ls/grep doctrine)", () => {
 		for (const kind of ["teacher", "prober"] as const) {
 			const instructions = composeInstructions(kind);
-			assert.ok(instructions.includes("## Learner files"), `${kind} carries the shared learner-files fragment`);
-			assert.ok(instructions.includes("find it yourself with `find`"), `${kind} knows to locate files itself`);
-			assert.ok(instructions.includes("home directory"), `${kind} knows the home-anchored path rule`);
+			assert.ok(instructions.includes("## Ficheros del alumno"), `${kind} carries the shared learner-files fragment`);
+			assert.ok(instructions.includes("búscalo tú con `find`"), `${kind} knows to locate files itself`);
+			assert.ok(instructions.includes("directorio personal"), `${kind} knows the home-anchored path rule`);
 		}
 		// los fragmentos PROPIOS del agente se componen antes del apéndice compartido
 		// (la regla de orden de la reordenación, 2026-09-27: primero la tarea y el método)
 		const teacher = composeInstructions("teacher");
 		assert.ok(
-			teacher.indexOf("## Learner source files") < teacher.indexOf("## Learner files"),
+			teacher.indexOf("## Ficheros fuente del alumno") < teacher.indexOf("## Ficheros del alumno"),
 			"the teacher's own 40-jobs section precedes the shared learner-files fragment",
 		);
 	});
