@@ -815,8 +815,8 @@ describe("teacher chat flow (scripted model)", () => {
 		// (A) el dock serializa las respuestas en el mismo orden: primero A, luego B.
 		const pending = danglingQuestionOf(saved.messages);
 		assert.equal(pending?.toolCallId, "call-a", "the FIRST asked question is the dock subject");
-		// …the learner answers A: the answer lands as call-a's tool result —
-		// the SECOND question becomes the dock subject only after that.
+		// …el alumno responde A: la respuesta llega como resultado de herramienta de call-a;
+		// la SEGUNDA pregunta pasa a ser el sujeto del dock solo después de eso.
 		const answered = [...saved.messages, newAnswerResult("call-a", "quiz", gradedAnswer(QUIZ_A, ["Mercury"]))];
 		const next = danglingQuestionOf(answered);
 		assert.equal(next?.toolCallId, "call-b", "the SECOND question becomes the dock subject only after the first is answered");
@@ -841,8 +841,8 @@ describe("chat store", () => {
 		const saved = chatStore.getChat(chat.id)!;
 		assert.deepEqual(saved.settings, { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" }, thinkingLevel: "high" });
 		assert.equal(saved.updatedAt, before, "a picker write is not conversation activity");
-		// replace-whole: a settings-less write clears the override (an empty
-		// object persists — every field absent = config defaults)
+		// reemplazo completo: una escritura sin ajustes borra la sustitución (se persiste un
+		// objeto vacío: todos los campos ausentes = valores por defecto de la configuración)
 		chatStore.saveSettings(chat.id, {});
 		assert.deepEqual(chatStore.getChat(chat.id)!.settings, {});
 	});
@@ -897,12 +897,12 @@ describe("canonical persistence failures", () => {
 			assert.equal(isTurnRunning(chat.id), false);
 			assert.equal(runningTurn(chat.id), undefined);
 			assert.equal(chatStore.getChat(chat.id)!.messages.at(-1)?.role, "toolResult");
-			// The normal submitter may not reach GET /stream until AFTER the
-			// failing turn has left the live registry. It must still see it.
+			// El emisor normal puede no llegar a GET /stream hasta DESPUÉS de que el
+			// turno fallido haya salido del registro vivo. Aun así debe verlo.
 			const late = await streamRoute.GET(new Request("http://test/stream"), { params: Promise.resolve({ id: chat.id }) });
 			assert.equal(eventsOf(await late.text()).find(e => e.type === "error")?.errorText, "The reply could not be saved.");
-			// An already-open idle view can miss both the start and the wire
-			// error, then learn of settlement only via a record synchronization.
+			// Una vista inactiva ya abierta puede perderse tanto el inicio como el error del
+			// cable y enterarse del asentamiento solo mediante una sincronización del registro.
 			const snapshot = await (await recordRoute.GET(new Request("http://test/record"), { params: Promise.resolve({ id: chat.id }) })).json();
 			assert.equal(needsContinuation(snapshot.messages), true, "the durable answer alone looks like an owed continuation");
 			let automaticPosts = 0;
@@ -951,15 +951,15 @@ describe("mid-turn navigation (turn liveness + write-ahead)", () => {
 		const chat = createConfiguredChat("Test: turn guard");
 		createdChats.push(chat.id);
 
-		const res1 = await handleChatRequest(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(engine)); // acked; the turn runs as a background object (Diet B: no stream to hold)
+		const res1 = await handleChatRequest(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(engine)); // acusado; el turno se ejecuta como objeto en segundo plano (Dieta B: no hay stream que retener)
 		assert.equal(isTurnRunning(chat.id), true, "turn registered as in flight");
-		const view1 = drainRunning(chat.id); // a live view — the turn would run on with none
+		const view1 = drainRunning(chat.id); // una vista viva: el turno seguiría ejecutándose sin ninguna
 
-		// A stale client (remount racing a live turn) tries to start a second turn.
+		// Un cliente obsoleto (un remontaje que compite con un turno vivo) intenta iniciar un segundo turno.
 		const res2 = await handleChatRequest(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(engine));
 		assert.equal(res2.status, 409, "concurrent turn rejected — last-writer-wins persist would clobber it");
 
-		await view1; // finish → onFinish → endTurn
+		await view1; // fin → onFinish → endTurn
 		assert.equal(isTurnRunning(chat.id), false, "registry cleared at finish");
 
 		const res3 = await handleChatRequest(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(engine));
@@ -972,15 +972,15 @@ describe("mid-turn navigation (turn liveness + write-ahead)", () => {
 		const chat = createConfiguredChat("Test: write-ahead");
 		createdChats.push(chat.id);
 
-		// Turn 1: the teacher asks the quiz (dangling call in the record).
+		// Turno 1: el profesor plantea el quiz (llamada colgante en el registro).
 		await drainTurn(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(engine));
 
-		// The learner answers; the client posts the ANSWER EVENT.
+		// El alumno responde; el cliente envía el EVENTO DE RESPUESTA.
 		const answer = gradedAnswer(QUIZ_INPUT, ["Mercury"]);
 
-		// NOT drained: the teacher turn is streaming, but the answer is already
-		// on disk — a remount (or crash) mid-turn sees the answered quiz, never
-		// the stale pre-answer question.
+		// SIN vaciar: el turno del profesor está haciendo streaming, pero la respuesta ya está
+		// en disco: un remontaje (o un fallo) a mitad de turno ve el quiz respondido, nunca
+		// la pregunta obsoleta previa a la respuesta.
 		const res = await handleChatRequest(post(chat.id, { type: "answer", toolCallId: "call-1", answer }), agentFactory(engine));
 		const midTurn = chatStore.getChat(chat.id)!;		assert.equal(midTurn.messages.length, 3, "write-ahead appended the answer tool result before finish");
 		assert.equal((midTurn.messages[2] as { role?: string }).role, "toolResult");
@@ -988,10 +988,10 @@ describe("mid-turn navigation (turn liveness + write-ahead)", () => {
 		assert.ok(midQuiz && midQuiz.type === "tool-quiz");
 		assert.equal((midQuiz as { state?: string }).state, "output-available", "write-ahead persisted the answer before finish");
 
-		await drainRunning(chat.id); // finish → persist the full turn → endTurn
+		await drainRunning(chat.id); // fin → persistir el turno completo → endTurn
 		const saved2 = chatStore.getChat(chat.id)!;
-		// Native: user, assistant, answer result, reaction — one append-only
-		// history; the projection still renders ONE assistant group.
+		// Nativo: usuario, asistente, resultado de la respuesta, reacción; un único historial
+		// de solo anexado; la proyección sigue mostrando UN grupo del asistente.
 		assert.equal(saved2.messages.length, 4, "full turn persisted as usual at finish");
 		assert.equal(projectView(saved2.messages).length, 2, "the projection groups the answered quiz + reaction");
 		assert.equal(isTurnRunning(chat.id), false, "registry cleared at finish");
@@ -1031,10 +1031,10 @@ describe("the BYOK turn gate (no factory floor — owner, 2026-09-22)", () => {
 		const chat = chatStore.createChat("Test: unconfigured chat");
 		createdChats.push(chat.id);
 
-		// The record's strong slot belongs to settings-store.test.ts (the
-		// one-fs-owner policy) — READ the resolved truth, never write it.
-		// Refusal holds when the chain is empty; a record-carried strong
-		// slot legitimately opens the gate (the chain is honest both ways).
+		// La ranura fuerte del registro pertenece a settings-store.test.ts (la
+		// política de un único responsable del sistema de ficheros): LEE la verdad resuelta, nunca la escribas.
+		// El rechazo se mantiene cuando la cadena está vacía; una ranura fuerte que lleve el registro
+		// abre legítimamente la barrera (la cadena es honesta en ambos sentidos).
 		const expectRefusal = effectiveSettings().models.strong === null;
 
 		const res = await handleChatRequest(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(scriptedTeacher(defaultLesson).engine));
@@ -1050,7 +1050,7 @@ describe("the BYOK turn gate (no factory floor — owner, 2026-09-22)", () => {
 			await drainRunning(chat.id);
 		}
 
-		// Either way: no phantom liveness, nothing durable from a refused turn.
+		// En cualquier caso: sin vida de turno fantasma, nada duradero de un turno rechazado.
 		if (expectRefusal) {
 			assert.equal(isTurnRunning(chat.id), false, "the refusal never registers a live turn");
 			const saved = chatStore.getChat(chat.id)!;
@@ -1067,21 +1067,21 @@ describe("the BYOK turn gate (no factory floor — owner, 2026-09-22)", () => {
 	});
 });
 
-// ─── the key-presence turn gate (provider-key interlude, owner, 2026-09-25) ─
+// ─── la barrera de turno por presencia de clave (interludio de la clave del proveedor, responsable, 2026-09-25) ─
 
 describe("the key-presence turn gate (provider-key interlude, 2026-09-25)", () => {
-	// The gate's truth is env-first (keyValue): in tests process.env is the
-	// WHOLE truth (the throwaway data dir has no auth.json), so each test
-	// pins its provider's env var explicitly and restores it after.
+	// La verdad de la barrera es primero el entorno (keyValue): en las pruebas process.env es TODA
+	// la verdad (el directorio de datos desechable no tiene auth.json), así que cada prueba
+	// fija explícitamente la variable de entorno de su proveedor y la restaura después.
 	it("a pinned provider whose key is gone refuses with 503 provider_key_missing — nothing lingers", async () => {
 		const chat = chatStore.createChat("Test: keyless provider");
 		createdChats.push(chat.id);
 		const saved = process.env.TOGETHER_API_KEY;
 		delete process.env.TOGETHER_API_KEY;
 		try {
-			// The chat's own model override pins the provider — the same
-			// chain the strong slot rides. The gate fires BEFORE the engine
-			// build, so the fake model id never hits the catalog.
+			// La sustitución de modelo propia del chat fija el proveedor: la misma
+			// cadena por la que viaja la ranura fuerte. La barrera salta ANTES de construir
+			// el motor, así que el id de modelo falso nunca llega al catálogo.
 			chatStore.saveSettings(chat.id, { model: { provider: "together", id: "no-such-model" } });
 			const res = await handleChatRequest(post(chat.id, { type: "text", text: "teach me something" }), agentFactory(scriptedTeacher(defaultLesson).engine));
 
@@ -1104,8 +1104,8 @@ describe("the key-presence turn gate (provider-key interlude, 2026-09-25)", () =
 		const saved = process.env.OPENAI_API_KEY;
 		process.env.OPENAI_API_KEY = "test-key-presence-gate";
 		try {
-			// A REAL catalog model: the engine build AFTER the gate must
-			// resolve — the injected agent replaces the loop, not the build.
+			// Un modelo REAL del catálogo: la construcción del motor DESPUÉS de la barrera debe
+			// resolverse; el agente inyectado sustituye al bucle, no a la construcción.
 			chatStore.saveSettings(chat.id, { model: { provider: "openai", id: "gpt-4" } });
 			const res = await handleChatRequest(post(chat.id, { type: "text", text: "teach me something" }), agentFactory(scriptedTeacher(defaultLesson).engine));
 
@@ -1128,10 +1128,10 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 
 		const res = await handleChatRequest(post(chat.id, { type: "text", text: "hold it" }), agentFactory(engine));
 		assert.equal(res.status, 200);
-		// The body must be FULLY readable while the turn is still gated
-		// mid-run — a closed JSON ack, not an open stream. (The freeze
-		// postmortem: each held-open POST response pinned one of the
-		// browser's 6-per-origin connections for the turn's whole life.)
+		// El cuerpo debe poder leerse ENTERO mientras el turno sigue retenido en la barrera
+		// a mitad de ejecución: un acuse JSON cerrado, no un stream abierto. (El postmortem de
+		// la congelación: cada respuesta POST mantenida abierta ocupaba una de las
+		// 6 conexiones por origen del navegador durante toda la vida del turno).
 		const body = JSON.parse(await res.text());
 		assert.deepEqual(body, { ok: true }, "the ack is a tiny JSON envelope");
 		assert.equal(isTurnRunning(chat.id), true, "the turn runs on with its response closed");
@@ -1149,32 +1149,32 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 
 		const ack = await handleChatRequest(post(chat.id, { type: "text", text: "hold my turn" }), agentFactory(engine));
 		assert.equal(ack.status, 200);
-		// CONNECTION DIET B (2026-10-10): the POST acks and closes; the first
-		// view consumes a little of the reattach wire (the start chunk is out).
+		// DIETA DE CONEXIONES B (2026-10-10): el POST acusa recibo y cierra; la primera
+		// vista consume un poco del cable de reenganche (el fragmento de inicio ya salió).
 		const firstHandle = runningTurn(chat.id)!;
 		const firstView = new Response(firstHandle.subscribe());
 		const reader = firstView.body!.getReader();
 		await reader.read();
 
-		// A SECOND view attaches mid-turn — a remount, another device.
+		// Una SEGUNDA vista se engancha a mitad de turno: un remontaje, otro dispositivo.
 		const handle = runningTurn(chat.id)!;
 		assert.ok(handle, "the registry resolves the live turn");
 		const secondText = new Response(handle.subscribe()).text();
 
-		// Let the turn finish; both views close at settle.
+		// Deja que el turno termine; ambas vistas se cierran al asentarse.
 		release();
 		const text = await secondText;
 		const replay = eventsOf(text);
 		assert.equal(replay[0]!.type, "agent_start", "replay starts from the very first event");
 		assert.ok(text.includes("Gated reply."), "replay carries the full streamed content");
 		assert.ok(text.endsWith("data: [DONE]\n\n"), "live tail ends with the SSE terminal, same dialect as POST");
-		// Wire honesty: a normal turn settles with NO error event (the live
-		// smoke caught a close()-throw masked into the error path — unit
-		// asserts never looked; these pins would have).
+		// Honestidad del cable: un turno normal se asienta SIN evento de error (la prueba
+		// de humo en vivo pilló un fallo de close() enmascarado en la ruta de error; las aserciones
+		// unitarias nunca lo miraron; estas fijaciones lo habrían hecho).
 		assert.ok(!text.includes('"type":"error"'), "a clean turn never emits an error event");
 		assert.ok(replay.some((e) => e.type === "message_end" && e.message?.stopReason === "stop"), "message_end carries the stop reason");
-		// And the first view also closes cleanly (no hang, no drop): read its
-		// remaining chunks through the reader we already hold.
+		// Y la primera vista también se cierra limpiamente (sin cuelgue ni pérdida): lee sus
+		// fragmentos restantes con el lector que ya tenemos.
 		const decoder = new TextDecoder();
 		let firstTail = "";
 		for (;;) {
@@ -1186,16 +1186,16 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 	});
 
 	it("COMPACTION LAW (owner 2026-10-09): the log stores state, not chunks — a chunk burst coalesces to ONE update, slim wire, full content", async () => {
-		// The parallel-session freeze postmortem: pi's message_update is a FULL
-		// snapshot per provider chunk; retaining and re-serializing every one
-		// made memory and replay quadratic in message length (one high-thinking
-		// message = hundreds of MB retained; every reattach re-stringified the
-		// whole history in one blocking stretch). Pins the fix end-to-end: faux
-		// streams a long text as many immediate chunks (microtask pacing — all
-		// inside one flush window), yet the wire carries exactly ONE
-		// message_update for the run, it is the LATEST snapshot, and the wire
-		// never carries pi's duplicate partial.
-		const long = "quadratic blowup ".repeat(40); // ~40 faux chunks
+		// El postmortem de la congelación por sesiones paralelas: el message_update de pi es una
+		// instantánea COMPLETA por fragmento del proveedor; retener y volver a serializar cada una
+		// hacía que la memoria y la reproducción fueran cuadráticas en la longitud del mensaje (un mensaje
+		// con mucho razonamiento = cientos de MB retenidos; cada reenganche volvía a convertir en cadena
+		// todo el historial en un tramo bloqueante). Fija el arreglo de extremo a extremo: el simulado
+		// emite un texto largo en muchos fragmentos inmediatos (ritmo de microtareas, todos
+		// dentro de una ventana de volcado) y, aun así, el cable lleva exactamente UN
+		// message_update para la ejecución, que es la instantánea MÁS RECIENTE, y el cable
+		// nunca lleva el parcial duplicado de pi.
+		const long = "quadratic blowup ".repeat(40); // ~40 fragmentos simulados
 		const faux = createFauxCore({});
 		faux.setResponses([fauxAssistantMessage([fauxText(long)])]);
 		const engine: PiEngine = { model: faux.getModel(), streamFn: faux.streamSimple };
@@ -1213,7 +1213,7 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 		const end = events.find((e) => e.type === "message_end" && (e as { message?: { role?: string } }).message?.role === "assistant");
 		assert.ok(end, "message_end present");
 		assert.ok(JSON.stringify((end as { message?: { content?: unknown[] } }).message?.content ?? []).includes(long), "message_end carries the full final message (authoritative, lossless)");
-		// And the persisted record never knew about chunks at all.
+		// Y el registro persistido nunca supo nada de fragmentos.
 		const record = chatStore.getChat(chat.id)!;
 		assert.ok(JSON.stringify(record.messages).includes(long), "persistTurn wrote the settled message in full");
 	});
@@ -1226,9 +1226,9 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 		const res = await handleChatRequest(post(chat.id, { type: "text", text: "wait forever" }), agentFactory(engine));
 		assert.equal(res.status, 200);
 		assert.ok(runningTurn(chat.id), "turn registered while in flight");
-		const viewText = new Response(runningTurn(chat.id)!.subscribe()).text(); // the first view, reading to settle
+		const viewText = new Response(runningTurn(chat.id)!.subscribe()).text(); // la primera vista, leyendo hasta el asentamiento
 
-		// The remote kill from a DIFFERENT view (the dock's abort).
+		// La terminación remota desde OTRA vista (el aborto del dock).
 		const outcome = abortTurn(chat.id);
 		assert.deepEqual(outcome, { ok: true }, "abort resolves ok on a live turn");
 
@@ -1240,7 +1240,7 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 		assert.ok(saved.messages.length >= 2, "the partial transcript persisted via the usual settle path");
 		assert.equal(runningTurn(chat.id), undefined, "handle unregistered after the aborted settle");
 
-		// Honest 409 semantics: there is nothing left to abort.
+		// Semántica 409 honesta: ya no queda nada que abortar.
 		assert.deepEqual(abortTurn(chat.id), { ok: false, reason: "not_running" }, "second abort is not_running");
 	});
 
@@ -1249,13 +1249,13 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 		const chat = createConfiguredChat("Test: settled terminal");
 		createdChats.push(chat.id);
 
-		// A quiet chat: no turn ever ran — the stream is the same terminal.
+		// Un chat tranquilo: nunca se ejecutó ningún turno; el stream es el mismo terminal.
 		const term = settledTurnResponse();
 		assert.equal(await term.text(), 'data: {"type":"turn-settled"}\n\ndata: [DONE]\n\n', "terminal is one event + [DONE]");
 		assert.equal(runningTurn(chat.id), undefined);
 
-		// And after a settled turn, the registry is empty — the GET would
-		// serve the same terminal, not a stale handle.
+		// Y tras un turno asentado, el registro está vacío: el GET serviría
+		// el mismo terminal, no un identificador obsoleto.
 		await drainTurn(post(chat.id, { type: "text", text: "quiz me" }), agentFactory(engine));
 		assert.equal(runningTurn(chat.id), undefined, "no handle survives settle");
 	});
@@ -1277,12 +1277,12 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 			const handle = runningTurn(chat.id)!;
 			assert.ok(handle, `chat ${chat.id} has its own handle`);
 			views.set(chat.id, new Response(handle.subscribe()).text());
-			// The other chat's handle must not be this one (per-chat keying).
+			// El identificador del otro chat no debe ser este (clave por chat).
 			const others = chats.filter((c) => c.chat.id !== chat.id).map((c) => runningTurn(c.chat.id));
 			assert.ok(!others.includes(handle), "per-chat handles are distinct objects");
 		}
 
-		// Release both; both settle independently.
+		// Libera ambos; los dos se asientan de forma independiente.
 		for (const release of releaseFns) release();
 		for (const { chat } of chats) {
 			const text = await views.get(chat.id)!;
@@ -1294,14 +1294,14 @@ describe("background-turn runner (owner ruling 2026-09-25: every turn is a serve
 	});
 });
 
-// ─── the explain mechanic end-to-end (free-recall, owner 2026-09-27) ───────
+// ─── la mecánica de explain de extremo a extremo (recuerdo libre, responsable 2026-09-27) ───────
 
 it("explain tool call persists as a pending part; the free-text answer reveals the commitment and reaches the model", async () => {
 	const EXPLAIN_INPUT = {
 		question: "Explain why Mercury is hard to observe.",
 		correctAnswer: "Its small angular separation from the Sun — it never strays far from the Sun in our sky.",
 		nodeId: "planet-order",
-		type: "check", // the teach explain's role field (owner, 2026-10-09)
+		type: "check", // el campo de rol del explain de enseñanza (responsable, 2026-10-09)
 	};
 	const { engine, calls } = scriptedTeacher((cs) => [
 		(context) => {
@@ -1319,7 +1319,7 @@ it("explain tool call persists as a pending part; the free-text answer reveals t
 	const chat = createConfiguredChat("Test: explain mechanic");
 	createdChats.push(chat.id);
 
-	// Free-recall armed: the mechanic swap is the ONLY change to the registry.
+	// Recuerdo libre activado: el cambio de mecánica es el ÚNICO cambio en el registro de herramientas.
 	const tools = createTeacherTools(
 		{ chatId: chat.id, chatStore, jobStore, spawn: () => {} },
 		{ explain: true },
@@ -1342,7 +1342,7 @@ it("explain tool call persists as a pending part; the free-text answer reveals t
 	const view1 = projectView(saved1.messages);
 	assert.ok(view1[1]!.parts.some((p) => p.type === "tool-explain"), "tool-explain part projected — the dock arms");
 
-	// The client answers in his own words (the dock's buildAnswer seam):
+	// El cliente responde con sus propias palabras (la frontera buildAnswer del dock):
 	const qd: QuestionData = {
 		id: "call-1",
 		kind: "explain",
@@ -1365,8 +1365,8 @@ it("explain tool call persists as a pending part; the free-text answer reveals t
 	assert.equal(out.committed, EXPLAIN_INPUT.correctAnswer, "the commitment snapshots into the answer record");
 	assert.equal(out.explanation, undefined, "no explanation remnant — one committed field (owner 2026-09-27)");
 
-	// The model's continuation saw the answer JSON (fork 1: the answer IS
-	// the call's tool result) — his text AND the commitment snapshot ride it.
+	// La continuación del modelo vio el JSON de la respuesta (bifurcación 1: la respuesta ES
+	// el resultado de herramienta de la llamada): su texto Y la instantánea del compromiso viajan en ella.
 	const seen = calls[1]!.join("\n");
 	assert.match(seen, /It stays near the Sun\./);
 	assert.match(seen, /committed/);
@@ -1375,7 +1375,7 @@ it("explain tool call persists as a pending part; the free-text answer reveals t
 	assert.equal(danglingQuestionOf(saved2.messages), null, "no pending question remains");
 });
 
-// ─── the silent dismissal (owner design 2026-10-03, "A2") ──────────────────
+// ─── el descarte silencioso (diseño del responsable 2026-10-03, "A2") ──────────────────
 
 describe("the silent dismissal (A2)", () => {
 	it("writes the toolResult with NO wake — the next plain message carries it to the model", async () => {
@@ -1383,11 +1383,11 @@ describe("the silent dismissal (A2)", () => {
 		const chat = createConfiguredChat("Test: silent dismissal");
 		createdChats.push(chat.id);
 
-		// Turn 1: the quiz dangles.
+		// Turno 1: el quiz queda colgando.
 		await drainTurn(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(engine));
 		assert.ok(danglingQuestionOf(chatStore.getChat(chat.id)!.messages), "the quiz is pending");
 
-		// The dismissal: SILENT — record completes the call, nothing wakes.
+		// El descarte: SILENCIOSO; el registro completa la llamada, nada despierta.
 		const res = await dismissPost(chat.id, "call-1");
 		assert.equal(res.status, 200);
 		const saved = chatStore.getChat(chat.id)!;
@@ -1399,9 +1399,9 @@ describe("the silent dismissal (A2)", () => {
 		assert.equal(isTurnRunning(chat.id), false);
 		assert.equal(endsInDismissal(saved.messages), true, "the session sits dismissal-paused");
 
-		// The next plain message is THE wake — the model sees the skipped
-		// question and the user's text in one context (the steer-batch
-		// outcome, delivered by record truth).
+		// El siguiente mensaje normal ES el despertar: el modelo ve la pregunta
+		// omitida y el texto del usuario en un mismo contexto (el resultado del lote de
+		// reorientaciones, entregado por la verdad del registro).
 		await drainTurn(post(chat.id, { type: "text", text: "skip that — tell me about Mars" }), agentFactory(engine));
 		assert.equal(calls.length, 2, "exactly one wake: the user's message");
 		assert.match(calls[1]!.join("\n"), /dismissed/, "the dismissed result rode the wake's context");
@@ -1419,8 +1419,8 @@ describe("the silent dismissal (A2)", () => {
 	it("parallel quizzes dismiss call-by-call — the composer returns only when nothing dangles", async () => {
 		const chat = createConfiguredChat("Test: parallel dismiss");
 		createdChats.push(chat.id);
-		// Two quiz calls in one assistant message (the sequential-execution
-		// shape the tools opt into).
+		// Dos llamadas de quiz en un mensaje del asistente (la forma de ejecución
+		// secuencial a la que se acogen las herramientas).
 		chatStore.saveMessages(chat.id, [
 			{ id: "u1", role: "user", content: "hello", timestamp: 1 } as never,
 			{
@@ -1439,20 +1439,20 @@ describe("the silent dismissal (A2)", () => {
 			} as never,
 		]);
 
-		// First dismissal completes call-a; call-b still dangles.
+		// El primer descarte completa call-a; call-b sigue colgando.
 		assert.equal((await dismissPost(chat.id, "call-a")).status, 200);
 		const pending = danglingQuestionOf(chatStore.getChat(chat.id)!.messages);
 		assert.equal(pending?.toolCallId, "call-b", "the dock advances to the next question");
 		assert.equal(endsInDismissal(chatStore.getChat(chat.id)!.messages), true);
 
-		// Second dismissal: nothing dangles, still paused.
+		// Segundo descarte: nada queda colgando, sigue en pausa.
 		assert.equal((await dismissPost(chat.id, "call-b")).status, 200);
 		assert.equal(danglingQuestionOf(chatStore.getChat(chat.id)!.messages), null, "the composer may return");
 		assert.equal(endsInDismissal(chatStore.getChat(chat.id)!.messages), true, "paused until the user speaks");
 	});
 });
 
-// ─── parallel question calls (the deepseek batch incident, 2026-10-03) ─────
+// ─── llamadas de pregunta en paralelo (el incidente del lote de deepseek, 2026-10-03) ─────
 
 describe("parallel question calls: the answer defers its wake while a sibling dangles", () => {
 	const ASK_INPUT = {
@@ -1460,8 +1460,8 @@ describe("parallel question calls: the answer defers its wake while a sibling da
 		options: [{ label: "Chemistry" }, { label: "History" }],
 	};
 
-	/** Turn 1: BOTH calls in one assistant message (the parallel batch
-	 *  shape deepseek emitted live). Turn 2: the reaction. */
+	/** Turno 1: AMBAS llamadas en un mensaje del asistente (la forma de lote paralelo
+	 *  que emitió deepseek en vivo). Turno 2: la reacción. */
 	function parallelLesson(calls: string[][]): FauxResponseStep[] {
 		return [
 			(context) => {
@@ -1487,15 +1487,15 @@ describe("parallel question calls: the answer defers its wake while a sibling da
 		const chat = createConfiguredChat("Test: parallel questions");
 		createdChats.push(chat.id);
 
-		// Turn 1: the batch lands; both calls dangle (the dock shows the quiz —
-		// the first in call order).
+		// Turno 1: llega el lote; ambas llamadas quedan colgando (el dock muestra el quiz,
+		// el primero en orden de llamada).
 		await drainTurn(post(chat.id, { type: "text", text: "ask me two questions in parallel" }), agentFactory(engine));
 		let saved = chatStore.getChat(chat.id)!;
 		let pending = danglingQuestionOf(saved.messages);
 		assert.equal(pending?.toolCallId, "call-1", "the dock holds the quiz first");
 
-		// The graded answer: the result appends ADJACENT to the calling
-		// assistant message — and NO wake fires while the ask still dangles.
+		// La respuesta corregida: el resultado se anexa ADYACENTE al mensaje del asistente
+		// que hizo la llamada, y NO se dispara ningún despertar mientras el ask siga colgando.
 		const quizAns = gradedAnswer(QUIZ_INPUT, ["Mercury"]);
 		await drainTurn(post(chat.id, { type: "answer", toolCallId: "call-1", answer: quizAns }), agentFactory(engine));
 		assert.equal(calls.length, 1, "the sibling answer woke NOTHING (the gate deferred)");
@@ -1504,8 +1504,8 @@ describe("parallel question calls: the answer defers its wake while a sibling da
 		pending = danglingQuestionOf(saved.messages);
 		assert.equal(pending?.toolCallId, "call-2", "the dock advances to the ask immediately — no turn ran");
 
-		// The last answer: ONE wake; the model sees both results, adjacent to
-		// their calling message (the provider shape law).
+		// La última respuesta: UN despertar; el modelo ve ambos resultados, adyacentes a
+		// su mensaje de llamada (la ley de forma del proveedor).
 		const askAns = {
 			kind: "ask",
 			questionText: ASK_INPUT.question,
@@ -1521,15 +1521,15 @@ describe("parallel question calls: the answer defers its wake while a sibling da
 		const prompt2 = calls[1]!.join("\n");
 		assert.match(prompt2, /Mercury/, "the quiz result rode the wake's context");
 		assert.match(prompt2, /History/, "the ask answer rode the wake's context");
-		// The shape law: both results sit directly after the batch's assistant
-		// message, before the reaction — nothing intervenes.
+		// La ley de forma: ambos resultados van justo después del mensaje del asistente
+		// del lote, antes de la reacción; nada se interpone.
 		const roles = saved.messages.map((m) => (m as { role?: string }).role);
 		assert.deepEqual(roles.slice(1, 5), ["assistant", "toolResult", "toolResult", "assistant"], "batch → both results → reaction");
 	});
 });
 
 describe("parallel rounds: the LAST resolution decides the wake (owner ruling 2026-10-03)", () => {
-	/** The batch lesson, shared: turn 1 poses quiz + ask; turn 2 reacts. */
+	/** La lección del lote, compartida: el turno 1 plantea quiz + ask; el turno 2 reacciona. */
 	function batchLesson(calls: string[][]): FauxResponseStep[] {
 		return [
 			(context) => {
@@ -1556,12 +1556,12 @@ describe("parallel rounds: the LAST resolution decides the wake (owner ruling 20
 		createdChats.push(chat.id);
 		await drainTurn(post(chat.id, { type: "text", text: "two questions please" }), agentFactory(engine));
 
-		// Answer the quiz — deferred by the parallel gate.
+		// Responde al quiz: aplazado por la barrera paralela.
 		await drainTurn(post(chat.id, { type: "answer", toolCallId: "call-1", answer: gradedAnswer(QUIZ_INPUT, ["Mercury"]) }), agentFactory(engine));
 		assert.equal(calls.length, 1, "the sibling answer deferred");
 
-		// Dismiss the ask — the LAST resolution is a dismissal: no continuation
-		// seam may fire either (the round-1 incident's leak, now closed).
+		// Descarta el ask: la ÚLTIMA resolución es un descarte; tampoco puede dispararse
+		// ninguna frontera de continuación (la fuga del incidente de la ronda 1, ya cerrada).
 		assert.equal((await dismissPost(chat.id, "call-2", "ask")).status, 200);
 		const saved = chatStore.getChat(chat.id)!;
 		assert.equal(danglingQuestionOf(saved.messages), null);
@@ -1587,7 +1587,7 @@ describe("parallel rounds: the LAST resolution decides the wake (owner ruling 20
 	});
 });
 
-// ─── composer steering (owner arc 2026-10-03): the route + the live rail ────
+// ─── reorientación desde el compositor (arco del responsable 2026-10-03): la ruta + el raíl vivo ────
 
 describe("composer steering: POST /api/chats/[id]/steer", () => {
 	const steerPost = (chatId: string, body: unknown): Promise<Response> =>
@@ -1611,9 +1611,9 @@ describe("composer steering: POST /api/chats/[id]/steer", () => {
 	});
 
 	it("200 + the live steering queue when a turn runs; the drain lands the card and the model sees it", async () => {
-		// A GATED engine (the scriptedTeacher seam): the first factory
-		// awaits our release, holding the turn open mid-generation so the
-		// steer POST lands while the run is genuinely live.
+		// Un motor CON BARRERA (la frontera de scriptedTeacher): la primera fábrica
+		// espera a que la liberemos, manteniendo el turno abierto a mitad de generación para que el
+		// POST de reorientación llegue mientras la ejecución está realmente viva.
 		const calls: string[][] = [];
 		let release!: () => void;
 		const gate = new Promise<void>((res) => {
@@ -1636,28 +1636,28 @@ describe("composer steering: POST /api/chats/[id]/steer", () => {
 		const chat = createConfiguredChat("Test: steer live");
 		createdChats.push(chat.id);
 
-		// The turn starts and holds at the first model call.
+		// El turno empieza y se retiene en la primera llamada al modelo.
 		const turnRes = await handleChatRequest(post(chat.id, { type: "text", text: "teach me" }), agentFactory(engine as never));
 		await waitFor(() => calls.length === 1, 8000, "first model call started");
 
-		// The steer lands mid-turn: 200, handed to the live agent.
+		// La reorientación llega a mitad de turno: 200, entregada al agente vivo.
 		const res = await steerPost(chat.id, { input: { type: "steer", id: "steer_live1", text: "also cover Venus" } });
 		assert.equal(res.status, 200);
 		assert.equal((await res.json() as { ok: boolean }).ok, true);
 
-		// CONNECTION DIET B: the drain rides the reattach wire (the POST
-		// acked long ago). Attach BEFORE releasing — a live view.
+		// DIETA DE CONEXIONES B: el vaciado viaja por el cable de reenganche (el POST
+		// acusó recibo hace rato). Engánchate ANTES de liberar: una vista viva.
 		const viewText = drainRunning(chat.id);
-		release(); // the first response completes → the drain → the second call
+		release(); // la primera respuesta termina → el vaciado → la segunda llamada
 		const body = await viewText;
 		assert.match(body, /also cover Venus/, "the drained steer rode the live stream verbatim");
 
-		// ONE turn: the second model call's context contains the steer
-		// BETWEEN the user message and the continuing assistant text.
+		// UN turno: el contexto de la segunda llamada al modelo contiene la reorientación
+		// ENTRE el mensaje del usuario y el texto del asistente que continúa.
 		assert.equal(calls.length, 2, "still one run — the steer continued it, not a new turn");
 		assert.match(calls[1]!.join("\n"), /also cover Venus/, "the model saw the steer in its context");
 
-		// The record persists the user steer in its true position.
+		// El registro persiste la reorientación del usuario en su posición real.
 		const saved = chatStore.getChat(chat.id)!;
 		const roles = saved.messages.map((m) => (m as { role?: string }).role);
 		assert.deepEqual(roles, ["user", "assistant", "user", "assistant"], "text → teaching → STEER → steered reply");
@@ -1667,19 +1667,19 @@ describe("composer steering: POST /api/chats/[id]/steer", () => {
 	});
 });
 
-// ─── THE LACAN INCIDENT: per-response tool-call ids (owner fix 2026-10-04) ──
-// DeepSeek (via OpenRouter) returns tool-call ids that reset every response —
-// `call_0` for every turn's single call. Before the uniquifier, the duplicate
-// ids corrupted the fold (the quiz answer overwrote the ask card, the ask
-// question vanished), answer routing, and the shuffle seeds. Now the wire
-// boundary remints colliding ids ONCE — the client, the record, the pending
-// gate, and the next turn's provider context all see unique ids.
+// ─── EL INCIDENTE LACAN: ids de llamada a herramienta por respuesta (arreglo del responsable 2026-10-04) ──
+// DeepSeek (vía OpenRouter) devuelve ids de llamada a herramienta que se reinician en cada respuesta:
+// `call_0` para la única llamada de cada turno. Antes del unificador, los ids
+// duplicados corrompían el plegado (la respuesta del quiz sobrescribía la tarjeta del ask y la
+// pregunta del ask desaparecía), el enrutado de respuestas y las semillas de barajado. Ahora la
+// frontera del cable vuelve a acuñar UNA VEZ los ids que colisionan: el cliente, el registro, la barrera
+// de pendientes y el contexto del proveedor del turno siguiente ven ids únicos.
 describe("duplicate provider tool-call ids (the Lacan fix)", () => {
 	it("every `call_0` turn keeps its identity: ask answered as ask, quiz as quiz, ids unique in the record", async () => {
-		// the live shape (the real Lacan session): an ask with NO options
+		// la forma en vivo (la sesión Lacan real): un ask SIN opciones
 		const ASK = { question: "What do you want from Lacan?" };
 		const QUIZ2 = { ...QUIZ_INPUT, type: "check" };
-		// BOTH turns name their single call `call_0` — the provider's shape.
+		// AMBOS turnos llaman `call_0` a su única llamada: la forma del proveedor.
 		const { engine } = scriptedTeacher(() => [
 			(context) => {
 				void context;
@@ -1700,16 +1700,16 @@ describe("duplicate provider tool-call ids (the Lacan fix)", () => {
 
 		const chat = createConfiguredChat("Lacan: duplicate call_0 turns");
 		createdChats.push(chat.id);
-		// Turn 1: the ask question.
+		// Turno 1: la pregunta ask.
 		await drainTurn(post(chat.id, { type: "text", text: "teach me Lacan" }), agentFactory(engine));
 		let saved = chatStore.getChat(chat.id)!;
 		let pending = danglingQuestionOf(saved.messages)!;
 		assert.equal(pending.tool, "ask_user_question");
-		// The client answers with the id IT SAW — the persisted one.
+		// El cliente responde con el id QUE VIO: el persistido.
 		const askId = pending.toolCallId;
 		await drainTurn(post(chat.id, { type: "answer", toolCallId: askId, answer: { kind: "ask", questionText: ASK.question, dontKnow: false, answers: [], text: "The theory core", answeredAt: new Date().toISOString() }, }), agentFactory(engine));
 
-		// Turn 2: the quiz — ALSO `call_0` from the provider.
+		// Turno 2: el quiz, TAMBIÉN `call_0` según el proveedor.
 		saved = chatStore.getChat(chat.id)!;
 		pending = danglingQuestionOf(saved.messages)!;
 		assert.equal(pending.tool, "quiz");
@@ -1719,8 +1719,8 @@ describe("duplicate provider tool-call ids (the Lacan fix)", () => {
 		await drainTurn(post(chat.id, { type: "answer", toolCallId: quizId, answer: gradedAnswer(QUIZ2, ["Mercury"]) }), agentFactory(engine));
 
 		saved = chatStore.getChat(chat.id)!;
-		// The invariant: CALL ids are unique among themselves (a call and its
-		// own result share one id by design — that pair is the point).
+		// La invariante: los ids de LLAMADA son únicos entre sí (una llamada y su
+		// propio resultado comparten id a propósito: ese par es la idea).
 		const callIds = saved.messages.flatMap(
 			(m) =>
 				m.role === "assistant"
@@ -1730,8 +1730,8 @@ describe("duplicate provider tool-call ids (the Lacan fix)", () => {
 		assert.equal(new Set(callIds).size, callIds.length, "no duplicate tool-call ids persist");
 		assert.deepEqual(callIds, ["call_0", "call_0~2"], "the provider's two call_0s became distinct ids");
 
-		// The fold is the Lacan heal: the ask card carries the ASK answer,
-		// the quiz card the QUIZ answer — no overwrite, order preserved.
+		// El plegado es la reparación Lacan: la tarjeta del ask lleva la respuesta del ASK y
+		// la del quiz la respuesta del QUIZ; sin sobrescritura, con el orden conservado.
 		const view = projectView(saved.messages);
 		const parts = view.flatMap((v) => v.parts).filter((p) => p.type.startsWith("tool-"));
 		const askPart = parts.find((p) => (p as { toolCallId?: string }).toolCallId === askId) as { state?: string; output?: { kind?: string } };
