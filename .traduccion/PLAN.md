@@ -97,6 +97,9 @@ node .traduccion/comentarios.cjs aplicar /tmp/C1
 Desde la sesión 9, `sangria.py` también sangra las continuaciones de un `/** */` que en el
 original ocupaba UNA sola línea y en la traducción ocupa varias (toma los tabs de la línea
 del fichero fuente; hay que ejecutarlo desde la raíz del repo).
+Desde la sesión 12, `sangria.py` copia la sangría completa (tabs Y espacios) de la 2.ª línea
+original y conserva la sangría relativa de la traducción: hacía falta en los ficheros
+sangrados con espacios (p. ej. los `{/* */}` de JSX en components/ai-elements y settings).
 
 Reutilizar la prosa ya traducida de `docs/plugin-api/` (JSDoc públicos):
 
@@ -125,8 +128,8 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 | C4 | Comentarios: `src/core` (2ª mitad) | 30 | 21.060 | [x] |
 | C5 | Comentarios: `components/*` raíz (1ª mitad) | 37 | 32.633 | [x] |
 | C6 | Comentarios: `components/*` raíz (2ª mitad) | 89 | 31.871 | [x] |
-| C7 | Comentarios: `components/{settings,artifacts,ui,ai-elements}`, `app`, `electron`, `scripts`, `plugins`, configuración | 201 | 33.875 | [~] parcial |
-| C8 | Comentarios: `tests/` (1ª mitad) | 124 | 23.181 | [ ] |
+| C7 | Comentarios: `components/{settings,artifacts,ui,ai-elements}`, `app`, `electron`, `scripts`, `plugins`, configuración | 201 | 33.875 | [x] |
+| C8 | Comentarios: `tests/` (1ª mitad) | 124 | 23.181 | [~] parcial |
 | C9 | Comentarios: `tests/` (2ª mitad) + los 7 `.py` (a mano) | 178 | 23.180 | [ ] |
 
 Las listas exactas de ficheros están en `.traduccion/lotes/<lote>.txt`.
@@ -379,3 +382,45 @@ falsos positivos).
   `/* turbopackIgnore: true */` que no se tocan), scripts/smoke-plugin-browser.mjs (≈970),
   scripts/verify-release.ts (≈900), settings-dialog.tsx y next.config.ts (≈800),
   appearance.tsx y model-menu.tsx (≈700–750).
+- Sesión 12: C7 terminado: líneas 18–201 de `.traduccion/lotes/C7.txt` en diez tandas con su
+  commit (app/api/graph/costs…app/settings; components/ai-elements + artifacts;
+  agent-section.tsx solo; appearance-section…keys-section; model-menu…update-settings +
+  components/ui + config.ts; electron/main.cjs solo; resto de electron + eslint + lib +
+  next.config.ts + plugins/coding-questions; plugins/drawing-pad, flashcards,
+  rich-code-blocks y ui-showcase; proxy.ts + public/ + scripts/ after-pack…
+  smoke-opening-prompt; smoke-plugin-browser…verify-release). Ningún JSDoc de C7 estaba en
+  `docs/plugin-api/` (0 coincidencias de 1.097). Se dejaron sin tocar las 19 directivas
+  `/* turbopackIgnore: true */` de config.ts, el comentario generado de next-env.d.ts y los
+  JSDoc que solo contienen etiquetas de tipo (`@param`/`@returns`/`@template`). Ningún
+  comentario citaba encabezados de docs traducidos (las `fichero.md#ancla` de
+  scripts/build-plugin-api-reference.mjs son cadenas de código, no comentarios). En
+  components/ui/glyph-mark.tsx el grupo `// ✗ U+2717…` termina en «— límites» porque la
+  línea siguiente `// (0, -145, 1169, 1346)` no se extrae. `sangria.py` ampliado (ver arriba).
+  Literales que se dejan en inglés: "Default", "Your version is saved"/"Your version is in
+  use", Multiple choice/Free recall, Save/Cancel/Delete/Connect/Disconnect, "Get a key ↗",
+  "Use '<query>'", "Reset all", "Import JSON"/"Export JSON", "Aa ai", "Colors"/"Typography",
+  "Figure"/"Image", "Send to teacher", "Research complete", "needs model setup",
+  "dispatched"/"finished"/"failed", "Agent's thinking"/"Your thinking", "[Image blocked:
+  alt]", "Dictate (⌘D)", "Add a provider key first…", "+ New session", los nombres de
+  sección/grupo de Ajustes (Models/Tools/System prompts, Teacher/Prober/Practice/Shared,
+  Strong/Cheap/Vision, Providers, Model API keys, Custom endpoint) y los mensajes de
+  handshake/IPC ("BROWSER_SERVICE_CDP <port>", "lh:zoom", "lh:update-install"…).
+  Glosario añadido en la práctica: *shell* (Electron) → armazón; *chrome* (ventana/UI) →
+  adorno o interfaz; *traffic lights* → semáforos; *wordmark* → marca; *gutter* → margen;
+  *fan-out* → difusión; *pill* → píldora; *chip* → etiqueta (de estado); *affordance* →
+  indicación; *trigger* (menú) → disparador; *deep-link* → enlace directo; *retarget* →
+  redirigir; *roster* (de roles) → plantilla; *tier* → nivel; *slot* → ranura; *pin*
+  (modelo/clave) → fijación; *override* → sustitución; *orphan-heal* → reparación de
+  huérfanos; *escape hatch* → salida de emergencia; *fail closed* → fallar en cerrado;
+  *best effort* → con el mejor esfuerzo; *tripwire* → cable trampa; *smoke (test)* →
+  prueba de humo; *payload* → carga; *trace/tracer* → rastreo/rastreador; *standalone*
+  se deja; *feed* (actualizaciones) → fuente; *draft* (release) → borrador; *asset* se deja
+  en las releases de GitHub; *lease* → préstamo; *handle* → identificador (manejador en la
+  API de plugins, como antes); *seam* → frontera (igual que antes); *ledger* → registro.
+  C8 empezado: líneas 1–20 y 22–25 de `.traduccion/lotes/C8.txt` (tests/activity-feed…
+  chatgpt-auth, salvo chat-flow.test.ts), en una tanda.
+  C8 pendiente: línea 21 (tests/chat-flow.test.ts) y líneas 26–124 de
+  `.traduccion/lotes/C8.txt` (≈20.950 palabras). Ficheros grandes (palabras de
+  comentario): chat-flow.test.ts (≈3.400) y extraction.test.ts (≈3.400), conviene partirlos
+  por ids en dos tandas cada uno; jobs.test.ts (≈2.500), graph.test.ts (≈1.600),
+  demos.test.tsx (≈1.000), graph-canvas.test.ts (≈650).
