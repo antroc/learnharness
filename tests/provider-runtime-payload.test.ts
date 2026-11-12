@@ -1,4 +1,4 @@
-/** Real installed Pi/Google/Bedrock SDKs only; no provider stubs, keys, or generation. */
+/** Solo los SDK de Pi/Google/Bedrock instalados de verdad; sin sustitutos de proveedores, claves ni generación. */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -13,7 +13,7 @@ const run = (payload: string) => spawnSync(process.execPath, [script, "--standal
 
 describe("offline native Pi Google initialization gate", () => {
 	it("reaches the sentinel for Google, Google-backed OpenCode and Bedrock adapters using the real SDKs", () => {
-		// This is an unbundled positive control, NOT proof of standalone completeness.
+		// Es un control positivo sin empaquetar, NO una prueba de que el standalone esté completo.
 		const result = run(checkout);
 		assert.equal(result.status, 0, String(result.stderr));
 		for (const provider of ["google", "opencode", "opencode-go"]) assert.ok(String(result.stdout).includes(`${provider}: native lazy Google adapter reached onPayload`));

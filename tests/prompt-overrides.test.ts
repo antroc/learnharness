@@ -1,26 +1,31 @@
 /**
- * Tests for the prompt-override store (settings-storage wave, 2026-09-19):
- * src/store/prompt-overrides.ts — override file CRUD, the mirror-layout
- * path discipline (traversal guard), and the SOURCE-DERIVED segment list
- * (the loader mirrors teacher-agent.ts's composeInstructions discovery;
- * these tests pin that the mirror tracks the real src/agent/prompts tree).
+ * Pruebas del almacén de sustituciones de prompts (oleada de almacenamiento de
+ * ajustes, 2026-09-19): src/store/prompt-overrides.ts: CRUD de ficheros de
+ * sustitución, la disciplina de rutas del layout espejo (guarda contra el
+ * recorrido de directorios) y la lista de segmentos DERIVADA DEL CÓDIGO FUENTE
+ * (el cargador replica el descubrimiento de composeInstructions de
+ * teacher-agent.ts; estas pruebas fijan que el espejo sigue el árbol real de
+ * src/agent/prompts).
  *
- * TEST-DIR ISOLATION (contract fix, interlude 2026-09-26): data/prompts
- * holds REAL user override files — this suite must never touch it (the
- * old after() wiped it as "disposable scratch", killing real overrides
- * and orphaning their ON switches). LH_DATA_DIR is the established
- * data-location seam (Electron contract, 2026-09-17; see
- * data-dir-seam.test.ts), evaluated at config.ts's MODULE LOAD — so it
- * must be set before the first import that (transitively) loads config.
- * Every app-module import below is dynamic for exactly that reason;
- * only node builtins and config-independent libs stay static. The seam
- * pins at the bottom assert the redirection, and after() snapshots that
- * the REAL repo data/prompts survived the suite untouched.
+ * AISLAMIENTO DEL DIRECTORIO DE PRUEBAS (arreglo del contrato, interludio
+ * 2026-09-26): data/prompts contiene ficheros REALES de sustitución del
+ * usuario y esta batería nunca debe tocarlo (el antiguo after() lo borraba
+ * como «espacio temporal desechable», lo que mataba sustituciones reales y
+ * dejaba huérfanos sus interruptores ON). LH_DATA_DIR es la frontera
+ * establecida de ubicación de datos (contrato de Electron, 2026-09-17; ver
+ * data-dir-seam.test.ts), que se evalúa al CARGAR EL MÓDULO config.ts, así que
+ * debe fijarse antes del primer import que cargue (transitivamente) config.
+ * Por eso mismo todos los imports de módulos de la app de abajo son dinámicos;
+ * solo los módulos integrados de Node y las bibliotecas independientes de
+ * config siguen siendo estáticos. Las fijaciones de la frontera del final
+ * comprueban la redirección y after() verifica con una instantánea que el
+ * data/prompts REAL del repo sobrevivió intacto a la batería.
  *
- * This file OWNS the temp dir (parallel-test discipline: one fs owner
- * per file) — every override-writing test lives here, including the
- * route-level contract pins for the same interlude (delete-clears-switch,
- * orphaned-ON-heals-to-OFF).
+ * Este fichero es el RESPONSABLE del directorio temporal (disciplina de
+ * pruebas en paralelo: un responsable del sistema de ficheros por fichero):
+ * todas las pruebas que escriben sustituciones viven aquí, incluidas las
+ * fijaciones del contrato a nivel de ruta del mismo interludio
+ * (borrar-limpia-el-interruptor, ON-huérfano-se-repara-a-OFF).
  */
 
 import assert from "node:assert/strict";
@@ -31,7 +36,7 @@ import { after, describe, it } from "node:test";
 import { createFauxCore } from "@earendil-works/pi-ai";
 import type { PiEngine } from "../src/agent/models.ts";
 
-// ── the seam, BEFORE any config-loading import ──────────────────────────────
+// ── la frontera, ANTES de cualquier import que cargue la configuración ──────
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-prompt-overrides-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 
@@ -40,18 +45,18 @@ const teacherAgent = await import("../src/agent/teacher-agent.ts");
 const { allSegmentPaths, effectivePromptSegments } = await import("../src/agent/prompt-segments.ts");
 const { isValidSegmentPath } = await import("../src/core/prompt-segments.ts");
 const { promptOverrides } = await import("../src/store/prompt-overrides.ts");
-// Route-level pins drive the actual app/api handlers (framework-free
-// Request/Response), isolated under the same temp LH_DATA_DIR.
+// Las fijaciones a nivel de ruta usan los manejadores reales de app/api (Request/Response
+// sin framework), aislados bajo el mismo LH_DATA_DIR temporal.
 const { PUT: putSettingsSection } = await import("../app/api/settings/[section]/route.ts");
 const { PUT: putPromptText, DELETE: deletePromptText } = await import("../app/api/settings/prompts/[...segment]/route.ts");
 const { GET: getPromptSegments } = await import("../app/api/settings/prompts/route.ts");
 const { readSettingsRecord } = await import("../src/server/index.ts");
 
-/** The REAL repo prompts dir this suite must never touch (read-only). */
+/** El directorio de prompts REAL del repo, que esta batería nunca debe tocar (solo lectura). */
 const REPO_PROMPTS = path.resolve(import.meta.dirname, "../data/prompts");
 
-/** Read-only recursive snapshot of a dir (sorted "rel|size" lines) — the
- *  survival pin compares before/after the whole suite. */
+/** Instantánea recursiva de solo lectura de un directorio (líneas ordenadas
+ *  "rel|size"): la fijación de supervivencia compara antes/después de toda la batería. */
 function snapshotDir(dir: string): string[] {
 	if (!fs.existsSync(dir)) return [];
 	const out: string[] = [];
@@ -68,7 +73,7 @@ function snapshotDir(dir: string): string[] {
 const REAL_PROMPTS_BEFORE = snapshotDir(REPO_PROMPTS);
 
 after(() => {
-	// The suite's own scratch dies; the REAL user dir must be untouched.
+	// El espacio temporal propio de la batería desaparece; el directorio REAL del usuario debe quedar intacto.
 	assert.deepEqual(
 		snapshotDir(REPO_PROMPTS),
 		REAL_PROMPTS_BEFORE,
@@ -77,14 +82,14 @@ after(() => {
 	fs.rmSync(TMP_DATA, { recursive: true, force: true });
 });
 
-/** A scripted pi engine (pi-ai's faux provider) — the agent build needs an
- *  injected engine since BYOK removed the factory pins (owner, 2026-09-22). */
+/** Un motor pi guionizado (el proveedor simulado de pi-ai): construir el agente
+ *  requiere un motor inyectado desde que BYOK quitó las fijaciones de fábrica (responsable, 2026-09-22). */
 function fauxEngine(): PiEngine {
 	const faux = createFauxCore({});
 	return { model: faux.getModel(), streamFn: faux.streamSimple };
 }
 
-/** PUT /api/settings/<section> with a fabricated params context. */
+/** PUT /api/settings/<section> con un contexto de params fabricado. */
 function putSection(section: string, body: unknown): Promise<Response> {
 	return putSettingsSection(
 		new Request(`http://test/api/settings/${section}`, {
@@ -96,7 +101,7 @@ function putSection(section: string, body: unknown): Promise<Response> {
 	);
 }
 
-/** DELETE /api/settings/prompts/<segment...> with a fabricated params context. */
+/** DELETE /api/settings/prompts/<segment...> con un contexto de params fabricado. */
 function deleteSegment(segment: string[]): Promise<Response> {
 	return deletePromptText(new Request("http://test/api/settings/prompts", { method: "DELETE" }), {
 		params: Promise.resolve({ segment }),
@@ -108,21 +113,21 @@ describe("isValidSegmentPath (the mirror-layout discipline)", () => {
 		assert.equal(isValidSegmentPath("system-prompt.md"), true);
 		assert.equal(isValidSegmentPath("teacher/20-teaching.md"), true);
 		assert.equal(isValidSegmentPath("prober/10-probe-doctrine.md"), true);
-		// the shared/ fragments dir (sources v1): composed by BOTH agents,
-		// overridable like any other segment
+		// el directorio de fragmentos shared/ (fuentes v1): lo componen LOS DOS agentes
+		// y se puede sustituir como cualquier otro segmento
 		assert.equal(isValidSegmentPath("shared/10-personality.md"), true);
 		for (const bad of [
-			"", // empty
-			"README.md", // no agent dir
-			"teacher/README.md", // not numeric-prefixed
-			"teacher/20-teaching.txt", // not .md
-			"../system-prompt.md", // traversal
-			"agent/../teacher/20-teaching.md", // traversal
-			"/etc/passwd", // absolute
-			"teacher", // bare dir
-			"teacher/", // bare dir
-			"teacher/sub/10-x.md", // nested (not the mirror layout)
-			"prober\\10-x.md", // backslash
+			"", // vacío
+			"README.md", // sin directorio de agente
+			"teacher/README.md", // sin prefijo numérico
+			"teacher/20-teaching.txt", // no es .md
+			"../system-prompt.md", // recorrido de directorios
+			"agent/../teacher/20-teaching.md", // recorrido de directorios
+			"/etc/passwd", // absoluta
+			"teacher", // directorio a secas
+			"teacher/", // directorio a secas
+			"teacher/sub/10-x.md", // anidada (no es el layout espejo)
+			"prober\\10-x.md", // barra invertida
 		]) {
 			assert.equal(isValidSegmentPath(bad), false, bad);
 		}
@@ -143,20 +148,20 @@ describe("the override store", () => {
 		assert.equal(promptOverrides.readOverride("prober/30-probe-done.md"), "custom probe-done");
 		promptOverrides.deleteOverride("prober/30-probe-done.md");
 		assert.equal(promptOverrides.readOverride("prober/30-probe-done.md"), null);
-		promptOverrides.deleteOverride("prober/30-probe-done.md"); // again: no throw
-		// traversal junk never reaches disk
+		promptOverrides.deleteOverride("prober/30-probe-done.md"); // otra vez: no lanza error
+		// la basura de recorrido de directorios nunca llega al disco
 		promptOverrides.writeOverride("../evil.md", "nope");
 		assert.equal(fs.existsSync(path.join(PROMPTS_OVERRIDE_DIR, "..", "evil.md")), false);
 	});
 
 	it("switches are NOT the store's concern — files alone never enable", () => {
 		promptOverrides.writeOverride("system-prompt.md", "custom base");
-		const off = effectivePromptSegments("teacher", {}) // no switches
+		const off = effectivePromptSegments("teacher", {}) // sin interruptores
 			.find((s) => s.path === "system-prompt.md");
 		assert.ok(off);
-		assert.equal(off.overrideText, "custom base"); // file exists...
-		assert.equal(off.enabled, false); // ...but no switch → source default
-		promptOverrides.deleteOverride("system-prompt.md"); // leave clean for the sibling tests
+		assert.equal(off.overrideText, "custom base"); // el fichero existe...
+		assert.equal(off.enabled, false); // ...pero sin interruptor → valor por defecto de la fuente
+		promptOverrides.deleteOverride("system-prompt.md"); // deja limpio para las pruebas hermanas
 	});
 });
 
@@ -164,16 +169,16 @@ describe("the source-derived segment list", () => {
 	it("mirrors composeInstructions' discovery: base first, numeric fragments sorted, per agent", () => {
 		const prober = effectivePromptSegments("prober", {});
 		const teacher = effectivePromptSegments("teacher", {});
-		// The shared base composes both prompts, SAME path.
+		// La base compartida compone ambos prompts, MISMA ruta.
 		assert.equal(prober[0]?.path, "system-prompt.md");
 		assert.equal(teacher[0]?.path, "system-prompt.md");
 		assert.equal(prober[0].shared, true);
 		assert.equal(teacher[0].shared, true);
 		assert.equal(prober[0].sourceText.length > 0, true, "base prompt text loads");
-		// Fragments track the REAL source tree (numeric order, right agent dir),
-		// the agent's OWN fragments between the base and the shared/ appendix —
-		// the exact order composeInstructions loads them in (reorder, 2026-09-27:
-		// job and method lead, mechanics trail).
+		// Los fragmentos siguen el árbol fuente REAL (orden numérico, directorio de agente correcto),
+		// con los fragmentos PROPIOS del agente entre la base y el apéndice shared/:
+		// el orden exacto en que los carga composeInstructions (reordenación, 2026-09-27:
+		// la tarea y el método van delante, la mecánica detrás).
 		assert.deepEqual(
 			prober.map((s) => s.path),
 			[
@@ -198,19 +203,19 @@ describe("the source-derived segment list", () => {
 			),
 			true,
 		);
-		// the shared fragments compose for BOTH agents, same path key.
+		// los fragmentos compartidos se componen para LOS DOS agentes, misma clave de ruta.
 		assert.equal(teacher.some((s) => s.path === "shared/30-learner-files.md" && s.shared), true);
 		assert.equal(prober.some((s) => s.path === "shared/30-learner-files.md" && s.shared), true);
-		// Voice + accuracy moved BACK to shared/ fragments (owner round 13,
-		// 2026-10-05): one law across every agent — including practice, whose
-		// near-copy had drifted stale ("You have no research tool here").
+		// La voz y la precisión VOLVIERON a los fragmentos de shared/ (ronda 13 del responsable,
+		// 2026-10-05): una ley para todos los agentes, práctica incluida, cuya
+		// casi copia se había quedado desfasada ("You have no research tool here").
 		assert.equal(prober.some((s) => s.path === "shared/10-voice.md" && s.shared), true);
 		assert.equal(teacher.some((s) => s.path === "shared/10-voice.md" && s.shared), true);
 		assert.equal(prober.some((s) => s.path === "shared/15-accuracy.md" && s.shared), true);
-		// Tool MECHANICS are shared; question METHODOLOGY is phase-owned.
+		// La MECÁNICA de las herramientas es compartida; la METODOLOGÍA de las preguntas pertenece a cada fase.
 		assert.equal(prober.some((s) => s.path.startsWith("teacher/")), false);
 		assert.equal(teacher.some((s) => s.path.startsWith("prober/")), false);
-		// README and other non-numeric files never load.
+		// El README y los demás ficheros no numéricos nunca se cargan.
 		assert.equal(allSegmentPaths().some((p) => p.includes("README")), false);
 	});
 
@@ -222,12 +227,12 @@ describe("the source-derived segment list", () => {
 		assert.ok(teaching);
 		assert.equal(teaching.overrideText, "MY WAY");
 		assert.equal(teaching.enabled, true);
-		// base: switch OFF with file ABSENT → source, disabled
+		// base: interruptor OFF con el fichero AUSENTE → fuente, desactivado
 		const base = teacher.find((s) => s.path === "system-prompt.md");
 		assert.ok(base);
 		assert.equal(base.overrideText, null);
 		assert.equal(base.enabled, false);
-		// a switch for a segment with NO override file never enables it
+		// un interruptor para un segmento SIN fichero de sustitución nunca lo activa
 		const weird = effectivePromptSegments("teacher", { "teacher/10-planning.md": true });
 		const planning = weird.find((s) => s.path === "teacher/10-planning.md");
 		assert.ok(planning);
@@ -236,24 +241,24 @@ describe("the source-derived segment list", () => {
 	});
 
 	it("adapts to source changes by construction: the list is computed, not stored", () => {
-		// If a fragment vanishes upstream, its switch/override simply stop
-		// composing — nothing here can go stale. Pinned by absence:
+		// Si un fragmento desaparece en el original, su interruptor/sustitución simplemente deja
+		// de componerse: aquí nada puede quedar obsoleto. Se fija por ausencia:
 		const before = allSegmentPaths().length;
 		assert.equal(before > 5, true, "base + prober fragments + teacher fragments");
 	});
 });
 
-// ─── composeInstructions honors overrides (P2 reconciliation, 2026-09-19) ────
-// This file OWNS the (isolated) PROMPTS_OVERRIDE_DIR (parallel-test
-// discipline), so every override-writing composition test lives here.
+// ─── composeInstructions respeta las sustituciones (conciliación P2, 2026-09-19) ─
+// Este fichero es el RESPONSABLE del PROMPTS_OVERRIDE_DIR (aislado) (disciplina de
+// pruebas en paralelo), así que aquí viven todas las pruebas de composición que escriben sustituciones.
 
 describe("composeInstructions: override honoring + the byte-identical source path", () => {
 	const { composeInstructions, createTeacherAgent } = teacherAgent;
 
 	it("switches-less composition is byte-identical to the pre-refactor loader", () => {
-		// The plain loader, rebuilt inline: base + the agent's own
-		// fragments + the shared/ appendix (the 2026-09-27 reorder),
-		// trimmed, empties dropped, joined with the separator.
+		// El cargador simple, reconstruido aquí: base + los fragmentos propios del
+		// agente + el apéndice shared/ (la reordenación del 2026-09-27),
+		// recortados, sin los vacíos y unidos con el separador.
 		const oldLoader = (kind: "prober" | "teacher") => {
 			const fragmentsOf = (dir: string) =>
 				fs
@@ -279,10 +284,10 @@ describe("composeInstructions: override honoring + the byte-identical source pat
 			const on = composeInstructions("teacher", { "teacher/20-teaching.md": true });
 			assert.ok(on.includes("CUSTOM TEACHING LOOP"), "override composes when switch on");
 			assert.ok(!on.includes("# Teach — one step at a time"), "source text is replaced");
-			// switch off → source default (the file stays on disk)
+			// interruptor apagado → valor por defecto de la fuente (el fichero sigue en disco)
 			const off = composeInstructions("teacher", {});
 			assert.ok(off.includes("# Teach — one step at a time"), "source composes when switch off");
-			// switch on for a segment with NO file → source (enabled needs both)
+			// interruptor encendido para un segmento SIN fichero → fuente (activarlo requiere ambos)
 			const noFile = composeInstructions("teacher", { "teacher/10-planning.md": true });
 			assert.ok(noFile.includes("# Planning"), "file absent → source default");
 		} finally {
@@ -299,7 +304,7 @@ describe("composeInstructions: override honoring + the byte-identical source pat
 				assert.ok(composed.includes("MY SHARED FILES DOCTRINE"), `${kind} composes the override`);
 				assert.ok(!composed.includes("## Learner files"), `${kind} source fragment is replaced`);
 			}
-			// switches-less: both keep the source fragment (the cached path)
+			// sin interruptores: los dos conservan el fragmento de la fuente (la ruta en caché)
 			assert.ok(composeInstructions("teacher").includes("## Learner files"));
 		} finally {
 			promptOverrides.deleteOverride("shared/30-learner-files.md");
@@ -309,9 +314,9 @@ describe("composeInstructions: override honoring + the byte-identical source pat
 	it("promptSwitches threads through agent construction into the system prompt", () => {
 		promptOverrides.writeOverride("system-prompt.md", "TOTALLY CUSTOM BASE");
 		try {
-			// BYOK (owner, 2026-09-22): no factory pins — the agent build needs
-			// an injected engine; a scripted faux one stands in (the prompt is
-			// what's under test here, not the model).
+			// BYOK (responsable, 2026-09-22): sin fijaciones de fábrica: construir el agente
+			// requiere un motor inyectado; uno simulado y guionizado hace las veces (aquí se
+			// prueba el prompt, no el modelo).
 			const engine = fauxEngine();
 			const agent = createTeacherAgent(undefined, { engine, promptSwitches: { "system-prompt.md": true } });
 			assert.ok(agent.state.systemPrompt.includes("TOTALLY CUSTOM BASE"));
@@ -323,12 +328,12 @@ describe("composeInstructions: override honoring + the byte-identical source pat
 	});
 });
 
-// ─── the orphan-heal contract (interlude, 2026-09-26) ────────────────────────
-// The orphan-400 trap: an ON switch whose file dies orphaned the record;
-// every agent-section write then 400'd while the disabled toggle couldn't
-// reach the OFF escape hatch — a user stuck unable to write settings.
-// Fix: the delete route clears the switch by construction, AND the write
-// path heals any orphan that still arises (disk wipes outside the app).
+// ─── el contrato de reparación de huérfanos (interludio, 2026-09-26) ─────────
+// La trampa del 400 huérfano: un interruptor ON cuyo fichero desaparece dejaba huérfano
+// el registro; después todas las escrituras de la sección de agentes daban 400 mientras el
+// conmutador desactivado no podía llegar a la salida de emergencia OFF: el usuario no podía guardar ajustes.
+// Arreglo: la ruta de borrado limpia el interruptor por construcción, Y el camino de escritura
+// repara cualquier huérfano que aún surja (borrados del disco fuera de la app).
 
 describe("delete clears the switch — the record and file agree by construction", () => {
 	const SEGMENT = "teacher/20-teaching.md";
@@ -346,8 +351,8 @@ describe("delete clears the switch — the record and file agree by construction
 
 		assert.equal(readSettingsRecord()?.agent?.prompts?.[SEGMENT], undefined, "the switch is GONE from the record");
 		assert.equal(promptOverrides.readOverride(SEGMENT), null, "the file is gone");
-		// And the trap's step 4 — flipping any tool toggle afterwards —
-		// just works (nothing orphaned to mirror):
+		// Y el paso 4 de la trampa (cambiar después cualquier conmutador de herramienta)
+		// funciona sin más (no hay nada huérfano que replicar):
 		const followUp = await putSection("agent", { tools: { research: false } });
 		assert.equal(followUp.status, 200, "a subsequent agent write succeeds");
 		assert.equal(readSettingsRecord()?.agent?.tools?.research, false);
@@ -369,12 +374,12 @@ describe("an orphaned ON heals to OFF on write — never a 400 (the invariant: a
 		const on = await putSection("agent", { prompts: { [SEGMENT]: true } });
 		assert.equal(on.status, 200);
 
-		// The disk-level wipe — OUTSIDE the app (the delete route now clears
-		// the switch, so this is the only way an orphan still arises).
+		// El borrado a nivel de disco, FUERA de la app (la ruta de borrado ya limpia
+		// el interruptor, así que es la única forma de que aún surja un huérfano).
 		fs.rmSync(path.join(PROMPTS_OVERRIDE_DIR, "teacher", "20-teaching.md"));
 
-		// The exact trap shape: the client mirrors the record's orphaned ON
-		// while writing an unrelated tool toggle. Today (pre-fix) → 400 forever.
+		// La forma exacta de la trampa: el cliente replica el ON huérfano del registro
+		// mientras escribe un conmutador de herramienta no relacionado. Hoy (antes del arreglo) → 400 para siempre.
 		const res = await putSection("agent", { tools: { research: false }, prompts: { [SEGMENT]: true } });
 		assert.equal(res.status, 200, "the write heals instead of 400-ing — the user is never stuck");
 
@@ -382,16 +387,16 @@ describe("an orphaned ON heals to OFF on write — never a 400 (the invariant: a
 		assert.equal(record?.agent?.prompts?.[SEGMENT], undefined, "the orphaned ON landed as OFF (key dropped)");
 		assert.equal(record?.agent?.tools?.research, false, "the rest of the write landed — nothing was silently dropped");
 
-		// And the SECOND write (the "400 forever" of the trap) succeeds too:
+		// Y la SEGUNDA escritura (el «400 para siempre» de la trampa) también funciona:
 		const again = await putSection("agent", { tools: { research: false }, prompts: { [SEGMENT]: true } });
 		assert.equal(again.status, 200, "repeated writes keep succeeding");
 	});
 
 	it("an ON for a segment that left the source tree heals the same way", async () => {
 		promptOverrides.writeOverride(SEGMENT, "custom teaching");
-		// A vanished-fragment orphan: the switch keys a path that is no
-		// longer a current source segment (simulate by keying junk that the
-		// store never guarded — the record is the only place it exists).
+		// Un huérfano de fragmento desaparecido: el interruptor apunta a una ruta que ya
+		// no es un segmento actual de la fuente (se simula con una clave basura que el
+		// almacén nunca vigiló: el registro es el único sitio donde existe).
 		const on = await putSection("agent", { prompts: { "teacher/99-vanished.md": true, [SEGMENT]: true } });
 		assert.equal(on.status, 200, "vanished-fragment ON heals too, not a 400");
 		assert.equal(readSettingsRecord()?.agent?.prompts?.["teacher/99-vanished.md"], undefined, "the vanished key healed to OFF");
@@ -490,7 +495,7 @@ describe("test isolation (the suite must never touch real user data)", () => {
 			REPO_PROMPTS,
 			"the seam must NOT resolve to the repo's real data/prompts",
 		);
-		// The suite proves it writes here:
+		// La batería demuestra que escribe aquí:
 		promptOverrides.writeOverride("system-prompt.md", "isolation probe");
 		assert.equal(
 			fs.existsSync(path.join(TMP_DATA, "prompts", "system-prompt.md")),

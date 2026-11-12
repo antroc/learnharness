@@ -1,11 +1,11 @@
-/** JS matcher + config-policy regressions; native Turbopack needs the real payload gate. */
+/** Regresiones del matcher de JS + la política de configuración; el Turbopack nativo necesita la barrera real de la carga. */
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 import { describe, it } from "node:test";
 import nextConfig from "../next.config.ts";
 
 const require = createRequire(import.meta.url);
-// Use Next's actual bundled matcher, not a different glob implementation.
+// Usa el matcher empaquetado real de Next, no otra implementación de glob.
 const picomatch = require("next/dist/compiled/picomatch");
 const { makeIgnoreFn } = require("next/dist/build/collect-build-traces");
 const patterns = nextConfig.outputFileTracingExcludes!["*"];
@@ -19,7 +19,7 @@ describe("standalone JavaScript tracing exclusions and native workaround policy"
 			for (const relative of ["data/canary.json", "nested/data/private.json", "auth.json", ".env", ".env.local", "chatgpt-credentials.json", "github-copilot-credentials.json", "xai-credentials.json", "chatgpt-credentials.json.fixture.tmp", "github-copilot-credentials.json.fixture.tmp", "xai-credentials.json.fixture.tmp"]) {
 				assert.equal(ignored(file(relative)), true, relative);
 			}
-			// The explicit includes remain necessary: this raw ignore still matches SDK data.
+			// Los includes explícitos siguen siendo necesarios: este ignore en bruto aún encaja con datos del SDK.
 			assert.equal(ignored(file("node_modules/@earendil-works/pi-ai/dist/providers/data/models.json")), true);
 			assert.ok(nextConfig.outputFileTracingIncludes!["*"]!.includes("node_modules/@earendil-works/pi-ai/dist/providers/data/**/*"));
 		});

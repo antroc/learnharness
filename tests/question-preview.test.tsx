@@ -13,8 +13,8 @@ const dom = (element: React.ReactElement) => parseHTML(`<html><body>${renderToSt
 const preview = (source: string) => dom(<QuestionPreview>{source}</QuestionPreview>);
 const annotations = (root: ParentNode) => [...root.querySelectorAll('annotation[encoding="application/x-tex"]')].map((node) => node.textContent);
 
-// These controlled boxes test the measurement/cutoff lifecycle, not typography.
-// Real KaTeX geometry/centering/card-height comparisons require the browser check.
+// Estas cajas controladas prueban el ciclo de vida de medición/corte, no la tipografía.
+// Las comparaciones reales de geometría/centrado/altura de tarjeta de KaTeX requieren la comprobación en el navegador.
 async function withGeometry(run: (fixture: {
 	host: HTMLElement;
 	render: (source: string) => Promise<void>;
@@ -210,8 +210,8 @@ describe("collapsed question inline preview", () => {
 			await act(async () => { metrics.contentWidth = 600; fontsLoaded(); });
 			assert.equal(host.querySelectorAll("[data-preview-ellipsis]").length, 1);
 			await render("Short new question.");
-			// This controlled width remains narrow; reset the synthetic content
-			// measurement and verify source changes do not retain an old marker.
+			// Este ancho controlado sigue siendo estrecho; reinicia la medición sintética del
+			// contenido y comprueba que los cambios de fuente no conservan un marcador antiguo.
 			await act(async () => { metrics.contentWidth = 100; fontsLoaded(); });
 			assert.equal(host.querySelectorAll("[data-preview-ellipsis]").length, 0);
 		});
@@ -219,7 +219,7 @@ describe("collapsed question inline preview", () => {
 
 	it("detects math overflow hidden from the line, without treating intrinsic font overhang as a width cut in a roomy slot", async () => {
 		await withGeometry(async ({ host, render, metrics, fontsLoaded, resize }) => {
-			metrics.mathWidth = 13; // One pixel beyond the controlled 12px math box.
+			metrics.mathWidth = 13; // Un píxel más que la caja matemática controlada de 12px.
 			await render("Before $x+1$.");
 			assert.equal(host.querySelectorAll("[data-preview-ellipsis]").length, 0);
 			await act(async () => { metrics.mathWidth = 300; fontsLoaded(); });
@@ -369,7 +369,7 @@ describe("probe conclusion Markdown", () => {
 			await act(async () => root.render(<ProbeDoneCard part={{ state: "input-available", input }} />));
 			const card = host.querySelector("details")!;
 			assert.ok(!card.hasAttribute("open"));
-			card.setAttribute("open", ""); // Native disclosure action, not React state.
+			card.setAttribute("open", ""); // Acción nativa de despliegue, no estado de React.
 			await act(async () => root.render(<ProbeDoneCard part={{ state: "output-available", input: { assessment: {
 				strands: [...input.assessment.strands, { strand: "Second $x$", assessment: "Second assessment" }],
 			} }, output: { ok: true } }} />));
