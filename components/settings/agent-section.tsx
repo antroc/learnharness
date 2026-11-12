@@ -1,54 +1,59 @@
 "use client";
 /**
- * The Agent section (settings-app wave): the THREE MODEL SLOTS, the tool
- * toggles + the search-engine preference, and the prompt override
- * switches — three GROUPS (owner, 2026-09-20: clear separation — Models /
- * Tools / System prompts).
+ * La sección Agent (oleada de la app de ajustes): las TRES RANURAS DE MODELO,
+ * los conmutadores de herramientas + la preferencia de motor de búsqueda, y
+ * los interruptores de sustitución de prompts; tres GRUPOS (responsable,
+ * 2026-09-20: separación clara — Models / Tools / System prompts).
  *
- * Model slots (model-slots wave, 2026-09-20, owner ruling: SLOTS ONLY —
- * the six per-role rows disappeared; per-role overrides remain in the
- * schema for a future advanced surface): Strong = Prober + Teacher, Cheap
- * = the five workhorse roles, Vision = Visual maker + PDF reader. Each
- * slot row carries the shared dropdown (fuzzy search, arrow-walk, Enter
- * pick — ModelMenuList/ThinkingMenuList from ./model-menu.tsx) over the
- * FEDERATED catalog (/api/models serves only keyed providers, fresh per
- * call — saving a key in Keys immediately widens this picker). The
- * vision slot filters to image-capable models (Model.input). The slots
- * live in the `models` settings section (PUT /api/settings/models — slot
- * pins are engine-level, not per-chat); the rest of the section writes
- * the `agent` section as before. Resolution per tier: slot override →
- * factory pin (GET /api/models' `slots` — resolved, cannot drift from
- * what runs). The Default row clears the slot override; a stored id stays
- * VISIBLE even when its provider's key lapsed out of the catalog — a
- * trigger showing "Default" over a live override would lie about the
- * record.
+ * Ranuras de modelo (oleada de ranuras de modelo, 2026-09-20, decisión del
+ * responsable: SOLO RANURAS; las seis filas por rol desaparecieron; las
+ * sustituciones por rol siguen en el esquema para una futura superficie
+ * avanzada): Strong = Prober + Teacher, Cheap = los cinco roles de carga,
+ * Vision = Visual maker + PDF reader. Cada fila de ranura lleva el
+ * desplegable compartido (búsqueda difusa, recorrido con flechas, Enter para
+ * elegir; ModelMenuList/ThinkingMenuList de ./model-menu.tsx) sobre el
+ * catálogo FEDERADO (/api/models solo sirve proveedores con clave, recién
+ * calculado en cada llamada: guardar una clave en Keys amplía al instante
+ * este selector). La ranura de visión filtra a modelos que admiten imágenes
+ * (Model.input). Las ranuras viven en la sección de ajustes `models` (PUT
+ * /api/settings/models; las fijaciones de ranura son del motor, no por
+ * chat); el resto de la sección escribe la sección `agent` como antes.
+ * Resolución por nivel: sustitución de la ranura → fijación de fábrica (los
+ * `slots` de GET /api/models; resueltos, no pueden desviarse de lo que se
+ * ejecuta). La fila Default borra la sustitución de la ranura; un id
+ * guardado sigue VISIBLE aunque la clave de su proveedor haya caducado y
+ * haya salido del catálogo: un disparador que mostrara "Default" sobre una
+ * sustitución activa mentiría sobre el registro.
  *
- * Search engine (search wave, 2026-09-20, owner: no default — an engine
- * is live iff its key is present; with a key the engine AUTO-activates,
- * the explicit choice is only a preference between live engines): a row
- * in the Tools group, with the same shared-menu look and
- * the live reason line from /api/search. No engine key at all → the row
- * grays whole-row (a choice without a key would only BLOCK another
- * engine's auto-activation).
+ * Motor de búsqueda (oleada de búsqueda, 2026-09-20, responsable: sin valor
+ * por defecto; un motor está activo si y solo si su clave está presente; con
+ * clave, el motor se activa SOLO, y la elección explícita es solo una
+ * preferencia entre motores activos): una fila del grupo Tools, con el mismo
+ * aspecto de menú compartido y la línea de motivo en directo de /api/search.
+ * Sin ninguna clave de motor → toda la fila se atenúa (una elección sin
+ * clave solo BLOQUEARÍA la activación automática de otro motor).
  *
- * Tools — the owner's final list (2026-09-19): research, demo, visual, pdf.
- * Absent key = enabled in the schema; the UI writes explicit booleans for
- * all four (simpler to reason about, sanitize-equivalent).
+ * Tools: la lista definitiva del responsable (2026-09-19): research, demo,
+ * visual, pdf. Clave ausente = activada en el esquema; la UI escribe
+ * booleanos explícitos para las cuatro (más fácil de razonar y equivalente
+ * tras el saneado).
  *
- * Prompts: GET /api/settings/prompts segments — Teacher, Prober, Practice,
- * then Shared LAST. The server returns each agent's actual segments,
- * including its shared subset; sectionedSegments deduplicates shared
- * chunks and derives per-fragment usage from membership in those lists.
- * The row rulings: only the TOGGLE
- * grays when there's no override file (the file name is always
- * full-contrast); NO description line when there's no override (the empty
- * state is clean — toggle + name); the indicator ("Your version is
- * saved") appears ONLY when an override exists. The switch requires an
- * override FILE (route-enforced), so a file-less toggle is disabled.
- * The segments view re-reads on the 'lh:settings-saved' signal for the
- * agent section — the view's enabled flags derive from the record's
- * switches, and the 2026-09-26 state-echo bug was exactly this reader
- * missing (the toggle painted its old state until a remount re-fetched).
+ * Prompts: los segmentos de GET /api/settings/prompts — Teacher, Prober,
+ * Practice y Shared el ÚLTIMO. El servidor devuelve los segmentos reales de
+ * cada agente, incluido su subconjunto compartido; sectionedSegments
+ * deduplica los fragmentos compartidos y deriva el uso de cada fragmento de
+ * su pertenencia a esas listas. Las decisiones sobre las filas: solo el
+ * CONMUTADOR se atenúa cuando no hay fichero de sustitución (el nombre del
+ * fichero siempre va con contraste completo); NO hay línea de descripción
+ * cuando no hay sustitución (el estado vacío es limpio: conmutador +
+ * nombre); el indicador ("Your version is saved") aparece SOLO cuando existe
+ * una sustitución. El interruptor requiere un FICHERO de sustitución
+ * (impuesto por la ruta), así que un conmutador sin fichero está
+ * desactivado. La vista de segmentos vuelve a leer con la señal
+ * 'lh:settings-saved' de la sección agent: los indicadores enabled de la
+ * vista derivan de los interruptores del registro, y el fallo de eco de
+ * estado del 2026-09-26 era justo la falta de este lector (el conmutador
+ * pintaba su estado antiguo hasta que un remontaje volvía a pedirlo).
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -82,21 +87,23 @@ import { ModelMenuList, ThinkingMenuList } from "./model-menu";
 import { ChatGPTBackgroundAccess } from "./chatgpt-connection";
 import { NativeSubscriptionBackgroundAccess } from "./subscription-connections";
 
-/** One slot's display identity — the tier's roster as the row hint rides
- *  with the resolved default (owner: the hint ALWAYS names the default). */
+/** La identidad visible de una ranura: la plantilla del nivel como pista de
+ * la fila viaja con el valor por defecto resuelto (responsable: la pista
+ * SIEMPRE nombra el valor por defecto). */
 const SLOT_META: Record<ModelSlotName, { label: string; roster: string }> = {
 	strong: { label: "Strong", roster: "The main model for your sessions" },
 	cheap: { label: "Cheap", roster: "The assistants that research, build demos, and grade your work" },
 	vision: { label: "Vision", roster: "The assistants that draw and read PDFs" },
 };
 
-/** The owner's final toggleable-tool list (confirm with the user before
- *  changing — the Teacher stream settled this 2026-09-19). */
+/** La lista definitiva de herramientas conmutables del responsable
+ * (confírmalo con el usuario antes de cambiarla; el hilo de Teacher lo
+ * decidió el 2026-09-19). */
 export const TOGGLE_TOOLS = ["research", "demo", "visual", "pdf"] as const;
 
 const THINKING_LEVELS: readonly ThinkingLevel[] = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
 
-/** SegmentInfo as GET /api/settings/prompts returns it. */
+/** SegmentInfo tal como lo devuelve GET /api/settings/prompts. */
 interface SegmentInfo {
 	path: string;
 	sourceText: string;
@@ -108,23 +115,24 @@ interface SegmentInfo {
 type PromptView = Record<"teacher" | "prober" | "practice", SegmentInfo[]>;
 type PromptRow = SegmentInfo & { usageHint?: string };
 
-/** Compose: one tool toggled, the rest of the section carried verbatim.
- *  Pure — exported for tests. */
+/** Composición: se conmuta una herramienta y el resto de la sección se
+ * conserva tal cual. Puro; exportado para las pruebas. */
 export function composeTool(agent: AgentSettings | undefined, id: string, on: boolean): AgentSettings {
 	return { ...agent, tools: { ...agent?.tools, [id]: on } };
 }
 
-/** A file-access folder entry the server will accept: absolute (POSIX or
- *  Windows drive/UNC) or "~"-anchored. Pure — exported for tests. */
+/** Una entrada de carpeta de acceso a ficheros que el servidor aceptará:
+ * absoluta (POSIX o unidad/UNC de Windows) o anclada en "~". Puro; exportado
+ * para las pruebas. */
 export function isFolderEntry(folder: string): boolean { return isFileAccessFolder(folder); }
 
-/** The switch changes ONLY restriction, never discards saved folders. */
+/** El interruptor cambia SOLO la restricción; nunca descarta las carpetas guardadas. */
 export function composeFileRestriction(agent: AgentSettings | undefined, restricted: boolean): AgentSettings {
 	return { ...agent, fileAccess: { restricted, folders: agent?.fileAccess?.folders ?? [] } };
 }
 
-/** Compose: add one allowed folder (trimmed; duplicates and invalid entries
- *  are no-ops). Pure — exported for tests. */
+/** Composición: añade una carpeta permitida (recortada; los duplicados y las
+ * entradas no válidas no hacen nada). Puro; exportado para las pruebas. */
 export function composeAddFolder(agent: AgentSettings | undefined, folder: string): AgentSettings {
 	const next = folder.trim();
 	const folders = agent?.fileAccess?.folders ?? [];
@@ -133,14 +141,14 @@ export function composeAddFolder(agent: AgentSettings | undefined, folder: strin
 	return { ...agent, fileAccess: { restricted, folders: [...folders, next] } };
 }
 
-/** Removing the last folder NEVER changes the restriction switch. */
+/** Quitar la última carpeta NUNCA cambia el interruptor de restricción. */
 export function composeRemoveFolder(agent: AgentSettings | undefined, folder: string): AgentSettings {
 	return { ...agent, fileAccess: { restricted: agent?.fileAccess?.restricted ?? false, folders: (agent?.fileAccess?.folders ?? []).filter((f) => f !== folder) } };
 }
 
-/** Parse the numeric draft and compose the WHOLE agent section. Empty
- *  removes the override; invalid input never writes, rounds, or clamps.
- *  Pure — exported for tests. */
+/** Analiza el borrador numérico y compone la sección agent COMPLETA. Vacío
+ * elimina la sustitución; una entrada no válida nunca escribe, redondea ni
+ * acota. Puro; exportado para las pruebas. */
 export function composeWorkerRequestConcurrency(
 	agent: AgentSettings | undefined,
 	value: string,
@@ -154,10 +162,10 @@ export function composeWorkerRequestConcurrency(
 	const invalid = { ok: false as const, error: "Enter a positive, safely representable whole number." };
 	const concurrency = Number(draft);
 	if (!Number.isSafeInteger(concurrency) || concurrency <= 0) return invalid;
-	// Preserve native decimal/exponent syntax, but check fractional digits
-	// BEFORE accepting Number's result: e.g. 8.0000000000000001 rounds to 8.
-	// Trailing coefficient zeroes cancel negative decimal places exactly;
-	// this needs no arbitrary-precision arithmetic or unbounded powers.
+	// Conserva la sintaxis nativa decimal/exponencial, pero comprueba los dígitos fraccionarios
+	// ANTES de aceptar el resultado de Number: p. ej., 8.0000000000000001 se redondea a 8.
+	// Los ceros finales del coeficiente cancelan exactamente las posiciones decimales negativas;
+	// esto no necesita aritmética de precisión arbitraria ni potencias sin límite.
 	const decimal = draft.match(/^\+?(\d+(?:\.\d*)?|\.\d+)(?:e([+-]?\d+))?$/i);
 	if (!decimal) return invalid;
 	const mantissa = decimal[1]!;
@@ -169,27 +177,31 @@ export function composeWorkerRequestConcurrency(
 	return { ok: true, settings: next };
 }
 
-/** The quizzing mechanics (owner 2026-09-27): a segmented control, not a
- *  toggle — exactly one mechanic is ever active. `explain: true` arms
- *  free-recall (explain in, quiz out); anything else is multiple choice.
- *  `quiz` itself is never written (mechanics-managed — see quizMechanics
- *  in agent/tools.ts). Pure — exported for tests. */
+/** La mecánica de las preguntas (responsable 2026-09-27): un control
+ * segmentado, no un conmutador; siempre hay exactamente una mecánica activa.
+ * `explain: true` activa el recuerdo libre (entra explain, sale quiz);
+ * cualquier otra cosa es opción múltiple. `quiz` nunca se escribe (lo
+ * gestiona la mecánica; ver quizMechanics en agent/tools.ts). Puro;
+ * exportado para las pruebas. */
 export function composeQuizMechanics(agent: AgentSettings | undefined, mechanics: "choice" | "free"): AgentSettings {
 	return { ...agent, tools: { ...agent?.tools, explain: mechanics === "free" } };
 }
 
-/** Compose the prober graph-tools toggle (wave 7): its own key in the
- *  agent section — never in the tool-toggles map (owner ruling). Absent =
- *  ON (the toggle discipline); the write is explicit either way, so an
- *  explicit-off record stays visible as stored. Pure — exported for tests. */
+/** Compone el conmutador de herramientas de grafo del sondeador (oleada 7):
+ * su propia clave en la sección agent, nunca en el mapa de conmutadores de
+ * herramientas (decisión del responsable). Ausente = ACTIVADO (la disciplina
+ * de los conmutadores); la escritura es explícita en ambos casos, así que un
+ * registro con un desactivado explícito sigue visible tal como se guardó.
+ * Puro; exportado para las pruebas. */
 export function composeGraphTools(agent: AgentSettings | undefined, on: boolean): AgentSettings {
 	return { ...agent, graphTools: { enabled: on } };
 }
 
-/** Compose: one slot's model/thinking override. Empty model = absent
- *  override (Default — falls to the factory pin); empty thinking = the
- *  tier keeps its resolved thinking budget. Per-field independence, same
- *  as the schema's ModelSlot. Pure — exported for tests. */
+/** Composición: la sustitución de modelo/razonamiento de una ranura. Modelo
+ * vacío = sustitución ausente (Default: recurre a la fijación de fábrica);
+ * razonamiento vacío = el nivel conserva su presupuesto de razonamiento
+ * resuelto. Independencia por campo, igual que ModelSlot en el esquema.
+ * Puro; exportado para las pruebas. */
 export function composeSlotModel(
 	models: ModelsSettings | undefined,
 	slot: ModelSlotName,
@@ -211,7 +223,7 @@ export function composeSlotModel(
 	return next;
 }
 
-/** Retention is slot-only; selecting Pi default removes the field entirely. */
+/** La retención es solo de ranura; elegir el valor por defecto de Pi elimina el campo por completo. */
 export function composeSlotCacheRetention(models: ModelsSettings | undefined, slot: ModelSlotName, value: CacheRetention | undefined): ModelsSettings {
 	const next = { ...models?.[slot] };
 	if (value === undefined) delete next.cacheRetention;
@@ -219,9 +231,9 @@ export function composeSlotCacheRetention(models: ModelsSettings | undefined, sl
 	return { ...models, [slot]: next };
 }
 
-/** Compose: the search-engine preference. null = the explicit pin is
- *  REMOVED (auto-activation takes over — the schema's resting state).
- *  Pure — exported for tests. */
+/** Composición: la preferencia de motor de búsqueda. null = se ELIMINA la
+ * fijación explícita (toma el relevo la activación automática, el estado de
+ * reposo del esquema). Puro; exportado para las pruebas. */
 export function composeSearchEngine(
 	agent: AgentSettings | undefined,
 	engine: SearchEngineId | null,
@@ -234,25 +246,27 @@ export function composeSearchEngine(
 	return { ...agent, search: { engine } };
 }
 
-/** The indicator under a row whose override IS the version in use (owner
- *  ruling, refined 2026-09-26: the small text states WHICH VERSION IS
- *  IN USE — "Your version is in use" when the switch is on, and NOTHING
- *  when the default composes, even if a saved override sits on disk
- *  unused. The switch's meaning becomes legible: it visibly controls
- *  this line). Exported for the pin. */
+/** El indicador bajo una fila cuya sustitución ES la versión en uso
+ * (decisión del responsable, afinada el 2026-09-26: el texto pequeño dice
+ * QUÉ VERSIÓN ESTÁ EN USO —"Your version is in use" cuando el interruptor
+ * está activado, y NADA cuando se compone la versión por defecto, aunque
+ * haya una sustitución guardada sin usar en el disco—. Así se entiende qué
+ * significa el interruptor: controla visiblemente esta línea). Exportado
+ * para la fijación. */
 export const PROMPT_IN_USE_HINT = "Your version is in use";
 
-/** Prompt sections in display order; Shared is deduplicated and last. */
+/** Secciones de prompts en orden de presentación; Shared va deduplicada y al final. */
 export interface PromptSection {
 	id: keyof PromptView | "shared";
 	label: string;
 	segments: PromptRow[];
 }
 
-/** Keep each agent's own assembly order, then list shared chunks once.
- *  Usage is derived from the API's actual per-agent membership, never a
- *  second copy of the runtime's Practice shared-fragment allowlist.
- *  Pure — exported for tests. */
+/** Mantiene el orden de ensamblado propio de cada agente y después lista
+ * una sola vez los fragmentos compartidos. El uso se deriva de la
+ * pertenencia real por agente que da la API, nunca de una segunda copia de
+ * la lista de fragmentos compartidos de Practice del tiempo de ejecución.
+ * Puro; exportado para las pruebas. */
 export function sectionedSegments(view: PromptView): PromptSection[] {
 	const agents = [
 		{ id: "teacher", label: "Teacher" },
@@ -279,9 +293,9 @@ export function sectionedSegments(view: PromptView): PromptSection[] {
 	];
 }
 
-/** Compose: one prompt switch. on = explicit true; off = key REMOVED
- *  (absent = off is the schema's resting state; explicit false is the
- *  same thing but noisier). Pure — tests. */
+/** Composición: un interruptor de prompt. on = true explícito; off = clave
+ * ELIMINADA (ausente = off es el estado de reposo del esquema; un false
+ * explícito es lo mismo pero con más ruido). Puro; pruebas. */
 export function composePromptSwitch(agent: AgentSettings | undefined, path: string, on: boolean): AgentSettings {
 	const prompts = { ...agent?.prompts };
 	if (on) prompts[path] = true;
@@ -289,8 +303,9 @@ export function composePromptSwitch(agent: AgentSettings | undefined, path: stri
 	return { ...agent, prompts };
 }
 
-/** The collapsed select look (owner: "the look of the collapsed menu is
- *  good") — now a button that opens the shared model-picker dropdown. */
+/** El aspecto del select plegado (responsable: «el aspecto del menú plegado
+ * está bien»); ahora es un botón que abre el desplegable compartido del
+ * selector de modelos. */
 function MenuTrigger({
 	value,
 	emptyLabel,
@@ -304,18 +319,18 @@ function MenuTrigger({
 }: {
 	value: string;
 	hint?: string;
-	/** What the trigger shows when there is no override ("Default"). */
+	/** Lo que muestra el disparador cuando no hay sustitución ("Default"). */
 	emptyLabel: string;
 	ariaLabel: string;
 	testid: string;
 	open: boolean;
 	onClick: () => void;
-	/** Owner (2026-09-20): the thinking trigger is FIXED at the width the
-	 *  Default state needs (values shifting it mid-edit shifted the row);
-	 *  the model trigger takes the same width as a MINIMUM — its values
-	 *  genuinely vary in length. */
+	/** Responsable (2026-09-20): el disparador de razonamiento tiene una anchura
+	 * FIJA, la que necesita el estado Default (los valores que lo cambiaban a
+	 * mitad de edición desplazaban la fila); el disparador de modelo toma esa
+	 * misma anchura como MÍNIMO, porque sus valores sí varían de longitud. */
 	widthClass: string;
-	/** The no-key search state grays the whole row; the trigger follows. */
+	/** El estado de búsqueda sin clave atenúa toda la fila; el disparador lo sigue. */
 	disabled?: boolean;
 }) {
 	const button = (
@@ -334,11 +349,12 @@ function MenuTrigger({
 	return hint ? <Hint label={hint}>{button}</Hint> : button;
 }
 
-/* The section's dropdowns all mount the shared MenuShell (fix wave chunk
- * B): portaled to document.body, fixed-anchored to the open trigger by
- * testid (the section's one-ref pattern), opening DOWN with the shell's
- * viewport cap and auto-flip. data-lh-menu rides the shell — the
- * outside-click contract's exemption mark. */
+/* Todos los desplegables de la sección montan el MenuShell compartido
+ * (oleada de arreglos, fragmento B): en un portal a document.body, anclados
+ * de forma fija al disparador abierto por testid (el patrón de una sola ref
+ * de la sección), abriéndose HACIA ABAJO con el tope de viewport y el volteo
+ * automático del armazón. data-lh-menu va en el armazón: la marca de
+ * exención del contrato de clic fuera. */
 
 export function AgentSection({
 	agent,
@@ -352,38 +368,39 @@ export function AgentSection({
 }: {
 	agent: AgentSettings | undefined;
 	fileAccessError?: string | null;
-	/** The `models` section (slot pins — engine-level, PUT /api/settings/models). */
+	/** La sección `models` (fijaciones de ranura; del motor, PUT /api/settings/models). */
 	models: ModelsSettings | undefined;
-	/** The `graph` section — READ ONLY here: the graphTools row composes its
-	 *  master switch (graph.enabled off dims + disables the row; the
-	 *  effective gate is server-side, per-turn fresh). */
+	/** La sección `graph`, aquí SOLO DE LECTURA: la fila graphTools compone su
+	 * interruptor general (graph.enabled desactivado atenúa y desactiva la
+	 * fila; la barrera efectiva está en el servidor, recalculada en cada turno). */
 	graph: GraphSettings | undefined;
-	/** The `compaction` section — its own PUT (the threshold is engine
-	 *  behavior, not an agent-section key; owner round 14, Agent tab). */
+	/** La sección `compaction`, con su propio PUT (el umbral es comportamiento
+	 * del motor, no una clave de la sección agent; ronda 14 del responsable,
+	 * pestaña Agent). */
 	compaction: CompactionSettings | undefined;
-	/** Writes the composed WHOLE agent section (replace-PUT discipline). */
+	/** Escribe la sección agent COMPLETA compuesta (disciplina de PUT que sustituye). */
 	onSectionChange: (next: AgentSettings) => boolean | Promise<boolean>;
-	/** Writes the composed models section (slots — replace-PUT discipline). */
+	/** Escribe la sección models compuesta (ranuras; disciplina de PUT que sustituye). */
 	onModelsChange: (next: ModelsSettings) => void;
-	/** Writes the whole compaction section (replace-PUT discipline). */
+	/** Escribe la sección compaction completa (disciplina de PUT que sustituye). */
 	onCompactionChange: (next: CompactionSettings) => boolean | Promise<boolean>;
 }) {
 	const { catalog: body, failed: catalogFailed, refresh: refreshCatalog } = useModelCatalog();
 	const catalog = body?.models;
 	const slots = body?.slots;
-	/** The live search state (/api/search) — the row's reason line. */
+	/** El estado de búsqueda en directo (/api/search): la línea de motivo de la fila. */
 	const [folderInput, setFolderInput] = useState("");
 	const [folderError, setFolderError] = useState<string | null>(null);
 	const [search, setSearch] = useState<{ available: boolean; engine: string | null; reason: string } | null>(null);
-	/** Which search engines have a key (/api/keys) — the no-keys-anywhere
-	 *  state grays the row; per-engine marks ride the menu rows. */
+	/** Qué motores de búsqueda tienen clave (/api/keys): el estado sin claves en
+	 * ninguna parte atenúa la fila; las marcas por motor van en las filas del menú. */
 	const [engineKeys, setEngineKeys] = useState<Partial<Record<SearchEngineId, boolean>>>({});
 	const [prompts, setPrompts] = useState<PromptView | null>(null);
 	const [openSegment, setOpenSegment] = useState<string | null>(null);
 	const [segmentDraft, setSegmentDraft] = useState<Record<string, string>>({});
 	const [segmentStatus, setSegmentStatus] = useState<string | null>(null);
-	/** One open dropdown for the whole section: which slot (or the search
-	 *  row), which kind. */
+	/** Un único desplegable abierto para toda la sección: qué ranura (o la fila
+	 * de búsqueda) y de qué tipo. */
 	const [openMenu, setOpenMenu] = useState<{ target: ModelSlotName | "search"; kind: "model" | "thinking" | "engine" | "cache" } | null>(null);
 	const [advancedModels, setAdvancedModels] = useState(false);
 	const [workerConcurrencyError, setWorkerConcurrencyError] = useState<string | null>(null);
@@ -396,13 +413,14 @@ export function AgentSection({
 			.then((body: { available: boolean; engine: string | null; reason: string }) => setSearch(body))
 			.catch(() => setSearch(null));
 
-	/** Re-read the prompt-segment view — the signal seam for the
-	 *  2026-09-26 state-echo fix: the view's `enabled` flags DERIVE from
-	 *  the settings record's agent switches (the toggle's truth lives
-	 *  here, not in the `agent` prop), so an agent-section write must
-	 *  re-read it or the toggle keeps painting its pre-write state until
-	 *  a remount. Keeps the last-good view on a failed re-read (the
-	 *  initial mount fetch below owns the loading/null state). */
+	/** Vuelve a leer la vista de segmentos de prompt: la frontera de la señal
+	 * para el arreglo del eco de estado del 2026-09-26. Los indicadores
+	 * `enabled` de la vista DERIVAN de los interruptores de agent del registro
+	 * de ajustes (la verdad del conmutador vive aquí, no en la prop `agent`),
+	 * así que una escritura de la sección agent debe volver a leerla o el
+	 * conmutador sigue pintando su estado previo a la escritura hasta un
+	 * remontaje. Conserva la última vista buena si la relectura falla (la
+	 * petición del montaje inicial, más abajo, es dueña del estado de carga/null). */
 	const readPrompts = useCallback(() => {
 		fetch("/api/settings/prompts")
 			.then((r) => r.json())
@@ -410,13 +428,13 @@ export function AgentSection({
 			.catch(() => {});
 	}, []);
 
-	// The shared catalog seeds the first frame and refreshes per mount and
-	// keys/models signal. Settings props still own saved selections/levels.
+	// El catálogo compartido siembra el primer fotograma y se refresca en cada montaje y
+	// con cada señal de keys/models. Las props de ajustes siguen siendo dueñas de las selecciones/niveles guardados.
 	useSettingsSaved((section) => {
-		// THE state-echo root cause: the prompt switches write through the
-		// agent section, but this view (the toggles' truth) never re-read —
-		// the settings-saved law (every reader re-reads) was missing this
-		// one reader.
+		// LA causa raíz del eco de estado: los interruptores de prompt escriben a través
+		// de la sección agent, pero esta vista (la verdad de los conmutadores) nunca volvía a leer:
+		// a la ley de settings-saved (todo lector vuelve a leer) le faltaba este
+		// lector.
 		if (section === "agent") readPrompts();
 	});
 
@@ -437,19 +455,19 @@ export function AgentSection({
 			.catch(() => {});
 	}, []);
 
-	// The reason line re-reads /api/search AFTER an engine write lands —
-	// the write updates the `agent` prop (the dialog's record mirror), so
-	// keying on the pin avoids the race where the fetch beat the PUT and
-	// the hint contradicted the trigger it sits under.
+	// La línea de motivo vuelve a leer /api/search DESPUÉS de que llegue una escritura de motor:
+	// la escritura actualiza la prop `agent` (el espejo del registro del diálogo), así que
+	// usar la fijación como clave evita la carrera en la que la petición ganaba al PUT y
+	// la pista contradecía al disparador bajo el que está.
 	useEffect(() => {
 		refreshSearch();
 	}, [agent?.search?.engine]);
 
-	// The dropdown contract (the chat model selector's, mirrored): any
-	// click outside the open menu — or an Esc — closes it. Esc is CLAIMED
-	// with stopPropagation so the settings dialog behind does NOT also
-	// close. A pointerdown on the backdrop is left for the dialog (its own
-	// click closes everything); a click inside the dialog just closes us.
+	// El contrato del desplegable (el del selector de modelo del chat, reflejado): cualquier
+	// clic fuera del menú abierto —o un Esc— lo cierra. El Esc se RECLAMA
+	// con stopPropagation para que el diálogo de ajustes de detrás NO se cierre
+	// también. Un pointerdown en el fondo se deja al diálogo (su propio
+	// clic lo cierra todo); un clic dentro del diálogo solo nos cierra a nosotros.
 	useEffect(() => {
 		if (openMenu === null) return;
 		const onPointerDown = (e: PointerEvent) => {
@@ -461,7 +479,7 @@ export function AgentSection({
 			if (target instanceof Element && target.closest('[role="dialog"]')) {
 				setOpenMenu(null);
 			}
-			// else: outside the dialog — the dialog's own close handles it.
+			// si no: fuera del diálogo; lo gestiona el propio cierre del diálogo.
 		};
 		document.addEventListener("pointerdown", onPointerDown);
 		return () => document.removeEventListener("pointerdown", onPointerDown);
@@ -480,13 +498,13 @@ export function AgentSection({
 		}
 		readPrompts();
 		setSegmentStatus("Saved");
-		// Auto-on (owner ruling, refined 2026-09-26): writing an override and
-		// putting it to work are ONE action — a save with the switch off was
-		// the "did something, changed nothing" trap (the composed prompt
-		// stayed the default). The file exists now, so the ON switch the
-		// agent-section validation requires is legal; the order (file, then
-		// switch) is the safe one. Saving an edit while already on rides
-		// through — the switch write is idempotent at the record level.
+		// Activación automática (decisión del responsable, afinada el 2026-09-26): escribir una sustitución y
+		// ponerla a trabajar son UNA sola acción; guardar con el interruptor apagado era
+		// la trampa de «hizo algo y no cambió nada» (el prompt compuesto
+		// seguía siendo el de por defecto). Ahora el fichero existe, así que el interruptor ON que
+		// exige la validación de la sección agent es legal; el orden (fichero, luego
+		// interruptor) es el seguro. Guardar una edición con el interruptor ya activado pasa
+		// sin más: la escritura del interruptor es idempotente a nivel de registro.
 		if (agent?.prompts?.[path] !== true) {
 			onSectionChange(composePromptSwitch(agent, path, true));
 		}
@@ -499,11 +517,11 @@ export function AgentSection({
 			setSegmentStatus(`Delete failed: ${res.status}`);
 			return;
 		}
-		// Auto-off — the mirror of save's auto-on: deleting the file while
-		// the switch is on would orphan an ON record switch (the agent-section
-		// validation 400s every later write while the UI's toggle can no
-		// longer reach the OFF escape hatch — the trap found in live verify
-		// 2026-09-26). Composing the OFF here keeps the record clean.
+		// Desactivación automática, el reflejo de la activación automática al guardar: borrar el fichero con
+		// el interruptor activado dejaría huérfano un interruptor ON del registro (la validación de la
+		// sección agent respondería 400 a todas las escrituras posteriores mientras el conmutador de la UI ya
+		// no puede llegar a la salida de emergencia de OFF: la trampa encontrada en la verificación en vivo del
+		// 2026-09-26). Componer aquí el OFF mantiene limpio el registro.
 		if (agent?.prompts?.[path] === true) {
 			onSectionChange(composePromptSwitch(agent, path, false));
 		}
@@ -511,7 +529,7 @@ export function AgentSection({
 		setSegmentStatus("Deleted");
 	}
 
-		/** The search-engine menu row — label + the quiet live-key mark. */
+		/** La fila del menú de motores de búsqueda: etiqueta + la discreta marca de clave activa. */
 	const engineOption = (
 		id: SearchEngineId | "auto",
 		label: string,
@@ -538,29 +556,29 @@ export function AgentSection({
 	const segmentRow = (info: PromptRow) => {
 		const fileExists = info.overrideText !== null;
 		const open = openSegment === info.path;
-		// The Save affordance (owner ruling, refined 2026-09-26): clickable
-		// only when there's something to save — the draft differs from
-		// what's on disk. An unchanged editor shows a grayed, inert Save
-		// (the always-active button was the "doesn't feel like it does
-		// anything" half of the report).
+		// La indicación de guardar (decisión del responsable, afinada el 2026-09-26): solo se puede
+		// pulsar cuando hay algo que guardar, es decir, cuando el borrador difiere de
+		// lo que hay en disco. Un editor sin cambios muestra un Save atenuado e inerte
+		// (el botón siempre activo era la mitad de la queja de «no parece que haga
+		// nada»).
 		const draft = segmentDraft[info.path] ?? info.overrideText ?? "";
 		const dirty = draft !== (info.overrideText ?? "");
 		return (
 			<div key={info.path} data-testid={`prompt-segment-${info.path}`}>
 				<SettingsRow
 					label={info.path}
-					// Overhaul rulings (2026-09-26, refined): the small text
-					// states WHICH VERSION IS IN USE — nothing when the
-					// default composes (even with a saved override sitting
-					// on disk unused), "Your version is in use" when the
-					// switch is on. The switch's meaning becomes legible
-					// through this line.
+					// Decisiones de la revisión general (2026-09-26, afinadas): el texto pequeño
+					// dice QUÉ VERSIÓN ESTÁ EN USO: nada cuando se compone la
+					// versión por defecto (aunque haya una sustitución guardada sin
+					// usar en el disco), "Your version is in use" cuando el
+					// interruptor está activado. El significado del interruptor se entiende
+					// gracias a esta línea.
 					hint={[info.usageHint, info.enabled ? PROMPT_IN_USE_HINT : undefined].filter(Boolean).join(" · ") || undefined}
 					testid={`prompt-row-${info.path}`}
 				>
-					{/* Graying ruling: ONLY the toggle dims without an
-					    override file — the file name above stays
-					    full-contrast (the whole-row dim is dead). */}
+					{/* Decisión sobre el atenuado: SOLO el conmutador se atenúa sin
+					    fichero de sustitución; el nombre del fichero de arriba sigue con
+					    contraste completo (el atenuado de toda la fila está descartado). */}
 					<span className={fileExists ? undefined : "opacity-40"}>
 						<Toggle
 							checked={info.enabled}
@@ -623,12 +641,11 @@ export function AgentSection({
 									Delete
 								</button>
 							)}
-							{/* The quiet inline confirmation — next to the
-							    action, not the old path-echoing line at the
-							    section's bottom (production-copy: no file
-							    paths in user-facing status). One editor is
-							    open at a time (openSegment), so one shared
-							    status reads unambiguously. */}
+							{/* La confirmación discreta en línea, junto a la acción, no la
+							    antigua línea que repetía la ruta al pie de la sección (texto de
+							    producción: sin rutas de fichero en los estados que ve el usuario).
+							    Solo hay un editor abierto a la vez (openSegment), así que un único
+							    estado compartido se lee sin ambigüedad. */}
 							{segmentStatus && (
 								<p className="text-xs text-muted-foreground/70" data-testid="segment-status">
 									{segmentStatus}
@@ -643,9 +660,9 @@ export function AgentSection({
 
 
 
-	// Resolved through the SAME core resolver the server's effective
-	// settings use (the GraphSection precedent): the hint and placeholder
-	// report exactly the number the trigger waits for.
+	// Se resuelve con el MISMO resolvedor del núcleo que usan los ajustes efectivos
+	// del servidor (el precedente de GraphSection): la pista y el texto provisional
+	// indican exactamente el número que espera el disparador.
 	const resolvedAgent = resolveSettings(agent === undefined ? null : { version: 1, agent }).agent;
 	const resolvedCompaction = resolveSettings(
 		compaction === undefined ? null : { version: 1, compaction },
@@ -667,15 +684,15 @@ export function AgentSection({
 					const modelId = override?.model?.id ?? "";
 					const provider = override?.model?.provider ?? "";
 					const thinking = override?.thinkingLevel ?? "";
-					// The tier's resolved pin is machinery only now (owner, fix
-					// wave): the UI never names the factory fallback — the hint
-					// carries the roster, the triggers read "—" when unpicked — but
-					// the pin still governs the thinking level LIST when no override
-					// names a model to read levels from.
+					// La fijación resuelta del nivel ahora es solo maquinaria (responsable, oleada
+					// de arreglos): la UI nunca nombra la alternativa de fábrica —la pista
+					// lleva la plantilla, los disparadores muestran "—" si no hay elección—, pero
+					// la fijación sigue rigiendo la LISTA de niveles de razonamiento cuando ninguna sustitución
+					// nombra un modelo del que leer los niveles.
 					const pin = slots?.[slot];
-					// The model whose levels govern the thinking list: the
-					// override, else the resolved pin (when it's in the federated
-					// catalog); the standard ladder as the last fallback.
+					// El modelo cuyos niveles rigen la lista de razonamiento: la
+					// sustitución o, si no, la fijación resuelta (cuando está en el catálogo
+					// federado); la escalera estándar como última alternativa.
 					const coord = override?.model ?? pin?.model;
 					const chosen = coord ? catalog?.find((m) => m.id === coord.id && m.provider === coord.provider) : undefined;
 					const levels = chosen ? chosen.supportedLevels : THINKING_LEVELS;
@@ -687,8 +704,8 @@ export function AgentSection({
 							hint={SLOT_META[slot].roster}
 							testid={`slot-row-${slot}`}
 						>
-							{/* The anchor for the outside-click contract is the
-							    span holding BOTH triggers of the open menu. */}
+							{/* El ancla del contrato de clic fuera es el span que
+							    contiene AMBOS disparadores del menú abierto. */}
 							<span
 								ref={thisMenuOpen ? menuAnchorRef : undefined}
 								className={`relative flex items-center gap-2 ${advancedModels ? "shrink-0" : ""}`}
@@ -705,9 +722,9 @@ export function AgentSection({
 									widthClass="min-w-20"
 								/>
 								<MenuTrigger
-									// Legacy display (chunk 2 item 4): no stored level + a known
-									// model → the RESOLVED level (the ordering's first supported —
-									// what the engine build runs). Display-only until a pick writes.
+									// Presentación heredada (fragmento 2, punto 4): sin nivel guardado + un modelo
+									// conocido → el nivel RESUELTO (el primero admitido según el orden;
+									// lo que ejecuta la construcción del motor). Solo de presentación hasta que una elección escribe.
 									value={thinking || (chosen ? defaultOrderLevel(levels) : "")}
 									emptyLabel="—"
 									ariaLabel={`${SLOT_META[slot].label} thinking`}
@@ -752,9 +769,9 @@ export function AgentSection({
 											effectiveProvider={provider}
 											vision={slot === "vision"}
 											onPick={(entry) => {
-												// Auto-populate (chunk 2, owner: "populate everywhere"): the
-												// fresh pick writes a level — the stored one rides as-is
-												// (the write clamps server-side), else the ordering's level.
+												// Autorrelleno (fragmento 2, responsable: «rellenar en todas partes»): la
+												// elección nueva escribe un nivel; el guardado viaja tal cual
+												// (la escritura lo acota en el servidor) o, si no, el nivel según el orden.
 												const next = populateLevel(thinking || undefined, entry.supportedLevels);
 												onModelsChange(composeSlotModel(models, slot, entry.provider, entry.id, next));
 												setOpenMenu(null);
@@ -777,8 +794,8 @@ export function AgentSection({
 									>
 										<ThinkingMenuList
 											levels={levels.map(String)}
-											// The ✓ sits on the RESOLVED level for legacy unset records —
-											// the same one the trigger shows.
+											// La ✓ se coloca en el nivel RESUELTO para los registros heredados sin valor;
+											// el mismo que muestra el disparador.
 											effectiveLevel={thinking || (chosen ? defaultOrderLevel(levels) : undefined)}
 											onPick={(level) => {
 												onModelsChange(composeSlotModel(models, slot, provider, modelId, level));
@@ -800,8 +817,8 @@ export function AgentSection({
 						className="flex flex-col items-end gap-1"
 						onChangeCapture={() => setWorkerConcurrencyError(null)}
 						onBlurCapture={(event) => {
-							// Browsers expose incomplete numeric input (e.g. "1e")
-							// as an empty value. It is INVALID, not a blank reset.
+							// Los navegadores exponen una entrada numérica incompleta (p. ej. "1e")
+							// como valor vacío. Es NO VÁLIDA, no un restablecimiento en blanco.
 							if (event.target instanceof HTMLInputElement && event.target.validity.badInput) {
 								event.stopPropagation();
 								setWorkerConcurrencyError("Enter a positive, safely representable whole number.");
@@ -828,13 +845,13 @@ export function AgentSection({
 			</SettingsGroup>
 
 			<SettingsGroup label="Tools" testid="group-tools">
-				{/* The prober's graph tools (wave 7, owner ruling 2026-09-23):
-				    FIRST row of the group — its subject is the map, its
-				    mechanism is agent capability, so it lives in Tools but
-				    NOT in the tool-toggles list. Its own agent-section key
-				    (agent.graphTools), the search-row hint discipline: a
-				    smaller line under it explaining what it is — this
-				    connects prior sessions' knowledge into new ones. */}
+				{/* Las herramientas de grafo del sondeador (oleada 7, decisión del
+				    responsable 2026-09-23): PRIMERA fila del grupo; su tema es el mapa
+				    y su mecanismo es una capacidad del agente, así que vive en Tools
+				    pero NO en la lista de conmutadores de herramientas. Tiene su propia
+				    clave en la sección agent (agent.graphTools) y la disciplina de pista
+				    de la fila de búsqueda: una línea más pequeña debajo que explica qué
+				    es: conecta el conocimiento de sesiones anteriores con las nuevas. */}
 				{(() => {
 					const graphOn = graph?.enabled ?? true;
 					return (
@@ -853,10 +870,11 @@ export function AgentSection({
 						</SettingsRow>
 					);
 				})()}
-				{/* The quizzing mechanic (owner 2026-09-27): segmented — exactly one
-				    of Multiple choice / Free recall is active; the choice swaps which
-				    quizzing tool BOTH agents carry (prober checks + teach checks).
-				    Persisted as agent.tools.explain; absent = Multiple choice. */}
+				{/* La mecánica de las preguntas (responsable 2026-09-27): segmentada;
+				    siempre está activa exactamente una de Multiple choice / Free recall;
+				    la elección cambia qué herramienta de preguntas llevan AMBOS agentes
+				    (comprobaciones del sondeador + comprobaciones de la enseñanza). Se
+				    persiste como agent.tools.explain; ausente = Multiple choice. */}
 				{(() => {
 					const free = agent?.tools?.explain === true;
 					return (
@@ -1009,16 +1027,16 @@ export function AgentSection({
 						ariaLabel="compaction threshold"
 						testid="input-compaction-threshold"
 						onCommit={(v) => {
-							// Empty = factory default (the budget row's discipline):
-							// absence is the unset for numbers.
+							// Vacío = valor de fábrica (la disciplina de la fila del presupuesto):
+							// para los números, la ausencia es el «sin valor».
 							if (v === "") {
 								return onCompactionChange({ ...compaction, thresholdTokens: undefined });
 							}
 							const n = Number(v);
-							if (!Number.isFinite(n) || n <= 0) return false; // bad input: no write
-							// Mirror the server floor (anti-churn: each compaction
-							// keeps a ~20k-token tail); no ceiling — the effective
-							// trigger is min(threshold, contextWindow − 16k) anyway.
+							if (!Number.isFinite(n) || n <= 0) return false; // entrada errónea: no se escribe
+							// Refleja el suelo del servidor (anti-agitación: cada compactación
+							// conserva una cola de ~20k tokens); sin techo: el disparador efectivo
+							// es de todos modos min(threshold, contextWindow − 16k).
 							return onCompactionChange({
 								...compaction,
 								thresholdTokens: Math.max(COMPACTION_THRESHOLD_FLOOR, Math.round(n)),
@@ -1044,8 +1062,8 @@ export function AgentSection({
 					<p className="text-xs text-muted-foreground/70">Loading prompt segments…</p>
 				) : (
 					<div className="flex flex-col gap-4">
-						{/* Teacher, Prober, Practice, Shared — shared chunks once,
-						    each agent's own section in prompt-assembly order. */}
+						{/* Teacher, Prober, Practice, Shared: los fragmentos compartidos una sola
+						    vez, y la sección propia de cada agente en el orden de ensamblado del prompt. */}
 						{sectionedSegments(prompts).map((section) => (
 							<div key={section.id} data-testid={`prompt-section-${section.id}`}>
 								<p className="mb-1 text-xs uppercase tracking-widest text-muted-foreground/70">
