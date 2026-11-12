@@ -12,8 +12,9 @@
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Una notificación: se distribuye sobre el vocabulario para que estrechar `type` estreche de
-verdad su contenido (incluidos los mensajes de ámbito de plugin).
+Una notificación: se distribuye sobre el vocabulario para que estrechar
+`type` estreche de verdad su carga (incluidos los mensajes con ámbito de
+plugin).
 
 ```ts
 export type ServerEvent<K extends ServerEventType = ServerEventType> = {
@@ -29,14 +30,14 @@ export type ServerEvent<K extends ServerEventType = ServerEventType> = {
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Notificaciones en vivo de la app para cambios de turnos, tareas, registros y disponibilidad.
-Los consumidores obtienen el estado autoritativo tras una notificación y vuelven a obtenerlo
-al reconectar; las notificaciones no son un registro de reproducción duradero. El canal de
-mensajes de plugins transporta además datos JSON de ámbito de plugin, con la misma
+Notificaciones en vivo de la app para cambios de turnos, tareas, registros
+y disponibilidad. Los consumidores obtienen el estado autoritativo tras una
+notificación y lo vuelven a obtener al reconectar; las notificaciones no son
+un registro duradero que se pueda reproducir. El canal de mensajes de
+plugins lleva además datos JSON con ámbito de plugin, con la misma
 limitación de entrega solo en vivo.
 
-El vocabulario de eventos del núcleo más el canal de extensión de plugins con espacio de
-nombres.
+El vocabulario de eventos del núcleo más el canal de extensión de plugins con espacio de nombres.
 
 ```ts
 export interface ServerEvents {
@@ -99,8 +100,8 @@ export interface ServerEvents {
 
 ### ServerEvents "turn-started"
 
-Empezó un turno nativo de conversación en el servidor, incluidos los envíos, los turnos de
-activación y los turnos iniciados desde otra ventana.
+Empezó un turno nativo de conversación en el servidor, incluidos los
+envíos, los turnos de despertar y los turnos iniciados desde otra ventana.
 
 ```ts
 "turn-started": {
@@ -116,8 +117,9 @@ chatId: string;
 
 ### ServerEvents "turn-settled"
 
-Un turno se asentó tras persistirlo. Vuelve a obtener el registro guardado; esto no
-significa que la extracción asíncrona o el trabajo en segundo plano hayan terminado.
+Un turno se asentó tras persistirse. Vuelve a obtener el registro
+guardado; esto no significa que la extracción asíncrona o el trabajo en
+segundo plano hayan terminado.
 
 ```ts
 "turn-settled": {
@@ -133,9 +135,9 @@ chatId: string;
 
 ### ServerEvents "jobs-changed"
 
-Cambió el registro de una tarea (despacho, progreso, asentamiento, cancelación,
-recuperación). chatId cuando se conoce: los consumidores propietarios de un chat filtran
-por él.
+Cambió el registro de una tarea (envío, progreso, asentamiento, aborto,
+recuperación). chatId cuando se conoce — los consumidores que poseen un
+chat filtran por él.
 
 ```ts
 "jobs-changed": {
@@ -159,7 +161,7 @@ Una ejecución de extracción cambió de fase (dock de actividad).
 
 ### ServerEvents "chats-changed"
 
-Cambió la lista de sesiones (creación, borrado, título).
+Cambió la lista de sesiones (crear, borrar, título).
 
 ```ts
 "chats-changed": Record<string, never>;
@@ -167,7 +169,7 @@ Cambió la lista de sesiones (creación, borrado, título).
 
 ### ServerEvents "sources-changed"
 
-Cambiaron el inventario de fuentes, los nombres para mostrar o las carpetas organizativas.
+Cambiaron el inventario de fuentes, los nombres mostrados o las carpetas organizativas.
 
 ```ts
 "sources-changed": Record<string, never>;
@@ -175,7 +177,7 @@ Cambiaron el inventario de fuentes, los nombres para mostrar o las carpetas orga
 
 ### ServerEvents "subscriptions-changed"
 
-Cambió el estado de la suscripción web. No hay datos de cuenta ni de credenciales en el bus.
+Cambió el estado de una suscripción web. Ni datos de cuenta ni credenciales en el bus.
 
 ```ts
 "subscriptions-changed": Record<string, never>;
@@ -183,9 +185,10 @@ Cambió el estado de la suscripción web. No hay datos de cuenta ni de credencia
 
 ### ServerEvents "record-changed"
 
-Cambió el registro de un chat SIN un turno (la escritura silenciosa del descarte).
-Mismo contrato de notificar y luego obtener que los eventos de turno: las vistas abiertas
-del chat vuelven a obtener y adoptan el registro duradero.
+El registro de un chat cambió SIN un turno (la escritura silenciosa del
+descarte). El mismo contrato de notificar y luego obtener que los eventos
+de turno: las vistas abiertas del chat vuelven a obtenerlo y adoptan el
+registro duradero.
 
 ```ts
 "record-changed": {
@@ -201,9 +204,10 @@ chatId: string;
 
 ### ServerEvents "compaction-changed"
 
-La compactación del contexto empezó o terminó para este chat. Mientras running es true, el
-servidor bloquea la interacción con el modelo y el cliente desactiva el envío relacionado
-del compositor y del dock. Es estado en vivo, no un marcador persistido.
+Empezó o terminó la compactación del contexto de este chat. Mientras
+running es true, el servidor bloquea la interacción con el modelo y el
+cliente desactiva el envío relacionado del compositor/dock. Es estado en
+vivo, no un marcador persistido.
 
 ```ts
 "compaction-changed": {
@@ -226,8 +230,9 @@ running: boolean;
 
 ### ServerEvents "side-chats-changed"
 
-Cambió una conversación lateral. Notificar y luego obtener: las vistas abiertas vuelven a
-obtener GET /api/chats/:id/side-chats. Cerrarla nunca la borra.
+Cambió una conversación lateral. Notificar y luego obtener: las vistas
+abiertas vuelven a pedir GET /api/chats/:id/side-chats. Cerrarla nunca la
+borra.
 
 ```ts
 "side-chats-changed": {
@@ -243,8 +248,7 @@ chatId: string;
 
 ### ServerEvents "plugins-changed"
 
-Cambió la disponibilidad o el ciclo de vida de los plugins; vuelve a obtener los paquetes
-instalados.
+Cambió la disponibilidad o el ciclo de vida de los plugins; vuelve a obtener los paquetes instalados.
 
 ```ts
 "plugins-changed": Record<string, never>;
@@ -252,8 +256,7 @@ instalados.
 
 ### ServerEvents "plugin-message"
 
-Notificaciones de ámbito de plugin, solo en vivo. Al reconectar hace falta resincronizar
-con una instantánea.
+Notificaciones solo en vivo con ámbito de plugin. Al reconectar hay que resincronizar con una instantánea.
 
 ```ts
 "plugin-message": {

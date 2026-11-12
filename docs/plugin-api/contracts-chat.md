@@ -23,7 +23,7 @@
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
 Contabilidad de tokens persistida de una llamada al modelo. Undefined significa que el
-proveedor no informó de ese campo; su ausencia no debe interpretarse como cero.
+proveedor no informó de ese campo; la ausencia no debe interpretarse como cero.
 
 ```ts
 export interface CallUsage {
@@ -61,7 +61,7 @@ outputTokens: number | undefined;
 
 ### CallUsage cacheReadTokens
 
-Tokens de entrada en caché LEÍDOS (facturados a la tarifa de lectura de caché, si la hay).
+Tokens de entrada LEÍDOS de la caché (facturados a la tarifa de lectura de caché, si la hay).
 
 ```ts
 cacheReadTokens: number | undefined;
@@ -69,7 +69,7 @@ cacheReadTokens: number | undefined;
 
 ### CallUsage cacheWriteTokens
 
-Tokens de entrada escritos en la caché en esta llamada; undefined si no se informa.
+Tokens de entrada escritos en la caché en esta llamada; undefined si no se informó.
 
 ```ts
 cacheWriteTokens: number | undefined;
@@ -77,8 +77,8 @@ cacheWriteTokens: number | undefined;
 
 ### CallUsage cacheWrite1hTokens
 
-Subconjunto de cacheWriteTokens escrito con retención de una hora. Falta en los registros
-antiguos; las capturas nativas nuevas registran explícitamente cero si no hay.
+Subconjunto de cacheWriteTokens escrito con retención de una hora. Falta
+en los registros antiguos; las capturas nativas nuevas registran cero explícitamente si no hay.
 
 ```ts
 cacheWrite1hTokens?: number;
@@ -97,8 +97,8 @@ reasoningTokens: number | undefined;
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
 Tipo de sesión: teach es el valor por defecto cuando un registro guardado omite kind.
-Practice usa el agente de práctica adaptativa sin extracción de la enseñanza ni escrituras
-en el grafo. Leer un kind ausente no requiere migrar el registro.
+Practice usa el agente de práctica adaptativa sin la extracción de la enseñanza ni
+escrituras en el grafo. Leer un kind ausente no exige migrar el registro.
 
 ```ts
 export type ChatKind = "teach" | "practice";
@@ -108,10 +108,9 @@ export type ChatKind = "teach" | "practice";
 
 Tipo público del SDK, exportado como `ChatListItem`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Fila de la lista de sesiones que combina un resumen guardado con el estado en vivo del
-servidor. busy significa que hay en curso un turno nativo de conversación; las tareas en
-segundo plano independientes no ocupan la sesión. Estos indicadores no son estado
-persistido.
+Fila de la lista de sesiones que combina un resumen guardado con el estado en vivo del servidor.
+busy significa que hay un turno de conversación nativo en curso; las tareas en segundo plano
+desacopladas no ponen la sesión en busy. Estos indicadores no son un estado persistido.
 
 ```ts
 export interface ChatListItem extends ChatSummary {
@@ -135,9 +134,8 @@ busy: boolean;
 
 ### ChatListItem compacting
 
-True mientras la compactación del contexto en segundo plano retiene el acceso del chat al
-modelo. Lo aporta el registro en vivo de compactaciones, no los marcadores de compactación
-guardados.
+True mientras la compactación de contexto en segundo plano tiene la barrera del modelo del chat.
+Lo proporciona el registro de compactaciones en vivo, no los marcadores de compactación guardados.
 
 ```ts
 compacting: boolean;
@@ -147,10 +145,9 @@ compacting: boolean;
 
 Tipo público del SDK, exportado como `ChatRecord`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Una sesión nativa persistida en data/chats/<id>.json. Los mensajes conservan el historial
-nativo del agente; el render de la transcripción los agrupa en una vista aparte.
-El uso, las imágenes, el estado del plan y las conversaciones laterales son registros
-propiedad de la sesión.
+Una sesión nativa persistida en data/chats/<id>.json. Los mensajes conservan el
+historial nativo del agente; el renderizado del transcript los agrupa en una vista aparte.
+El uso, las imágenes, el estado del plan y las conversaciones laterales son registros propiedad de la sesión.
 
 ```ts
 export interface ChatRecord {
@@ -220,8 +217,7 @@ messages: LhMessage[];
 
 ### ChatRecord imageSnapshots
 
-Imágenes procesadas locales de la sesión; los registros de artefactos solo llevan
-referencias.
+Imágenes procesadas locales de la sesión; los registros de artefactos solo llevan referencias.
 
 ```ts
 imageSnapshots?: Record<string, ImageSnapshot>;
@@ -229,7 +225,7 @@ imageSnapshots?: Record<string, ImageSnapshot>;
 
 ### ChatRecord kind
 
-El tipo de la sesión; un campo ausente se lee como teach.
+El tipo de la sesión; un campo ausente se interpreta como teach.
 
 ```ts
 kind?: ChatKind;
@@ -237,7 +233,7 @@ kind?: ChatKind;
 
 ### ChatRecord tree
 
-El árbol del plan de la sesión, que escriben las herramientas nativas del plan.
+El árbol del plan de la sesión, escrito por las herramientas de plan nativas.
 
 ```ts
 tree?: PlanTree;
@@ -245,9 +241,9 @@ tree?: PlanTree;
 
 ### ChatRecord turns
 
-Registro de uso de solo añadir, separado del historial de mensajes: una entrada por turno
-facturado, sin duplicados por identidad de petición. messageId asocia el uso con la
-transcripción; los agregados de tokens y costes se calculan a partir del registro al leer.
+Registro de uso solo de anexado, separado del historial de mensajes: una entrada por turno
+facturado, sin duplicados por identidad de petición. messageId asocia el uso con el
+transcript; los agregados de tokens/coste se calculan a partir del registro al leer.
 
 ```ts
 turns?: TurnUsage[];
@@ -255,9 +251,9 @@ turns?: TurnUsage[];
 
 ### ChatRecord extractions
 
-Uso de la extracción en segundo plano de este chat, de solo añadir y separado de los
-mensajes. Las ejecuciones terminadas incluyen las fallidas que tuvieron uso; las adiciones
-son idempotentes por startedAt.
+Uso de la extracción en segundo plano de este chat, solo de anexado y separado de los
+mensajes. Las ejecuciones terminadas incluyen las fallidas con uso; los anexados son
+idempotentes por startedAt.
 
 ```ts
 extractions?: ExtractionRunUsage[];
@@ -265,7 +261,7 @@ extractions?: ExtractionRunUsage[];
 
 ### ChatRecord settings
 
-Sustituciones de modelo y razonamiento por chat para los agentes de conversación.
+Sustituciones de modelo/razonamiento por chat para los agentes de conversación.
 
 ```ts
 settings?: ChatSettings;
@@ -273,9 +269,9 @@ settings?: ChatSettings;
 
 ### ChatRecord sideChats
 
-Hilos de aclaración duraderos. Cada explicación y su comprobación asociada comparten un
-hilo. Cada petición principal añade nuevos intercambios en bruto de todos los hilos; el
-historial ya registrado del profesor nunca se reescribe.
+Hilos de aclaración duraderos. Cada explicación y su comprobación asociada
+comparten un hilo. Cada petición principal anexa los intercambios crudos nuevos de
+todos los hilos; el historial ya registrado del profesor nunca se reescribe.
 
 ```ts
 sideChats?: SideChatThread[];
@@ -283,9 +279,9 @@ sideChats?: SideChatThread[];
 
 ### ChatRecord version
 
-Versión del esquema. Si falta, es la versión 1; las escrituras ponen la versión admitida
-actual. Las lecturas rechazan los registros con una versión más nueva que esta compilación,
-para que una app con una versión anterior no pueda reescribir un registro que no admite.
+Versión del esquema. Su ausencia denota la versión 1; las escrituras sellan la versión
+soportada actual. Las lecturas rechazan los registros sellados con una versión más nueva que este build
+para que una app con una versión anterior no pueda reescribir un registro no soportado.
 
 ```ts
 version?: number;
@@ -295,11 +291,11 @@ version?: number;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Elecciones de modelo y de razonamiento por sesión para los agentes nativos de conversación.
-Cada campo ausente recurre por separado a la ranura del modelo potente; si no hay ningún
-modelo configurado, el trabajo de conversación no está disponible. Las elecciones se
-resuelven al componer un turno, no en mitad de una petición activa. Los roles de los
-workers en segundo plano usan su propia resolución de modelo.
+Elecciones de modelo y razonamiento por sesión para los agentes de conversación nativos.
+Cada campo ausente recurre de forma independiente al hueco del modelo potente; sin
+modelo configurado, el trabajo de conversación no está disponible. Las elecciones se resuelven
+al componer un turno, no a mitad de una petición activa. Los roles de worker
+en segundo plano usan su propia resolución de modelo.
 
 ```ts
 export interface ChatSettings {
@@ -320,7 +316,7 @@ export interface ChatSettings {
 
 ### ChatSettings model
 
-Coordenadas explícitas del modelo, calificadas con el proveedor, del catálogo del host.
+Coordenadas explícitas de modelo calificadas por proveedor, del catálogo del host.
 
 ```ts
 model?: {
@@ -343,7 +339,7 @@ id: string;
 
 ### ChatSettings thinkingLevel
 
-Nivel de razonamiento de pi: debe estar en la lista de niveles admitidos del modelo elegido
+Nivel de razonamiento de pi: debe estar en la lista de niveles soportados del modelo elegido
 (getSupportedThinkingLevels; lo impone la ruta de ajustes).
 
 ```ts
@@ -355,9 +351,9 @@ thinkingLevel?: ThinkingLevel;
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
 Resumen de una sesión guardada con un recuento de mensajes en lugar del historial completo.
-Los indicadores de fase y de entrada pendiente se derivan de los eventos nativos de la
-transcripción. El estado en vivo de turnos y compactación se añade aparte en ChatListItem;
-no se infiere del registro guardado.
+Los indicadores de fase y de entrada pendiente se derivan de los eventos nativos del transcript.
+El estado en vivo de turno/compactación se añade aparte en ChatListItem, no se
+infiere del registro guardado.
 
 ```ts
 export interface ChatSummary {
@@ -415,7 +411,7 @@ updatedAt: string;
 
 ### ChatSummary kind
 
-Tipo normalizado (un campo ausente en el registro se lee como teach).
+Tipo normalizado (un campo ausente en el registro se interpreta como teach).
 
 ```ts
 kind: ChatKind;
@@ -429,9 +425,8 @@ messageCount: number;
 
 ### ChatSummary phase
 
-Fase derivada de la transcripción: probe termina cuando probe_done se completa con éxito;
-plan termina con la primera llamada a una pregunta de enseñanza etiquetada con un nodo, no
-con su respuesta.
+Fase derivada del transcript: probe termina al completarse con éxito probe_done;
+plan termina en la primera llamada a una pregunta de enseñanza etiquetada con nodo, no en su respuesta.
 
 ```ts
 phase: Phase3;
@@ -439,7 +434,7 @@ phase: Phase3;
 
 ### ChatSummary pendingQuestion
 
-Una pregunta de quiz/ask sin responder espera al alumno.
+Hay una pregunta quiz/ask sin responder esperando al alumno.
 
 ```ts
 pendingQuestion: boolean;
@@ -447,8 +442,7 @@ pendingQuestion: boolean;
 
 ### ChatSummary pendingProblem
 
-Se ha planteado un problema de práctica que no ha concluido. False en las sesiones de
-enseñanza.
+Hay un problema de práctica planteado pero no concluido. False en las sesiones de enseñanza.
 
 ```ts
 pendingProblem: boolean;
@@ -456,8 +450,7 @@ pendingProblem: boolean;
 
 ### ChatSummary settings
 
-Elecciones guardadas de modelo y razonamiento por sesión, incluidas en el contenido de la
-lista.
+Elecciones de modelo/razonamiento guardadas por sesión incluidas en la carga útil de la lista.
 
 ```ts
 settings?: ChatSettings;
@@ -467,10 +460,10 @@ settings?: ChatSettings;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-El registro de uso de una ejecución de extracción terminada (o que falló a mitad).
-Se añade al registro `extractions` del chat cuando termina la ejecución, con éxito o con
-fallo, porque se ha gastado dinero en ambos casos; `stats` solo está presente cuando el
-fusionador llegó a ejecutarse.
+El registro de uso de una ejecución de extracción terminada (o fallida a mitad de camino).
+Se anexa al registro `extractions` del chat cuando termina la ejecución, con éxito o
+con fallo, porque el dinero se gastó en ambos casos; `stats` solo está presente
+cuando el fusionador llegó a ejecutarse.
 
 ```ts
 export interface ExtractionRunUsage {
@@ -519,7 +512,7 @@ durationMs: number;
 
 ### ExtractionRunUsage stats
 
-Lo que la ejecución fusionó en el grafo; ausente si falló antes.
+Lo que la ejecución fusionó en el grafo; ausente cuando falló antes.
 
 ```ts
 stats?: EmissionStats;
@@ -527,8 +520,8 @@ stats?: EmissionStats;
 
 ### ExtractionRunUsage stages
 
-Uso del modelo por etapa, en el orden del flujo (el fusionador es determinista: no llama al
-modelo y no tiene entrada).
+Uso del modelo por etapa, en el orden de la canalización (el fusionador es determinista:
+sin llamada al modelo, sin entrada).
 
 ```ts
 stages: {
@@ -553,9 +546,9 @@ auditor: ExtractionStageUsage;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-El uso del modelo de una etapa del flujo: el modelo de la etapa + cada paso que facturó
-(CallUsage por paso del agente). Pasos, no una suma: los cálculos de coste y de contexto se
-hacen al leer (core/prices.ts).
+El uso del modelo de una etapa de la canalización: el modelo de la etapa + cada paso que
+facturó (CallUsage por paso del agente). Pasos, no una suma: los pliegues de coste y
+contexto se hacen al leer (core/prices.ts).
 
 ```ts
 export interface ExtractionStageUsage {
@@ -573,8 +566,8 @@ export interface ExtractionStageUsage {
 
 ### ExtractionStageUsage model
 
-El modelo que ejecutó esta etapa, calificado con el proveedor ("provider:id") para
-consultar el catálogo de Pi al leer sin depender de la clave.
+El modelo que ejecutó esta etapa, calificado por proveedor ("provider:id")
+para buscarlo en el catálogo de Pi al leer, sin depender de la clave.
 
 ```ts
 model: string;
@@ -590,7 +583,7 @@ steps: CallUsage[];
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Una imagen en posición vertical y sin metadatos, guardada una sola vez por sesión.
+Una imagen enderezada y sin metadatos, guardada una vez por sesión.
 
 ```ts
 export interface ImageSnapshot {
@@ -636,7 +629,7 @@ height: number;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Dónde se sitúa un hilo lateral en la transcripción: tras un bloque de nivel de párrafo
+Dónde se sitúa un hilo lateral en el transcript: tras un bloque de nivel de párrafo
 (la división en bloques de markdown de Streamdown) de una parte de prosa del profesor.
 La prosa asentada del profesor nunca cambia, así que (partId, blockIndex) es estable.
 
@@ -666,7 +659,7 @@ messageId: string;
 
 ### SideChatAnchor partId
 
-La identidad de la parte de texto según projectView (`<messageId>-t<n>`).
+La identidad de la parte de texto de projectView (`<messageId>-t<n>`).
 
 ```ts
 partId: string;
@@ -674,7 +667,7 @@ partId: string;
 
 ### SideChatAnchor blockIndex
 
-Índice del bloque, empezando en 0, dentro del markdown representado de esa parte.
+Índice de bloque (desde 0) dentro del markdown renderizado de esa parte.
 
 ```ts
 blockIndex: number;
@@ -682,8 +675,8 @@ blockIndex: number;
 
 ### SideChatAnchor blockText
 
-El código markdown del bloque cuando se abrió el hilo: la cita por defecto y el texto del
-ancla si el registro vuelve a dividirse alguna vez.
+El markdown original del bloque cuando se abrió el hilo: la
+cita por defecto, y el texto del ancla si el registro se vuelve a dividir alguna vez.
 
 ```ts
 blockText: string;
@@ -693,8 +686,8 @@ blockText: string;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Un mensaje de un hilo lateral. Texto plano, nunca historial nativo de pi: el hilo se
-reproduce al modelo lateral como turnos de texto de usuario/asistente.
+Un mensaje de un hilo lateral. Texto plano, nunca historial nativo de pi: el
+hilo se reproduce al modelo lateral como turnos de texto de usuario/asistente.
 
 ```ts
 export interface SideChatMessage {
@@ -740,7 +733,7 @@ role: "user" | "assistant";
 
 ### SideChatMessage text
 
-La pregunta del alumno o la respuesta lateral (markdown).
+La pregunta del alumno, o la respuesta lateral (markdown).
 
 ```ts
 text: string;
@@ -756,9 +749,9 @@ quotes?: string[];
 
 ### SideChatMessage quoteCitations
 
-Los enlaces de cita canónicos de Tutor que coinciden conservan la fuente nativa real de cada
-pasaje y su selector de texto exacto, con independencia de la identidad del segmento.
-Las citas heredadas que son solo cadenas siguen siendo legibles sin adivinar un destino.
+Los enlaces de cita canónicos del Tutor correspondientes conservan la fuente nativa real
+de cada pasaje y su selector de texto exacto, con independencia de la identidad del segmento.
+Las citas heredadas solo de string siguen siendo legibles sin un destino adivinado.
 
 ```ts
 quoteCitations?: string[];
@@ -766,7 +759,7 @@ quoteCitations?: string[];
 
 ### SideChatMessage at
 
-Hora ISO en que se guardó el mensaje.
+Momento ISO en que se guardó el mensaje.
 
 ```ts
 at: string;
@@ -774,7 +767,7 @@ at: string;
 
 ### SideChatMessage model
 
-Solo assistant: modelo calificado con el proveedor ("provider:id").
+Solo assistant: modelo calificado por proveedor ("provider:id").
 
 ```ts
 model?: string;
@@ -782,7 +775,7 @@ model?: string;
 
 ### SideChatMessage requestId
 
-Identidad de idempotencia de la pregunta o reintento que produce esta respuesta.
+Identidad de idempotencia de la pregunta/reintento que produce esta respuesta.
 
 ```ts
 requestId?: string;
@@ -798,7 +791,7 @@ stopped?: boolean;
 
 ### SideChatMessage pending
 
-Solo en la instantánea de entrega: esta respuesta aún se estaba generando al capturarla.
+Solo instantánea de entrega: esta respuesta aún se estaba generando al capturarla.
 
 ```ts
 pending?: boolean;
@@ -816,8 +809,8 @@ error?: string;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Un hilo lateral por explicación y pregunta asociada, que se muestra en el acompañante
-compartido flotante o acoplado en lugar de en ventanas en línea.
+Un hilo lateral por explicación y pregunta asociada, mostrado en el
+acompañante compartido flotante/acoplado en lugar de en ventanas en línea.
 
 ```ts
 export interface SideChatThread {
@@ -876,7 +869,7 @@ messages: SideChatMessage[];
 ### SideChatThread contextSnapshot
 
 Instantánea de compatibilidad que se conserva al leer registros que usan un corte de
-contexto único. La entrega actual usa entradas de actualización nativas inmutables.
+contexto puntual. La entrega actual usa entradas de actualización nativas inmutables.
 
 ```ts
 contextSnapshot?: SideChatMessage[];
@@ -886,10 +879,10 @@ contextSnapshot?: SideChatMessage[];
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Uso de una invocación del manejador nativo de conversación, incluidos los turnos del
-usuario y de activación. Un turno que usa herramientas puede abarcar varias llamadas al
-modelo facturadas por separado. La contabilidad se captura cuando el turno se persiste; el
-coste se estima al leer a partir de las llamadas registradas y del catálogo de modelos.
+Uso de una invocación del handler de conversación nativo, incluidos los turnos de usuario
+y de despertar. Un turno que usa herramientas puede abarcar varias llamadas al modelo facturadas por separado.
+La contabilidad se captura cuando el turno se persiste; el coste se estima a partir de las
+llamadas registradas y del catálogo de modelos al leer.
 
 ```ts
 export interface TurnUsage {
@@ -913,8 +906,8 @@ export interface TurnUsage {
 
 ### TurnUsage id
 
-Identidad de la petición de una invocación del manejador y clave de idempotencia del
-registro de solo añadir. Distinta de la asociación con la transcripción en messageId.
+Identidad de petición de una invocación del handler y clave de idempotencia del registro
+solo de anexado. Distinta de la asociación con el transcript de messageId.
 
 ```ts
 id: string;
@@ -922,8 +915,8 @@ id: string;
 
 ### TurnUsage messageId
 
-El mensaje del asistente que produjo el turno: procedencia; vincula esta entrada con la
-transcripción (el bloque al que "pertenece" este turno).
+El mensaje del asistente que produjo el turno: procedencia; vincula esta
+entrada con el transcript (el bloque al que «pertenece» este turno).
 
 ```ts
 messageId: string;
@@ -937,8 +930,8 @@ at: string;
 
 ### TurnUsage model
 
-El modelo que ejecutó el turno, calificado con el proveedor ("provider:id") para consultar
-el catálogo de Pi al leer sin depender de la clave.
+El modelo que ejecutó el turno, calificado por proveedor ("provider:id")
+para buscarlo en el catálogo de Pi al leer, sin depender de la clave.
 
 ```ts
 model: string;

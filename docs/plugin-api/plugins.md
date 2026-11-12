@@ -80,8 +80,8 @@ icon?: string;
 
 ### PluginAction shortcut
 
-Activación voluntaria sin crear elementos de interfaz. El ámbito y el valor por defecto se
-capturan al registrar.
+Activación voluntaria sin crear elementos de interfaz. El ámbito y el valor por
+defecto se capturan al registrar.
 
 ```ts
 readonly shortcut?: import("./plugin-shortcuts.ts").PluginActionShortcut;
@@ -95,10 +95,10 @@ disabled?: boolean | ((context: PluginActionContext) => boolean);
 
 ### PluginAction run
 
-Se ejecuta para la colocación y la página de la invocación real. El host impide invocarla
-de nuevo mientras está ocupada e informa de los errores lanzados o rechazados. Los datos de
-la vista de la sesión se capturan una vez antes de la invocación y siguen siendo
-independientes a través de los await.
+Se ejecuta para la colocación y la página de la invocación real. El host impide
+invocarla de nuevo mientras está ocupada e informa de los errores lanzados o
+rechazados. Los datos de la vista de la sesión se capturan una vez antes de la
+invocación y siguen siendo independientes a través de los await.
 
 ```ts
 run(context: PluginActionContext): void | Promise<void>;
@@ -323,9 +323,9 @@ readonly dataDirectory: string;
 
 ### PluginBackendContext signal
 
-Se cancela cuando termina esta activación del backend. Vuelve a comprobarlo tras cada await
-antes de producir efectos secundarios propios del plugin; la cancelación no detiene a la
-fuerza código arbitrario.
+Se cancela cuando termina esta activación del backend. Vuelve a comprobarlo tras cada
+await antes de producir efectos secundarios propios del plugin; la cancelación no
+detiene a la fuerza código arbitrario.
 
 ```ts
 readonly signal: AbortSignal;
@@ -333,8 +333,9 @@ readonly signal: AbortSignal;
 
 ### PluginBackendContext cleanup
 
-Registra la limpieza de recursos para la desactivación; también se admite como valor de
-retorno de activate. Una limpieza registrada tras la caducidad se invoca igualmente.
+Registra la limpieza de recursos para la desactivación; también se admite como valor
+de retorno de activate. Una limpieza registrada tras la caducidad se invoca
+igualmente.
 
 ```ts
 cleanup(dispose: PluginCleanup): void;
@@ -348,8 +349,8 @@ cleanup(dispose: PluginCleanup): void;
 
 ### PluginBackendContext learning
 
-Registros nativos de aprendizaje de solo lectura; no es una API programable de escritura
-de datos del núcleo.
+Registros nativos de aprendizaje de solo lectura; no es una API programable de
+escritura de datos del núcleo.
 
 ```ts
 learning: PluginLearningData;
@@ -357,8 +358,8 @@ learning: PluginLearningData;
 
 ### PluginBackendContext inference
 
-Peticiones en bruto al modelo autenticadas por el host, con ámbito en la activación; pueden
-tener coste.
+Peticiones en bruto al modelo autenticadas por el host, con ámbito en la activación;
+pueden tener coste.
 
 ```ts
 inference: PluginInference;
@@ -374,8 +375,8 @@ agents: PluginAgentService;
 
 ### PluginBackendContext workers
 
-Tareas acotadas duraderas, independientes de las vistas del frontend; pueden tener coste de
-modelo.
+Tareas acotadas duraderas, independientes de las vistas del frontend; pueden tener
+coste de modelo.
 
 ```ts
 workers: PluginWorkerService;
@@ -383,11 +384,11 @@ workers: PluginWorkerService;
 
 ### PluginBackendContext createBackgroundTool
 
-Devuelve una herramienta nativa de Pi vinculada a este turno de conversación. Confirma de
-inmediato la aceptación del worker y entrega el resultado terminal más tarde mediante la
-gestión nativa de tareas y reorientaciones. La identidad derivada por el host fuerza el
-propósito background; el resultado de la tarea y su formateo o entrega posteriores son
-cosas separadas.
+Devuelve una herramienta nativa de Pi vinculada a este turno de conversación.
+Confirma de inmediato la aceptación del worker y entrega el resultado terminal más
+tarde mediante la gestión nativa de tareas y reorientaciones. La identidad derivada
+por el host fuerza el propósito background; el resultado de la tarea y su formateo o
+entrega posteriores son cosas separadas.
 
 ```ts
 createBackgroundTool<T extends TSchema>(context: PluginToolContext, definition: PluginBackgroundTool<T>): AgentTool<T>;
@@ -403,8 +404,8 @@ createBackgroundTool<T extends TSchema>(context: PluginToolContext, definition: 
 ### PluginBackendContext registerInstructions
 
 Añade texto al prompt de sistema para los tipos de agente nativo seleccionados, sin
-sustituir los prompts del host. Las contribuciones no válidas lanzan una excepción; anular
-el registro solo afecta a los turnos futuros.
+sustituir los prompts del host. Las contribuciones no válidas lanzan una excepción;
+anular el registro solo afecta a los turnos futuros.
 
 ```ts
 registerInstructions(contribution: PluginInstructions): () => void;
@@ -420,8 +421,8 @@ registerInstructions(contribution: PluginInstructions): () => void;
 
 Añade factorías de herramientas nuevas para los tipos de agente nativo seleccionados,
 conservando las integradas. Un registro no válido lanza una excepción; los errores de
-factoría o de colisión de cada turno omiten la contribución de este plugin. La función de
-anulación devuelta afecta a los turnos futuros.
+factoría o de colisión de cada turno omiten la contribución de este plugin. La
+función de anulación devuelta afecta a los turnos futuros.
 
 ```ts
 registerTools(contribution: PluginTools): () => void;
@@ -435,10 +436,10 @@ registerTools(contribution: PluginTools): () => void;
 
 ### PluginBackendContext registerQuestionType
 
-Registra un tipo en el ciclo de vida nativo de sondeo y enseñanza propiedad del host, con
-validación y calificación opcionales por parte del plugin. Las definiciones no válidas o
-duplicadas lanzan una excepción; la función de anulación devuelta elimina la disponibilidad
-y cancela el ámbito de esta definición.
+Registra un tipo en el ciclo de vida nativo de sondeo y enseñanza propiedad del host,
+con validación y calificación opcionales por parte del plugin. Las definiciones no
+válidas o duplicadas lanzan una excepción; la función de anulación devuelta elimina
+la disponibilidad y cancela el ámbito de esta definición.
 
 ```ts
 registerQuestionType<Q extends TSchema, A extends TSchema>(definition: PluginQuestionTypeDefinition<Q, A>): () => void;
@@ -452,10 +453,10 @@ registerQuestionType<Q extends TSchema, A extends TSchema>(definition: PluginQue
 
 ### PluginBackendContext registerProblemType
 
-Registra planteamientos de práctica alternativos que comparten el ciclo de vida nativo de
-problema activo y conclusión. Las definiciones no válidas o duplicadas lanzan una
-excepción; la función de anulación devuelta elimina la disponibilidad y cancela el ámbito
-de esta definición, no el historial guardado.
+Registra planteamientos de práctica alternativos que comparten el ciclo de vida
+nativo de problema activo y conclusión. Las definiciones no válidas o duplicadas
+lanzan una excepción; la función de anulación devuelta elimina la disponibilidad y
+cancela el ámbito de esta definición, no el historial guardado.
 
 ```ts
 registerProblemType<Q extends TSchema, S extends TSchema>(definition: PluginProblemTypeDefinition<Q, S>): () => void;
@@ -469,10 +470,10 @@ registerProblemType<Q extends TSchema, S extends TSchema>(definition: PluginProb
 
 ### PluginBackendContext handle
 
-Registra una operación con nombre para el puente de llamadas del frontend de este plugin.
-Las entradas y los resultados deben ser compatibles con JSON; valida la entrada en el
-manejador. Los nombres no válidos o duplicados lanzan una excepción. Devuelve la función de
-anulación; no es una API HTTP arbitraria.
+Registra una operación con nombre para el puente de llamadas del frontend de este
+plugin. Las entradas y los resultados deben ser compatibles con JSON; valida la
+entrada en el manejador. Los nombres no válidos o duplicados lanzan una excepción.
+Devuelve la función de anulación; no es una API HTTP arbitraria.
 
 ```ts
 handle(name: string, handler: (input: unknown) => unknown | Promise<unknown>): () => void;
@@ -487,8 +488,8 @@ handle(name: string, handler: (input: unknown) => unknown | Promise<unknown>): (
 
 ### PluginBackendContext events
 
-Avisos en vivo de la app y notificaciones de ámbito de plugin, no un registro duradero de
-eventos.
+Avisos en vivo de la app y notificaciones de ámbito de plugin, no un registro
+duradero de eventos.
 
 ```ts
 events: {
@@ -499,10 +500,10 @@ events: {
 
 ### PluginBackendContext events.on
 
-Observa los eventos admitidos de la app hasta cancelar la suscripción o hasta la limpieza
-de la activación. Los fallos de los listeners quedan aislados. Vuelve a leer el estado
-cuando haga falta; turn-settled sigue a la persistencia del turno, no al final de la
-extracción asíncrona.
+Observa los eventos admitidos de la app hasta cancelar la suscripción o hasta la
+limpieza de la activación. Los fallos de los listeners quedan aislados. Vuelve a
+leer el estado cuando haga falta; turn-settled sigue a la persistencia del turno,
+no al final de la extracción asíncrona.
 
 ```ts
 on(listener: (event: ServerEvent) => void): () => void;
@@ -516,10 +517,10 @@ on(listener: (event: ServerEvent) => void): () => void;
 
 ### PluginBackendContext events.emit
 
-Notifica con datos JSON a los listeners del frontend de este plugin en las ventanas
-conectadas. Los temas no válidos lanzan una excepción mientras está activo; las
-activaciones caducadas no emiten nada. No se ofrece persistencia, reproducción ni acuse de
-la gestión en el frontend.
+Notifica con datos JSON a los listeners del frontend de este plugin en las
+ventanas conectadas. Los temas no válidos lanzan una excepción mientras está
+activo; las activaciones caducadas no emiten nada. No se ofrece persistencia,
+reproducción ni acuse de la gestión en el frontend.
 
 ```ts
 emit(topic: string, data?: unknown): void;
@@ -551,9 +552,9 @@ export interface PluginBackendModule {
 ### PluginBackendModule activate
 
 Inicializa los registros y recursos de ámbito de servidor; opcionalmente devuelve una
-limpieza. Los fallos de activación marcan este plugin como erróneo. Los módulos siguen en
-caché, así que pon aquí los efectos secundarios de la activación y no en el nivel superior
-del módulo.
+limpieza. Los fallos de activación marcan este plugin como erróneo. Los módulos
+siguen en caché, así que pon aquí los efectos secundarios de la activación y no en el
+nivel superior del módulo.
 
 ```ts
 activate(context: PluginBackendContext): void | PluginCleanup | Promise<void | PluginCleanup>;
@@ -655,10 +656,10 @@ language: string;
 
 ### PluginCodeBlockRenderer mount
 
-Representa este bloque cercado en el contenedor indicado; devuelve una limpieza síncrona o
-asíncrona. Sustituir, anular el registro o desactivar cancela block.signal. Los
-renderizadores que fallan o faltan recurren al código fuente legible; mountMarkdown, que es
-solo del host, no usa este hook.
+Representa este bloque cercado en el contenedor indicado; devuelve una limpieza
+síncrona o asíncrona. Sustituir, anular el registro o desactivar cancela
+block.signal. Los renderizadores que fallan o faltan recurren al código fuente
+legible; mountMarkdown, que es solo del host, no usa este hook.
 
 ```ts
 mount(container: HTMLElement, block: PluginCodeBlockProps): void | PluginCleanup | Promise<void | PluginCleanup>;
@@ -675,9 +676,9 @@ mount(container: HTMLElement, block: PluginCodeBlockProps): void | PluginCleanup
 
 Tipo público del SDK, exportado como `PluginFrontendContext`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Ámbito de activación del frontend, una vez por plugin activado y por ventana. Los registros,
-las suscripciones y la interfaz caducan con esta activación; el trabajo del backend es
-propiedad del servidor.
+Ámbito de activación del frontend, una vez por plugin activado y por ventana. Los
+registros, las suscripciones y la interfaz caducan con esta activación; el trabajo del
+backend es propiedad del servidor.
 
 ```ts
 export interface PluginFrontendContext {
@@ -770,9 +771,9 @@ readonly signal: AbortSignal;
 
 ### PluginFrontendContext cleanup
 
-Registra la limpieza síncrona o asíncrona de recursos para la desactivación; los registros
-tardíos se invocan igualmente. Una activación también puede devolver una función de
-limpieza.
+Registra la limpieza síncrona o asíncrona de recursos para la desactivación; los
+registros tardíos se invocan igualmente. Una activación también puede devolver una
+función de limpieza.
 
 ```ts
 cleanup(dispose: PluginCleanup): void;
@@ -786,9 +787,9 @@ cleanup(dispose: PluginCleanup): void;
 
 ### PluginFrontendContext registerView
 
-Registra una vista de cuerpo propiedad del plugin con el marco de la interfaz del host. Los
-IDs no válidos o duplicados lanzan una excepción; la función de anulación devuelta elimina
-la vista sin borrar los datos del plugin.
+Registra una vista de cuerpo propiedad del plugin con el marco de la interfaz del
+host. Los IDs no válidos o duplicados lanzan una excepción; la función de anulación
+devuelta elimina la vista sin borrar los datos del plugin.
 
 ```ts
 registerView(view: PluginView): () => void;
@@ -802,10 +803,10 @@ registerView(view: PluginView): () => void;
 
 ### PluginFrontendContext registerAction
 
-Registra una acción invocable y un atajo opcional, pero sin colocar ningún botón.
-Los registros no válidos o duplicados lanzan una excepción. Devuelve la función de
-anulación; el ámbito y el valor por defecto del atajo se capturan aquí y refreshActions no
-los cambia.
+Registra una acción invocable y un atajo opcional, pero sin colocar ningún botón. Los
+registros no válidos o duplicados lanzan una excepción. Devuelve la función de
+anulación; el ámbito y el valor por defecto del atajo se capturan aquí y
+refreshActions no los cambia.
 
 ```ts
 registerAction(action: PluginAction): () => void;
@@ -820,8 +821,8 @@ registerAction(action: PluginAction): () => void;
 ### PluginFrontendContext placeAction
 
 Coloca una acción ya registrada en un elemento explícito de la interfaz del host. Los
-destinos no válidos o los IDs de colocación duplicados lanzan una excepción. Devuelve una
-función de anulación solo para esta colocación.
+destinos no válidos o los IDs de colocación duplicados lanzan una excepción. Devuelve
+una función de anulación solo para esta colocación.
 
 ```ts
 placeAction(placement: PluginActionPlacement): () => void;
@@ -847,9 +848,9 @@ refreshActions(): void;
 ### PluginFrontendContext registerSubmissionInterceptor
 
 Registra la preparación de la entrada del alumno con la identidad de este plugin. Las
-definiciones no válidas o duplicadas lanzan una excepción; la función de anulación devuelta
-cancela su ámbito capturado. Las reglas de aceptación, reintento y conservación de
-borradores siguen siendo propiedad del host.
+definiciones no válidas o duplicadas lanzan una excepción; la función de anulación
+devuelta cancela su ámbito capturado. Las reglas de aceptación, reintento y
+conservación de borradores siguen siendo propiedad del host.
 
 ```ts
 registerSubmissionInterceptor(definition: PluginSubmissionInterceptor): () => void;
@@ -873,9 +874,9 @@ refreshSubmissions(): void;
 
 ### PluginFrontendContext registerSettings
 
-Registra un montaje diferido del cuerpo de ajustes; devuelve la función de anulación. Solo
-se permite un registro de ajustes por activación. La señal de montaje acota su interfaz
-hija.
+Registra un montaje diferido del cuerpo de ajustes; devuelve la función de anulación.
+Solo se permite un registro de ajustes por activación. La señal de montaje acota su
+interfaz hija.
 
 ```ts
 registerSettings(mount: PluginView["mount"]): () => void;
@@ -887,10 +888,10 @@ registerSettings(mount: PluginView["mount"]): () => void;
 
 **Devuelve:** `() => void`.
 
-Registra filas de ajustes controladas; devuelve un manejador de actualización superficial y
-liberación. Los esquemas no válidos o los registros de ajustes duplicados lanzan una
-excepción. El plugin es propietario de la persistencia y debe publicar los valores
-aceptados tras guardarlos.
+Registra filas de ajustes controladas; devuelve un manejador de actualización
+superficial y liberación. Los esquemas no válidos o los registros de ajustes
+duplicados lanzan una excepción. El plugin es propietario de la persistencia y debe
+publicar los valores aceptados tras guardarlos.
 
 ```ts
 registerSettings(schema: import("./plugin-ui.ts").PluginSettingsSchema): import("./plugin-ui.ts").PluginWidgetHandle<import("./plugin-ui.ts").PluginSettingsSchema>;
@@ -902,9 +903,9 @@ registerSettings(schema: import("./plugin-ui.ts").PluginSettingsSchema): import(
 
 **Devuelve:** `import("./plugin-ui.ts").PluginWidgetHandle<import("./plugin-ui.ts").PluginSettingsSchema>`.
 
-Registra o bien un montaje personalizado diferido (función de anulación) o bien un esquema
-controlado (manejador de widget); ninguna de las dos formas carga ni guarda los ajustes del
-plugin automáticamente.
+Registra o bien un montaje personalizado diferido (función de anulación) o bien un
+esquema controlado (manejador de widget); ninguna de las dos formas carga ni guarda
+los ajustes del plugin automáticamente.
 
 ```ts
 registerSettings(settings: PluginSettingsRegistration): (() => void) | import("./plugin-ui.ts").PluginWidgetHandle<import("./plugin-ui.ts").PluginSettingsSchema>;
@@ -918,8 +919,8 @@ registerSettings(settings: PluginSettingsRegistration): (() => void) | import(".
 
 ### PluginFrontendContext ui
 
-Widgets y overlays controlados del host; acceder a un host de interfaz no disponible lanza
-una excepción.
+Widgets y overlays controlados del host; acceder a un host de interfaz no disponible
+lanza una excepción.
 
 ```ts
 readonly ui: import("./plugin-ui.ts").PluginUi;
@@ -927,9 +928,9 @@ readonly ui: import("./plugin-ui.ts").PluginUi;
 
 ### PluginFrontendContext registerCodeBlock
 
-Registra un renderizador para un lenguaje de bloque cercado; las reclamaciones reservadas o
-duplicadas lanzan una excepción. Devuelve la función de anulación, que cancela los montajes
-existentes del renderizador además de eliminar el hook.
+Registra un renderizador para un lenguaje de bloque cercado; las reclamaciones
+reservadas o duplicadas lanzan una excepción. Devuelve la función de anulación, que
+cancela los montajes existentes del renderizador además de eliminar el hook.
 
 ```ts
 registerCodeBlock(renderer: PluginCodeBlockRenderer): () => void;
@@ -943,9 +944,9 @@ registerCodeBlock(renderer: PluginCodeBlockRenderer): () => void;
 
 ### PluginFrontendContext registerToolRenderer
 
-Registra la presentación nativa de resultados de herramientas; las reclamaciones reservadas
-o duplicadas lanzan una excepción. Devuelve la función de anulación, que cancela los
-montajes existentes. No registra ninguna herramienta.
+Registra la presentación nativa de resultados de herramientas; las reclamaciones
+reservadas o duplicadas lanzan una excepción. Devuelve la función de anulación, que
+cancela los montajes existentes. No registra ninguna herramienta.
 
 ```ts
 registerToolRenderer(renderer: PluginToolRenderer): () => void;
@@ -959,10 +960,11 @@ registerToolRenderer(renderer: PluginToolRenderer): () => void;
 
 ### PluginFrontendContext registerQuestionRenderer
 
-Registra huecos con ámbito de propietario dentro de la tarjeta de pregunta del host. Las
-versiones del contrato deben coincidir con las de las preguntas guardadas y en vivo; los
-registros no válidos o duplicados lanzan una excepción. Devuelve la función de anulación;
-la identidad y la aceptación de preguntas del host siguen siendo autoritativas.
+Registra huecos con ámbito de propietario dentro de la tarjeta de pregunta del host.
+Las versiones del contrato deben coincidir con las de las preguntas guardadas y en
+vivo; los registros no válidos o duplicados lanzan una excepción. Devuelve la función
+de anulación; la identidad y la aceptación de preguntas del host siguen siendo
+autoritativas.
 
 ```ts
 registerQuestionRenderer(renderer: PluginQuestionRenderer): () => void;
@@ -976,9 +978,10 @@ registerQuestionRenderer(renderer: PluginQuestionRenderer): () => void;
 
 ### PluginFrontendContext registerProblemRenderer
 
-Registra la presentación de envíos de práctica con ámbito de propietario para las versiones
-de contrato admitidas. Los registros no válidos o duplicados lanzan una excepción. Devuelve
-la función de anulación; representar un problema no lo plantea, procesa ni concluye.
+Registra la presentación de envíos de práctica con ámbito de propietario para las
+versiones de contrato admitidas. Los registros no válidos o duplicados lanzan una
+excepción. Devuelve la función de anulación; representar un problema no lo plantea,
+procesa ni concluye.
 
 ```ts
 registerProblemRenderer(renderer: PluginProblemRenderer): () => void;
@@ -992,11 +995,11 @@ registerProblemRenderer(renderer: PluginProblemRenderer): () => void;
 
 ### PluginFrontendContext call
 
-Invoca la operación de backend con nombre de este plugin con una entrada compatible con
-JSON y resuelve su resultado. Se rechaza si fallan la serialización, el transporte, el
-backend o la activación. T es una anotación del llamador, no una validación en tiempo de
-ejecución; no se expone ninguna señal del llamador ni acceso HTTP arbitrario. Desactivar
-el plugin acota la petición del frontend.
+Invoca la operación de backend con nombre de este plugin con una entrada compatible
+con JSON y resuelve su resultado. Se rechaza si fallan la serialización, el
+transporte, el backend o la activación. T es una anotación del llamador, no una
+validación en tiempo de ejecución; no se expone ninguna señal del llamador ni acceso
+HTTP arbitrario. Desactivar el plugin acota la petición del frontend.
 
 ```ts
 call<T = unknown>(operation: string, input?: unknown): Promise<T>;
@@ -1011,9 +1014,9 @@ call<T = unknown>(operation: string, input?: unknown): Promise<T>;
 
 ### PluginFrontendContext documents
 
-Conversión pura en memoria de PDF/UTF-8; sin efectos secundarios de aprendizaje, modelo ni
-almacenamiento. Tiene ámbito automático en la activación; la cancelación por el llamador es
-opcional y cooperativa.
+Conversión pura en memoria de PDF/UTF-8; sin efectos secundarios de aprendizaje,
+modelo ni almacenamiento. Tiene ámbito automático en la activación; la cancelación
+por el llamador es opcional y cooperativa.
 
 ```ts
 readonly documents: {
@@ -1029,11 +1032,12 @@ readonly documents: {
 
 ### PluginFrontendContext documents.toMarkdown
 
-Convierte un File del navegador a Markdown más avisos sin guardarlo. La firma o el sufijo
-de PDF selecciona la conversión de PDF (sin OCR); si no, UTF-8 estricto.
-Una entrada ocupada, no válida, vacía o por encima del límite se rechaza con Error, nunca
-con un éxito truncado. La cancelación por el llamador conserva signal.reason mientras la
-activación está viva; la cancelación es cooperativa, no un plazo de ejecución estricto.
+Convierte un File del navegador a Markdown más avisos sin guardarlo. La firma o
+el sufijo de PDF selecciona la conversión de PDF (sin OCR); si no, UTF-8
+estricto. Una entrada ocupada, no válida, vacía o por encima del límite se
+rechaza con Error, nunca con un éxito truncado. La cancelación por el llamador
+conserva signal.reason mientras la activación está viva; la cancelación es
+cooperativa, no un plazo de ejecución estricto.
 
 ```ts
 toMarkdown(file: File, options?: {
@@ -1054,9 +1058,9 @@ toMarkdown(file: File, options?: {
 
 ### PluginFrontendContext onNotification
 
-Observa las notificaciones solo en vivo de este plugin; devuelve la función para cancelar
-la suscripción y caduca con la activación. Vuelve a leer el estado al resincronizar; no se
-implica ninguna reproducción duradera.
+Observa las notificaciones solo en vivo de este plugin; devuelve la función para
+cancelar la suscripción y caduca con la activación. Vuelve a leer el estado al
+resincronizar; no se implica ninguna reproducción duradera.
 
 ```ts
 onNotification(listener: (event: PluginNotification) => void): () => void;
@@ -1070,10 +1074,10 @@ onNotification(listener: (event: PluginNotification) => void): () => void;
 
 ### PluginFrontendContext onAppEvent
 
-Observa los eventos en vivo admitidos de la app, excluidas las notificaciones de mensajes
-de plugins. Devuelve la función para cancelar la suscripción; la caducidad de la activación
-también termina la entrega. Los eventos son avisos, no una reproducción duradera ni el
-final de la extracción asíncrona.
+Observa los eventos en vivo admitidos de la app, excluidas las notificaciones de
+mensajes de plugins. Devuelve la función para cancelar la suscripción; la caducidad
+de la activación también termina la entrega. Los eventos son avisos, no una
+reproducción duradera ni el final de la extracción asíncrona.
 
 ```ts
 onAppEvent(listener: (event: ServerEvent) => void): () => void;
@@ -1087,9 +1091,9 @@ onAppEvent(listener: (event: ServerEvent) => void): () => void;
 
 ### PluginFrontendContext onResync
 
-Vuelve a leer el estado autoritativo tras resincronizar la conexión; los eventos perdidos
-no se reproducen. Devuelve la función para cancelar la suscripción y caduca con esta
-activación.
+Vuelve a leer el estado autoritativo tras resincronizar la conexión; los eventos
+perdidos no se reproducen. Devuelve la función para cancelar la suscripción y caduca
+con esta activación.
 
 ```ts
 onResync(listener: () => void): () => void;
@@ -1103,8 +1107,8 @@ onResync(listener: () => void): () => void;
 
 ### PluginFrontendContext app
 
-Navegación del host en esta ventana; openView/openSettings apuntan a este plugin.
-Los métodos de navegación son inertes tras caducar la activación y no esperan a los
+Navegación del host en esta ventana; openView/openSettings apuntan a este plugin. Los
+métodos de navegación son inertes tras caducar la activación y no esperan a los
 montajes.
 
 ```ts
@@ -1119,7 +1123,8 @@ app: {
 
 ### PluginFrontendContext app.pathname
 
-Lee el pathname actual del host, no una instantánea capturada de la página de invocación.
+Lee el pathname actual del host, no una instantánea capturada de la página de
+invocación.
 
 ```ts
 pathname(): string;
@@ -1194,9 +1199,9 @@ export interface PluginFrontendModule {
 ### PluginFrontendModule activate
 
 Inicializa los registros y recursos de ámbito de ventana; opcionalmente devuelve una
-limpieza. Una activación que lanza una excepción o se rechaza desmonta esta generación e
-informa de un error. El código del módulo sigue en caché; pon aquí los efectos
-secundarios, no en el nivel superior del módulo.
+limpieza. Una activación que lanza una excepción o se rechaza desmonta esta
+generación e informa de un error. El código del módulo sigue en caché; pon aquí los
+efectos secundarios, no en el nivel superior del módulo.
 
 ```ts
 activate(context: PluginFrontendContext): void | PluginCleanup | Promise<void | PluginCleanup>;
@@ -1292,8 +1297,8 @@ Metadatos versionados en bruto en lugar de un segundo esquema específico del pl
 
 Tipo público del SDK, exportado como `PluginInference`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Llamadas al modelo autenticadas por el host, que pueden tener coste. Se aplican un modelo y
-un propósito explícitos y la política existente de consentimiento y cuota; no hay
+Llamadas al modelo autenticadas por el host, que pueden tener coste. Se aplican un modelo
+y un propósito explícitos y la política existente de consentimiento y cuota; no hay
 alternativa silenciosa de modelo ni de clave de API. El uso se registra en los datos del
 plugin, no en un chat del núcleo. La cancelación de la activación acota las llamadas.
 
@@ -1315,8 +1320,9 @@ export interface PluginInference {
 
 ### PluginInference catalog
 
-Devuelve el último catálogo conocido del host, independiente, sin refrescar cuentas ni
-elegir un modelo. Se rechaza si no está disponible o si la activación se ha cancelado.
+Devuelve el último catálogo conocido del host, independiente, sin refrescar cuentas
+ni elegir un modelo. Se rechaza si no está disponible o si la activación se ha
+cancelado.
 
 ```ts
 catalog(): Promise<ModelCatalogResponse>;
@@ -1326,11 +1332,11 @@ catalog(): Promise<ModelCatalogResponse>;
 
 ### PluginInference stream
 
-Emite en *streaming* los eventos nativos del asistente para una petición, no un bucle de
-herramientas gestionado. Los fallos de preparación o validación lanzan una excepción
-durante la iteración; los estados de transporte, error o cancelación pueden llegar como
-eventos nativos de error terminales. Respeta request.signal e inspecciona el mensaje
-terminal en lugar de tomar el texto parcial como un éxito.
+Emite en *streaming* los eventos nativos del asistente para una petición, no un bucle
+de herramientas gestionado. Los fallos de preparación o validación lanzan una
+excepción durante la iteración; los estados de transporte, error o cancelación pueden
+llegar como eventos nativos de error terminales. Respeta request.signal e inspecciona
+el mensaje terminal en lugar de tomar el texto parcial como un éxito.
 
 ```ts
 stream(request: PluginInferenceRequest): AsyncIterable<AssistantMessageEvent>;
@@ -1345,9 +1351,9 @@ stream(request: PluginInferenceRequest): AsyncIterable<AssistantMessageEvent>;
 ### PluginInference complete
 
 Consume una petición y devuelve su mensaje nativo terminal del asistente, incluido un
-stopReason de error o aborted. Los fallos de preparación o validación pueden producir un
-rechazo; un mensaje resuelto no es necesariamente un éxito. Se aplica la cancelación del
-llamador o de la activación.
+stopReason de error o aborted. Los fallos de preparación o validación pueden producir
+un rechazo; un mensaje resuelto no es necesariamente un éxito. Se aplica la
+cancelación del llamador o de la activación.
 
 ```ts
 complete(request: PluginInferenceRequest): Promise<AssistantMessage>;
@@ -1363,8 +1369,8 @@ complete(request: PluginInferenceRequest): Promise<AssistantMessage>;
 
 Tipo público del SDK, exportado como `PluginInferenceOptions`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-El host es propietario de las credenciales y del transporte; los plugins solo configuran la
-generación.
+El host es propietario de las credenciales y del transporte; los plugins solo configuran
+la generación.
 
 ```ts
 export type PluginInferenceOptions = Pick<SimpleStreamOptions, "temperature" | "maxTokens" | "cacheRetention" | "reasoning" | "thinkingBudgets" | "toolChoice" | "timeoutMs" | "maxRetries" | "maxRetryDelayMs" | "metadata">;
@@ -1408,8 +1414,8 @@ context: Context;
 
 ### PluginInferenceRequest purpose
 
-Trabajo iniciado por el usuario frente a trabajo automático o en segundo plano; se aplica la
-política de conexión existente.
+Trabajo iniciado por el usuario frente a trabajo automático o en segundo plano; se
+aplica la política de conexión existente.
 
 ```ts
 purpose: PluginCallPurpose;
@@ -1539,8 +1545,8 @@ text: string;
 Tipo público del SDK, exportado como `PluginLearningData`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
 Acceso nuevo de solo lectura a los registros nativos de aprendizaje guardados. Varias
-lecturas no forman una transacción entre ficheros; guarda los datos derivados del plugin en
-almacenamiento propiedad del plugin.
+lecturas no forman una transacción entre ficheros; guarda los datos derivados del plugin
+en almacenamiento propiedad del plugin.
 
 ```ts
 export interface PluginLearningData {
@@ -1573,8 +1579,8 @@ readonly directory: string;
 
 ### PluginLearningData listSessions
 
-Lista los resúmenes de las sesiones guardadas con los indicadores actuales busy/compacting;
-sin trabajo de modelo.
+Lista los resúmenes de las sesiones guardadas con los indicadores actuales
+busy/compacting; sin trabajo de modelo.
 
 ```ts
 listSessions(): ChatListItem[];
@@ -1584,9 +1590,9 @@ listSessions(): ChatListItem[];
 
 ### PluginLearningData getSession
 
-Lee una sesión nativa guardada completa, o null si no existe. Los IDs no válidos lanzan una
-excepción. Las transcripciones conservan respuestas y razonamientos del alumno que el grafo
-no representa.
+Lee una sesión nativa guardada completa, o null si no existe. Los IDs no válidos
+lanzan una excepción. Las transcripciones conservan respuestas y razonamientos del
+alumno que el grafo no representa.
 
 ```ts
 getSession(id: string): ChatRecord | null;
@@ -1600,8 +1606,8 @@ getSession(id: string): ChatRecord | null;
 
 ### PluginLearningData graph
 
-Lee la proyección actual del grafo y los registros en bruto, sin un segundo lenguaje de
-consulta. No es una transcripción completa de las respuestas del alumno.
+Lee la proyección actual del grafo y los registros en bruto, sin un segundo lenguaje
+de consulta. No es una transcripción completa de las respuestas del alumno.
 
 ```ts
 graph(): GraphSnapshot;
@@ -1611,9 +1617,9 @@ graph(): GraphSnapshot;
 
 ### PluginLearningData readGraphFile
 
-Lee el JSON de libros y metadatos del grafo usando la interpretación actual de los ficheros
-por parte del host. Se aplican las comprobaciones de validación y versión del host; los
-nombres de fichero desconocidos lanzan una excepción.
+Lee el JSON de libros y metadatos del grafo usando la interpretación actual de los
+ficheros por parte del host. Se aplican las comprobaciones de validación y versión
+del host; los nombres de fichero desconocidos lanzan una excepción.
 
 ```ts
 readGraphFile<K extends keyof PluginGraphFileData>(name: K): PluginGraphFileData[K];
@@ -1701,8 +1707,8 @@ author?: string;
 
 ### PluginManifest main
 
-Módulo ES de navegador empaquetado. Las rutas de entrada no deben apuntar a los datos del
-plugin.
+Módulo ES de navegador empaquetado. Las rutas de entrada no deben apuntar a los datos
+del plugin.
 
 ```ts
 main?: string;
@@ -1826,7 +1832,8 @@ surfaceTarget: import("./plugin-ui.ts").PluginSurfaceTarget;
 
 ### PluginPageActionContext view
 
-Vista independiente de la sesión completa, capturada una vez antes de invocar la acción.
+Vista independiente de la sesión completa, capturada una vez antes de invocar la
+acción.
 
 ```ts
 readonly view: import("./plugin-view-context.ts").PluginSessionViewContext;
@@ -1918,8 +1925,8 @@ toolName: string;
 
 ### PluginToolRenderer backgroundPresentation
 
-Los resultados posteriores de workers se pliegan por defecto; los resultados enriquecidos
-pueden optar por una tarjeta o por un contenedor sin marco.
+Los resultados posteriores de workers se pliegan por defecto; los resultados
+enriquecidos pueden optar por una tarjeta o por un contenedor sin marco.
 
 ```ts
 backgroundPresentation?: "collapsed" | "card" | "plain";
@@ -1927,10 +1934,10 @@ backgroundPresentation?: "collapsed" | "card" | "plain";
 
 ### PluginToolRenderer mount
 
-Representa el estado de entrada y resultado de una herramienta nativa; devuelve una limpieza
-síncrona o asíncrona. Sustituir, anular el registro o desactivar cancela tool.signal; los
-errores recurren a resultados legibles. La presentación por sí sola no crea entrada
-pendiente del alumno ni ejecuta ninguna herramienta.
+Representa el estado de entrada y resultado de una herramienta nativa; devuelve una
+limpieza síncrona o asíncrona. Sustituir, anular el registro o desactivar cancela
+tool.signal; los errores recurren a resultados legibles. La presentación por sí sola
+no crea entrada pendiente del alumno ni ejecuta ninguna herramienta.
 
 ```ts
 mount(container: HTMLElement, tool: PluginToolRenderProps): void | PluginCleanup | Promise<void | PluginCleanup>;
@@ -2001,8 +2008,8 @@ state: "input-streaming" | "input-available" | "output-available" | "output-erro
 
 ### PluginToolRenderProps output
 
-Detalles del resultado nativo, que también usan las tarjetas de herramientas existentes de
-la app.
+Detalles del resultado nativo, que también usan las tarjetas de herramientas
+existentes de la app.
 
 ```ts
 output?: unknown;
@@ -2022,8 +2029,8 @@ result?: Pick<ToolResultMessage, "content" | "details" | "isError">;
 
 ### PluginToolRenderProps background
 
-Presente en la tarjeta separada del resultado posterior; la llamada original conserva su
-acuse.
+Presente en la tarjeta separada del resultado posterior; la llamada original conserva
+su acuse.
 
 ```ts
 background?: PluginBackgroundMeta;
@@ -2064,10 +2071,10 @@ agents: PluginAgentKind[];
 
 ### PluginTools create
 
-Crea herramientas nativas nuevas para el contexto congelado de chat y agente del turno
-correspondiente. Los errores de factoría o de admisión omiten la contribución de este
-plugin en ese turno en lugar de sustituir las herramientas del host. Respeta la señal de
-cancelación de cada ejecución de herramienta.
+Crea herramientas nativas nuevas para el contexto congelado de chat y agente del
+turno correspondiente. Los errores de factoría o de admisión omiten la contribución
+de este plugin en ese turno en lugar de sustituir las herramientas del host. Respeta
+la señal de cancelación de cada ejecución de herramienta.
 
 ```ts
 create(context: PluginToolContext): AgentTool<any>[];
@@ -2113,10 +2120,10 @@ name: string;
 
 ### PluginView mount
 
-Monta solo el cuerpo de la vista; el host es propietario del título, la barra superior y
-las acciones. Salir, sustituir o desactivar cancela esta señal de montaje. Devuelve una
-limpieza síncrona o asíncrona y acota la interfaz hija a esta señal, no solo a la
-activación, que dura más.
+Monta solo el cuerpo de la vista; el host es propietario del título, la barra
+superior y las acciones. Salir, sustituir o desactivar cancela esta señal de montaje.
+Devuelve una limpieza síncrona o asíncrona y acota la interfaz hija a esta señal, no
+solo a la activación, que dura más.
 
 ```ts
 mount(container: HTMLElement, signal: AbortSignal): void | PluginCleanup | Promise<void | PluginCleanup>;

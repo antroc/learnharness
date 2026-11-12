@@ -15,10 +15,9 @@
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Valor por defecto de la conversación resuelto a partir de la ranura potente; se usa en las
-sesiones nuevas y como alternativa en las sesiones sin elecciones propias. Si se omite el
-nivel de razonamiento, se elige según la preferencia de niveles admitidos del host al
-construir el motor.
+Valor por defecto de conversación resuelto desde el hueco potente, usado para las sesiones nuevas
+y como respaldo para las sesiones sin elecciones propias. Un nivel de razonamiento omitido
+se elige según la preferencia de niveles soportados del host al construir el motor.
 
 ```ts
 export interface CatalogDefaults {
@@ -92,8 +91,7 @@ id: string;
 
 ### CatalogProvider envVar
 
-Nombre de la variable de entorno de la credencial; vacío para las rutas de suscripción o de
-CLI nativa.
+Nombre de la variable de entorno de la credencial; vacío en las rutas de suscripción/CLI nativa.
 
 ```ts
 envVar: string;
@@ -101,9 +99,8 @@ envVar: string;
 
 ### CatalogProvider keyPresent
 
-Indicador de disponibilidad de credenciales o conexión del host, no una comprobación de
-salud remota. Las conexiones personalizadas sin clave pueden estar disponibles sin clave
-de API.
+Indicador de disponibilidad de credencial/conexión del host, no una comprobación remota de salud.
+Las conexiones personalizadas sin clave pueden estar disponibles sin clave de API.
 
 ```ts
 keyPresent: boolean;
@@ -113,9 +110,9 @@ keyPresent: boolean;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Una fila del selector: todo lo que la interfaz muestra sobre un modelo, proyectado desde el
-catálogo de pi-ai. Los costes están en USD por cada millón de tokens (el mismo catálogo y
-las mismas unidades que la calculadora de precios de Pi en el servidor).
+Una fila del selector: todo lo que la interfaz muestra de un modelo, proyectado desde
+el catálogo de pi-ai. Los costes son USD por 1M de tokens (el mismo catálogo, las mismas
+unidades que la calculadora de precios del lado del servidor de Pi).
 
 ```ts
 export interface ModelCatalogEntry {
@@ -184,7 +181,7 @@ input: ("text" | "image")[];
 
 ### ModelCatalogEntry supportedLevels
 
-Niveles de razonamiento que acepta este modelo, según informa el catálogo del host.
+Niveles de razonamiento que acepta este modelo, según el catálogo del host.
 
 ```ts
 supportedLevels: ThinkingLevel[];
@@ -229,7 +226,7 @@ cacheWrite: number;
 
 ### ModelCatalogEntry contextWindow
 
-Null para los alias de CLI nativa cuyos límites efectivos dependen de la sesión.
+Null para los alias de CLI nativos cuyos límites efectivos dependen de la sesión.
 
 ```ts
 contextWindow: number | null;
@@ -275,9 +272,8 @@ models: ModelCatalogEntry[];
 
 ### ModelCatalogResponse defaults
 
-Valor por defecto de la conversación de la ranura potente, o null cuando no hay ningún
-modelo por defecto configurado. La elección explícita de modelo de una sesión se resuelve
-aparte.
+Valor por defecto de conversación del hueco potente, o null cuando no hay modelo por defecto
+configurado. La elección explícita de modelo de una sesión se resuelve por separado.
 
 ```ts
 defaults: CatalogDefaults | null;
@@ -285,7 +281,7 @@ defaults: CatalogDefaults | null;
 
 ### ModelCatalogResponse rolePins
 
-Modelos resueltos de los roles en segundo plano, con la misma resolución que la ejecución.
+Modelos de los roles en segundo plano resueltos, con la misma resolución que la ejecución.
 Cada rol sin configurar es null.
 
 ```ts
@@ -294,9 +290,8 @@ rolePins: RolePins;
 
 ### ModelCatalogResponse slots
 
-Elecciones resueltas de las ranuras potente/barata/visión; null para cada nivel sin
-definir. Las sustituciones por rol se representan en rolePins, no en estos valores de
-ranura.
+Elecciones resueltas de los huecos potente/barato/visión, null para cada nivel sin definir.
+Las sustituciones por rol se representan en rolePins, no en estos valores de hueco.
 
 ```ts
 slots: SlotPins;
@@ -304,9 +299,9 @@ slots: SlotPins;
 
 ### ModelCatalogResponse providers
 
-Filas de proveedores y conexiones con indicadores de disponibilidad, incluidos los
-proveedores desconectados cuando el host los expone. No garantiza que cada proveedor tenga
-en ese momento modelos seleccionables; consulta models y keyPresent.
+Filas de proveedores/conexiones con indicadores de disponibilidad, incluidos los proveedores
+desconectados cuando el host los expone. No garantiza que cada
+proveedor tenga ahora modelos seleccionables; consulta models y keyPresent.
 
 ```ts
 providers: CatalogProvider[];
@@ -316,10 +311,9 @@ providers: CatalogProvider[];
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Elección de modelo resuelta por rol en segundo plano: la sustitución del rol y, si no, la
-ranura del nivel que tiene asignado. Null significa que no hay ningún modelo configurado y
-que el trabajo que requiere ese rol no está disponible; no hay ninguna alternativa
-implícita a un modelo de fábrica.
+Elección de modelo resuelta por rol en segundo plano: sustitución del rol y, si no, su hueco
+de nivel asignado. Null significa que no hay modelo configurado y que el trabajo que requiere ese rol
+no está disponible; no hay respaldo implícito a un modelo de fábrica.
 
 ```ts
 export type RolePins = Record<BackgroundModelRole, {
@@ -337,9 +331,8 @@ export type RolePins = Record<BackgroundModelRole, {
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Elección de modelo resuelta para cada nivel de ranura. Null significa que ese nivel no tiene
-modelo; las entradas configuradas incluyen preferencias opcionales de razonamiento y de
-retención de caché.
+Elección de modelo resuelta para cada nivel de hueco. Null significa que ese nivel no tiene modelo;
+las entradas configuradas incluyen preferencias opcionales de razonamiento y de retención de caché.
 
 ```ts
 export type SlotPins = Record<ModelSlotName, (ModelSlot & {

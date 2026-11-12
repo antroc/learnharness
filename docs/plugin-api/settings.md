@@ -51,10 +51,10 @@ declare const MODEL_SLOTS: readonly [
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Preferencias guardadas de las ranuras de modelo. Una ranura solo está configurada cuando hay
-`model`; los registros depurados que solo tienen nivel pueden conservarse, pero se resuelven
-como sin definir. Un nivel de razonamiento por sí solo no elige un modelo de recurso
-implícito.
+Preferencias guardadas de las ranuras de modelo. Una ranura solo está configurada cuando
+hay model; los registros depurados que solo tienen nivel pueden conservarse, pero se
+resuelven como sin definir. Un nivel de razonamiento por sí solo no elige un modelo de
+recurso implícito.
 
 ```ts
 export interface ModelSlot {

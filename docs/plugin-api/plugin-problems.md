@@ -23,7 +23,7 @@
 
 Tipo público del SDK, exportado como `NativePluginProblemDefinition`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Registro heterogéneo interno; el registro público sigue siendo genérico respecto al esquema.
+Registro interno heterogéneo; el registro público sigue siendo genérico en el esquema.
 
 ```ts
 export type NativePluginProblemDefinition = Omit<PluginProblemTypeDefinition, "validateProblem" | "validateSubmission" | "processSubmission"> & {
@@ -329,7 +329,7 @@ readonly signal: AbortSignal;
 
 Tipo público del SDK, exportado como `PluginProblemProcessingOutcome`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Observaciones por envío, nunca la evaluación final del problema que hace el modelo.
+Observaciones por envío, nunca la evaluación final del problema por parte del modelo.
 
 ```ts
 export type PluginProblemProcessingOutcome = {
@@ -424,7 +424,7 @@ mountSubmitted?(container: HTMLElement, context: PluginProblemMountContext<Q> & 
 | Parámetro | Tipo |
 | --- | --- |
 | `container` | `HTMLElement` |
-| `context` | `PluginProblemMountContext<Q> & {         readonly submission: S;         readonly processing?: PluginProblemProcessingOutcome;         readonly headerContainer?: HTMLElement;         /** Generation-owned block after host submission images/thinking. */         readonly footerContainer?: HTMLElement;     }` |
+| `context` | `PluginProblemMountContext<Q> & {         readonly submission: S;         readonly processing?: PluginProblemProcessingOutcome;         readonly headerContainer?: HTMLElement;         /** Bloque propiedad de la generación tras las imágenes/razonamiento del envío del host. */         readonly footerContainer?: HTMLElement;     }` |
 
 **Devuelve:** `void \| PluginCleanup \| Promise<void \| PluginCleanup>`.
 
@@ -432,8 +432,7 @@ mountSubmitted?(container: HTMLElement, context: PluginProblemMountContext<Q> & 
 
 Tipo público del SDK, exportado como `PluginProblemSnapshot`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-El host persiste esto en el acuse genuino de planteamiento, nunca en los argumentos del
-modelo.
+El host persiste esto en el acuse genuino del planteamiento, nunca en los argumentos del modelo.
 
 ```ts
 export interface PluginProblemSnapshot {

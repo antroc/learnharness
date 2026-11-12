@@ -88,8 +88,9 @@ export interface PluginAgentInputOptions {
 
 ### PluginAgentInputOptions requestId
 
-Reintenta una acción aceptada con la misma identidad para no aceptarla dos veces;
-una acción nueva necesita un ID nuevo. Esto no garantiza efectos externos exactamente una vez.
+Reintenta una acción aceptada con la misma identidad para no aceptarla dos
+veces; una acción nueva necesita un ID nuevo. Esto no garantiza efectos
+externos exactamente una vez.
 
 ```ts
 requestId: string;
@@ -97,8 +98,9 @@ requestId: string;
 
 ### PluginAgentInputOptions purpose
 
-Clasificación de iniciación y consentimiento, no de visibilidad en la vista. Por defecto es
-user para send/answer y background para run; clasifica explícitamente el trabajo automático.
+Clasificación de iniciación y consentimiento, no de visibilidad en la
+vista. Por defecto es user para send/answer y background para run;
+clasifica explícitamente el trabajo automático.
 
 ```ts
 purpose?: PluginCallPurpose;
@@ -204,10 +206,11 @@ acceptedInputs: string[];
 
 Tipo público del SDK, exportado como `PluginAgentService`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Conversaciones persistentes propiedad del plugin, independientes de las vistas del
-frontend. La ejecución del modelo puede tener coste. Vuelve a registrar definiciones
-compatibles tras la activación; un reinicio interrumpe el trabajo en curso en lugar de
-volver a ejecutar herramientas automáticamente.
+Conversaciones persistentes propiedad del plugin, independientes de las
+vistas del frontend. La ejecución del modelo puede tener coste. Vuelve a
+registrar definiciones compatibles tras la activación; un reinicio
+interrumpe el trabajo en curso en lugar de volver a ejecutar herramientas
+automáticamente.
 
 ```ts
 export interface PluginAgentService {
@@ -241,10 +244,11 @@ export interface PluginAgentService {
 
 ### PluginAgentService register
 
-Registra instrucciones, modelo y herramientas para un ID de definición. Las definiciones no
-válidas o duplicadas lanzan una excepción. Devuelve una función para anular el registro que
-cancela cooperativamente las ejecuciones activas de esa definición sin borrar las
-conversaciones guardadas.
+Registra instrucciones, modelo y herramientas para un ID de definición.
+Las definiciones no válidas o duplicadas lanzan una excepción. Devuelve
+una función para anular el registro que cancela cooperativamente las
+ejecuciones activas de esa definición sin borrar las conversaciones
+guardadas.
 
 ```ts
 register(definition: PluginAgentDefinition): () => void;
@@ -258,9 +262,9 @@ register(definition: PluginAgentDefinition): () => void;
 
 ### PluginAgentService create
 
-Persiste una conversación vacía e inactiva y devuelve su instantánea independiente; no se
-inicia ninguna petición al modelo. Lanza una excepción si la definición no está disponible o
-falla la persistencia.
+Persiste una conversación vacía e inactiva y devuelve su instantánea
+independiente; no se inicia ninguna petición al modelo. Lanza una
+excepción si la definición no está disponible o falla la persistencia.
 
 ```ts
 create(definitionId: string): PluginAgentSnapshot;
@@ -274,8 +278,9 @@ create(definitionId: string): PluginAgentSnapshot;
 
 ### PluginAgentService list
 
-Devuelve instantáneas independientes de las conversaciones de este plugin, incluidos los
-parciales efímeros actuales. No ejecuta, reanuda ni se suscribe a ninguna conversación.
+Devuelve instantáneas independientes de las conversaciones de este plugin,
+incluidos los parciales efímeros actuales. No ejecuta, reanuda ni se
+suscribe a ninguna conversación.
 
 ```ts
 list(): PluginAgentSnapshot[];
@@ -285,8 +290,9 @@ list(): PluginAgentSnapshot[];
 
 ### PluginAgentService get
 
-Lee una instantánea independiente, incluido cualquier parcial actual. Los ID desconocidos
-lanzan una excepción; un parcial devuelto es progreso, no historial confirmado.
+Lee una instantánea independiente, incluido cualquier parcial actual. Los
+ID desconocidos lanzan una excepción; un parcial devuelto es progreso, no
+historial confirmado.
 
 ```ts
 get(id: string): PluginAgentSnapshot;
@@ -300,11 +306,11 @@ get(id: string): PluginAgentSnapshot;
 
 ### PluginAgentService send
 
-Persiste texto explícito y no vacío del usuario y lanza la ejecución. Se resuelve tras la
-aceptación, no al terminar; observa después el estado y los errores con get/subscribe.
-Un requestId ya aceptado devuelve el estado actual sin otra entrada.
-Rechaza las sesiones ocupadas, las entradas externas sin resolver y los errores de
-aceptación o almacenamiento.
+Persiste texto explícito y no vacío del usuario y lanza la ejecución. Se
+resuelve tras la aceptación, no al terminar; observa después el estado y
+los errores con get/subscribe. Un requestId ya aceptado devuelve el estado
+actual sin otra entrada. Rechaza las sesiones ocupadas, las entradas
+externas sin resolver y los errores de aceptación o almacenamiento.
 
 ```ts
 send(id: string, text: string, options: PluginAgentInputOptions): Promise<PluginAgentSnapshot>;
@@ -320,11 +326,12 @@ send(id: string, text: string, options: PluginAgentInputOptions): Promise<Plugin
 
 ### PluginAgentService answer
 
-Valida y persiste el resultado de una herramienta de entrada pendiente. Las respuestas no
-válidas no se guardan; la última respuesta requerida lanza la continuación. Se resuelve con
-el estado aceptado, no al terminar el modelo; los ID de petición aceptados no se envían dos
-veces. Las entradas o definiciones inexistentes, las sesiones ocupadas y los fallos de
-validación o almacenamiento producen un rechazo.
+Valida y persiste el resultado de una herramienta de entrada pendiente.
+Las respuestas no válidas no se guardan; la última respuesta requerida
+lanza la continuación. Se resuelve con el estado aceptado, no al terminar
+el modelo; los ID de petición aceptados no se envían dos veces. Las
+entradas o definiciones inexistentes, las sesiones ocupadas y los fallos
+de validación o almacenamiento producen un rechazo.
 
 ```ts
 answer(id: string, toolCallId: string, value: unknown, options: PluginAgentInputOptions): Promise<PluginAgentSnapshot>;
@@ -341,11 +348,12 @@ answer(id: string, toolCallId: string, value: unknown, options: PluginAgentInput
 
 ### PluginAgentService run
 
-Reanuda una entrada persistida existente que pueda ejecutarse sin añadir un prompt
-sintético. Se resuelve tras la aceptación, no al terminar; los ID de petición aceptados
-devuelven el estado actual. Rechaza las entradas externas pendientes, los lotes de
-herramientas sin resolver que no sean seguros, las sesiones ocupadas o el historial sin
-entrada ejecutable; usa send para una tarea explícita nueva.
+Reanuda una entrada persistida existente que pueda ejecutarse sin añadir
+un prompt sintético. Se resuelve tras la aceptación, no al terminar; los
+ID de petición aceptados devuelven el estado actual. Rechaza las entradas
+externas pendientes, los lotes de herramientas sin resolver que no sean
+seguros, las sesiones ocupadas o el historial sin entrada ejecutable; usa
+send para una tarea explícita nueva.
 
 ```ts
 run(id: string, options: PluginAgentInputOptions): Promise<PluginAgentSnapshot>;
@@ -360,10 +368,11 @@ run(id: string, options: PluginAgentInputOptions): Promise<PluginAgentSnapshot>;
 
 ### PluginAgentService abort
 
-Solicita la cancelación cooperativa de una ejecución activa, conservando los mensajes y las
-entradas pendientes. Las ejecuciones inactivas no cambian. No espera al código de
-herramientas que no coopere ni deshace efectos externos; los ID desconocidos y los fallos
-de persistencia lanzan una excepción.
+Solicita la cancelación cooperativa de una ejecución activa, conservando
+los mensajes y las entradas pendientes. Las ejecuciones inactivas no
+cambian. No espera al código de herramientas que no coopere ni deshace
+efectos externos; los ID desconocidos y los fallos de persistencia lanzan
+una excepción.
 
 ```ts
 abort(id: string): void;
@@ -377,10 +386,11 @@ abort(id: string): void;
 
 ### PluginAgentService subscribe
 
-Entrega una instantánea independiente de forma síncrona y, después, los cambios en vivo de
-estado y progreso. Devuelve una función para cancelar la suscripción; cancelarla nunca
-cancela la ejecución. Los ID desconocidos lanzan una excepción; si el listener lanza una
-excepción en la entrega inicial, se elimina la suscripción.
+Entrega una instantánea independiente de forma síncrona y, después, los
+cambios en vivo de estado y progreso. Devuelve una función para cancelar
+la suscripción; cancelarla nunca cancela la ejecución. Los ID desconocidos
+lanzan una excepción; si el listener lanza una excepción en la entrega
+inicial, se elimina la suscripción.
 
 ```ts
 subscribe(id: string, listener: (snapshot: PluginAgentSnapshot) => void): () => void;
@@ -395,10 +405,11 @@ subscribe(id: string, listener: (snapshot: PluginAgentSnapshot) => void): () => 
 
 ### PluginAgentService dispose
 
-Cancela cooperativamente las ejecuciones propias y libera definiciones y listeners,
-conservando los registros persistidos. Es idempotente; no espera al código del plugin que no
-coopere. Se rechaza si falla la persistencia de la cancelación. Desactivar el plugin en el
-host también lo libera.
+Cancela cooperativamente las ejecuciones propias y libera definiciones y
+listeners, conservando los registros persistidos. Es idempotente; no
+espera al código del plugin que no coopere. Se rechaza si falla la
+persistencia de la cancelación. Desactivar el plugin en el host también lo
+libera.
 
 ```ts
 dispose(): Promise<void>;

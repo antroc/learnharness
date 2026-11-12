@@ -33,7 +33,7 @@ readonly scope: "app" | PluginShortcutViewScope;
 
 ### PluginActionShortcut defaultBinding
 
-Grafía canónica del host, p. ej. mod+shift+d. Omítelo para empezar sin asignar.
+Grafía canónica del host, p. ej. mod+shift+d. Omítela para dejarla inicialmente sin asignar.
 
 ```ts
 readonly defaultBinding?: string;
@@ -43,7 +43,7 @@ readonly defaultBinding?: string;
 
 Tipo público del SDK, exportado como `PluginShortcutViewScope`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Atajos declarativos de acciones y resolución determinista y segura para el navegador.
+Atajos de acciones declarativos y resolución determinista y segura para el navegador.
 
 ```ts
 export interface PluginShortcutViewScope {
@@ -65,7 +65,7 @@ readonly sessions?: readonly ("teaching" | "practice")[];
 
 ### PluginShortcutViewScope views
 
-Los ID de vista siempre pertenecen al plugin que los registra.
+Los IDs de vista siempre pertenecen al plugin que los registra.
 
 ```ts
 readonly views?: readonly string[];

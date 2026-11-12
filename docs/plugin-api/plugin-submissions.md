@@ -346,8 +346,7 @@ export type PluginSubmissionContext = PluginSubmissionTarget & {
 
 ### PluginSubmissionContext messages
 
-Historial actual del navegador, independiente, incluido el contenido que pueda estar en
-*streaming*.
+Historial actual del navegador desvinculado, incluido el contenido que pueda llegar en streaming.
 
 ```ts
 readonly messages: readonly Immutable<LhMessage>[];
@@ -377,7 +376,7 @@ onAccepted(callback: () => void | Promise<void>): void;
 
 Tipo público del SDK, exportado como `PluginSubmissionImages`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Canales nativos opcionales de imágenes junto a las autoridades de texto existentes.
+Canales de imagen nativos opcionales junto a las autoridades textuales existentes.
 
 ```ts
 export interface PluginSubmissionImages {
@@ -474,8 +473,7 @@ intercept(input: PluginSubmission, context: PluginSubmissionContext): PluginSubm
 
 Tipo público del SDK, exportado como `PluginSubmissionOccurrence`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Ocurrencia exacta de la herramienta nativa, nunca un simple ID de llamada a herramienta que
-podría reutilizarse.
+Aparición exacta de la herramienta nativa, nunca un mero ID de llamada a herramienta que podría reutilizarse.
 
 ```ts
 export type PluginSubmissionOccurrence = Readonly<PluginQuestionOccurrence>;

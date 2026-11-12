@@ -88,8 +88,7 @@ data?: unknown;
 
 Tipo público del SDK, exportado como `PluginBackgroundResult`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Se persiste en el resultado normal de la tarea en segundo plano y en el marcador de la
-conversación.
+Se persiste en el resultado normal de la tarea en segundo plano y en el marcador de la conversación.
 
 ```ts
 export interface PluginBackgroundResult extends PluginBackgroundPresentation {
@@ -147,8 +146,7 @@ formatError?: string;
 
 Tipo público del SDK, exportado como `PluginBackgroundTool`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Un adaptador fino de herramientas nativas, no otro framework de ejecución de agentes o de
-herramientas.
+Un adaptador fino de herramientas nativas, no otro framework de ejecución de agentes o de herramientas.
 
 ```ts
 export type PluginBackgroundTool<T extends TSchema = TSchema> = Omit<AgentTool<T>, "execute"> & {
@@ -174,8 +172,8 @@ workerId: string;
 
 ### PluginBackgroundTool prepare
 
-Deriva la entrada del worker, el prompt y los límites explícitos sin efectos secundarios. El
-host aporta la identidad de la petición y fuerza el propósito background.
+Deriva la entrada del worker, el prompt y los límites explícitos sin efectos
+secundarios. El host aporta la identidad de la petición y fuerza el propósito background.
 
 ```ts
 prepare(input: Static<T>, context: PluginToolContext): Omit<PluginWorkerStartOptions, "requestId" | "purpose"> | Promise<Omit<PluginWorkerStartOptions, "requestId" | "purpose">>;
@@ -429,7 +427,7 @@ export interface PluginTaskSnapshot extends PluginTaskRecord {
 
 ### PluginTaskSnapshot partial
 
-Progreso efímero en *streaming*, no historial confirmado ni un resultado.
+Progreso efímero en streaming, no historial confirmado ni un resultado.
 
 ```ts
 partial?: AssistantMessage;
@@ -531,8 +529,7 @@ resultSchema: TSchema;
 
 ### PluginWorkerDefinition tools
 
-Crea las herramientas nativas para esta tarea aceptada; el envío del resultado es propiedad
-del host.
+Crea las herramientas nativas para esta tarea aceptada; el envío del resultado es propiedad del host.
 
 ```ts
 tools?: (context: PluginWorkerContext) => AgentTool<any>[];
@@ -546,8 +543,7 @@ tools?: (context: PluginWorkerContext) => AgentTool<any>[];
 
 ### PluginWorkerDefinition validateResult
 
-Lanza una excepción con una corrección útil. Este validador no debe tener efectos
-secundarios.
+Lanza una excepción con una corrección útil. Este validador no debe tener efectos secundarios.
 
 ```ts
 validateResult?: (result: unknown, context: PluginWorkerContext) => void | Promise<void>;
@@ -787,8 +783,7 @@ purpose: PluginCallPurpose;
 
 ### PluginWorkerStartOptions maxTurns
 
-Número máximo de turnos del modelo, incluidos los de corrección. Sin valor por defecto
-implícito.
+Número máximo de turnos del modelo, incluidos los de corrección. Sin valor por defecto implícito.
 
 ```ts
 maxTurns: number;

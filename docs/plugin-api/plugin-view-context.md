@@ -224,8 +224,7 @@ readonly title: string;
 
 ### PluginSessionViewContext messages
 
-La misma visibilidad del historial del navegador que el contexto de envío, incluido el
-contenido en *streaming*.
+La misma visibilidad del historial del navegador que el contexto de envío, incluido el contenido en streaming.
 
 ```ts
 readonly messages: readonly Immutable<LhMessage>[];
@@ -233,8 +232,7 @@ readonly messages: readonly Immutable<LhMessage>[];
 
 ### PluginSessionViewContext transcript
 
-La proyección existente del host, no otro analizador de transcripciones escrito por el
-consumidor.
+La proyección existente del host, no otro analizador de transcripciones escrito por el consumidor.
 
 ```ts
 readonly transcript: readonly Immutable<LhViewMessage>[];

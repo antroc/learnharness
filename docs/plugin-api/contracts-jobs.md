@@ -10,10 +10,9 @@
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Uso acumulado del modelo en una ejecución de worker: totales de tokens más un recuento de
-llamadas, con contabilidad opcional por llamada. Igual que en CallUsage, un campo de tokens
-que ninguna llamada haya informado sigue sin definir; la falta de datos de uso no debe
-implicar coste cero.
+Uso de modelo acumulado de una ejecución de worker: totales de tokens más un recuento
+de llamadas, con contabilidad opcional por llamada. Como en CallUsage, un campo de tokens
+del que no informó ninguna llamada sigue siendo undefined; la falta de uso no debe implicar coste cero.
 
 ```ts
 export interface JobUsage {
@@ -47,7 +46,7 @@ export interface JobUsage {
 
 ### JobUsage model
 
-Identidad del modelo cualificada por proveedor (provider:id) para buscarla en el catálogo.
+Identidad de modelo calificada por proveedor (provider:id) para buscar en el catálogo.
 
 ```ts
 model: string;
@@ -55,7 +54,7 @@ model: string;
 
 ### JobUsage inputTokens
 
-Totales acumulados de las llamadas al modelo de la ejecución hasta el momento.
+Totales acumulados sumados sobre las llamadas al modelo de la ejecución hasta ahora.
 
 ```ts
 inputTokens: number | undefined;
@@ -93,9 +92,8 @@ cacheWrite1hTokens?: number;
 
 ### JobUsage calls
 
-Llamadas individuales para aplicar los precios por tramo y llamada del catálogo actual.
-No existen en tareas antiguas; no las reconstruyas nunca a partir de los totales
-acumulados.
+Llamadas individuales para la tarificación por tramos por llamada del catálogo actual. Ausente en
+las tareas antiguas; nunca se rellenan a partir de los totales acumulados.
 
 ```ts
 calls?: CallUsage[];
@@ -111,9 +109,9 @@ steps: number;
 
 ### JobUsage lastStep
 
-Contabilidad de la última llamada al modelo completada, usada para el uso actual del
-contexto en lugar de los totales acumulados. No existe hasta que termina una llamada; los
-campos que el proveedor no informa siguen sin definir.
+Contabilidad de la llamada al modelo completada más reciente, usada para el uso de
+contexto actual en lugar de los totales acumulados. Ausente hasta que se completa una llamada;
+los campos de los que no informa el proveedor siguen siendo undefined.
 
 ```ts
 lastStep?: CallUsage;

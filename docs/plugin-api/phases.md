@@ -10,21 +10,22 @@
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Fases de una sesión de enseñanza derivadas en orden a partir de los eventos de la
-transcripción, no de la ocupación del árbol del plan ni de un indicador explícito de
-aceptación del plan:
+Fases de la sesión de enseñanza derivadas secuencialmente de los eventos de
+la transcripción, no de la ocupación del árbol del plan ni de una marca
+explícita de aceptación del plan:
 
 - probe: hasta que probe_done tiene un resultado de herramienta correcto.
-- plan: tras completar el sondeo, hasta una llamada a una pregunta de enseñanza etiquetada
-  con un nodo.
+- plan: tras completar el sondeo, hasta una llamada de pregunta de
+  enseñanza etiquetada con un nodo.
 - teach: desde esa primera llamada en adelante, sin esperar a su respuesta.
 
-Las llamadas nativas de quiz/explain y las anotaciones admitidas de preguntas de enseñanza
-de plugins aportan el límite de la enseñanza. Los resúmenes de registros nativos y los
-divisores de la vista proyectada usan los mismos límites de eventos; presentar un plan por
-sí solo no hace avanzar la fase mostrada a teach.
+Las llamadas nativas quiz/explain y las anotaciones admitidas de preguntas
+de enseñanza de plugins aportan el límite de la enseñanza. Los resúmenes
+del registro nativo y los separadores de la vista proyectada usan los
+mismos límites de eventos; presentar un plan por sí solo no hace avanzar a
+teach la fase mostrada.
 
-Las tres fases de una sesión, tal como las ven el selector, la cabecera y los divisores.
+Las tres fases de una sesión, tal como las ven el selector / la cabecera / los separadores.
 
 ```ts
 export type Phase3 = "probe" | "plan" | "teach";

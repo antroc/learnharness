@@ -11,12 +11,13 @@
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-El mensaje personalizado de la app (fusionado por declaración en los CustomAgentMessages de
-pi-agent-core, más abajo). Tiene la forma del propio CustomMessage de pi: `content` es el
-texto DE CARA AL MODELO (con una única fuente en core/contracts, nunca habla humana fingida),
-`details` es el contenido para la interfaz (nunca visible para el modelo) y `display` marca
-los mensajes que la interfaz representa (nuestra proyección decide el render por customType;
-el indicador documenta la intención).
+El mensaje personalizado de la app (fusionado por declaración en
+CustomAgentMessages de pi-agent-core, más abajo). Con la forma del propio
+CustomMessage de pi — `content` es el texto DE CARA AL MODELO (de una sola
+fuente en core/contracts, nunca habla humana falsa), `details` es la carga
+para la interfaz (nunca visible para el modelo), `display` marca los
+mensajes que muestra la interfaz (nuestra proyección decide qué mostrar por
+customType; la marca documenta la intención).
 
 ```ts
 export interface LhMarkerMessage {
@@ -42,7 +43,7 @@ export interface LhMarkerMessage {
 
 ### LhMarkerMessage id
 
-Identidad del registro (los mensajes de pi no llevan id; consulta la cabecera del fichero).
+Identidad en el registro (los mensajes de pi no llevan id — consulta la cabecera del fichero).
 
 ```ts
 id: string;
@@ -62,7 +63,7 @@ customType: "graph-context" | "probe-handoff" | "subagent-steer" | "subagent-abo
 
 ### LhMarkerMessage content
 
-El texto de cara al modelo ("" para los bloques de plan, que son solo de interfaz).
+El texto de cara al modelo ("" en los bloques de plan — solo interfaz).
 
 ```ts
 content: string;
@@ -76,9 +77,9 @@ display: boolean;
 
 ### LhMarkerMessage details
 
-Contenido para la interfaz según el customType. Las imágenes del razonamiento de práctica
-también se proyectan a bloques nativos del modelo; su cadena content sigue siendo la
-autoridad del texto.
+Carga para la interfaz según customType. Las imágenes del razonamiento de
+práctica también se proyectan a bloques nativos del modelo; su cadena de
+contenido sigue siendo la autoridad textual.
 
 ```ts
 details: unknown;
@@ -94,7 +95,7 @@ timestamp: number;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Un mensaje de registro: un mensaje nativo de pi (o nuestro marcador) más el id del registro.
+Un mensaje del registro: un mensaje nativo de pi (o nuestro marcador) más el id de registro.
 
 ```ts
 export type LhMessage = (UserMessage | AssistantMessage | ToolResultMessage | LhMarkerMessage) & {
@@ -122,9 +123,9 @@ id: string;
 
 ### LhMessage cliContextWindow
 
-Presupuesto de contexto efectivo que informa la CLI, no un máximo del catálogo de modelos.
-Metadatos solo de la app: nunca se transmiten como contenido de mensajes del proveedor o
-del modelo.
+Presupuesto de contexto efectivo informado por la CLI, no un máximo de
+modelo del catálogo. Metadatos solo de la app: nunca se transmiten como
+contenido de mensaje al proveedor/modelo.
 
 ```ts
 cliContextWindow?: number;
@@ -132,7 +133,7 @@ cliContextWindow?: number;
 
 ### LhMessage lhQuestions
 
-Anotaciones de ocurrencia propiedad del host; nunca son entrada del modelo.
+Anotaciones de aparición propiedad del host, nunca entrada del modelo.
 
 ```ts
 lhQuestions?: PluginQuestionOccurrenceMap;
@@ -140,8 +141,7 @@ lhQuestions?: PluginQuestionOccurrenceMap;
 
 ### LhMessage lhQuestionOccurrence
 
-Vinculación exacta para los resultados genuinos de preguntas de plugins (details sigue siendo
-el sobre público).
+Vinculación exacta para resultados genuinos de preguntas de plugins (details sigue siendo el sobre público).
 
 ```ts
 lhQuestionOccurrence?: PluginQuestionOccurrence;

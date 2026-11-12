@@ -51,7 +51,8 @@ parts: LhViewPart[];
 
 ### LhViewMessage metadata
 
-Los metadatos de subagentResult que leen las tarjetas de reorientación (details del marcador).
+Los metadatos de subagentResult que leen las tarjetas de reorientación (details del
+marcador).
 
 ```ts
 metadata?: unknown;
@@ -64,8 +65,8 @@ Declaración de apoyo usada por un tipo público. No es una API de runtime adici
 Una parte proyectada de la transcripción que consumen los renderizadores del host y los
 analizadores de fase y de entrada. type selecciona el vocabulario de la parte; los campos
 comunes son opcionales porque las partes de texto, de herramientas y de datos llevan
-contenidos distintos. Los campos adicionales quedan como desconocidos a través de la firma
-de índice y requieren estrechamiento.
+contenidos distintos. Los campos adicionales quedan como desconocidos a través de la
+firma de índice y requieren estrechamiento.
 
 ```ts
 export interface LhViewPart extends Record<string, unknown> {
@@ -155,8 +156,8 @@ sourceContentIndex?: number;
 
 ### LhViewPart pluginQuestion
 
-Debe seleccionarse antes que cualquier renderizador genérico de herramientas; nunca es una
-traza en bruto.
+Debe seleccionarse antes que cualquier renderizador genérico de herramientas; nunca
+es una traza en bruto.
 
 ```ts
 pluginQuestion?: Exclude<PluginQuestionAnnotationRead, {
@@ -196,8 +197,8 @@ errorText?: string;
 
 ### LhViewPart result
 
-Resultado nativo conservado para los renderizadores públicos de plugins y las alternativas
-legibles.
+Resultado nativo conservado para los renderizadores públicos de plugins y las
+alternativas legibles.
 
 ```ts
 result?: Pick<ToolResultMessage, "content" | "details" | "isError">;

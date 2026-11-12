@@ -59,8 +59,7 @@ text: string;
 
 ### PluginBadgeProps color
 
-Color CSS para el texto y un tinte de fondo del 15 %. Omítelo para el distintivo neutro
-nativo.
+Color CSS para el texto y un tinte de fondo del 15 %. Omítelo para el distintivo neutro nativo.
 
 ```ts
 color?: string;
@@ -70,8 +69,7 @@ color?: string;
 
 Tipo público del SDK, exportado como `PluginButtonColors`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Solo colores CSS; las sustituciones por estado se aplican en cascada por propiedad, no como
-paletas completas.
+Solo colores CSS; las sustituciones de estado se aplican en cascada por propiedad, no como paletas completas.
 
 ```ts
 export interface PluginButtonColors extends PluginButtonColorState {
@@ -204,7 +202,7 @@ label: string;
 
 ### PluginButtonProps icon
 
-Marcado SVG de confianza del plugin, representado de forma decorativa antes de la etiqueta.
+Marcado SVG de confianza del plugin, mostrado de forma decorativa antes de la etiqueta.
 
 ```ts
 icon?: string;
@@ -212,8 +210,7 @@ icon?: string;
 
 ### PluginButtonProps iconOnly
 
-Oculta el texto visible; requiere una etiqueta y un icono no vacíos. El tamaño sigue siendo
-independiente.
+Oculta el texto visible; exige una etiqueta no vacía y un icono. El tamaño sigue siendo independiente.
 
 ```ts
 iconOnly?: boolean;
@@ -241,8 +238,7 @@ variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
 
 ### PluginButtonProps colors
 
-Se valida para todas las variantes y solo se aplica a custom. Las actualizaciones sustituyen
-el objeto completo.
+Se valida en todas las variantes y solo se aplica a custom. Las actualizaciones sustituyen este objeto entero.
 
 ```ts
 colors?: PluginButtonColors;
@@ -346,9 +342,9 @@ autoFocus?: boolean;
 
 Tipo público del SDK, exportado como `PluginDialogProps`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Contenido modal con gestión de cierre y foco por parte del host y sin fila de título visible
-del host. El cierre por el usuario notifica a onClose, no es un veto asíncrono; la
-liberación o la cancelación solo limpian.
+Contenido modal con gestión del cierre/foco por el host y sin fila de título
+visible del host. El cierre por el usuario notifica a onClose, no es un veto
+asíncrono; la liberación/cancelación solo limpia.
 
 ```ts
 export interface PluginDialogProps {
@@ -410,9 +406,9 @@ export interface PluginDictationHandle extends PluginWidgetHandle<PluginDictatio
 
 ### PluginDictationHandle toggle
 
-Empieza a grabar si está inactivo, o detiene la grabación y conserva lo dictado si está
-activo. Solo se permite un propietario de la grabación por ventana; un inicio que compita
-informa de un error.
+Empieza a grabar si está en reposo, o detiene la grabación y conserva el habla si
+está activa. Se permite un propietario de grabación por ventana; un inicio
+competidor notifica un error.
 
 ```ts
 toggle(): void;
@@ -422,9 +418,9 @@ toggle(): void;
 
 ### PluginDictationHandle finish
 
-Detiene esta grabación y espera a que se entregue la transcripción antes de enviar. No
-inicia la captura si está inactivo; los fallos de entrega pueden producir un rechazo. No
-envía ningún mensaje ni actualiza un compositor nativo oculto.
+Detiene esta grabación y espera a que se entregue la transcripción antes de
+enviar. No inicia la captura si está en reposo; los fallos de entrega pueden
+rechazar. Esto no envía un mensaje ni actualiza un compositor nativo oculto.
 
 ```ts
 finish(): Promise<void>;
@@ -434,9 +430,9 @@ finish(): Promise<void>;
 
 ### PluginDictationHandle cancel
 
-Cancela la captura y descarta el dictado en el búfer en lugar de volcarlo. No deshace el
-texto ya entregado a través de onTranscript. La liberación o la cancelación también la
-cancelan.
+Cancela la captura y descarta el habla almacenada en lugar de volcarla. No
+deshace el texto ya entregado mediante onTranscript. La liberación o la
+cancelación también cancelan.
 
 ```ts
 cancel(): void;
@@ -516,8 +512,7 @@ disabled?: boolean;
 
 Tipo público del SDK, exportado como `PluginMarkdownProps`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Render de Markdown integrado en el host, sin controles auxiliares ni widgets de bloques de
-código de plugins.
+Render integrado de Markdown del host sin controles auxiliares ni widgets de bloques de código de plugins.
 
 ```ts
 export interface PluginMarkdownProps {
@@ -921,9 +916,10 @@ dictation: PluginDictationProps;
 
 Tipo público del SDK, exportado como `PluginSurfaceProps`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Contenido superpuesto al cuerpo de la página, no un diálogo modal ni un sustituto de la
-barra superior o la lateral. El cierre por el usuario notifica a onClose; no es un veto
-asíncrono. La cancelación o la liberación programática limpian sin notificar el cierre.
+Contenido de overlay del cuerpo de la página, no un diálogo modal ni un sustituto
+de la barra superior/lateral. El cierre por el usuario notifica a onClose; no es un
+veto asíncrono. La cancelación/liberación programática hace la limpieza sin
+notificación de cierre.
 
 ```ts
 export interface PluginSurfaceProps {
@@ -953,7 +949,7 @@ title: string;
 
 ### PluginSurfaceProps background
 
-Por defecto usa el fondo translúcido y desenfocado al estilo de Chains.
+Por defecto, el fondo translúcido y difuminado al estilo de Chains.
 
 ```ts
 background?: "dimmed" | "opaque";
@@ -1380,11 +1376,11 @@ openSurface(props: PluginSurfaceProps, options: PluginWidgetOptions): PluginWidg
 
 **Devuelve:** `PluginWidgetHandle<PluginSurfaceProps>`.
 
-Se vincula explícitamente a una instancia de página existente, incluidos los destinos de
-envío nativos; devuelve un manejador de overlay. Los destinos son opacos y no persistentes,
-y no reviven al volver a entrar. Los destinos inexistentes o caducados lanzan una excepción
-salvo que ya se haya cancelado; los cuerpos cubiertos siguen montados, con el apilamiento,
-la interacción y el foco a cargo del host.
+Se vincula explícitamente a una instancia de página existente, incluidos los destinos
+de envío nativos; devuelve un manejador de overlay. Los destinos son opacos, no
+persistentes y no reviven al volver a entrar. Los destinos ausentes o caducados lanzan
+una excepción salvo que ya estén cancelados; los cuerpos cubiertos siguen montados, con
+el apilamiento, la interacción y el foco gestionados por el host.
 
 ```ts
 openSurface(target: PluginSurfaceTarget, props: PluginSurfaceProps, options: PluginWidgetOptions): PluginWidgetHandle<PluginSurfaceProps>;
@@ -1402,9 +1398,9 @@ openSurface(target: PluginSurfaceTarget, props: PluginSurfaceProps, options: Plu
 
 Tipo público del SDK, exportado como `PluginUiCallback`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Callback de interacción invocado por el host; los fallos asíncronos se notifican, no se
-aceptan como persistencia correcta. Los callbacks no cambian por sí mismos los valores
-controlados.
+Callback de interacción invocado por el host; los fallos asíncronos se notifican,
+no se aceptan como persistencia correcta. Los callbacks no cambian por sí solos los
+valores controlados.
 
 ```ts
 export type PluginUiCallback<T = void> = (value: T) => void | Promise<void>;
@@ -1414,8 +1410,7 @@ export type PluginUiCallback<T = void> = (value: T) => void | Promise<void>;
 
 Tipo público del SDK, exportado como `PluginUiContent`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-El contenido sigue siendo propiedad del plugin; mount puede devolver una limpieza, también
-asíncrona.
+El contenido sigue siendo propiedad del plugin; mount puede devolver una limpieza, también de forma asíncrona.
 
 ```ts
 export type PluginUiContent = HTMLElement | ((container: HTMLElement, signal: AbortSignal) => void | (() => void) | Promise<void | (() => void)>);
@@ -1425,7 +1420,7 @@ export type PluginUiContent = HTMLElement | ((container: HTMLElement, signal: Ab
 
 Tipo público del SDK, exportado como `PluginWidgetHandle`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Controla un registro o montaje; los manejadores no persisten los valores del plugin.
+Controla un registro/montaje; los manejadores no persisten valores del plugin.
 
 ```ts
 export interface PluginWidgetHandle<Props> {
@@ -1441,10 +1436,10 @@ export interface PluginWidgetHandle<Props> {
 
 ### PluginWidgetHandle update
 
-Fusiona superficialmente props y callbacks; sustituye completos los objetos y arrays
-anidados. Publica explícitamente los valores aceptados. Los manejadores liberados ignoran
-las actualizaciones; cuando las props se validan, las actualizaciones no válidas lanzan una
-excepción antes de sustituir las props actuales.
+Fusiona superficialmente props y callbacks; sustituye enteros los objetos/arrays
+anidados. Publica de forma explícita los valores aceptados. Los manejadores
+liberados ignoran las actualizaciones; donde las props se validan, las
+actualizaciones no válidas lanzan antes de sustituir las props actuales.
 
 ```ts
 update(props: Partial<Props>): void;
@@ -1458,10 +1453,10 @@ update(props: Partial<Props>): void;
 
 ### PluginWidgetHandle dispose
 
-Libera de forma idempotente este registro o montaje y sus recursos con ámbito.
-Las señales del contenido de la interfaz se cancelan y se ejecuta la limpieza; la
-liberación explícita de un overlay no es una notificación de cierre por el usuario y no
-llama a onClose.
+Libera de forma idempotente este registro/montaje y sus recursos con ámbito.
+Las señales del contenido de la interfaz se abortan y se ejecuta la limpieza;
+liberar explícitamente un overlay no es una notificación de cierre por el
+usuario y no llama a onClose.
 
 ```ts
 dispose(): void;
@@ -1473,9 +1468,9 @@ dispose(): void;
 
 Tipo público del SDK, exportado como `PluginWidgetOptions`. Impórtalo con `import type`; el SDK no tiene exportaciones en tiempo de ejecución.
 
-Vida obligatoria del llamador, combinada con la activación del plugin y con la vida de
-cualquier superficie del host propietaria. Pasa una señal por montaje para la interfaz
-dentro de una vista.
+Vida obligatoria del llamador, combinada con la activación del plugin y con la vida
+de cualquier superficie del host propietaria. Pasa una señal por montaje para la
+interfaz dentro de una vista.
 
 ```ts
 export interface PluginWidgetOptions {

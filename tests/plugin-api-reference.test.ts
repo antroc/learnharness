@@ -20,13 +20,13 @@ it("indexes aliased public exports, nested members, overloads, inheritance and s
 	const reference = createPluginApiReference({ sdk: root });
 	assert.match(reference.pages.get("README.md")!, /\[PublicApi\]\(contracts.md#api\)/);
 	assert.doesNotMatch(reference.pages.get("README.md")!, /privateRuntimeHelper/);
-	assert.match(reference.pages.get("contracts.md")!, /exported as `PublicApi`/);
+	assert.match(reference.pages.get("contracts.md")!, /exportado como `PublicApi`/);
 	const api = reference.inventory.find((entry: { name: string }) => entry.name === "Api")!;
 	assert.deepEqual(api.exports, ["PublicApi"]);
 	assert.equal(api.members.filter((member: { key: string }) => member.key === "send").length, 2);
 	assert.ok(api.members.some((member: { key: string }) => member.key === "events.on"));
 	assert.match(reference.pages.get("contracts.md")!, /### Api events.on/);
-	assert.match(reference.pages.get("contracts.md")!, /\*\*Returns:\*\* `\(\) => void`/);
+	assert.match(reference.pages.get("contracts.md")!, /\*\*Devuelve:\*\* `\(\) => void`/);
 	for (const name of ["Base", "Event", "brand"]) assert.ok(reference.inventory.some((entry: { name: string; public: boolean }) => entry.name === name && !entry.public));
 	assert.deepEqual([...createPluginApiReference({ sdk: root }).pages], [...reference.pages]);
 }));

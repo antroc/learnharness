@@ -45,7 +45,7 @@ header: PluginTreeContent;
 
 ### PluginTreeColumn width
 
-Ancho fijo de la columna final: píxeles para números, ancho CSS para cadenas.
+Anchura fija de la columna final: píxeles para números, anchura CSS para cadenas.
 
 ```ts
 width: number | string;
@@ -161,7 +161,7 @@ export interface PluginTreeRow {
 
 ### PluginTreeRow key
 
-Identidad de ocurrencia única globalmente, independiente de las entidades representadas.
+Identidad de aparición globalmente única, independiente de las entidades representadas.
 
 ```ts
 key: string;

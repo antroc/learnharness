@@ -44,13 +44,12 @@ to: string;
 
 Declaración de apoyo usada por un tipo público. No es una API de runtime adicional ni un helper del SDK.
 
-Contratos del árbol del plan: el árbol de dependencias de ámbito de sesión
+Contratos del árbol del plan: el árbol de dependencias con ámbito de sesión
 
-Forma parte de los contratos divididos por dominio (src/core/contracts/): cada fichero de
-dominio pertenece por completo a su flujo de trabajo; los cambios de esquema entre dominios
-pasan por master. Tipos puros + documentación de protocolo + helpers puros diminutos;
-importaciones solo de tipos de "ai" (seguras en cualquier sitio: servidor, cliente, pruebas).
-Consulta docs/archive/vision.md.
+Parte de los contratos divididos por dominio (src/core/contracts/): cada fichero de dominio
+pertenece por completo a su línea de trabajo; los cambios de esquema entre dominios pasan por
+master. Tipos puros + documentación del protocolo + pequeños helpers puros; importaciones solo de tipos
+de "ai" (seguras en todas partes: servidor, cliente, pruebas). Ver docs/archive/vision.md.
 
 ```ts
 export interface PlanNode {
@@ -68,7 +67,7 @@ export interface PlanNode {
 
 ### PlanNode id
 
-Slug opaco elegido por el agente y estable entre ediciones: "chain-rule-intuition".
+Slug opaco elegido por el agente, estable entre ediciones: "chain-rule-intuition".
 
 ```ts
 id: string;
@@ -124,7 +123,7 @@ edges: PlanEdge[];
 
 ### PlanTree version
 
-Se incrementa en cada mutación; permite que la interfaz anime los cambios o reaccione a ellos.
+Se incrementa en cada mutación: permite a la interfaz animar/reaccionar a los cambios.
 
 ```ts
 version: number;
