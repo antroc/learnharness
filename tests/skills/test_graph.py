@@ -1,4 +1,4 @@
-"""Portable, read-only graph CLI tests; no application-store imports."""
+"""Pruebas portables y de solo lectura de la CLI del grafo; sin imports de los almacenes de la aplicación."""
 
 import contextlib
 import io
@@ -19,7 +19,7 @@ GOLDEN = Path(__file__).resolve().parents[1] / "fixtures" / "golden-data"
 
 
 def snapshot(root):
-    """Notice both changed bytes/mtimes and newly created files/directories."""
+    """Detecta tanto bytes/mtimes cambiados como ficheros/directorios recién creados."""
     return {
         str(path.relative_to(root)): (path.read_bytes(), path.stat().st_mtime_ns) if path.is_file() else None
         for path in root.rglob("*")
@@ -213,14 +213,14 @@ class GraphTests(unittest.TestCase):
             self.assertEqual([item["id"] for item in self.result("find", query)], ["n_b"])
         self.assertEqual([item["id"] for item in self.result("find", "[brackets]?")], ["n_a"])
         self.assertEqual([item["id"] for item in self.result("find", "Café")], ["n_a"])
-        self.assertEqual(self.result("find", "n_b"), [])  # IDs are not searchable fields.
+        self.assertEqual(self.result("find", "n_b"), [])  # Los IDs no son campos en los que se pueda buscar.
         self.assertEqual(self.result("find", "Name must not replace"), [])
         self.assertEqual(self.result("find", " no such text "), [])
 
     def test_find_case_matching_agrees_with_app_js_regex(self):
         self.write_ledger("nodes", [node("n_case", name="Exact label", statement="Exact statement", aliases=["K", "ſ", "ı", "İ", "ς", "𐐨", "Café"])])
         for query in ("k", "s", "i", "𐐀"):
-            # Explicit stars avoid unrelated substring matches in the name.
+            # Los asteriscos explícitos evitan coincidencias de subcadenas no relacionadas en el nombre.
             self.assertEqual(self.result("find", query + "*"), [], query)
         for query in ("K*", "ſ*", "ı*", "İ*", "σ*", "𐐨*", "CAFÉ*"):
             self.assertEqual([item["id"] for item in self.result("find", query)], ["n_case"], query)
@@ -318,7 +318,7 @@ class GraphTests(unittest.TestCase):
         command = [sys.executable, str(SCRIPTS / "graph.py")]
         completed = subprocess.run([*command, "--data-dir", str(self.root), "--format", "json", "sessions"], env=env, capture_output=True, text=True, check=False)
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertEqual(json.loads(completed.stdout), {"data_dir": str(self.root.resolve()), "records": []})  # Never falls back to repo/LH_DATA_DIR.
+        self.assertEqual(json.loads(completed.stdout), {"data_dir": str(self.root.resolve()), "records": []})  # Nunca recurre al repo/LH_DATA_DIR como alternativa.
         bad = subprocess.run([*command, "sessions", "--data-dir", str(self.root)], env=env, capture_output=True, text=True, check=False)
         self.assertNotEqual(bad.returncode, 0)
         absent = subprocess.run([*command, "--data-dir", str(self.root / "missing"), "sessions"], env=env, capture_output=True, text=True, check=False)
@@ -341,8 +341,8 @@ class GraphTests(unittest.TestCase):
             self.assertEqual(len(born), session["propositions"])
             self.assertTrue(all(item["provenance"][0]["chatId"] == session["id"] for item in born))
         self.assertTrue(any(item["kind"] == "file" for item in sessions))
-        # Golden chat files are not the original graph birth sessions; their
-        # missing historical metadata must remain honestly undated.
+        # Los ficheros de chat dorados no son las sesiones de nacimiento originales del grafo; sus
+        # metadatos históricos ausentes deben quedar honestamente sin fecha.
         self.assertTrue(any(item["createdAt"] is None for item in sessions))
         self.assertEqual(snapshot(GOLDEN), before)
 

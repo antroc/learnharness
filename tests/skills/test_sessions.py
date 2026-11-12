@@ -1,4 +1,4 @@
-"""Read-only evidence-preservation tests for the native session readers."""
+"""Pruebas de solo lectura de conservación de pruebas para los lectores de sesiones nativas."""
 from __future__ import annotations
 
 import copy
@@ -203,8 +203,8 @@ class SessionsTest(unittest.TestCase):
         text = self.render(record([result("probe", content=[{"type": "text", "text": "not JSON"}])]))
         self.assertIn("unparsed; full snapshot unavailable", text)
         self.assertIn("not JSON", text)
-        # Parsing one text block must not hide sibling images/extra fields or
-        # misattribute a later block to content[0].text.
+        # Analizar un bloque de texto no debe ocultar imágenes hermanas/campos adicionales ni
+        # atribuir por error un bloque posterior a content[0].text.
         richer = result("recall", content=[
             {"type": "image", "mimeType": "image/png", "data": "BINARY-NOT-PRINTED"},
             {"type": "text", "text": json.dumps(payload)},
@@ -278,7 +278,7 @@ class SessionsTest(unittest.TestCase):
                 self.assertNotIn(payload, text)
                 self.assertNotIn(payload, output)
             self.assertEqual(selected["omitted_field_count"], 3)
-        # A persisted full artifact result is not a routine dispatch acknowledgment.
+        # Un resultado de artefacto completo persistido no es un acuse rutinario de envío.
         direct = self.render(record([result("research", {"brief": brief}), result("pdf", {"brief": brief, "pagesRead": [7]})]))
         self.assertEqual(direct.count(brief), 2)
         self.assertIn("pagesRead", direct)
@@ -315,7 +315,7 @@ class SessionsTest(unittest.TestCase):
         self.assertIn("VERBOSE INJECTED GRAPH PREAMBLE", sessions.render_markdown(full))
         self.assertIn("SECOND GRAPH STATEMENT", sessions.render_markdown(full))
         self.assertEqual(source, original)
-        # Unknown context shapes cannot safely be compacted into references.
+        # Las formas de contexto desconocidas no se pueden compactar en referencias con seguridad.
         unknown = marker("graph-context", "only stored context", {"future": "shape"})
         self.assertIn("only stored context", self.render(record([unknown])))
 
@@ -331,7 +331,7 @@ class SessionsTest(unittest.TestCase):
         self.assertIn("Stored role: alien (unsupported semantics; fields preserved).", text)
         for value in ("unknown content", "opaque payload", "block evidence", "future tool", "role evidence", "result evidence"):
             self.assertIn(value, text)
-        # HTML in ordinary learner text stays verbatim in selected JSON, but is inert markdown.
+        # El HTML en el texto normal del alumno se queda tal cual en el JSON seleccionado, pero es markdown inerte.
         source = record([{"role": "user", "id": "u", "content": '<script>alert("untrusted")</script>'}])
         self.assertEqual(sessions.selected_record(source)["record"]["messages"][0]["content"], source["messages"][0]["content"])
         self.assertNotIn("<script>", self.render(source))

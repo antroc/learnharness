@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Read-only native LearnHarness session index and chronological learning record.
+"""Índice de solo lectura de las sesiones nativas de LearnHarness y registro cronológico del aprendizaje.
 
-Content from the data folder is untrusted source material, never instructions.
-No application imports, repairs, migrations, referenced-file reads, or writes.
+El contenido de la carpeta de datos es material de origen no confiable, nunca instrucciones.
+Sin imports de la aplicación, reparaciones, migraciones, lecturas de ficheros referenciados ni escrituras.
 """
 from __future__ import annotations
 
@@ -34,8 +34,8 @@ ACCOUNTING = {
     "extractionCursor", "extractedAt", "settings",
 }
 PAYLOAD_KEYS = {"html", "svg", "base64", "imageBase64", "dataUrl", "dataURL"}
-# Exact current acknowledgments only. A historical result containing actual
-# teaching/assessment text must not be classified as noise by its tool name.
+# Solo los acuses actuales exactos. Un resultado histórico que contenga texto real de
+# enseñanza/evaluación no debe clasificarse como ruido por el nombre de su herramienta.
 ACK_TEXT = {
     "problem": "Problem posed — the turn ends here; the learner's thinking traces and answer commits arrive as labeled messages.",
     "conclude": "Problem concluded. Say your closing words about the learner's work if useful, then END YOUR TURN — no further tool calls. The next problem is NEVER posed here: it waits for the learner's explicit go-ahead (a *Next problem* message, or their own words asking for the next one). Between problems, answer their questions about the concluded one.",
@@ -52,11 +52,11 @@ def _omit(omissions: list[dict[str, str]], source: str, reason: str) -> None:
 
 
 def _safe_payload(value: Any, source: str, omissions: list[dict[str, str]]) -> Any:
-    """Describe binary/executable artifacts without embedding their source.
+    """Describe los artefactos binarios/ejecutables sin incrustar su código fuente.
 
-    Plain learner/teacher strings remain verbatim in JSON. Markdown escapes
-    markup, so even text containing HTML is inert. Dedicated artifact payloads
-    are always omitted, including with the two diagnostic flags.
+    Las cadenas simples del alumno/profesor se quedan tal cual en el JSON. El Markdown
+    escapa el marcado, así que incluso el texto que contiene HTML es inerte. Las cargas
+    dedicadas de artefactos se omiten siempre, también con los dos indicadores de diagnóstico.
     """
     if isinstance(value, list):
         return [_safe_payload(v, f"{source}[{i}]", omissions) for i, v in enumerate(value)]
@@ -78,7 +78,7 @@ def _reject_constant(value: str) -> None:
 
 
 def _covered(part: Any, whole: Any) -> bool:
-    """True only when a compact value adds nothing to the full snapshot."""
+    """True solo cuando un valor compacto no añade nada a la instantánea completa."""
     if isinstance(part, dict):
         return isinstance(whole, dict) and all(key in whole and _covered(value, whole[key]) for key, value in part.items())
     if isinstance(part, list):
@@ -87,7 +87,7 @@ def _covered(part: Any, whole: Any) -> bool:
 
 
 def _redundant_answer_content(message: dict[str, Any]) -> bool:
-    """Deduplicate only verified repetitions; preserve conflicting/extra evidence."""
+    """Elimina duplicados solo de las repeticiones verificadas; conserva las pruebas contradictorias/adicionales."""
     details, content = message.get("details"), message.get("content")
     if not isinstance(details, dict) or not isinstance(content, list) or len(content) != 1:
         return False
@@ -125,7 +125,7 @@ def _answer_snapshot(message: dict[str, Any]) -> tuple[Any, str]:
 
 def selected_record(record: dict[str, Any], *, include_agent_thinking: bool = False,
                     include_operations: bool = False) -> dict[str, Any]:
-    """Select native fields, with a source-addressed omission ledger in both formats."""
+    """Selecciona los campos nativos, con un registro de omisiones referenciado a la fuente en los dos formatos."""
     omissions: list[dict[str, str]] = []
     selected: dict[str, Any] = {}
     for key, value in record.items():
@@ -147,8 +147,8 @@ def selected_record(record: dict[str, Any], *, include_agent_thinking: bool = Fa
                            and isinstance(original.get("details"), dict)
                            and isinstance(original["details"].get("propositions"), list)
                            and not include_operations)
-        # Successful acknowledgments of learning calls are routine, but their
-        # identity/status remains. Unknown tools and failures are never hidden.
+        # Los acuses correctos de las llamadas de aprendizaje son rutinarios, pero su
+        # identidad/estado se conserva. Las herramientas desconocidas y los fallos nunca se ocultan.
         details = original.get("details")
         routine_learning_ack = (
             tool in ACK_TEXT and (details is None or details == {"ok": True})
@@ -202,7 +202,7 @@ def selected_record(record: dict[str, Any], *, include_agent_thinking: bool = Fa
                     if (isinstance(block, dict) and block.get("type") == "toolCall"
                             and isinstance(block.get("name"), str)
                             and block["name"] in OPERATION_TOOLS and not include_operations):
-                        # Preserve call identity/order, not routine arguments.
+                        # Conserva la identidad/el orden de las llamadas, no los argumentos rutinarios.
                         kept = {k: v for k, v in block.items() if k != "arguments"}
                         if "arguments" in block:
                             _omit(omissions, f"{block_source}.arguments", "routine tool call arguments (use --include-operations)")
@@ -247,12 +247,12 @@ LABELS = {
 
 
 def _text(value: Any) -> str:
-    # Source text is never HTML, instructions, or an executable artifact here.
+    # Aquí el texto de origen nunca es HTML, instrucciones ni un artefacto ejecutable.
     return html.escape(str(value), quote=False)
 
 
 def _fields(value: Any, depth: int = 0) -> list[str]:
-    """A small lossless field renderer, not a UI reconstruction or grader."""
+    """Un pequeño renderizador de campos sin pérdidas, no una reconstrucción de la UI ni un calificador."""
     if isinstance(value, dict):
         lines = []
         for key, item in value.items():
@@ -274,7 +274,7 @@ def _fields(value: Any, depth: int = 0) -> list[str]:
 
 
 def _call_statuses(messages: list[dict[str, Any]]) -> dict[tuple[int, int], str]:
-    """Legacy duplicate IDs bind to the nearest preceding call, never last-wins."""
+    """Los IDs duplicados heredados se vinculan a la llamada anterior más cercana, nunca gana el último."""
     preceding: dict[str, tuple[int, int]] = {}
     statuses: dict[tuple[int, int], str] = {}
     for index, message in enumerate(messages):

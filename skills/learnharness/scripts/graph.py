@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Read LearnHarness propositions and recorded reasoning chains, without writes.
+"""Lee las proposiciones y las cadenas de razonamiento registradas de LearnHarness, sin escribir.
 
-These records describe what sources articulated, not mastery or guaranteed truth.
-Source file paths are labels only: this script never opens the imported originals.
+Estos registros describen lo que articularon las fuentes, no el dominio ni una verdad garantizada.
+Las rutas de los ficheros fuente son solo etiquetas: este script nunca abre los originales importados.
 """
 
 import sys
@@ -78,7 +78,7 @@ def union_points(target, points):
 
 
 def load_graph(root):
-    """Merge ledger lines using getGraph's first-identity/union semantics."""
+    """Fusiona las líneas del registro con la semántica de primera identidad/unión de getGraph."""
     stamp = read_json(root, "graph/format.json", missing=None)
     if stamp is not None:
         version = stamp.get("version") if isinstance(stamp, dict) else None
@@ -112,7 +112,7 @@ def birth_session(node):
 
 
 def load_metadata(root):
-    """Read only stored metadata, never the filePath references in sources."""
+    """Lee solo los metadatos guardados, nunca las referencias filePath de las fuentes."""
     sources = read_json(root, "graph/sources.json", missing={})
     if not isinstance(sources, dict):
         raise DataError("graph/sources.json: expected an object keyed by source id")
@@ -150,7 +150,7 @@ def session_index(graph, metadata):
     for session, count in counts.items():
         entry = metadata.get(session, {"id": session, "name": session, "kind": "file", "createdAt": None, "updatedAt": None})
         entries.append({**entry, "propositions": count})
-    # Stable sorts preserve ascending ids when both descending timestamps tie.
+    # Las ordenaciones estables conservan los ids ascendentes cuando empatan las dos marcas de tiempo descendentes.
     entries.sort(key=lambda item: item["id"])
     entries.sort(key=lambda item: item["createdAt"] or "", reverse=True)
     entries.sort(key=lambda item: item["updatedAt"] or "", reverse=True)
@@ -158,10 +158,10 @@ def session_index(graph, metadata):
 
 
 def search_case(text):
-    """Match the app's non-Unicode JS /i casing, not Python's broader /i.
+    """Replica el /i de JS sin Unicode de la app, no el /i más amplio de Python.
 
-    JS uppercases one UTF-16 unit, but keeps multi-character expansions and
-    non-ASCII-to-ASCII mappings unchanged (e.g. ſ must not match s).
+    JS pasa a mayúsculas una unidad UTF-16, pero deja sin cambiar las expansiones
+    a varios caracteres y las correspondencias de no ASCII a ASCII (p. ej. ſ no debe coincidir con s).
     """
     def canonical(char):
         upper = char.upper()
@@ -176,8 +176,8 @@ def select_nodes(graph, session=None, query=None):
     if session is not None:
         nodes = [node for node in nodes if birth_session(node) == session]
     if query is not None:
-        # The app's find tool treats only '*' specially; all other punctuation
-        # is literal. Without a star, matching is a case-insensitive substring.
+        # La herramienta find de la app solo trata '*' de forma especial; el resto de la puntuación
+        # es literal. Sin asterisco, la coincidencia es una subcadena sin distinguir mayúsculas.
         pattern = search_case(query if "*" in query else f"*{query}*")
         matcher = re.compile(".*".join(re.escape(part) for part in pattern.split("*")), re.DOTALL)
         return [node for node in nodes if any(

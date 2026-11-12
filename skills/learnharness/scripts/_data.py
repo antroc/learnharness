@@ -1,8 +1,9 @@
-"""Small read-only filesystem helpers for the LearnHarness skill.
+"""Pequeños auxiliares de solo lectura del sistema de ficheros para la skill de LearnHarness.
 
-No application imports, discovery scans, migrations, caches, or writes. Paths
-inside the selected data folder may not resolve outside it. Imported-note paths
-and artifact references are data, not instructions to open another file.
+Sin imports de la aplicación, escaneos de descubrimiento, migraciones, cachés ni
+escrituras. Las rutas dentro de la carpeta de datos elegida no pueden resolverse
+fuera de ella. Las rutas de notas importadas y las referencias a artefactos son
+datos, no instrucciones para abrir otro fichero.
 """
 
 from __future__ import annotations
@@ -18,14 +19,14 @@ sys.dont_write_bytecode = True
 
 
 class DataError(Exception):
-    """An actionable reader error, suitable for stderr without a traceback."""
+    """Un error de lectura accionable, apto para stderr sin traceback."""
 
 
 def data_root(override: str | None = None) -> Path:
-    """Resolve an explicit data directory or the normal desktop location.
+    """Resuelve un directorio de datos explícito o la ubicación normal de escritorio.
 
-    Never create a missing directory or try a different installation. For a
-    development copy or an app launched with LH_DATA_DIR, pass --data-dir.
+    Nunca crea un directorio que falte ni prueba otra instalación. Para una
+    copia de desarrollo o una app lanzada con LH_DATA_DIR, pasa --data-dir.
     """
     if override is not None:
         root = Path(override).expanduser()
@@ -54,7 +55,7 @@ def data_root(override: str | None = None) -> Path:
 
 
 def safe_path(root: Path, relative: str | Path) -> Path:
-    """Resolve a data-relative path, rejecting traversal and escaping symlinks."""
+    """Resuelve una ruta relativa a los datos, rechazando el recorrido de directorios y los enlaces simbólicos que escapan."""
     try:
         part = Path(relative)
         if part.is_absolute():
@@ -73,7 +74,7 @@ def _reject_constant(value: str) -> None:
 
 
 def read_json(root: Path, relative: str | Path, *, missing: Any = None) -> Any:
-    """Read a JSON file without creating it; missing optional files use missing."""
+    """Lee un fichero JSON sin crearlo; los ficheros opcionales que faltan usan missing."""
     target = safe_path(root, relative)
     try:
         with target.open("r", encoding="utf-8") as source:
@@ -85,7 +86,7 @@ def read_json(root: Path, relative: str | Path, *, missing: Any = None) -> Any:
 
 
 def read_chat(root: Path, session_id: str) -> dict[str, Any]:
-    """Read a native v1 session; refuse unsupported formats rather than migrate."""
+    """Lee una sesión nativa v1; rechaza los formatos no admitidos en lugar de migrarlos."""
     if not session_id or session_id in {".", ".."} or any(char in session_id for char in ("/", "\\", "\x00")):
         raise DataError("Use a session ID from sessions.py list, not a filesystem path.")
     relative = Path("chats") / f"{session_id}.json"
@@ -115,7 +116,7 @@ def read_chat(root: Path, session_id: str) -> dict[str, Any]:
 
 
 def add_common_arguments(parser: argparse.ArgumentParser) -> None:
-    """Common CLI options precede the subcommand, as shown in SKILL.md."""
+    """Las opciones comunes de la CLI van antes del subcomando, como se muestra en SKILL.md."""
     parser.add_argument("--data-dir", metavar="PATH", help="LearnHarness data root (contains chats/ and/or graph/); default: normal desktop location")
     parser.add_argument("--format", choices=("markdown", "json"), default="markdown", help="Output format (default: markdown)")
 

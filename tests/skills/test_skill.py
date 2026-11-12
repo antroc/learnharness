@@ -1,4 +1,4 @@
-"""The skill remains a portable folder, not an integration with the app."""
+"""La skill sigue siendo una carpeta portable, no una integración con la app."""
 
 from __future__ import annotations
 
@@ -78,8 +78,8 @@ class SkillFolderTest(unittest.TestCase):
             for filename, arguments in commands:
                 for output_format in ("markdown", "json"):
                     with self.subTest(script=filename, arguments=arguments, format=output_format):
-                        # Deliberately omit -B here: the entrypoints must disable
-                        # bytecode before importing their helper on their own.
+                        # Aquí se omite -B a propósito: los puntos de entrada deben desactivar
+                        # el bytecode por sí mismos antes de importar su auxiliar.
                         completed = subprocess.run(
                             [sys.executable, str(skill / "scripts" / filename), "--data-dir", str(data), "--format", output_format, *arguments],
                             cwd=elsewhere, env=env, capture_output=True, text=True, encoding="utf-8", timeout=30,

@@ -1,4 +1,4 @@
-"""Filesystem boundary and portability tests for the standalone skill."""
+"""Pruebas de la frontera del sistema de ficheros y de portabilidad de la skill independiente."""
 
 from __future__ import annotations
 
