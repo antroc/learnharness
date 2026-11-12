@@ -449,8 +449,8 @@ falsos positivos).
   fragmento; *stretch* → tramo; *finding* → hallazgo; *merger* → fusionador; *linkTo verdict* →
   veredicto linkTo; *anchor* → ancla; *digest* → resumen; *fan-out* → difusión; *mint* →
   acuñar; *respawn* → reaparición; *sweep* → barrido; *orphan* → huérfano; *fence* → valla;
-  *stopper* → detenedor; *steering queue* → cola de reorientación; *harness* → se evita
-  (prueba/arnés según contexto); *fixture* y *mock* se dejan; *suite* → batería;
+  *stopper* → detenedor; *steering queue* → cola de reorientación; *fixture* y *mock* se
+  dejan; *suite* → batería;
   *stub* → sustituto (de relleno); *shim* → parche; *rim* → borde; *hull* → envolvente;
   *ladder* → escalera; *clamp* → acotar; *floor/ceiling* → suelo/techo; *wobble* → titubeo.
   C9 empezado: líneas 1–20 de `.traduccion/lotes/C9.txt` (tests/mac-signing-toolchain.test.ts
