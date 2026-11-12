@@ -1222,18 +1222,18 @@ describe("resumeStream (the reattach path)", () => {
 		assert.equal(m.getState().messages.at(-1)!.role, "user", "the optimistic bubble is up");
 		release(Response.json({ messages: [] }));
 		await p;
-		// the reattach path is the same synchronous flip (resumeStream sets
-		// submitted at entry, before its fetches).
+		// el camino de reenganche es el mismo cambio síncrono (resumeStream pone
+		// submitted al entrar, antes de sus peticiones).
 	});
 
 	it("PROTOCOL EVENTS RELEASE NOTHING (owner, optimistic round 3): agent_start keeps the placeholder; the first APPLIED event flips streaming", async () => {
-		// The round-2 bug chain, fixed at the machine: status used to flip
-		// streaming at the first wire BYTE (agent_start, emitted before the
-		// provider has produced anything), vanishing the placeholder into an
-		// empty wait. Now the flip waits for an event applyWireEvent ACTS
-		// on — the placeholder (gated on submitted) covers the whole
-		// provider-connect gap, and the applied event's message renders the
-		// thinking row even when its content is empty (view.ts projection).
+		// La cadena de fallos de la ronda 2, arreglada en la máquina: el estado pasaba a
+		// streaming con el primer BYTE del cable (agent_start, emitido antes de que el
+		// proveedor haya producido nada), lo que hacía desaparecer el provisional en una
+		// espera vacía. Ahora el cambio espera a un evento sobre el que applyWireEvent ACTÚA:
+		// el provisional (condicionado a submitted) cubre todo el hueco
+		// de conexión del proveedor, y el mensaje del evento aplicado renderiza la
+		// fila de razonamiento aunque su contenido esté vacío (proyección de view.ts).
 		let releaseProtocol!: () => void;
 		let releaseRest!: () => void;
 		const protocolGate = new Promise<void>((res) => (releaseProtocol = res));
@@ -1242,9 +1242,9 @@ describe("resumeStream (the reattach path)", () => {
 			async start(c) {
 				const enc = new TextEncoder();
 				c.enqueue(enc.encode(sse({ type: "agent_start" }, { type: "turn_start" })));
-				await protocolGate; // the provider is slow — nothing but protocol so far
+				await protocolGate; // el proveedor va lento: de momento solo protocolo
 				c.enqueue(enc.encode(sse({ type: "message_start", message: { role: "assistant", content: [] } })));
-				await restGate; // the message arrived; its first token is still pending
+				await restGate; // el mensaje llegó; su primer token sigue pendiente
 				c.enqueue(
 					enc.encode(
 						sse({ type: "message_update", message: { role: "assistant", content: [{ type: "thinking", thinking: "pondering" }] } }),
@@ -1258,14 +1258,14 @@ describe("resumeStream (the reattach path)", () => {
 		const m = model();
 		const p = m.send({ type: "text", text: "q" });
 		assert.equal(m.getState().status, "submitted", "the action is optimistic: placeholder up pre-everything");
-		await new Promise((r) => setTimeout(r, 25)); // agent_start + turn_start consumed
+		await new Promise((r) => setTimeout(r, 25)); // agent_start + turn_start consumidos
 		assert.equal(
 			m.getState().status,
 			"submitted",
 			"protocol events apply NOTHING — the placeholder holds through the connect gap",
 		);
 		releaseProtocol();
-		await new Promise((r) => setTimeout(r, 25)); // message_start consumed
+		await new Promise((r) => setTimeout(r, 25)); // message_start consumido
 		assert.equal(m.getState().status, "streaming", "the first APPLIED event flips streaming — the thinking row renders");
 		releaseRest();
 		await p;
@@ -1273,14 +1273,14 @@ describe("resumeStream (the reattach path)", () => {
 	});
 
 	it("SESSION START SURVIVES A STOP() RACING THE SUBMIT (owner, 2026-10-10 — the dead-practice-start postmortem)", async () => {
-		// React StrictMode's simulated remount fires the unmount cleanup
-		// (~8ms in) while the ?prompt first send's POST is in flight — the
-		// exact live repro: pre-fix, the POST rode consumeAbort and died
-		// with AbortError, the page's sentInitial guard never retried, and
-		// the session sat dead until a second message (which then persisted
-		// WITHOUT the first). The law: submits are not abortable by view
-		// teardown — the POST completes, the turn is server-side, and the
-		// dead view attaches no stream.
+		// El remontaje simulado de React StrictMode dispara la limpieza del desmontaje
+		// (a los ~8ms) mientras el POST del primer envío de ?prompt está en curso: la
+		// reproducción real exacta: antes del arreglo, el POST iba con consumeAbort y moría
+		// con AbortError, la guarda sentInitial de la página nunca reintentaba y la
+		// sesión se quedaba muerta hasta un segundo mensaje (que entonces se persistía
+		// SIN el primero). La ley: desmontar la vista no puede abortar los envíos:
+		// el POST se completa, el turno vive en el servidor y la
+		// vista muerta no engancha ningún stream.
 		let resolvePost!: () => void;
 		let postAborted = false;
 		const fetches: string[] = [];
@@ -1304,9 +1304,9 @@ describe("resumeStream (the reattach path)", () => {
 		}) as typeof globalThis.fetch;
 		const m = model();
 		const sending = m.send({ type: "text", text: "quiz me" });
-		await new Promise((r) => setTimeout(r, 5)); // the POST is in flight
-		m.stop(); // StrictMode's simulated unmount lands mid-submit
-		resolvePost(); // the ack completes anyway
+		await new Promise((r) => setTimeout(r, 5)); // el POST está en curso
+		m.stop(); // el desmontaje simulado de StrictMode llega a mitad del envío
+		resolvePost(); // el acuse se completa de todos modos
 		await sending;
 		assert.equal(postAborted, false, "the submit POST carries no teardown signal at all");
 		assert.ok(fetches.includes("/api/chat"), "the submit reached the server");
@@ -1315,10 +1315,10 @@ describe("resumeStream (the reattach path)", () => {
 	});
 
 	it("REATTACH REPLAYS ONTO A CLEAN SLATE (owner, optimistic round 3): an aborted attempt's partials never double", async () => {
-		// StrictMode's simulated remount aborts the first resume mid-replay;
-		// its partial tail survived into the retry and the replay DOUBLED
-		// every message (the record refetch's accidental tail reset died
-		// with attach-first). resumeStream now wipes the tail itself.
+		// El remontaje simulado de StrictMode aborta la primera reanudación a mitad de la repetición;
+		// su cola parcial sobrevivía en el reintento y la repetición DUPLICABA
+		// todos los mensajes (el reinicio accidental de la cola por la nueva petición del registro
+		// murió con enganchar-primero). Ahora resumeStream borra la cola por sí mismo.
 		let hold!: () => void;
 		const holdGate = new Promise<void>((res) => (hold = res));
 		let calls = 0;
@@ -1334,7 +1334,7 @@ describe("resumeStream (the reattach path)", () => {
 									sse({ type: "message_update", message: { role: "assistant", content: [{ type: "text", text: "part one" }] } }),
 								),
 							);
-							await holdGate; // aborted here (the partial stays in the tail)
+							await holdGate; // abortado aquí (el parcial se queda en la cola)
 							c.enqueue(enc.encode(sse({ type: "agent_end", messages: [] }, "[DONE]")));
 							c.close();
 						},
@@ -1366,10 +1366,10 @@ describe("resumeStream (the reattach path)", () => {
 		}) as typeof globalThis.fetch;
 		const m = model();
 		const attempt1 = m.resumeStream(false);
-		await new Promise((r) => setTimeout(r, 25)); // attempt 1 consumed its partial
-		// the simulated remount: attempt 2 aborts attempt 1 mid-replay
+		await new Promise((r) => setTimeout(r, 25)); // el intento 1 consumió su parcial
+		// el remontaje simulado: el intento 2 aborta el 1 a mitad de la repetición
 		const attempt2 = m.resumeStream(false);
-		hold(); // attempt 1's gate resolves after it was already aborted
+		hold(); // la barrera del intento 1 se resuelve cuando ya estaba abortado
 		await Promise.allSettled([attempt1, attempt2]);
 		const texts = m
 			.getState()
@@ -1393,10 +1393,10 @@ describe("resumeStream (the reattach path)", () => {
 	});
 
 	it("a replayed CONTINUATION mounts BESIDE the seeded message (the SDK replace-last seam is dead)", async () => {
-		// The seeded record ends with an assistant message; the replayed
-		// turn continues with its OWN assistant message — the view groups
-		// them as one document with a step separator (pixel-identical to a
-		// live continuation; the settle sync lands the canon).
+		// El registro sembrado termina con un mensaje del asistente; el turno repetido
+		// continúa con su PROPIO mensaje del asistente: la vista los agrupa
+		// como un solo documento con un separador de paso (idéntico píxel a píxel a una
+		// continuación en vivo; la sincronización al asentarse trae el canon).
 		let attached = false;
 		globalThis.fetch = (async (input: RequestInfo | URL) => {
 			const url = String(input);
@@ -1466,7 +1466,7 @@ describe("resumeStream (the reattach path)", () => {
 	});
 });
 
-// ─── adoption (append-only ground rules, owner 2026-09-15) ──────────────────
+// ─── adopción (reglas básicas de solo anexado, responsable 2026-09-15) ───────
 
 function userText(id: string, text: string): LhMessage {
 	return { ...newUserMessage(text), id };
@@ -1574,8 +1574,8 @@ describe("adoptRecord — append-only adoption", () => {
 					},
 				});
 				await m.resumeStream(refetchRecordFirst);
-				// Stream settlement now reconciles canonical saved authority as well as
-				// the optional pre-reattach read; no replacement teacher POST is sent.
+				// El asentamiento del stream concilia ahora la autoridad canónica guardada además de
+				// la lectura opcional previa al reenganche; no se envía ningún POST sustituto al profesor.
 				assert.deepEqual(requests, refetchRecordFirst ? ["/api/chats/chat_x", "/api/chats/chat_x/stream", "/api/chats/chat_x"] : ["/api/chats/chat_x/stream", "/api/chats/chat_x"]);
 				const state = m.getState();
 				assert.equal(state.status, "ready");
@@ -1591,7 +1591,7 @@ describe("adoptRecord — append-only adoption", () => {
 
 	it("a missing base id (record rewrite) bails — the idle full sync is the net", () => {
 		const m = model({ initialMessages: [userText("u1", "a"), userText("u2", "b")] });
-		m.adoptRecord([userText("u2", "b")]); // u1 vanished: a rewrite, not an append
+		m.adoptRecord([userText("u2", "b")]); // u1 desapareció: una reescritura, no un anexado
 		assert.deepEqual(
 			m.getState().nativeMessages.map((x) => x.id),
 			["u1", "u2"],
@@ -1600,15 +1600,15 @@ describe("adoptRecord — append-only adoption", () => {
 	});
 
 	it("absorbs the optimistic entries the record has taken over (no doubled bubbles)", () => {
-		// A text send's optimistic bubble (local c_ id): the write-ahead's
-		// server copy absorbs it by CONTENT — the bubble never doubles.
+		// La burbuja optimista de un envío de texto (id local c_): la copia del servidor de
+		// la persistencia anticipada la absorbe por CONTENIDO: la burbuja nunca se duplica.
 		const optimistic = { ...newUserMessage("my question"), id: "c_local_1" } as LhMessage;
 		const serverCopy = { ...newUserMessage("my question"), id: "srv_9" } as LhMessage;
 		assert.ok(absorbed(optimistic, [userText("u1", "topic"), serverCopy]), "content match absorbs the local copy");
 		assert.ok(!absorbed(serverCopy, [optimistic]), "server stamps are never absorbed");
 		assert.ok(!absorbed({ ...newUserMessage("my question") }, [serverCopy]), "an id-less message is never absorbed");
-		// The answer result absorbs by toolCallId (ids differ, content may too —
-		// the toolCallId is the identity of an answer).
+		// El resultado de la respuesta se absorbe por toolCallId (los ids difieren y el contenido
+		// también puede: el toolCallId es la identidad de una respuesta).
 		const answer = { ...newAnswerResult("call-1", "quiz", { correct: true }), id: "c_local_2" } as LhMessage;
 		assert.ok(
 			absorbed(answer, [{ ...newAnswerResult("call-1", "quiz", { correct: true }), id: "srv_10" } as LhMessage]),
@@ -1626,7 +1626,7 @@ describe("adoptRecord — append-only adoption", () => {
 	});
 });
 
-// ─── the continuation fold (mount/sync seam) ────────────────────────────────
+// ─── el plegado de continuación (frontera de montaje/sincronización) ────────
 
 function assistantWithCall(id: string, callId: string, name = "research"): LhMessage {
 	return {
@@ -1686,11 +1686,11 @@ describe("needsContinuation (the native lastAssistantMessageIsCompleteWithToolCa
 	});
 });
 
-// ─── the dismissal pause (owner design 2026-10-03, "A2") ────────────────────
+// ─── la pausa del descarte (diseño del responsable 2026-10-03, "A2") ────────
 
 describe("the dismissal pause (needsContinuation + endsInDismissal)", () => {
-	/** The record's silent dismiss write: the toolResult the dismiss route
-	 *  appends (full answer in details — the folds read it there). */
+	/** La escritura silenciosa del descarte en el registro: el toolResult que añade
+	 *  la ruta de descarte (la respuesta completa en details: los plegados la leen ahí). */
 	function dismissedMsg(callId: string): LhMessage {
 		return {
 			...newAnswerResult(callId, "quiz", dismissedAnswer("quiz", "Pick a planet")),
@@ -1764,7 +1764,7 @@ describe("the dismissal pause (needsContinuation + endsInDismissal)", () => {
 	});
 });
 
-// ─── the pending-call tool scan ─────────────────────────────────────────────
+// ─── el escaneo de herramientas con llamadas pendientes ─────────────────────
 
 describe("pendingCallTool", () => {
 	it("finds the dangling call's tool name (the optimistic answer's stamp)", () => {
@@ -1774,7 +1774,7 @@ describe("pendingCallTool", () => {
 	});
 });
 
-// ─── newAnswerResult: the two-audience split (owner, 2026-10-02) ────────────
+// ─── newAnswerResult: la separación en dos audiencias (responsable, 2026-10-02) ─
 
 describe("newAnswerResult two audiences", () => {
 	it("MODEL sees the compact learner-only record; details keeps the FULL graded answer", () => {
@@ -1806,15 +1806,15 @@ describe("newAnswerResult two audiences", () => {
 	});
 });
 
-// ─── the practice live-view law (owner, 2026-10-05) ─────────────────────────
+// ─── la ley de la vista en vivo de la práctica (responsable, 2026-10-05) ────
 //
-// The two-spinners + doubled-card incident: submitting thinking flipped the
-// POSE turn's problem call back to a live spinner mid-transcript (session
-// busyness leaked into per-call state), and the optimistic thinking marker
-// was never absorbed (role "custom" was missing from absorbed()), so the
-// adoption window rendered the submission twice for the whole turn.
+// El incidente de los dos spinners + la tarjeta duplicada: enviar el razonamiento devolvía
+// la llamada a problem del turno de PLANTEAMIENTO a un spinner vivo a mitad de la transcripción
+// (la ocupación de la sesión se filtraba al estado de cada llamada), y el marcador
+// optimista de razonamiento nunca se absorbía (faltaba el rol "custom" en absorbed()), así que
+// la ventana de adopción renderizaba el envío dos veces durante todo el turno.
 
-/** The post-settle pose-turn record of a practice session. */
+/** El registro del turno de planteamiento de una sesión de práctica, tras asentarse. */
 function poseRecord(): LhMessage[] {
 	return [
 		{ id: "m1", role: "user", content: "db practice" },
@@ -1836,8 +1836,8 @@ function poseRecord(): LhMessage[] {
 
 describe("the live-view law — live is positive evidence, not session busyness", () => {
 	it("a settled problem call NEVER renders live during another turn (the two-spinner bug)", () => {
-		// The thinking turn's live state: inFlight, but NOTHING streams that
-		// touches the pose call, and the executions map (per-turn) is empty.
+		// El estado en vivo del turno de razonamiento: inFlight, pero NO se emite nada que
+		// toque la llamada de planteamiento, y el mapa de ejecuciones (por turno) está vacío.
 		const live = { executions: new Map(), inFlight: true, streamingIds: new Set<string>() };
 		const view = projectView(poseRecord(), live);
 		const problem = view.flatMap((m) => m.parts).find((p) => p.type === "tool-problem");
@@ -1882,17 +1882,17 @@ describe("absorbed — the custom role (the doubled thinking card)", () => {
 		const optimistic = { ...newThinkingMessage("call-p1", "my trace"), id: "c_opt1" } as LhMessage;
 		const serverCopy = { ...newThinkingMessage("call-p1", "my trace"), id: "srv_1" } as LhMessage;
 		assert.ok(absorbed(optimistic, [...poseRecord(), serverCopy]), "same submission → the local copy drops");
-		// A DIFFERENT submission (different text) is its own marker.
+		// Un envío DISTINTO (otro texto) es su propio marcador.
 		const other = { ...newThinkingMessage("call-p1", "a later, different trace"), id: "srv_2" } as LhMessage;
 		assert.ok(!absorbed(optimistic, [...poseRecord(), other]), "different details → not the same submission");
-		// The c_ gate: server stamps are never absorbed, whatever the role.
+		// La barrera c_: los sellos del servidor nunca se absorben, sea cual sea el rol.
 		assert.ok(!absorbed(serverCopy, [optimistic]), "server ids never drop");
 	});
 
 	it("the adoption window cannot double the card (model-level end-to-end)", () => {
-		// The exact client sequence of the incident: the optimistic marker in
-		// the tail (client id), then the +400ms adoption fetch swaps in the
-		// write-ahead record (server id). ONE card must remain.
+		// La secuencia exacta del cliente en el incidente: el marcador optimista en
+		// la cola (id del cliente) y luego la petición de adopción a los +400ms cambia al
+		// registro de la persistencia anticipada (id del servidor). Debe quedar UNA tarjeta.
 		const m = model({ chatId: "chat_x", initialMessages: poseRecord() });
 		const optimistic = { ...newThinkingMessage("call-p1", "my trace"), id: "c_opt1" } as LhMessage;
 		m.applyWireEvent({ type: "message_start", message: optimistic });
