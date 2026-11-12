@@ -226,15 +226,15 @@ describe("side lesson document", () => {
 describe("side instructions", () => {
 	it("compose the side base with the shared voice/accuracy/formatting appendix", () => {
 		const prompt = composeSideChatInstructions();
-		assert.match(prompt, /## Side questions/);
-		assert.match(prompt, /OPEN question/);
-		assert.match(prompt, /## Voice/);
-		assert.match(prompt, /## Accuracy/);
-		assert.match(prompt, /## Formatting/);
-		assert.match(prompt, /normally one or two short sentences in plain prose/);
-		assert.ok(prompt.indexOf("## Side-answer brevity") > prompt.indexOf("## Formatting"), "side-specific brevity wins over the shared appendix");
-		assert.match(prompt, /Use the supplied context; don't claim to have inspected files or images that weren't provided/);
-		assert.doesNotMatch(prompt, /one to three|You have no tools/);
+		assert.match(prompt, /## Preguntas laterales/);
+		assert.match(prompt, /pregunta o un problema ABIERTOS/);
+		assert.match(prompt, /## Voz/);
+		assert.match(prompt, /## Exactitud/);
+		assert.match(prompt, /## Formato/);
+		assert.match(prompt, /normalmente una o dos frases cortas en prosa sencilla/);
+		assert.ok(prompt.indexOf("## Brevedad de las respuestas laterales") > prompt.indexOf("## Formato"), "side-specific brevity wins over the shared appendix");
+		assert.match(prompt, /Usa el contexto proporcionado; no afirmes haber examinado ficheros o imágenes que no se te hayan dado/);
+		assert.doesNotMatch(prompt, /de una a tres|No tienes herramientas/);
 		assert.doesNotMatch(prompt, /probe_done|plan_init/, "no teaching base or tool doctrine");
 	});
 	it("keeps side brevity last while still honoring enabled shared overrides", async () => {
@@ -246,7 +246,7 @@ describe("side instructions", () => {
 		try {
 			const prompt = composeSideChatInstructions({ "shared/10-voice.md": true });
 			assert.match(prompt, /OVERRIDE VOICE/);
-			assert.ok(prompt.indexOf("## Side-answer brevity") > prompt.indexOf("OVERRIDE VOICE"));
+			assert.ok(prompt.indexOf("## Brevedad de las respuestas laterales") > prompt.indexOf("OVERRIDE VOICE"));
 			assert.doesNotMatch(composeSideChatInstructions(), /OVERRIDE VOICE/);
 		} finally { fs.rmSync(file); }
 	});
