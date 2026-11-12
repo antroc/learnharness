@@ -1,13 +1,13 @@
 /**
- * THE PRACTICE SURFACE — SSR render pins (the render-suite discipline:
- * pure bodies, renderToStaticMarkup, testids). The dock (the active
- * problem replaces the composer: statement above, "Your thinking"
- * field below with ONE Send (Enter sends, Shift+Enter is a newline)),
- * the transcript cards (the
- * problem's compact-expandable statement — commitment NEVER renders;
- * the conclusion's outcome + verdict + reveal; the learner's thinking
- * register cards), and the view projection (the thinking marker's
- * data part; the dismissal's silence).
+ * LA SUPERFICIE DE PRÁCTICA: fijaciones de render SSR (la disciplina de la
+ * batería de render: cuerpos puros, renderToStaticMarkup, testids). El dock (el
+ * problema activo sustituye al compositor: el enunciado arriba y el campo
+ * "Your thinking" debajo con UN SOLO Enviar (Enter envía, Shift+Enter es un salto
+ * de línea)), las tarjetas de la transcripción (el enunciado compacto y
+ * desplegable del problema: el compromiso NUNCA se renderiza; el resultado +
+ * veredicto + revelación de la conclusión; las tarjetas de registro del
+ * razonamiento del alumno) y la proyección de vista (la parte de datos del
+ * marcador de razonamiento; el silencio del descarte).
  */
 
 import React from "react";
@@ -36,7 +36,7 @@ const part = (over: Partial<ArtifactPartProps["part"]>): ArtifactPartProps["part
 	...over,
 });
 
-// ── the dock ─────────────────────────────────────────────────────────────────
+// ── el dock ──────────────────────────────────────────────────────────────────
 
 describe("PracticeDock", () => {
 	it("expanded: statement renders, the two lanes sit in the thinking field", () => {
@@ -50,16 +50,16 @@ describe("PracticeDock", () => {
 			/>,
 		);
 		assert.match(html, /Show that the sum is even\./);
-		// The 'Problem' eyebrow (owner round, 2026-10-05): the quiz cards'
-		// label row, mirrored — dock and transcript card read identically.
+		// El antetítulo 'Problem' (ronda del responsable, 2026-10-05): la fila de etiqueta de
+		// las tarjetas de quiz, replicada: el dock y la tarjeta de la transcripción se leen igual.
 		assert.match(html, /Problem/);
-		// The measured column cap (the old fixed 40vh is only the fallback).
+		// El tope medido de la columna (el antiguo 40vh fijo es solo la alternativa).
 		assert.match(html, /--dock-max-h/);
 		assert.match(html, /YOUR THINKING/);
 		assert.match(html, /data-testid="practice-send"/);
 		assert.ok(!html.includes("practice-nudge") && !html.includes("practice-commit"), "the two-lane buttons are gone");
-		// The buttons carry their lane in the disabled gate; both start
-		// disabled (empty field).
+		// Los botones llevan su carril en la barrera de desactivación; los dos empiezan
+		// desactivados (campo vacío).
 		assert.match(html, /disabled/);
 	});
 
@@ -78,7 +78,7 @@ describe("PracticeDock", () => {
 	});
 });
 
-// ── the transcript cards ─────────────────────────────────────────────────────
+// ── las tarjetas de la transcripción ─────────────────────────────────────────
 
 describe("the practice transcript cards", () => {
 	it("ProblemCard: ALWAYS OPEN, the 'Problem' eyebrow + the statement — the commitment NEVER renders", () => {
@@ -97,7 +97,7 @@ describe("the practice transcript cards", () => {
 		assert.match(html, /Problem/);
 		assert.match(html, /Prove the parity claim\./);
 		assert.doesNotMatch(html, /Pair them\./, "the commitment stays hidden");
-		// No chevron, no collapsed bar (owner round, 2026-10-05).
+		// Sin chevron ni barra plegada (ronda del responsable, 2026-10-05).
 		assert.doesNotMatch(html, /lucide-chevron|<button/, "nothing collapsible");
 	});
 
@@ -114,13 +114,13 @@ describe("the practice transcript cards", () => {
 		assert.match(html, /data-testid="conclude-card"/);
 		assert.match(html, /Solved with hints/);
 		assert.match(html, /Pair them; each pair is even\./, "the committed solution, verbatim");
-		assert.match(html, /Concluded/); // the plain eyebrow (owner round 3)
-		assert.match(html, /Solved/); // the outcome rides the quiz chip
-		assert.match(html, /Model solution/); // the labeled hero after the divider
+		assert.match(html, /Concluded/); // el antetítulo simple (ronda 3 del responsable)
+		assert.match(html, /Solved/); // el resultado va en la etiqueta del quiz
+		assert.match(html, /Model solution/); // el protagonista etiquetado tras el divisor
 		assert.ok(html.indexOf("Solved") < html.indexOf("Model solution"), "chip at the top");
 		assert.match(html, /The pairing came after R2\./);
-		// VERDICT FIRST (owner round 3): verdict under the heading row, then
-		// the divider, then the labeled model solution.
+		// PRIMERO EL VEREDICTO (ronda 3 del responsable): veredicto bajo la fila de cabecera, luego
+		// el divisor y luego la solución modelo etiquetada.
 		assert.ok(html.indexOf("The pairing came after R2.") < html.indexOf("Pair them; each pair is even."));
 		assert.doesNotMatch(html, /<button/, "nothing collapsible");
 	});
@@ -152,9 +152,9 @@ describe("the practice transcript cards", () => {
 		assert.match(html, /Metadata/, "the label (CSS renders it mono-caps)");
 		assert.ok(!html.includes('data-testid="metadata-box"'), "the info box is CLOSED until clicked — no rows in the markup");
 		assert.ok(!html.includes("border-t \"/>"), "no separate divider — the trigger just sits at the bottom");
-		// The open face (info-box rows at the model solution's 15px) is a
-		// client useState fold — static render cannot click; the rows' data
-		// shape is pinned by the view-join test in practice-record.
+		// La cara abierta (filas de recuadro informativo a los 15px de la solución modelo) es un
+		// plegado useState del cliente: el render estático no puede hacer clic; la forma de los
+		// datos de las filas la fija la prueba de unión de vista de practice-record.
 	});
 
 	it("ConcludeCard: no metadata trigger when the calls filled nothing beyond the visible card", () => {
@@ -179,9 +179,9 @@ describe("the practice transcript cards", () => {
 	it("ThinkingCard: one label, right side, expanded arrival (owner round, 2026-10-07)", () => {
 		const trace = renderToStaticMarkup(<ThinkingCard data={{ problemCallId: "c", commit: false, text: "stuck at step two" }} />);
 		assert.match(trace, /YOUR THINKING/);
-		// Transcript rows arrive EXPANDED (clearly conveyed as sent) as
-		// full-width card-color bands with the 6px rail (the document,
-		// all-in — owner round two, 2026-10-07).
+		// Las filas de la transcripción llegan DESPLEGADAS (claramente enviadas) como
+		// franjas a todo el ancho del color de tarjeta con el raíl de 6px (el documento,
+		// todo dentro: segunda ronda del responsable, 2026-10-07).
 		assert.match(trace, /aria-expanded="true"/);
 		assert.ok(trace.includes("stuck at step two"), "the text is visible on arrival");
 		assert.ok(trace.includes("bg-card"), "the card-color band");
@@ -192,7 +192,7 @@ describe("the practice transcript cards", () => {
 	});
 });
 
-// ── the view projection ──────────────────────────────────────────────────────
+// ── la proyección de vista ───────────────────────────────────────────────────
 
 describe("the practice view projection", () => {
 	it("the thinking marker projects as a user-side data part (register in details)", () => {
@@ -206,7 +206,7 @@ describe("the practice view projection", () => {
 	});
 
 	it("the problem pose's ack keeps the part input-available (the dock's mount)", () => {
-		// Pose call + ack result (details: null — the placeholder fork).
+		// Llamada de planteamiento + resultado de acuse (details: null: la bifurcación del provisional).
 		const messages = [
 			{
 				id: "a1",
@@ -229,7 +229,7 @@ describe("the practice view projection", () => {
 	});
 });
 
-// ── the graph-context card (a session's map pick; collapsed by default) ─────
+// ── la tarjeta de contexto del grafo (elección del mapa de una sesión; plegada por defecto) ─
 
 describe("GraphContextCard", () => {
 	it("collapsed: counts only — the statements stay hidden until expanded", () => {
@@ -242,7 +242,7 @@ describe("GraphContextCard", () => {
 		assert.ok(html.includes('data-testid="graph-context-card"'));
 		assert.ok(html.includes("2 propositions"));
 		assert.ok(html.includes("1 chain"));
-		// minimal: the collapsed bar carries NO statement text
+		// mínima: la barra plegada NO lleva texto del enunciado
 		assert.ok(!html.includes("If P implies Q"));
 		assert.ok(!html.includes("graph-context-body"));
 	});

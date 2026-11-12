@@ -1,7 +1,8 @@
 /**
- * The queued-steer indicator's pins (composer steering, owner arc
- * 2026-10-03): the quiet one-liners above the composer shell, and the
- * visibleQueuedSteers fold that decides which queued steers still show.
+ * Las fijaciones del indicador de reorientaciones encoladas (reorientación desde el
+ * compositor, arco del responsable 2026-10-03): las líneas discretas sobre el
+ * armazón del compositor y el plegado visibleQueuedSteers que decide qué
+ * reorientaciones encoladas se siguen mostrando.
  */
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
