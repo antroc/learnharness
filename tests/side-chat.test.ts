@@ -1,7 +1,8 @@
 /**
- * Side questions (inline clarification threads, owner design 2026-11-02):
- * the pure lesson view (spoiler rule, compaction cut), input validation,
- * the store seam, and the server service end to end on pi's faux provider.
+ * Preguntas laterales (hilos de aclaración en línea, diseño del responsable
+ * 2026-11-02): la vista pura de la lección (regla de spoilers, corte de
+ * compactación), la validación de entradas, la frontera del almacén y el
+ * servicio del servidor de extremo a extremo sobre el proveedor simulado de pi.
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -9,7 +10,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
 
-// ── the seam, BEFORE any config-loading import ─────────────────────────────
+// ── la frontera, ANTES de cualquier import que cargue la configuración ─────
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-side-chat-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 
@@ -83,7 +84,7 @@ function answeredQuiz(): QuestionAnswerData {
 	};
 }
 
-// ── input validation ────────────────────────────────────────────────────────
+// ── validación de entradas ──────────────────────────────────────────────────
 
 describe("side ask input", () => {
 	const anchor: SideChatAnchor = { messageId: "msg_1", partId: "msg_1-t0", blockIndex: 2, blockText: "A paragraph." };
@@ -121,7 +122,7 @@ describe("side ask input", () => {
 	});
 });
 
-// ── the lesson document ─────────────────────────────────────────────────────
+// ── el documento de la lección ──────────────────────────────────────────────
 
 describe("side lesson document", () => {
 	it("renders prose, learner text and answered checks in full", () => {
@@ -220,7 +221,7 @@ describe("side lesson document", () => {
 	});
 });
 
-// ── instructions ────────────────────────────────────────────────────────────
+// ── instrucciones ───────────────────────────────────────────────────────────
 
 describe("side instructions", () => {
 	it("compose the side base with the shared voice/accuracy/formatting appendix", () => {
@@ -251,7 +252,7 @@ describe("side instructions", () => {
 	});
 });
 
-// ── store ───────────────────────────────────────────────────────────────────
+// ── almacén ─────────────────────────────────────────────────────────────────
 
 describe("side store seam", () => {
 	it("updates threads without touching messages, and the list omits them", () => {
@@ -259,21 +260,21 @@ describe("side store seam", () => {
 		chatStore.saveMessages(chat.id, [newUserMessage("hello")]);
 		const thread: SideChatThread = { id: "side_a", anchor: { messageId: "m", partId: "m-t0", blockIndex: 0, blockText: "b" }, open: true, createdAt: "", messages: [] };
 		assert.equal(chatStore.updateSideChats(chat.id, (t) => [...t, thread])?.length, 1);
-		// A concurrent turn persist re-reads the record: the thread survives.
+		// Una persistencia de turno concurrente vuelve a leer el registro: el hilo sobrevive.
 		chatStore.saveMessages(chat.id, [newUserMessage("hello"), newUserMessage("again")]);
 		const record = chatStore.getChat(chat.id)!;
 		assert.equal(record.sideChats?.length, 1);
 		assert.equal(record.messages.length, 2);
 		const summary = chatStore.listChats().find((c) => c.id === chat.id) as unknown as Record<string, unknown>;
 		assert.equal(summary.sideChats, undefined);
-		// Emptying drops the field; unknown chats answer null.
+		// Vaciarlo quita el campo; los chats desconocidos responden null.
 		chatStore.updateSideChats(chat.id, () => []);
 		assert.equal(chatStore.getChat(chat.id)!.sideChats, undefined);
 		assert.equal(chatStore.updateSideChats("chat_missing", (t) => t), null);
 	});
 });
 
-// ── the service, end to end on the faux provider ────────────────────────────
+// ── el servicio, de extremo a extremo sobre el proveedor simulado ───────────
 
 interface Ndjson {
 	type: string;
@@ -345,8 +346,8 @@ describe("side chat service", () => {
 		assert.ok(events.includes("side-chats-changed"));
 		assert.ok(events.includes("record-changed"));
 
-		// What the model saw: the side instructions, the lesson as a quoted
-		// document, the passage, the hidden key of the open check.
+		// Lo que vio el modelo: las instrucciones laterales, la lección como documento
+		// citado, el pasaje, la clave oculta de la comprobación abierta.
 		const context = contexts[0]!;
 		assert.match(JSON.stringify(context), /SIDE-INSTRUCTIONS/);
 		const firstUser = JSON.stringify(context.messages.find((m) => m.role === "user"));
@@ -385,7 +386,7 @@ describe("side chat service", () => {
 		assert.equal(chatStore.getChat(chatId)!.sideChats, undefined, "no orphan question");
 		refuse(null);
 
-		// Hold the answer open, then ask again on the same thread.
+		// Mantén la respuesta abierta y vuelve a preguntar en el mismo hilo.
 		let release!: () => void;
 		const gate = new Promise<void>((r) => (release = r));
 		faux.appendResponses([async () => (await gate, fauxAssistantMessage("held"))]);
@@ -441,7 +442,7 @@ describe("side chat service", () => {
 		assert.equal(chatStore.getChat(chatId)!.sideChats![0]!.open, false);
 		assert.equal(service.setOpen(chatId, "side_nope", true), "unknown-thread");
 
-		// A follow-up reopens the window.
+		// Una pregunta de seguimiento vuelve a abrir la ventana.
 		answer("b");
 		await readAll(await service.ask(chatId, { threadId: thread.id, text: "q2", quotes: [] }));
 		assert.equal(chatStore.getChat(chatId)!.sideChats![0]!.open, true);
@@ -457,7 +458,7 @@ describe("side chat service", () => {
 		assert.equal(chatStore.getChat(chatId)!.sideChats![0]!.messages.at(-1)!.text, "late");
 		assert.equal(chatStore.getChat(chatId)!.sideChats![0]!.open, false);
 
-		// Session deleted while answering: the settle has nowhere to land.
+		// Sesión borrada mientras respondía: el asentamiento no tiene dónde caer.
 		answer("x");
 		const other = setup();
 		let release2!: () => void;

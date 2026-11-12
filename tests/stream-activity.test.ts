@@ -1,9 +1,9 @@
 /**
- * streamingToolActivity (2026-09-19, the "Writing a question…" fix): a
- * tool part stays input-streaming for its WHOLE execution (the bridge
- * defers input-available to tool_execution_end), so the transcript
- * activity line must name the ACTUAL running tool — the old code shimmered
- * "Writing a question…" over minutes-long greps.
+ * streamingToolActivity (2026-09-19, el arreglo de “Writing a question…”): una
+ * parte de herramienta sigue en input-streaming durante TODA su ejecución (el
+ * puente aplaza input-available hasta tool_execution_end), así que la línea de
+ * actividad de la transcripción debe nombrar la herramienta REAL en ejecución:
+ * el código antiguo hacía brillar “Writing a question…” sobre greps de minutos.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -43,16 +43,16 @@ describe("streamingToolActivity (the turn-activity label)", () => {
 	});
 
 	it("no activity once the call settles or the turn ends", () => {
-		// output-available = done executing → no shimmer (the transcript
-		// shows the settled card instead).
+		// output-available = terminó de ejecutarse → sin brillo (la transcripción
+		// muestra en su lugar la tarjeta asentada).
 		assert.equal(streamingToolActivity([msg("assistant", [toolPart("grep", "output-available")])]), null);
-		// the last message being the user's = nothing running.
+		// que el último mensaje sea del usuario = nada en ejecución.
 		assert.equal(streamingToolActivity([msg("user", [{ type: "text", text: "hi" }])]), null);
 		assert.equal(streamingToolActivity([]), null);
 	});
 
 	it("the SECOND streaming part wins only if the first settles — parts scan forward", () => {
-		// A settled call followed by a live one: the live one is the activity.
+		// Una llamada asentada seguida de una viva: la viva es la actividad.
 		const parts = [toolPart("read", "output-available"), toolPart("grep", "input-streaming")];
 		assert.equal(streamingToolActivity([msg("assistant", parts)]), "Searching file contents…");
 	});

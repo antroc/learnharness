@@ -5,8 +5,8 @@ import path from "node:path";
 import { after, test } from "node:test";
 import type { AssistantMessage, Model, StreamFunction } from "@earendil-works/pi-ai";
 
-// Isolate all disk/auth/recovery state BEFORE any application import. The
-// transport below is synthetic: no server, provider, credential, or network use.
+// Aísla todo el estado de disco/autenticación/recuperación ANTES de cualquier import de la
+// aplicación. El transporte de abajo es sintético: sin servidor, proveedor, credenciales ni red.
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), "lh-settings-admission-"));
 process.env.HOME = path.join(directory, "home");
 process.env.LH_DATA_DIR = path.join(directory, "data");
@@ -68,7 +68,7 @@ test("durable agent PUT refreshes live admission; increases drain, decreases wai
 	}
 	assert.equal(sources.length, 1, "rejected writes never admit queued work");
 
-	// An I/O failure must not refresh admission before the setting is durable.
+	// Un fallo de E/S no debe refrescar la admisión antes de que el ajuste sea duradero.
 	let limitReads = 0;
 	configureWorkerRequestAdmission(() => { limitReads++; return effectiveSettings().agent.workerRequestConcurrency; });
 	const readsBeforeFailure = limitReads;

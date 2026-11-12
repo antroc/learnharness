@@ -1,7 +1,7 @@
 /**
- * The status-color law (theme wave, 2026-11-04): error / success / warning
- * chrome uses the theme tokens (text-error, bg-success/15, …) — never a
- * fixed Tailwind palette class, which would ignore the active theme.
+ * La ley de los colores de estado (oleada de temas, 2026-11-04): el adorno de
+ * error / éxito / aviso usa los tokens del tema (text-error, bg-success/15, …),
+ * nunca una clase fija de la paleta de Tailwind, que ignoraría el tema activo.
  */
 
 import assert from "node:assert/strict";
@@ -18,7 +18,7 @@ describe("status colors are theme tokens", () => {
 				{ cwd: new URL("..", import.meta.url), encoding: "utf8" },
 			).trim();
 		} catch (e) {
-			// git grep exits 1 when nothing matches — the passing case.
+			// git grep sale con 1 cuando nada coincide: el caso que pasa.
 			if ((e as { status?: number }).status !== 1) throw e;
 		}
 		assert.equal(out, "");

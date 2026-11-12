@@ -9,8 +9,8 @@ import { createFauxCore } from "@earendil-works/pi-ai";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { ChatStore, JobStore } from "../src/core/ports.ts";
 
-// Set this test process's locations BEFORE importing config/agent modules.
-// Never read or modify the developer's actual home, keys or learning data.
+// Fija las ubicaciones de este proceso de pruebas ANTES de importar módulos de config/agentes.
+// Nunca leas ni modifiques el home real, las claves ni los datos de aprendizaje del desarrollador.
 const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "lh-source-access-")));
 const home = path.join(root, "home");
 const auth = path.join(root, "private", "custom-keys.json");
@@ -272,9 +272,9 @@ describe("source access: case-sensitive home-location variants", () => {
 		await fs.mkdir(upperConfig);
 		await link(cloudVault, path.join(upperConfig, "GCLOUD"), true);
 		const native = realpathSync.native;
-		// Make the missing lowercase spellings genuinely miss even on the
-		// host's case-insensitive volume. All other IO uses the real synthetic
-		// files. This models Linux lookup, not a claimed native Linux run.
+		// Haz que las grafías en minúsculas que faltan fallen de verdad incluso en el
+		// volumen sin distinción de mayúsculas del host. El resto de E/S usa los ficheros
+		// sintéticos reales. Esto modela la búsqueda de Linux, no una ejecución nativa en Linux.
 		t.mock.method(realpathSync, "native", (file: string) => {
 			if ([ssh, path.join(home, ".config")].some((prefix) => file === prefix || file.startsWith(prefix + path.sep))) {
 				throw Object.assign(new Error("synthetic case-sensitive ENOENT"), { code: "ENOENT" });

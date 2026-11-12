@@ -1,10 +1,10 @@
 /**
- * Session Find — the pure matcher plus the DOM seam (owner, 2026-10-13).
- * The DOM seam runs under linkedom (styles resolve to defaults: display
- * block/inline behave; the hidden/overlay paths are exercised through the
- * selectors and inline styles linkedom DOES evaluate). The highlight/
- * scroll lifecycle itself is browser-verified (SessionFind on the live
- * page), not re-implemented here.
+ * Session Find: el comparador puro más la frontera del DOM (responsable,
+ * 2026-10-13). La frontera del DOM se ejecuta con linkedom (los estilos se
+ * resuelven a sus valores por defecto: display block/inline se comportan; los
+ * caminos de oculto/overlay se ejercitan mediante los selectores y los estilos
+ * en línea que linkedom SÍ evalúa). El ciclo de vida del resaltado/scroll en sí
+ * se verifica en el navegador (SessionFind en la página real), no se reimplementa aquí.
  */
 import React from "react";
 (globalThis as Record<string, unknown>).React = React;
@@ -19,7 +19,7 @@ import { clearSessionFindHighlights, injectFindStyles, sessionFindHasForegroundL
 const dom = parseHTML("<html><head><style></style></head><body></body></html>");
 (globalThis as Record<string, unknown>).window = dom.window;
 (globalThis as Record<string, unknown>).document = dom.document;
-// linkedom ships no Highlight registry — stub the one field the clearer reads.
+// linkedom no trae registro de Highlight: sustituye el único campo que lee quien limpia.
 (globalThis as Record<string, unknown>).CSS = dom.window.CSS ?? { highlights: new Map() };
 
 describe("findSessionTextMatches — literal, case-insensitive, regex-inert", () => {
@@ -175,7 +175,7 @@ describe("clearSessionFindHighlights — browser-API shaped, linkedom-safe", () 
 	it("clears registered highlights without touching the DOM", () => {
 		mount(`<div data-session-find-root=""><p>needle</p></div>`);
 		const [range] = sessionFindRanges(document.body as unknown as HTMLElement, "needle");
-		// linkedom ships no Highlight constructor — the publisher guards on it.
+		// linkedom no trae constructor de Highlight: el publicador se protege frente a ello.
 		(CSS as { highlights?: Map<string, unknown> }).highlights = new Map([["lh-session-find", {}]]);
 		clearSessionFindHighlights();
 		assert.equal((CSS as { highlights?: Map<string, unknown> }).highlights!.size, 0);

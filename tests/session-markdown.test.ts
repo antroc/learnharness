@@ -1,10 +1,11 @@
 /**
- * The shared session-markdown engine (core/session-markdown.ts, owner ruling
- * 2026-09-27): ONE renderer for the extractor's source view and the future
- * user-facing session export — id-anchored speaker blocks, readable
- * quiz/recall/question blocks, one-line notes for other tools. Pinned here:
- * block shapes, anchor handling (on/off), title header, empty-message
- * skipping, and content parity with the coverage line builder.
+ * El motor compartido session-markdown (core/session-markdown.ts, decisión del
+ * responsable 2026-09-27): UN renderizador para la vista de fuente del
+ * extractor y la futura exportación de sesiones para el usuario: bloques de
+ * interlocutor anclados por id, bloques legibles de quiz/recall/pregunta, notas
+ * de una línea para las demás herramientas. Aquí se fijan: formas de bloque,
+ * manejo de anclas (on/off), cabecera de título, omisión de mensajes vacíos y
+ * paridad de contenido con el constructor de líneas de cobertura.
  */
 
 import assert from "node:assert/strict";
@@ -52,8 +53,8 @@ function result(
 	} as never;
 }
 
-/** An assistant message carrying one toolCall part (the practice join's
- *  call side — args live HERE, the results are bare acks). */
+/** Un mensaje del asistente con una parte toolCall (el lado de la llamada en la
+ *  unión de la práctica: los argumentos viven AQUÍ, los resultados son acuses a secas). */
 function callMsg(id: string, callId: string, name: string, args: unknown): LhMessage {
 	return {
 		id,
@@ -205,11 +206,11 @@ describe("sessionMarkdown", () => {
 	});
 
 	it("the seam split (owner, 2026-09-28): teacher prose renders in BOTH; the rest renders ONLY here", () => {
-		// The extraction view became TEACHER-PROSE-ONLY: its line builder
-		// yields lines for teacher text alone. This engine keeps the FULL
-		// session format for the future user-facing export — so parity now
-		// holds exactly for teacher prose, and everything else (learner,
-		// quiz, tool results) is markdown-only.
+		// La vista de extracción pasó a ser SOLO PROSA DEL PROFESOR: su constructor de líneas
+		// solo da líneas para el texto del profesor. Este motor conserva el formato COMPLETO
+		// de la sesión para la futura exportación para el usuario, así que ahora la paridad
+		// se cumple exactamente para la prosa del profesor, y todo lo demás (alumno,
+		// quiz, resultados de herramientas) es solo markdown.
 		const messages: LhMessage[] = [
 			user("u1", "teach me"),
 			teacher("a1", "The chain rule multiplies local rates."),

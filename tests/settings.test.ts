@@ -1,10 +1,11 @@
 /**
- * Tests for the settings record's core layer (settings-storage wave,
- * 2026-09-19): the delta schema's sanitizer (core/settings.ts) — strict
- * known-field validation with graceful degradation, unknown-key
- * preservation (forward-compat: a newer record must survive an older
- * app), and the factory defaults. The store/adapter tests live in
- * settings-store.test.ts; resolution in settings-resolution.test.ts.
+ * Pruebas de la capa del núcleo del registro de ajustes (oleada de
+ * almacenamiento de ajustes, 2026-09-19): el saneador del esquema delta
+ * (core/settings.ts): validación estricta de los campos conocidos con
+ * degradación elegante, conservación de las claves desconocidas
+ * (compatibilidad hacia delante: un registro más nuevo debe sobrevivir a una app
+ * más antigua) y los valores de fábrica. Las pruebas del almacén/adaptador viven
+ * en settings-store.test.ts; las de resolución en settings-resolution.test.ts.
  */
 
 import assert from "node:assert/strict";
@@ -22,20 +23,20 @@ describe("FACTORY_SETTINGS (the compiled factory layer)", () => {
 		assert.equal(CURRENT_SETTINGS_VERSION, 1);
 		assert.deepEqual(FACTORY_SETTINGS.general, { autoUpdate: true });
 		assert.deepEqual(FACTORY_SETTINGS.agent, { workerRequestConcurrency: 8 });
-		// wave 7 collapse: the master switch ONLY + the extraction-UX
-		// redesign's chunk budget (2026-09-24); doubled to 8192 with the
-		// digest-aware redesign (2026-09-30), then HALVED BACK to 4096
-		// with the message anchors (owner, 2026-10-13)
+		// reducción de la oleada 7: SOLO el interruptor general + el presupuesto de fragmentos
+		// del rediseño de la UX de extracción (2026-09-24); duplicado a 8192 con el
+		// rediseño consciente de los resúmenes (2026-09-30) y luego REDUCIDO A LA MITAD a 4096
+		// con las anclas de mensajes (responsable, 2026-10-13)
 		assert.deepEqual(FACTORY_SETTINGS.graph, { enabled: true, rendering: true, extractionChunkTokens: 4096 });
 		const a = FACTORY_SETTINGS.appearance;
 		assert.equal(a.theme, "default");
-		assert.equal(a.background, null); // the theme's own background, not a factory hex
+		assert.equal(a.background, null); // el fondo propio del tema, no un hex de fábrica
 		assert.deepEqual(a.colors, {});
 		assert.equal(a.fontFamily, null); // Source Sans 3
 		assert.equal(a.proseFontSize, 16);
 		assert.equal(a.sessionNameSerif, true);
 		assert.equal(a.mdRendering.headingWeight, 900);
-		assert.equal(a.mdRendering.boldColor, null); // white
+		assert.equal(a.mdRendering.boldColor, null); // blanco
 		assert.equal(a.mdRendering.italicColor, null);
 	});
 
@@ -123,10 +124,10 @@ describe("sanitizeUserSettings", () => {
 		assert.deepEqual(out.appearance, {});
 		assert.deepEqual(out.graph, {});
 
-		// extractionChunkTokens (extraction-UX redesign, 2026-09-24):
-		// clamp-never-reject — a finite positive value survives (fractions
-		// floor), below-floor values clamp UP to the cost floor, junk drops
-		// (the factory default resolves at read time).
+		// extractionChunkTokens (rediseño de la UX de extracción, 2026-09-24):
+		// acotar-sin-rechazar nunca: un valor positivo finito sobrevive (las fracciones
+		// se redondean hacia abajo), los valores bajo el suelo se suben al suelo de coste, la basura
+		// se descarta (el valor de fábrica se resuelve al leer).
 		const budget = sanitizeUserSettings({ version: 1, graph: { enabled: true, extractionChunkTokens: 2048 } });
 		assert.deepEqual(budget?.graph, { enabled: true, extractionChunkTokens: 2048 });
 		const fraction = sanitizeUserSettings({ version: 1, graph: { extractionChunkTokens: 1024.9 } });
@@ -193,10 +194,10 @@ describe("sanitizeUserSettings", () => {
 		const out = sanitizeUserSettings({
 			agent: {
 				models: {
-					teacher: { thinkingLevel: "low" }, // NOT a background role — drops
+					teacher: { thinkingLevel: "low" }, // NO es un rol de segundo plano: se descarta
 					researcher: { model: { provider: "openrouter", id: "x/y" } },
-					extractor: { model: { provider: 3, id: "x/y" }, thinkingLevel: "high" }, // bad model, keeps thinking
-					auditor: { thinkingLevel: "banana" }, // invalid level → empty override drops
+					extractor: { model: { provider: 3, id: "x/y" }, thinkingLevel: "high" }, // modelo incorrecto, conserva el razonamiento
+					auditor: { thinkingLevel: "banana" }, // nivel no válido → la sustitución vacía se descarta
 				},
 			},
 		});

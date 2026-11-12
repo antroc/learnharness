@@ -112,7 +112,7 @@ it("a swallowed session-unlink failure retains placement and folders, reports pa
 	const organization = fs.readFileSync(SOURCE_ORGANIZATION_FILE, "utf8");
 	const deleteChat = stores.chatStore.deleteChat;
 	try {
-		stores.chatStore.deleteChat = () => false; // the store swallows unlink/I/O errors
+		stores.chatStore.deleteChat = () => false; // el almacén se traga los errores de unlink/E/S
 		const response = await remove([chat.id, "zero"], ["outer", "inner", "empty"], true);
 		assert.equal(response.status, 500);
 		assert.match((await response.json()).error, /Some entries may already have been removed/);

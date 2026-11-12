@@ -8,7 +8,7 @@ import { ChainTableOverlay } from "../components/chain-table.tsx";
 import { ServerEventsProvider } from "../components/server-events.tsx";
 import { InteractionLayersProvider } from "../components/interaction-layers.tsx";
 const dom = parseHTML("<html><head></head><body></body></html>");
-// linkedom omits selection; native browser behavior is covered by the UI check.
+// linkedom omite la selección; el comportamiento nativo del navegador lo cubre la comprobación de UI.
 dom.window.HTMLInputElement.prototype.select = function () {};
 Object.assign(globalThis, { window: dom.window, document: dom.document, Element: dom.window.Element, IS_REACT_ACT_ENVIRONMENT: true });
 const originalFetch = globalThis.fetch;

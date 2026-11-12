@@ -38,8 +38,8 @@ function assertAppearance(badge: HTMLElement, text: string, color?: string) {
 	}
 }
 
-// Dynamic loading lets the native/source regression pins run during the RED
-// phase too, before the shared component exists.
+// La carga dinámica permite que las fijaciones de regresión nativas/de fuente se ejecuten
+// también en la fase ROJA, antes de que exista el componente compartido.
 it("StatusBadge renders arbitrary text literally, without markdown, HTML, icons or interactive/live semantics", async () => {
 	const { StatusBadge } = await import("../components/ui/status-badge.tsx");
 	const text = '<img src=x onerror="alert(1)"> **literal** $x^2$ & ready';

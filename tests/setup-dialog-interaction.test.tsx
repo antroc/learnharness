@@ -10,8 +10,8 @@ import { InteractionLayersProvider } from "../components/interaction-layers.tsx"
 import { installModalDom } from "./modal-dom.ts";
 import type { ModelCatalogEntry } from "../src/core/contracts/models.ts";
 
-// As in render-update-banner: mount real React handlers against an isolated
-// DOM. Fetch is wholly stubbed; no key, settings, or session writes can escape.
+// Como en render-update-banner: monta manejadores reales de React sobre un DOM aislado.
+// Fetch está totalmente sustituido; no puede escaparse ninguna escritura de claves, ajustes ni sesiones.
 const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, {
 	window: dom.window,
@@ -177,9 +177,9 @@ describe("setup polish interactions", () => {
 	it("the vision slot filters out built-in text-only models (image-capable or custom only)", async () => {
 		await mount({ keyed: true });
 		await click(element('[data-testid="setup-trigger-vision"]'));
-		// The text-only openrouter fixture is neither image-capable nor a custom-
-		// endpoint model, so the vision slot filters it out (built-ins must report
-		// image input; only custom models stay selectable when capability is unknown).
+		// La fixture de openrouter solo de texto no admite imágenes ni es un modelo de endpoint
+		// personalizado, así que la ranura de visión la filtra (los integrados deben declarar entrada
+		// de imagen; solo los modelos personalizados siguen seleccionables si se desconoce la capacidad).
 		const menu = element('[data-testid="setup-menu-vision"]');
 		assert.ok(!menu.textContent?.includes("fixture-text"));
 		assert.ok(menu.textContent?.includes("No models match."));

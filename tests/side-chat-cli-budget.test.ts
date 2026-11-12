@@ -1,5 +1,5 @@
-/** CLI capacity is session-reported; a compaction target is not its window.
- * All provider work is synthetic. The executable marker is NEVER launched. */
+/** La capacidad de la CLI la declara la sesión; un objetivo de compactación no es su ventana.
+ * Todo el trabajo del proveedor es sintético. El marcador ejecutable NUNCA se lanza. */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";

@@ -11,8 +11,8 @@ afterEach(async () => { await dispose?.(); dispose = undefined; });
 
 async function fixture(recording: boolean, mode: "popover" | "panel" = "popover") {
 	const dom = parseHTML("<html><body><div id='root'></div></body></html>");
-	// Linkedom has no native oninput property; advertise modern input
-	// support so React does not select its legacy IE value-change polyfill.
+	// Linkedom no tiene la propiedad nativa oninput; anuncia soporte de input moderno
+	// para que React no elija su polyfill heredado de IE de cambio de valor.
 	Object.defineProperty(dom.document, "oninput", { configurable: true, value: null });
 	const previous = new Map<string, PropertyDescriptor | undefined>();
 	for (const [key, value] of Object.entries({ React, window: dom.window, document: dom.document,

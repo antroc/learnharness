@@ -1,8 +1,9 @@
 /**
- * The settings wave's pure layers (thin settings wave): the appearance →
- * CSS-variable mapping (the section must actually DO something), the
- * Colors block's override compose helpers, the agent section's compose helpers
- * (the replace-whole PUT discipline), and the keyboard overrides map.
+ * Las capas puras de la oleada de ajustes (oleada de ajustes ligeros): la
+ * correspondencia apariencia → variables CSS (la sección tiene que HACER algo
+ * de verdad), los auxiliares de composición de sustituciones del bloque
+ * Colors, los auxiliares de composición de la sección de agentes (la
+ * disciplina del PUT de sustituir-entero) y el mapa de sustituciones del teclado.
  */
 
 import assert from "node:assert/strict";
@@ -229,7 +230,7 @@ describe("agent section compose helpers — the replace-whole PUT body", () => {
 		const prev: ModelsSettings = { strong: { model: { provider: "zai", id: "glm-4.7-flash" }, thinkingLevel: "high" } };
 		const after = composeSlotModel(prev, "strong", "", "", "high");
 		assert.deepEqual(after.strong, { model: { provider: "zai", id: "glm-4.7-flash" }, thinkingLevel: "high" }, "model carried, thinking kept");
-		// clearing thinking keeps the model
+		// limpiar el razonamiento conserva el modelo
 		const after2 = composeSlotModel(prev, "strong", "zai", "glm-4.7-flash", "");
 		assert.deepEqual(after2.strong, { model: { provider: "zai", id: "glm-4.7-flash" } }, "thinking dropped, model kept");
 	});
@@ -238,7 +239,7 @@ describe("agent section compose helpers — the replace-whole PUT body", () => {
 		const withPin: AgentSettings = { search: { engine: "tavily" } };
 		const cleared = composeSearchEngine(withPin, null);
 		assert.equal(cleared.search, undefined);
-		// no pin to begin with → carried verbatim
+		// sin fijación de partida → se mantiene tal cual
 		assert.deepEqual(composeSearchEngine({ tools: { demo: true } }, null).tools, { demo: true });
 	});
 
@@ -281,8 +282,8 @@ describe("classifyKeys — the Keys section's two-group projection", () => {
 
 	it("OpenRouter is UN-pinned (wave-5 owner ruling): no row when absent, a row when stored", () => {
 		const none = classifyKeys([], providers);
-		assert.equal(none.providerRows.length, 0); // nothing synthesized
-		assert.ok(none.addable.some((p) => p.id === "openrouter")); // it's just an Add option
+		assert.equal(none.providerRows.length, 0); // nada sintetizado
+		assert.ok(none.addable.some((p) => p.id === "openrouter")); // es solo una opción de Add
 		const stored = classifyKeys([synth("OPENROUTER_API_KEY", true)], providers);
 		assert.equal(stored.providerRows.length, 1);
 		assert.equal(stored.providerRows[0]!.id, "OPENROUTER_API_KEY");
@@ -293,7 +294,7 @@ describe("classifyKeys — the Keys section's two-group projection", () => {
 		const out = classifyKeys([synth("GROQ_API_KEY", true)], providers);
 		assert.equal(out.providerRows.length, 1);
 		assert.equal(out.providerRows[0]!.id, "GROQ_API_KEY");
-		// the Add dropdown no longer offers groq
+		// el desplegable Add ya no ofrece groq
 		assert.ok(!out.addable.some((p) => p.id === "groq"));
 		assert.ok(out.addable.some((p) => p.id === "deepseek"));
 	});
@@ -365,7 +366,7 @@ describe("first-run gate — slotsConfigured + setupStage (model-slots wave)", (
 			true,
 			"all three picked",
 		);
-		// a thinking-only pin does NOT configure the slot
+		// una fijación solo de razonamiento NO configura la ranura
 		assert.equal(
 			slotsConfigured({ strong: { thinkingLevel: "low" }, cheap: { thinkingLevel: "low" }, vision: { thinkingLevel: "low" } }),
 			false,
@@ -382,7 +383,7 @@ describe("first-run gate — slotsConfigured + setupStage (model-slots wave)", (
 });
 
 describe("sectionedSegments — actual per-agent prompt membership", () => {
-	// Each agent lists its own shared subset; the view lists their union ONCE.
+	// Cada agente lista su propio subconjunto compartido; la vista lista su unión UNA vez.
 	const view = {
 		prober: [
 			{ path: "system-prompt.md", sourceText: "b", overrideText: null, enabled: false, shared: true },
@@ -412,7 +413,7 @@ describe("sectionedSegments — actual per-agent prompt membership", () => {
 		const all = sectionedSegments(view).flatMap((s) => s.segments.map((seg) => seg.path));
 		assert.equal(all.filter((p) => p === "system-prompt.md").length, 1);
 		assert.equal(all.filter((p) => p === "shared/10-personality.md").length, 1);
-		// every path unique — no chunk listed twice
+		// todas las rutas son únicas: ningún fragmento aparece dos veces
 		assert.equal(new Set(all).size, all.length);
 	});
 
@@ -421,7 +422,7 @@ describe("sectionedSegments — actual per-agent prompt membership", () => {
 		assert.ok(teacher && prober && practice && shared, "all four sections present");
 		assert.deepEqual(teacher.segments.map((s) => s.path), ["teacher/05-method.md", "teacher/10-planning.md"]);
 		assert.deepEqual(prober.segments.map((s) => s.path), ["prober/10-probe-doctrine.md"]);
-		// assembly order: the base file first, then the shared fragments
+		// orden de ensamblado: primero el fichero base y luego los fragmentos compartidos
 		assert.deepEqual(shared.segments.map((s) => s.path), ["system-prompt.md", "shared/20-question-tools.md", "shared/10-personality.md"]);
 		assert.deepEqual(practice.segments.map((s) => s.path), ["practice/00-base.md", "practice/10-doctrine.md"]);
 		assert.equal(practice.segments[1]!.overrideText, "practice custom");
@@ -434,7 +435,7 @@ describe("sectionedSegments — actual per-agent prompt membership", () => {
 		assert.equal(shared.segments[0]!.usageHint, "Used by Teacher and Prober");
 		assert.equal(shared.segments[2]!.usageHint, "Used by Teacher, Prober and Practice");
 		assert.equal(shared.segments[2]!.enabled, true, "in-use state is not replaced by usage");
-		// A synthetic new path/membership proves there is no duplicated allowlist.
+		// Una ruta/pertenencia nueva sintética demuestra que no hay lista de permitidos duplicada.
 		const fragment = { path: "shared/99-new.md", sourceText: "new", overrideText: null, enabled: false, shared: true };
 		const changed = { teacher: [fragment], prober: [fragment], practice: [fragment] };
 		assert.equal(sectionedSegments(changed).at(-1)!.segments[0]!.usageHint, "Used by Teacher, Prober and Practice");
@@ -448,7 +449,7 @@ describe("sectionedSegments — actual per-agent prompt membership", () => {
 	});
 });
 
-// ─── the quizzing-mechanics segmented control (owner 2026-09-27) ───────────
+// ─── el control segmentado de la mecánica de preguntas (responsable 2026-09-27) ─
 
 describe("composeQuizMechanics (the segmented control's write)", () => {
 	it("free recall writes explain:true; multiple choice writes explain:false — nothing else moves", () => {

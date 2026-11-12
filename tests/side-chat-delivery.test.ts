@@ -1,6 +1,7 @@
-/** Offline regressions: new raw side exchanges enter main history once,
- * after selected-request admission, without waiting for helper completion or
- * changing earlier context. Late activity stays queued for the next request. */
+/** Regresiones sin conexión: los intercambios laterales en bruto nuevos entran en el
+ * historial principal una vez, tras la admisión de la petición seleccionada, sin
+ * esperar a que termine el auxiliar ni cambiar el contexto anterior. La actividad
+ * tardía queda en cola para la siguiente petición. */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -144,10 +145,10 @@ describe("reasoning option × side-request composition", () => {
 			let reads = 0; let agent: ReturnType<typeof createTeacherAgent>;
 			const validations: Array<{ hasLearner: boolean; references: number; off: number; on: number }> = [];
 			const contexts: TranscriptContext[] = [];
-			// FauxCore synthesizes nonzero prompt usage even when a response asks
-			// for zero. Use a genuinely zero-usage synthetic stream here so an
-			// internal tool call cannot hide the retained post-marker reasoning
-			// behind a newer usage anchor and accidentally make ON/OFF identical.
+			// FauxCore sintetiza un uso de prompt distinto de cero aunque una respuesta pida
+			// cero. Usa aquí un stream sintético con uso realmente cero para que una
+			// llamada interna a herramienta no pueda ocultar el razonamiento conservado tras el marcador
+			// detrás de un ancla de uso más nueva y hacer idénticos por accidente ON/OFF.
 			const streamFn: PiEngine["streamFn"] = (_model, context) => {
 				contexts.push(structuredClone(context));
 				const stream = createAssistantMessageEventStream();

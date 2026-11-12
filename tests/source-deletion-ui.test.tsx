@@ -14,15 +14,15 @@ const dom = parseHTML("<html><body></body></html>");
 Object.assign(globalThis, { window: dom.window, document: dom.document, Element: dom.window.Element, HTMLElement: dom.window.HTMLElement, CustomEvent: dom.window.CustomEvent, IS_REACT_ACT_ENVIRONMENT: true });
 const restoreDom = installModalDom(dom);
 after(restoreDom);
-// linkedom does not implement native checkbox activation. Preserve click
-// dispatch while supplying the browser's pre-click checked-state transition.
+// linkedom no implementa la activación nativa de las casillas. Conserva el despacho
+// del clic y aporta la transición de estado marcado previa al clic del navegador.
 const nativeClick = dom.window.HTMLInputElement.prototype.click;
 dom.window.HTMLInputElement.prototype.click = function () { if (this.type === "checkbox") this.checked = !this.checked; nativeClick.call(this); };
 let root: Root | undefined, host: HTMLDivElement | undefined;
 const originalFetch = globalThis.fetch;
 afterEach(async () => {
 	await act(async () => { root?.unmount(); }); root = undefined;
-	// FocusScope dispatches its unmount event after React cleanup.
+	// FocusScope despacha su evento de desmontaje después de la limpieza de React.
 	await new Promise(resolve => setTimeout(resolve, 5));
 	host?.remove(); globalThis.fetch = originalFetch;
 });

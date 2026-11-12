@@ -1,16 +1,17 @@
 /**
- * The cross-surface settings signal (fix wave, owner ruling 2026-09-22):
- * writers dispatch lh:settings-saved {section} after a successful PUT,
- * readers re-read. These tests pin the SEAM's contract — delivery,
- * section detail, unsubscribe, and junk-event tolerance — against a bare
- * EventTarget standing in for window (Node has no DOM; the reader WIRING
- * is verified live per dev-verification.md).
+ * La señal de ajustes entre superficies (oleada de arreglos, decisión del
+ * responsable 2026-09-22): los escritores despachan lh:settings-saved {section}
+ * tras un PUT correcto y los lectores vuelven a leer. Estas pruebas fijan el
+ * contrato de la FRONTERA (entrega, detalle de sección, cancelar la
+ * suscripción y tolerancia a eventos basura) contra un EventTarget a secas que
+ * hace las veces de window (Node no tiene DOM; el CABLEADO de los lectores se
+ * verifica en vivo según dev-verification.md).
  */
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 
-// A DOM-less window: EventTarget is all the seam touches. The module
-// imports react (harmless) and reads window at CALL time, not import time.
+// Una window sin DOM: EventTarget es todo lo que toca la frontera. El módulo
+// importa react (inofensivo) y lee window al LLAMAR, no al importar.
 const realWindow = (globalThis as { window?: unknown }).window;
 (globalThis as { window: unknown }).window = new EventTarget();
 
@@ -57,7 +58,7 @@ describe("settings-signal — the seam's contract", () => {
 	it("a foreign CustomEvent on the same name with no section detail is ignored", () => {
 		const got: string[] = [];
 		const off = onSettingsSaved((section) => got.push(section));
-		// e.g. some other dispatch path that forgot the detail payload
+		// p. ej. algún otro camino de despacho que olvidó la carga de detail
 		globalThis.window.dispatchEvent(
 			new CustomEvent(SETTINGS_SAVED_EVENT, { detail: undefined }),
 		);

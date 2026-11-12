@@ -1,10 +1,10 @@
 /**
- * Tests for the resolution layer (settings-storage wave, 2026-09-19;
- * model-slots wave 2026-09-20; BYOK all-the-way-down wave 2026-09-22):
- * core/settings-resolution.ts — the delta→concrete projection. There are
- * NO factory pins anymore: a model chain that ends empty resolves to
- * null/undefined, and the per-need refusal gates (turn, job spawn,
- * extraction) fire on exactly that.
+ * Pruebas de la capa de resolución (oleada de almacenamiento de ajustes,
+ * 2026-09-19; oleada de ranuras de modelo 2026-09-20; oleada de BYOK hasta el
+ * fondo 2026-09-22): core/settings-resolution.ts: la proyección delta→concreto.
+ * YA NO hay fijaciones de fábrica: una cadena de modelos que termina vacía se
+ * resuelve a null/undefined, y las barreras de rechazo por necesidad (turno,
+ * lanzar tarea, extracción) saltan exactamente con eso.
  */
 
 import assert from "node:assert/strict";
@@ -42,8 +42,8 @@ describe("resolveSettings", () => {
 		assert.deepEqual(eff.agent.tools, {});
 		assert.deepEqual(eff.agent.prompts, {});
 		assert.deepEqual(eff.agent.search, {});
-		// BYOK (owner, 2026-09-22): no factory floor — every role undefined,
-		// every slot null. No phantom ids anywhere.
+		// BYOK (responsable, 2026-09-22): sin suelo de fábrica: todos los roles undefined,
+		// todas las ranuras null. Ningún id fantasma en ninguna parte.
 		for (const role of BACKGROUND_MODEL_ROLES) {
 			assert.equal(eff.agent.models[role], undefined, role);
 		}
@@ -57,9 +57,9 @@ describe("resolveSettings", () => {
 		assert.equal(eff.appearance.proseFontSize, 16);
 		assert.equal(eff.appearance.sessionNameSerif, true);
 		assert.equal(eff.appearance.mdRendering.headingWeight, 900);
-		// wave 7 collapse: the master switch ONLY + the redesign's chunk
-		// budget — absent record resolves the factory 4096 (halved back
-		// from the digest-era 8192, owner, 2026-10-13)
+		// reducción de la oleada 7: SOLO el interruptor general + el presupuesto de fragmentos
+		// del rediseño: un registro ausente resuelve el 4096 de fábrica (reducido a la mitad
+		// desde el 8192 de la época de los resúmenes, responsable, 2026-10-13)
 		assert.deepEqual(eff.graph, { enabled: true, rendering: true, extractionChunkTokens: 4096 });
 	});
 
@@ -81,8 +81,8 @@ describe("resolveSettings", () => {
 		assert.deepEqual(eff.agent.models.researcher, {
 			provider: "openrouter",
 			id: "qwen/qwen3.8-flash",
-			// thinking NOT overridden and no cheap slot → UNSET (the engine
-			// build resolves it from DEFAULT_THINKING_ORDER, not a pin).
+			// razonamiento NO sustituido y sin ranura barata → SIN FIJAR (la construcción
+			// del motor lo resuelve con DEFAULT_THINKING_ORDER, no con una fijación).
 			thinkingLevel: undefined,
 		});
 		assert.deepEqual(eff.agent.search, { engine: "tavily" });
@@ -92,13 +92,13 @@ describe("resolveSettings", () => {
 		assert.deepEqual(eff.appearance.colors, { warning: "#eeeeee" });
 		assert.equal(eff.appearance.proseFontSize, 20);
 		assert.equal(eff.appearance.mdRendering.headingWeight, 600);
-		// wave 7 collapse: the section IS the master switch (absent budget
-		// field = factory 4096 — a pre-redesign record resolves cleanly).
+		// reducción de la oleada 7: la sección ES el interruptor general (campo de presupuesto
+		// ausente = 4096 de fábrica: un registro anterior al rediseño se resuelve limpiamente).
 		assert.deepEqual(eff.graph, { enabled: false, rendering: true, extractionChunkTokens: 4096 });
-		// The DISPLAY split (owner, 2026-10-06): extraction off leaves the
-		// rendering switch ON — the data channel and the view are separate.
+		// La separación de la VISTA (responsable, 2026-10-06): la extracción desactivada deja el
+		// interruptor de render en ON: el canal de datos y la vista van por separado.
 		assert.equal(renderingEnabled(eff.graph), true);
-		// The chunk budget rides the same resolution: stored value wins.
+		// El presupuesto de fragmentos sigue la misma resolución: gana el valor guardado.
 		const budgeted = resolveSettings({ version: 1, graph: { extractionChunkTokens: 2000 } });
 		assert.deepEqual(budgeted.graph, { enabled: true, rendering: true, extractionChunkTokens: 2000 });
 	});
@@ -109,7 +109,7 @@ describe("resolveSettings", () => {
 		assert.equal(eff.graph.enabled, true, "the data channel is untouched");
 		assert.equal(renderingEnabled(eff.graph), false);
 		assert.equal(extractionEnabled(eff.graph), true);
-		// absent = factory ON (the home defaults to the canvas)
+		// ausente = ON de fábrica (el inicio muestra por defecto el lienzo)
 		assert.equal(resolveSettings({ version: 1, graph: {} }).graph.rendering, true);
 	});
 
@@ -125,19 +125,19 @@ describe("resolveSettings", () => {
 			thinkingLevel: "medium",
 		});
 		const bare = resolveSettings({ version: 1, agent: { models: { extractor: { thinkingLevel: "medium" } } } });
-		assert.equal(bare.agent.models.extractor, undefined); // no model anywhere → chain empty
+		assert.equal(bare.agent.models.extractor, undefined); // ningún modelo en ninguna parte → cadena vacía
 	});
 
 	it("resolveModelSpec is field-independent per override aspect", () => {
 		const slots = { cheap: { model: { provider: "zai", id: "slot-model" }, thinkingLevel: "high" as const } };
 		assert.deepEqual(
 			resolveModelSpec("auditor", { model: { provider: "other", id: "x" } }, slots),
-			{ provider: "other", id: "x", thinkingLevel: "high" }, // override model + slot level
+			{ provider: "other", id: "x", thinkingLevel: "high" }, // modelo de la sustitución + nivel de la ranura
 		);
 		assert.deepEqual(resolveModelSpec("auditor", { thinkingLevel: "max" }, slots), {
 			provider: "zai",
 			id: "slot-model",
-			thinkingLevel: "max", // override level + slot model
+			thinkingLevel: "max", // nivel de la sustitución + modelo de la ranura
 		});
 		assert.equal(resolveModelSpec("auditor", undefined, {}), undefined);
 	});
@@ -149,11 +149,11 @@ describe("the slot tier (BYOK, owner 2026-09-22)", () => {
 		for (const role of ["researcher", "demoBuilder", "extractor", "auditor"] as const) {
 			assert.deepEqual(
 				eff.agent.models[role],
-				{ provider: "zai", id: "glm-5.3-flash", thinkingLevel: undefined }, // level unset → default order
+				{ provider: "zai", id: "glm-5.3-flash", thinkingLevel: undefined }, // nivel sin fijar → orden por defecto
 				role,
 			);
 		}
-		// other tiers untouched (empty)
+		// los demás niveles, intactos (vacíos)
 		assert.equal(eff.agent.models.visualMaker, undefined);
 	});
 
@@ -166,7 +166,7 @@ describe("the slot tier (BYOK, owner 2026-09-22)", () => {
 		assert.deepEqual(eff.agent.models.researcher, {
 			provider: "groq",
 			id: "r-override",
-			thinkingLevel: "high", // slot level rides the override's model
+			thinkingLevel: "high", // el nivel de la ranura va con el modelo de la sustitución
 		});
 		assert.deepEqual(eff.agent.models.auditor, { provider: "zai", id: "r-slot", thinkingLevel: "high" });
 	});
@@ -175,10 +175,10 @@ describe("the slot tier (BYOK, owner 2026-09-22)", () => {
 		const eff = resolveSettings({ version: 1, models: { vision: { model: { provider: "zai", id: "v-model" }, thinkingLevel: "max" } } });
 		assert.deepEqual(eff.agent.models.visualMaker, { provider: "zai", id: "v-model", thinkingLevel: "max" });
 		assert.deepEqual(eff.models.vision, { provider: "zai", id: "v-model", thinkingLevel: "max" });
-		// a stored level WITHOUT a model is inert (kept on disk, no phantom default)
+		// un nivel guardado SIN modelo es inerte (se conserva en disco, sin valor por defecto fantasma)
 		const inert = resolveSettings({ version: 1, models: { strong: { thinkingLevel: "medium" } } });
 		assert.equal(inert.models.strong, null);
-		assert.equal(inert.agent.models.researcher, undefined); // strong's emptiness must not leak into other tiers
+		assert.equal(inert.agent.models.researcher, undefined); // el vacío de strong no debe filtrarse a los demás niveles
 	});
 
 	it("resolveSlot: configured iff the model is present", () => {
@@ -190,7 +190,7 @@ describe("the slot tier (BYOK, owner 2026-09-22)", () => {
 		assert.deepEqual(resolveSlot({ model: { provider: "zai", id: "m" } }), {
 			provider: "zai",
 			id: "m",
-			thinkingLevel: undefined, // unset → resolved from the default order at build
+			thinkingLevel: undefined, // sin fijar → se resuelve con el orden por defecto al construir
 		});
 		assert.equal(resolveSlot({ thinkingLevel: "medium" }), null);
 		assert.equal(resolveSlot(undefined), null);
@@ -201,19 +201,19 @@ describe("the slot tier (BYOK, owner 2026-09-22)", () => {
 			version: 1,
 			models: { strong: { model: { provider: "zai", id: "strong-model" } } },
 		};
-		// conversation pair: slot only (their override is chat-controlled)
+		// par de conversación: solo la ranura (su sustitución la controla el chat)
 		assert.deepEqual(resolveRoleSpec("prober", record), {
 			provider: "zai",
 			id: "strong-model",
-			thinkingLevel: undefined, // level unset → default order at build
+			thinkingLevel: undefined, // nivel sin fijar → orden por defecto al construir
 		});
-		// background role override beats the slot
+		// la sustitución del rol en segundo plano gana a la ranura
 		const withOverride: UserSettings = {
 			...record,
 			agent: { models: { researcher: { model: { provider: "groq", id: "r" } } } },
 		};
 		assert.deepEqual(resolveRoleSpec("researcher", withOverride), { provider: "groq", id: "r", thinkingLevel: undefined });
-		// pdfReader rides the vision slot (never a background override)
+		// pdfReader va con la ranura de visión (nunca una sustitución de segundo plano)
 		const visionRecord: UserSettings = {
 			version: 1,
 			models: { vision: { model: { provider: "zai", id: "v" }, thinkingLevel: "low" } },
@@ -241,12 +241,12 @@ describe("resolveConversationSpec (the turn gate's chain)", () => {
 			resolveConversationSpec({ thinkingLevel: "high" }, { provider: "zai", id: "s", thinkingLevel: "low" }),
 			{ provider: "zai", id: "s", thinkingLevel: "high" },
 		);
-		// chat.model present, strong unset: level may still ride the chat alone
+		// chat.model presente, strong sin fijar: el nivel aún puede ir solo con el chat
 		assert.deepEqual(
 			resolveConversationSpec({ model: { provider: "groq", id: "c" }, thinkingLevel: "max" }, null),
 			{ provider: "groq", id: "c", thinkingLevel: "max" },
 		);
-		// nothing set anywhere: unset level, not a phantom one
+		// nada fijado en ninguna parte: nivel sin fijar, no uno fantasma
 		assert.deepEqual(resolveConversationSpec({ model: { provider: "groq", id: "c" } }, null), {
 			provider: "groq",
 			id: "c",

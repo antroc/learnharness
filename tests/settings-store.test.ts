@@ -1,12 +1,14 @@
 /**
- * Tests for the settings STORE (settings-storage wave, 2026-09-19):
- * src/store/settings.ts — the record's fs adapter. Uses a fresh isolated
- * HOME/data/auth before importing any store or config; never touches the
- * repo's data or shares a recovery/store directory with another process.
+ * Pruebas del ALMACÉN de ajustes (oleada de almacenamiento de ajustes,
+ * 2026-09-19): src/store/settings.ts: el adaptador de sistema de ficheros del
+ * registro. Usa HOME/data/auth nuevos y aislados antes de importar cualquier
+ * almacén o la configuración; nunca toca los datos del repo ni comparte un
+ * directorio de recuperación/almacén con otro proceso.
  *
- * (The legacy default-settings.json fold and the chat-section facade died
- * with per-session models, owner 2026-09-28 — sessions own their model
- * from birth, stamped from the strong slot server-side.)
+ * (El plegado heredado de default-settings.json y la fachada de la sección chat
+ * murieron con los modelos por sesión, responsable 2026-09-28: las sesiones son
+ * dueñas de su modelo desde que nacen, sellado en el servidor a partir de la
+ * ranura fuerte).
  */
 
 import assert from "node:assert/strict";
@@ -93,8 +95,8 @@ describe("the settings store", () => {
 
 	it("a chat section on disk is IGNORED — the field died with per-session models (owner, 2026-09-28)", () => {
 		fs.mkdirSync(path.dirname(SETTINGS_FILE), { recursive: true });
-		// A fossil `chat` section (the old default-settings record) must not
-		// resurrect through the sanitizer — the key is simply gone.
+		// Una sección `chat` fósil (el antiguo registro default-settings) no debe
+		// resucitar a través del saneador: la clave simplemente desaparece.
 		fs.writeFileSync(
 			SETTINGS_FILE,
 			JSON.stringify({
@@ -107,7 +109,7 @@ describe("the settings store", () => {
 		const out = readSettings();
 		assert.ok(out);
 		assert.equal("chat" in out, false, "the chat section never surfaces");
-		assert.deepEqual(out.graph, { enabled: true }); // siblings survive
+		assert.deepEqual(out.graph, { enabled: true }); // las hermanas sobreviven
 	});
 
 	it("corrupt settings.json → null (first-boot semantics), never throws", () => {

@@ -1,11 +1,12 @@
 /**
- * Store rename failures (#403), plus the explicit Windows compatibility
- * policy for previously in-place vs previously atomic writers.
- * For each store, the save is made to fail at the rename:
- * the save must throw and the file on disk must be exactly what it was,
- * with no temp file left. Stores that write in place would never reach
- * the rename, so their saves would succeed and this test would fail. Runs
- * under its own isolated LH_DATA_DIR (set before any config-loading import).
+ * Fallos de renombrado en los almacenes (#403), más la política explícita de
+ * compatibilidad con Windows para escritores antes in situ frente a antes
+ * atómicos. Para cada almacén, se hace fallar el guardado en el renombrado:
+ * el guardado debe lanzar error y el fichero en disco debe quedar exactamente
+ * como estaba, sin ningún fichero temporal. Los almacenes que escriben in situ
+ * nunca llegarían al renombrado, así que sus guardados tendrían éxito y esta
+ * prueba fallaría. Se ejecuta con su propio LH_DATA_DIR aislado (fijado antes
+ * de cualquier import que cargue la configuración).
  */
 
 import assert from "node:assert/strict";
@@ -35,7 +36,7 @@ after(() => fs.rmSync(TMP_DATA, { recursive: true, force: true }));
 
 const snapshot = (file: string) => (fs.existsSync(file) ? fs.readFileSync(file, "utf-8") : null);
 
-/** Seed `file` with one good save, then make the next save's rename fail. */
+/** Siembra `file` con un guardado correcto y luego hace fallar el renombrado del siguiente. */
 function assertAllOrNothing(t: TestContext, file: string, seed: () => void, save: () => void): void {
 	seed();
 	const before = snapshot(file);

@@ -1,10 +1,11 @@
 /**
- * Tests for the section parsers (settings-storage wave, 2026-09-19):
- * src/server/settings-body.ts — general/agent/appearance/graph strictness.
- * Same discipline as parseSettingsBody (its tests live in
- * default-settings.test.ts): every known field is strict (bad type/shape
- * → 400-style error, never a silent clamp), unknown keys drop, absent
- * fields mean absent overrides. Pure — no fs.
+ * Pruebas de los analizadores de secciones (oleada de almacenamiento de
+ * ajustes, 2026-09-19): src/server/settings-body.ts: rigor de
+ * general/agent/appearance/graph. La misma disciplina que parseSettingsBody
+ * (sus pruebas viven en default-settings.test.ts): todo campo conocido es
+ * estricto (tipo/forma incorrectos → error de estilo 400, nunca un acotado
+ * silencioso), las claves desconocidas se descartan, los campos ausentes
+ * significan sustituciones ausentes. Puro: sin sistema de ficheros.
  */
 
 import assert from "node:assert/strict";
@@ -76,8 +77,8 @@ describe("parseAgentSettingsBody", () => {
 		assert.deepEqual(r.settings.prompts, { "system-prompt.md": true });
 		assert.equal(parseAgentSettingsBody({ tools: { quiz: "no" } }).ok, false);
 		assert.equal(parseAgentSettingsBody({ prompts: { "x.md": 1 } }).ok, false);
-		// switch validity (segment membership, file presence) is the ROUTE's
-		// cross-validation — the parser only sees shapes.
+		// la validez del interruptor (pertenencia al segmento, presencia del fichero) es la
+		// validación cruzada de la RUTA: el analizador solo ve formas.
 	});
 
 	it("search: recognizes Exa, Firecrawl, and Ollama and rejects unknown engines", () => {
@@ -159,13 +160,13 @@ describe("parseAppearanceSettingsBody", () => {
 		for (const body of cases) {
 			assert.equal(parseAppearanceSettingsBody(body).ok, false, JSON.stringify(body));
 		}
-		// boundary values that MUST pass: 12 and 24, 100 and 900, #fff
+		// valores límite que DEBEN pasar: 12 y 24, 100 y 900, #fff
 		assert.ok(parseAppearanceSettingsBody({ proseFontSize: 12 }));
 		assert.ok(parseAppearanceSettingsBody({ proseFontSize: 24 }));
 		assert.ok(parseAppearanceSettingsBody({ mdRendering: { headingWeight: 100 } }));
 		assert.ok(parseAppearanceSettingsBody({ mdRendering: { headingWeight: 900 } }));
 		assert.ok(parseAppearanceSettingsBody({ background: "#abc" }));
-		// null = "the theme's color" — explicit, valid
+		// null = «el color del tema»: explícito y válido
 		assert.ok(parseAppearanceSettingsBody({ background: null, fontFamily: null }));
 	});
 
@@ -212,7 +213,7 @@ describe("parseGraphSettingsBody", () => {
 		const off = parseGraphSettingsBody({ enabled: true, rendering: false });
 		assert.ok(off.ok);
 		assert.deepEqual(off.settings, { enabled: true, rendering: false });
-		// absent = unset (factory ON at resolution)
+		// ausente = sin fijar (ON de fábrica al resolver)
 		const absent = parseGraphSettingsBody({ enabled: true });
 		assert.ok(absent.ok);
 		assert.deepEqual(absent.settings, { enabled: true });
@@ -223,28 +224,28 @@ describe("parseGraphSettingsBody", () => {
 		const ok = parseGraphSettingsBody({ enabled: true, extractionChunkTokens: 2048 });
 		assert.ok(ok.ok);
 		assert.deepEqual(ok.settings, { enabled: true, extractionChunkTokens: 2048 });
-		// absent = unset — replace-whole keeps the factory default at resolution
+		// ausente = sin fijar: sustituir-entero conserva el valor de fábrica al resolver
 		const absent = parseGraphSettingsBody({ enabled: true });
 		assert.ok(absent.ok);
 		assert.deepEqual(absent.settings, { enabled: true });
-		// fractions floor to whole tokens
+		// las fracciones se redondean hacia abajo a tokens enteros
 		const fraction = parseGraphSettingsBody({ extractionChunkTokens: 1024.9 });
 		assert.ok(fraction.ok);
 		assert.equal(fraction.settings.extractionChunkTokens, 1024);
-		// below the cost floor: 400 with the floor named (penny-batches)
+		// por debajo del suelo de coste: 400 nombrando el suelo (lotes de céntimos)
 		const tiny = parseGraphSettingsBody({ extractionChunkTokens: 100 });
 		assert.equal(tiny.ok, false, "below-floor rejected");
 		assert.match(tiny.ok === false ? tiny.error : "", /at least 500/);
-		// junk shapes: 400
+		// formas basura: 400
 		assert.equal(parseGraphSettingsBody({ extractionChunkTokens: "4096" }).ok, false);
 		assert.equal(parseGraphSettingsBody({ extractionChunkTokens: NaN }).ok, false);
 		assert.equal(parseGraphSettingsBody({ extractionChunkTokens: null }).ok, false);
 	});
 
 	it("the dead wave-6 rungs in a body are ignored — the section collapses on write", () => {
-		// Old clients may still send {embedding: true, embeddingModel: …};
-		// the parser reads ONLY the master switch — the dead keys are not
-		// an error, they are just not part of the section anymore.
+		// Los clientes antiguos aún pueden enviar {embedding: true, embeddingModel: …};
+		// el analizador SOLO lee el interruptor general: las claves muertas no son
+		// un error, simplemente ya no forman parte de la sección.
 		const r = parseGraphSettingsBody({ enabled: false, clustering: true, labeling: true });
 		assert.ok(r.ok);
 		assert.deepEqual(r.settings, { enabled: false });
@@ -287,10 +288,10 @@ describe("parseCompactionSettingsBody (owner round 14)", () => {
 
 describe("SETTINGS_SECTIONS (the route's section map)", () => {
 	it("maps exactly the eight record sections", () => {
-		// compaction joined (owner round 14): its own section PUT — the
-		// threshold is engine behavior, not an agent-section key. The custom
-		// endpoint is NOT a section: it is one more provider in the Keys list,
-		// connected through POST /api/custom-provider.
+		// se sumó la compactación (ronda 14 del responsable): su propio PUT de sección: el
+		// umbral es comportamiento del motor, no una clave de la sección de agentes. El endpoint
+		// personalizado NO es una sección: es un proveedor más en la lista de claves,
+		// conectado mediante POST /api/custom-provider.
 		assert.deepEqual(
 			Object.keys(SETTINGS_SECTIONS),
 			["general", "chat", "agent", "appearance", "graph", "compaction", "models", "dictation", "claudeCode"],
@@ -311,7 +312,7 @@ describe("parseModelsSettingsBody (model slots wave, 2026-09-20)", () => {
 			cheap: { model: { provider: "zai", id: "glm-5.3-flash" }, thinkingLevel: "high" },
 			vision: { model: { provider: "zai", id: "glm-5.3-flash" }, thinkingLevel: "low" },
 		});
-		// a thinkingLevel WITHOUT a model can never run (no factory floor)
+		// un thinkingLevel SIN modelo nunca puede ejecutarse (no hay suelo de fábrica)
 		const levelOnly = parseModelsSettingsBody({ cheap: { thinkingLevel: "high" } });
 		assert.equal(levelOnly.ok, false);
 		if (!levelOnly.ok) {

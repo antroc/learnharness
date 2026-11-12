@@ -1,8 +1,9 @@
 /**
- * Deletes clear crash leftovers (#403): crashes mid-save can leave
- * `<file>.tmp-<uuid>` beside records, holding their newest bytes. Deleting
- * the record must not leave that copy behind. Runs under its own isolated
- * LH_DATA_DIR (set before any config-loading import).
+ * Los borrados limpian los restos de fallos (#403): un fallo a mitad de un
+ * guardado puede dejar `<file>.tmp-<uuid>` junto a los registros, con sus
+ * bytes más nuevos. Borrar el registro no debe dejar esa copia atrás. Se
+ * ejecuta con su propio LH_DATA_DIR aislado (fijado antes de cualquier import
+ * que cargue la configuración).
  */
 
 import assert from "node:assert/strict";
@@ -22,7 +23,7 @@ const { promptOverrides } = await import("../src/store/prompt-overrides.ts");
 
 after(() => fs.rmSync(TMP_DATA, { recursive: true, force: true }));
 
-/** Stand in for crashes: leftover temp copies beside `file`. */
+/** Simula los fallos: copias temporales sobrantes junto a `file`. */
 function leaveCrashCopy(file: string): void {
 	fs.copyFileSync(file, `${file}.tmp-crash`);
 }
