@@ -130,7 +130,7 @@ Marca `[x]` al terminar cada lote y anota en "Registro" lo que quede a medias.
 | C6 | Comentarios: `components/*` raíz (2ª mitad) | 89 | 31.871 | [x] |
 | C7 | Comentarios: `components/{settings,artifacts,ui,ai-elements}`, `app`, `electron`, `scripts`, `plugins`, configuración | 201 | 33.875 | [x] |
 | C8 | Comentarios: `tests/` (1ª mitad) | 124 | 23.181 | [x] |
-| C9 | Comentarios: `tests/` (2ª mitad) + los 7 `.py` (a mano) | 178 | 23.180 | [~] parcial |
+| C9 | Comentarios: `tests/` (2ª mitad) + los 7 `.py` (a mano) | 178 | 23.180 | [x] |
 
 Las listas exactas de ficheros están en `.traduccion/lotes/<lote>.txt`.
 `components/dock-height.ts` y `components/ui/button.tsx` ya están hechos (prueba de la herramienta)
@@ -468,3 +468,44 @@ falsos positivos).
   dos tandas por ids), prompt-overrides.test.ts (≈870), render-cards.test.tsx (≈810),
   render-plan-block.test.tsx (≈755), question-core.test.ts (≈725), render-chain-table.test.tsx
   (≈715), render-settings.test.ts (≈700), question-tools.test.ts (≈610).
+- Sesión 14: C9 terminado: líneas 21–178 de `.traduccion/lotes/C9.txt` en doce tandas con su
+  commit (pdf-reader…probe-done; prompt-overrides…question-preview; question-tools…
+  render-activity-dock; render-cards + render-chain-table; render-compaction-divider…
+  render-phase-divider; render-plan-block…render-remote-images; render-settings .ts + .tsx;
+  render-sidebar…session-context; session-core.test.ts en dos tandas por ids 1–32 y 33–65;
+  session-find…stream-activity; submission-evaluation-indicator…zero-keys) y los 7 `.py`
+  a mano (comentarios `#` y docstrings; los docstrings de módulo de graph.py y sessions.py
+  son el `description` de argparse, así que `--help` sale en castellano; ninguna prueba
+  depende de ese texto). `tests/skills` da el mismo resultado antes y después (solo falla la
+  prueba ya conocida de test_skill.py, sesión 5). Ningún JSDoc de C9 estaba en
+  `docs/plugin-api/` (0 coincidencias de 1.009); no había directivas `turbopackIgnore`/
+  `eslint-disable` ni JSDoc de solo etiquetas de tipo; los `// @ts-expect-error …` de
+  tests/plugin-types.test.ts son directivas y se dejan en inglés. Ningún comentario citaba
+  encabezados de docs traducidos (solo rutas y `§N`). En render-chain-table.test.tsx los
+  *clusters* son «grupos», como en chain-table.tsx (sesión 10).
+  Literales que se dejan en inglés: "Your thinking", "Check your understanding", "Question
+  posed", "Illegal invocation", "a problem is already active", "the problem slot is stuck",
+  "You have no research tool here", "that's not the gradient", "I don't know", "Other…",
+  "(no premises)", "Copied", 'Problem', “Writing a question…”, "+ New session",
+  "Open Keys settings", "Default", Automatic, "ill-formed request", "must be equal to
+  constant", Why, Draw/Extract, Delete.
+  Glosario añadido en la práctica: *postmortem* → autopsia; *CTA* → llamada a la acción;
+  *rung* → escalón; *stop* (de una escalera de valores) → valor; *dead-center* → (justo en
+  el) centro; *strand(s)* (render) → hilos; *chip* (proposición) → etiqueta; *hug* →
+  ceñirse/ceñido; *slab* → bloque; *mouth/tip* (flecha) → boca/punta; *overhang* →
+  saliente; *shaft* → fuste; *flank* → flanco; *write-ahead* → persistencia anticipada;
+  *drip* → soltar; *framing* (SSE) → enmarcado; *upsert* se deja; *trap* → trampa; *escape
+  hatch* → salida de emergencia; *harness* → arnés; *smoke* → prueba de humo; *spoiler* se
+  deja; *backstop* → red de seguridad; *belt check* → comprobación extra; *sidecar* (fichero)
+  → fichero auxiliar; *choke point* → punto único; *ledger* → registro; *roster* →
+  plantilla; *wobble* → titubeo; *debris* → restos; *heal* → reparación.
+  Comprobación de anclas (`python3 .traduccion/anclas.py .`): sin enlaces rotos (solo los 4
+  falsos positivos conocidos). Comprobación global de cobertura (extraer todos los
+  TS/TSX/JS/MJS/CJS del repo y buscar líneas con palabras inglesas frecuentes): solo quedan
+  restos insignificantes; fuera de los lotes, únicamente los `dist/` generados de
+  examples/plugins/{hello-plugin,managed-agent,teaching-extension} (≈50 palabras, salida de
+  build; no se tocan). Dentro de los lotes, los avisos son falsos positivos (literales en
+  inglés, identificadores) o directivas.
+  TODOS LOS LOTES TERMINADOS (M1–M4, C1–C9). Pendiente solo lo opcional: revisión final
+  (alinear src/core/plugin-agents.ts con docs/plugin-api/plugin-agents.md, anotado en la
+  sesión 8; repasar los pocos avisos de la comprobación global).
