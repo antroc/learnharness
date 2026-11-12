@@ -39,7 +39,7 @@ async function mount(children: React.ReactNode) {
 }
 afterEach(async () => {
 	await act(async () => { root?.unmount(); }); root = undefined;
-	// Flush FocusScope's delayed unmount event while fixture CustomEvent is installed.
+	// Vacía el evento de desmontaje diferido de FocusScope mientras está instalado el CustomEvent del fixture.
 	await new Promise(resolve => setTimeout(resolve, 5));
 	host?.remove(); globalThis.fetch = originalFetch;
 });

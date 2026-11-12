@@ -23,17 +23,17 @@ import type { AssistantMessage, ToolResultMessage } from "@earendil-works/pi-ai"
 import { projectView } from "../src/core/view.ts";
 
 /**
- * COMPACTION (owner round 14, 2026-10-05) — the pure core: the cut walk,
- * the marker, and the ONE model-facing projection (toLlmMessages) that
- * swaps [summary] + [kept tail] for the dropped span.
+ * COMPACTACIÓN (ronda 14 del responsable, 2026-10-05): el núcleo puro: el recorrido del corte,
+ * el marcador y la ÚNICA proyección de cara al modelo (toLlmMessages) que
+ * cambia el tramo descartado por [resumen] + [cola conservada].
  *
- * The laws pinned here:
- * - the cut NEVER separates a tool result from its call;
- * - a pending question call (pose→answer window) always survives — the
- *   walk cannot cross the transcript end;
- * - the active marker is the NEWEST one (chained compactions rule last);
- * - the marker renders ONCE (head), never twice;
- * - a corrupt cut degrades honestly (everything renders — never throw).
+ * Las leyes que se fijan aquí:
+ * - el corte NUNCA separa un resultado de herramienta de su llamada;
+ * - una llamada de pregunta pendiente (ventana planteamiento→respuesta) siempre sobrevive: el
+ *   recorrido no puede cruzar el final de la transcripción;
+ * - el marcador activo es el MÁS RECIENTE (en compactaciones encadenadas manda la última);
+ * - el marcador se muestra UNA vez (en la cabeza), nunca dos;
+ * - un corte corrupto se degrada honestamente (se muestra todo; nunca lanza).
  */
 
 const assistantWithCall = (id: string, callId: string, text = "Let me quiz you."): LhMessage =>
@@ -63,7 +63,7 @@ const resultFor = (callId: string, text: string): LhMessage & ToolResultMessage 
 
 const big = (id: string, kb = 8): LhMessage => newUserMessage(`${id}: ${"x".repeat(kb * 1024)}`);
 
-// ─── the anchored estimator (pi's law — 2026-10-05 incident fix) ─────────────
+// ─── el estimador anclado (la ley de pi; arreglo del incidente del 2026-10-05) ───────────────
 
 describe("estimateContextTokens (usage-anchored, pi's law)", () => {
 	const usageAssistant = (id: string, total: number, trailing = false): LhMessage =>
@@ -78,23 +78,23 @@ describe("estimateContextTokens (usage-anchored, pi's law)", () => {
 
 	it("anchors on the last assistant's provider-reported usage and chars/4-estimates ONLY the tail", () => {
 		const msgs = [
-			newUserMessage(`${"x".repeat(400_000)}`), // 100k chars of DROPPED-span text
+			newUserMessage(`${"x".repeat(400_000)}`), // 100k caracteres de texto del tramo DESCARTADO
 			usageAssistant("a1", 30_000),
-			newUserMessage("y".repeat(4_000)), // 1k estimated tokens AFTER the anchor
+			newUserMessage("y".repeat(4_000)), // 1k tokens estimados DESPUÉS del ancla
 		] as LhMessage[];
-		// ^ newUserMessage signature: (text, ts?) — second arg timestamp
+		// ^ firma de newUserMessage: (text, ts?); el segundo argumento es la marca de tiempo
 		const est = estimateContextTokens(msgs);
 		assert.equal(est.lastUsageIndex !== null, true);
 		assert.equal(est.usageTokens, 30_000);
 		assert.equal(est.trailingTokens, 1_000);
-		assert.equal(est.tokens, 31_000); // the 100k chars before the anchor are NOT re-estimated
+		assert.equal(est.tokens, 31_000); // los 100k caracteres anteriores al ancla NO se vuelven a estimar
 	});
 
 	it("skips aborted and all-zero-usage assistants when hunting the anchor", () => {
 		const msgs = [
 			usageAssistant("a1", 30_000),
-			usageAssistant("a2", 99_999, true), // aborted after the real one
-			{ ...usageAssistant("a3", 0), stopReason: "toolUse" }, // zero usage
+			usageAssistant("a2", 99_999, true), // abortado después del real
+			{ ...usageAssistant("a3", 0), stopReason: "toolUse" }, // uso cero
 		] as LhMessage[];
 		const est = estimateContextTokens(msgs);
 		assert.equal(est.lastUsageIndex, 0);
@@ -113,7 +113,7 @@ describe("estimateContextTokens (usage-anchored, pi's law)", () => {
 	});
 
 	it("unanchored (no usage at all): the plain heuristic over everything", () => {
-		const msgs = [big("m1", 4), big("m2", 4)] as LhMessage[]; // 2 × 4,116ish chars
+		const msgs = [big("m1", 4), big("m2", 4)] as LhMessage[]; // 2 × unos 4.116 caracteres
 		const est = estimateContextTokens(msgs);
 		assert.equal(est.lastUsageIndex, null);
 		assert.equal(est.tokens, estimateTokens(msgs));
@@ -135,7 +135,7 @@ describe("estimateMessageTokens (wire text only — the 3x-inflation fix)", () =
 			timestamp: 1,
 		} as never as LhMessage;
 		const expected = Math.ceil((400 + 800 + ("quiz".length + JSON.stringify({ q: "z".repeat(200) }).length)) / 4);
-		assert.equal(estimateMessageTokens(m), expected); // usage/responseId/signature inflate nothing
+		assert.equal(estimateMessageTokens(m), expected); // usage/responseId/signature no inflan nada
 	});
 
 	it("calculateContextTokens: totalTokens wins, else the field sum", () => {
@@ -145,15 +145,15 @@ describe("estimateMessageTokens (wire text only — the 3x-inflation fix)", () =
 	});
 });
 
-// ─── the cut walk ────────────────────────────────────────────────────────────
+// ─── el recorrido del corte ──────────────────────────────────────────────────
 
 describe("compactionCutIndex", () => {
 	it("keeps ~the budget of recent messages: everything before is the span", () => {
 		const messages = [big("m1"), big("m2"), big("m3"), big("m4"), newUserMessage("recent")];
-		// ~8KB each ≈ 2k tokens; a 4.5k budget keeps the last two + recent.
+		// ~8KB cada uno ≈ 2k tokens; un presupuesto de 4,5k conserva los dos últimos + el reciente.
 		const cut = compactionCutIndex(messages, 4_500);
-		// check-at-loop-top: kept = [m2, m3, m4, recent] ≈ 6.2k — the first
-		// end-prefix whose estimate reaches the budget (overshoot = one message)
+		// comprobación al principio del bucle: conservados = [m2, m3, m4, recent] ≈ 6,2k: el primer
+		// prefijo final cuya estimación alcanza el presupuesto (exceso = un mensaje)
 		assert.equal((messages[cut] as { content: string }).content.startsWith("m2"), true, "the oldest kept message sits at the cut");
 	});
 
@@ -161,13 +161,13 @@ describe("compactionCutIndex", () => {
 		const messages = [
 			big("m1"),
 			big("m2"),
-			assistantWithCall("a1", "call_1"), // pose
-			resultFor("call_1", "correct"), // answer — must ride WITH a1
+			assistantWithCall("a1", "call_1"), // planteamiento
+			resultFor("call_1", "correct"), // respuesta: debe ir JUNTO con a1
 			big("m3"),
 			big("m4"),
 		];
-		// Budget lands on the result. Pi chooses the next valid cut AT OR
-		// AFTER it, dropping the complete exchange rather than extending.
+		// El presupuesto cae en el resultado. Pi elige el siguiente corte válido EN ese punto o
+		// DESPUÉS, y descarta el intercambio completo en vez de ampliarlo.
 		const cut = compactionCutIndex(messages, estimateTokens([big("m3"), big("m4")]) + 1);
 		assert.equal(cut, 4);
 		const keptIds = new Set(messages.slice(cut).map((m) => m.id));
@@ -177,7 +177,7 @@ describe("compactionCutIndex", () => {
 
 	it("a PENDING question call (no result — the pose→answer window) always survives", () => {
 		const messages = [big("m1"), big("m2"), big("m3"), assistantWithCall("a_pending", "call_p")];
-		const cut = compactionCutIndex(messages, 100); // tiny budget
+		const cut = compactionCutIndex(messages, 100); // presupuesto diminuto
 		const kept = messages.slice(cut);
 		assert.ok(kept.some((m) => m.id === "a_pending"), "the pending pose is never dropped");
 	});
@@ -187,7 +187,7 @@ describe("compactionCutIndex", () => {
 	});
 });
 
-// ─── the marker + the active scan ───────────────────────────────────────────
+// ─── el marcador + el recorrido del activo ──────────────────────────────────
 
 describe("the compaction marker", () => {
 	it("content is the header + summary; details carry the cut", () => {
@@ -226,7 +226,7 @@ describe("the compaction marker", () => {
 	});
 });
 
-// ─── the ONE model-facing projection ────────────────────────────────────────
+// ─── la ÚNICA proyección de cara al modelo ──────────────────────────────────
 
 describe("toLlmMessages honors the cut", () => {
 	it("the active marker renders ONCE as the head; the span before the cut is gone; the kept tail rides verbatim", () => {
@@ -243,7 +243,7 @@ describe("toLlmMessages honors the cut", () => {
 		assert.ok(((out[0] as { content: Array<{ type: string; text: string }> }).content[0]!.text).includes("SUMMARY TEXT"));
 		assert.ok(((out[0] as never as { content: Array<{ text: string }> }).content[0]!.text).includes(COMPACTED_HISTORY_HEADER));
 		assert.equal((out[1] as never as { content: string }).content, "m2", "kept user message rides verbatim");
-		// The dropped span is nowhere.
+		// El tramo descartado no está en ninguna parte.
 		const flat = JSON.stringify(out);
 		assert.ok(!flat.includes("early lecture"), "the pre-cut span never reaches the wire");
 	});
@@ -316,7 +316,7 @@ describe("toLlmMessages honors the cut", () => {
 	});
 });
 
-// ─── the summarizer input ────────────────────────────────────────────────────
+// ─── la entrada del resumidor ────────────────────────────────────────────────
 
 describe("serializeForSummary + buildCompactionPrompt", () => {
 	it("labels roles; truncates long tool results; skips plan blocks", () => {
@@ -368,9 +368,9 @@ describe("serializeForSummary + buildCompactionPrompt", () => {
 });
 
 // ---------------------------------------------------------------------------
-// THE VIEW FOLD (owner round 14): two dividers from one marker —
-// the minimal moment divider where the user is, the longer cut divider
-// at the kept boundary. Both carry the full summary payload.
+// EL PLEGADO DE LA VISTA (ronda 14 del responsable): dos divisores a partir de un marcador:
+// el divisor mínimo del momento donde está el usuario y el divisor de corte, más largo,
+// en el límite de lo conservado. Ambos llevan la carga completa del resumen.
 // ---------------------------------------------------------------------------
 describe("projectView compaction dividers", () => {
 	const record = (): LhMessage[] => [
@@ -400,20 +400,20 @@ describe("projectView compaction dividers", () => {
 		assert.ok(moment, "the moment divider exists");
 		const part = moment!.parts.find((p) => p.type === "data-compaction")!;
 		assert.equal((part.data as { details: { tokensBefore: number } }).details.tokensBefore, 12345);
-		// and it renders AFTER the kept message (the compaction moment is
-		// the tail — where the user is when it happens)
+		// y se muestra DESPUÉS del mensaje conservado (el momento de la compactación es
+		// la cola: donde está el usuario cuando ocurre)
 		const keptIdx = view.findIndex((m) => m.parts.some((p) => p.type === "text" && p.text === "recent"));
 		assert.ok(view.indexOf(moment!) > keptIdx);
 	});
 });
 
 // ---------------------------------------------------------------------------
-// THE CHROME LAW (the OpenRouter no-tools incident, owner 2026-10-05):
-// pi-agent-core seeds a leading SystemMessage (prompt + tool
-// declarations) at state.messages[0]; the record never persists it. The
-// cut slices the RECORD's history — the chrome carries through ahead of
-// the compaction head, exactly as pi's prepareRequest re-applies
-// context.systemPrompt + context.tools around its projection.
+// LA LEY DEL ENVOLTORIO (el incidente de OpenRouter sin herramientas, responsable 2026-10-05):
+// pi-agent-core siembra un SystemMessage inicial (prompt + declaraciones de
+// herramientas) en state.messages[0]; el registro nunca lo persiste. El
+// corte trocea el historial del REGISTRO: el envoltorio se mantiene por delante de
+// la cabeza de la compactación, igual que el prepareRequest de pi vuelve a aplicar
+// context.systemPrompt + context.tools alrededor de su proyección.
 // ---------------------------------------------------------------------------
 describe("toLlmMessages carries the leading system message (request chrome)", () => {
 	const chrome = {

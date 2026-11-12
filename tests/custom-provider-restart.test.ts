@@ -1,4 +1,4 @@
-/** No real endpoints/accounts. Actual process death and cold startup, not HMR. */
+/** Sin endpoints/cuentas reales. Muerte real del proceso y arranque en frío, no HMR. */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";

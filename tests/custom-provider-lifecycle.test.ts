@@ -1,4 +1,4 @@
-/** Native Pi payloads with synthetic transport and owned scratch files only. */
+/** Cargas nativas de Pi con transporte sintético y solo ficheros temporales propios. */
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";

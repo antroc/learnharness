@@ -1,12 +1,12 @@
 /**
- * The LH_DATA_DIR seam (Electron contract, 2026-09-17): when set, every
- * mutable record relocates under it; when unset, byte-for-byte the old
- * repo-data/ behavior. The desktop shell's whole data story rests on this,
- * so pin both directions.
+ * La frontera LH_DATA_DIR (contrato de Electron, 2026-09-17): si está definida, todo
+ * registro mutable se reubica bajo ella; si no, el comportamiento antiguo de repo-data/
+ * byte a byte. Toda la historia de datos del armazón de escritorio se apoya en esto,
+ * así que se fijan ambas direcciones.
  *
- * The seam is evaluated at MODULE LOAD, so the "set" case must set the env
- * BEFORE the first import of config.ts in this process (dynamic import,
- * below) and the "unset" case needs a fresh child process.
+ * La frontera se evalúa AL CARGAR EL MÓDULO, así que el caso «definida» debe fijar el entorno
+ * ANTES de la primera importación de config.ts en este proceso (importación dinámica,
+ * abajo) y el caso «no definida» necesita un proceso hijo nuevo.
  */
 import assert from "node:assert/strict";
 import * as fs from "node:fs";

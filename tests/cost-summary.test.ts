@@ -1,8 +1,8 @@
 /**
- * Tests for src/core/cost-summary.ts — the graph cost pill's pure fold.
- * Same laws as the money channel everywhere: dollars INFERRED at read
- * time (core/prices.ts), unpriced models excluded-but-counted (render
- * "—", never a silent zero), tokens always sum.
+ * Pruebas de src/core/cost-summary.ts: el plegado puro de la píldora de coste del grafo.
+ * Las mismas leyes que el canal del dinero en todas partes: los dólares se INFIEREN al
+ * leer (core/prices.ts), los modelos sin precio se excluyen pero se cuentan (se muestra
+ * "—", nunca un cero silencioso) y los tokens siempre se suman.
  */
 
 import assert from "node:assert/strict";
@@ -16,7 +16,7 @@ import type { CallUsage, ExtractionRunUsage } from "../src/core/contracts.ts";
 import { callCost } from "../src/server/pricing.ts";
 const graphCostSummary = (input: CostSummaryInput) => foldGraphCostSummary(input, callCost);
 
-/** A model with full published pricing (from the generated registry). */
+/** Un modelo con el precio publicado completo (del registro generado). */
 const PRICED = "openrouter:z-ai/glm-5.3-flash";
 assert.notEqual(callCost({ inputTokens: 1, outputTokens: 1 }, PRICED), null);
 
@@ -46,8 +46,8 @@ const extractionRun = (
 
 describe("graphCostSummary (the cost pill's fold)", () => {
 	test("folds both channels: stage totals, tokens, newest-first runs", () => {
-		// (The cluster-naming channel died with the extraction-UX close-out,
-		// 2026-09-24 — two channels: chat + notes front doors.)
+		// (El canal de nombrado de clústeres murió con el cierre de la UX de extracción,
+		// 2026-09-24: dos canales, las puertas de entrada del chat + las notas).
 		const input: CostSummaryInput = {
 			chats: [{ title: "Testing session", extractions: [extractionRun(100, PRICED, PRICED)] }],
 			sources: [{ filePath: "/vault/modal.md", extractions: [extractionRun(200, PRICED, PRICED)] }],
@@ -61,8 +61,8 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 		assert.equal(s.stages.extraction.tokens.inputTokens, 2000);
 		assert.equal(s.stages.audit.tokens.outputTokens, 200);
 		assert.equal(s.totalDollars, extStep * 2 + audStep * 2);
-		// Both runs, newest first, titles joined per front door — every
-		// run is kind "extraction" now.
+		// Ambas ejecuciones, la más reciente primero, con los títulos unidos por puerta de entrada; toda
+		// ejecución es ahora de tipo "extraction".
 		assert.deepEqual(
 			s.runs.map((r) => r.title),
 			["/vault/modal.md", "Testing session"],
@@ -77,13 +77,13 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 			sources: [{ filePath: "/vault/x.md", extractions: [extractionRun(200, "unknown-model", "unknown-model")] }],
 		});
 		assert.equal(s.stages.audit.unpricedRuns, 2);
-		assert.equal(s.stages.audit.dollars, 0); // never a silent zero: unpricedRuns says it
+		assert.equal(s.stages.audit.dollars, 0); // nunca un cero silencioso: unpricedRuns lo dice
 		assert.equal(s.stages.extraction.unpricedRuns, 1);
-		// The partial run still prices its extractor side; the fully
-		// unpriced run renders "—". Newest first: 200 (both unpriced), 100.
+		// La ejecución parcial sigue poniendo precio a su lado del extractor; la ejecución
+		// totalmente sin precio muestra "—". La más reciente primero: 200 (ambas sin precio), 100.
 		assert.equal(s.runs[0]!.dollars, null);
 		assert.notEqual(s.runs[1]!.dollars, null);
-		assert.equal(s.unpricedRuns, 1); // run-level: only the both-stages run
+		assert.equal(s.unpricedRuns, 1); // a nivel de ejecución: solo la ejecución con ambas etapas
 	});
 
 	test("recent runs cap: newest survive", () => {
@@ -95,7 +95,7 @@ describe("graphCostSummary (the cost pill's fold)", () => {
 		});
 		assert.equal(s.runs.length, 2);
 		assert.deepEqual(s.runs.map((r) => r.startedAt), [400, 300]);
-		// stage totals still count EVERY run, cap is presentational.
+		// los totales por etapa siguen contando TODAS las ejecuciones; el tope es de presentación.
 		assert.equal(s.stages.extraction.runs, 4);
 	});
 

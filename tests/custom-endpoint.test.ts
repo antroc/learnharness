@@ -1,10 +1,10 @@
 /**
- * Tests for the custom OpenAI-compatible endpoint (custom-endpoint wave).
- * Covers the pure core (normalizeBaseUrl, customProviderUsable, the sanitizer,
- * resolution), the deep server module (provider build + live sync + model
- * discovery incl. image-modality, reasoning detection and the per-model user
- * pins), the pins' strict write-side parser, and the catalog federation row.
- * No network: the discovery probe runs against a stubbed fetch.
+ * Pruebas del endpoint personalizado compatible con OpenAI (oleada custom-endpoint).
+ * Cubren el núcleo puro (normalizeBaseUrl, customProviderUsable, el saneador,
+ * la resolución), el módulo profundo del servidor (construcción del proveedor + sincronización en vivo + descubrimiento
+ * de modelos, incl. modalidad de imagen, detección de razonamiento y las fijaciones
+ * del usuario por modelo), el analizador estricto del lado de escritura de las fijaciones y la fila de federación del catálogo.
+ * Sin red: el sondeo de descubrimiento se ejecuta contra un fetch sustituido.
  */
 
 import assert from "node:assert/strict";
@@ -54,18 +54,18 @@ describe("customProviderUsable", () => {
 	});
 });
 
-// ─── sanitizer ───────────────────────────────────────────────────────────────
+// ─── saneador ────────────────────────────────────────────────────────────────
 describe("sanitizeUserSettings — customProvider", () => {
 	it("normalizes the base URL and cleans the model list (trim, dedupe, image flag)", () => {
 		const out = sanitizeUserSettings({
 			customProvider: {
 				baseUrl: "https://host:8000/v1/",
 				models: [
-					{ id: " llama-3 " }, // trims id; image absent
+					{ id: " llama-3 " }, // recorta el id; sin image
 					{ id: "gpt", image: true },
-					{ id: "gpt", image: false }, // dup id wins (last) → image dropped
-					{ id: "" }, // dropped: no usable id
-					"not-an-object", // dropped
+					{ id: "gpt", image: false }, // gana el id duplicado (el último) → se descarta image
+					{ id: "" }, // descartado: sin id utilizable
+					"not-an-object", // descartado
 				],
 			},
 		});
@@ -89,7 +89,7 @@ describe("sanitizeUserSettings — customProvider", () => {
 	});
 });
 
-// ─── per-model pins: the read side + THE prune law ───────────────────────────
+// ─── fijaciones por modelo: el lado de lectura + LA ley de la poda ───────────
 describe("sanitizeUserSettings / sanitizeCustomModelOverrides — pins", () => {
 	it("keeps all positive integer pins and reasoning:false", () => {
 		const out = sanitizeUserSettings({
@@ -97,10 +97,10 @@ describe("sanitizeUserSettings / sanitizeCustomModelOverrides — pins", () => {
 				baseUrl: "https://h/v1",
 				overrides: {
 					llama: { context: 131072, maxTokens: 8192, reasoning: true },
-					qwen: { context: 10 }, // Small positive budgets are preserved.
-					quiet: { reasoning: false }, // a real pin, not an absent one
-					junk: { context: "big", maxTokens: -1, reasoning: "yes" }, // every field junk
-					" ": { context: 4096 }, // no usable id
+					qwen: { context: 10 }, // Se conservan los presupuestos positivos pequeños.
+					quiet: { reasoning: false }, // una fijación real, no una ausente
+					junk: { context: "big", maxTokens: -1, reasoning: "yes" }, // todos los campos son basura
+					" ": { context: 4096 }, // sin id utilizable
 					nope: "not-an-object",
 				},
 			},
@@ -127,14 +127,14 @@ describe("sanitizeUserSettings / sanitizeCustomModelOverrides — pins", () => {
 	});
 });
 
-// ─── pins: the strict write side (PATCH) ──────────────────────────────────
+// ─── fijaciones: el lado de escritura estricto (PATCH) ────────────────────
 describe("parseCustomModelOverridesBody — the strict write side", () => {
 	it("accepts whole counts at or above the floor and the tri-state reasoning pin", () => {
 		const r = parseCustomModelOverridesBody({
 			overrides: {
 				a: { context: CUSTOM_MODEL_PIN_FLOOR, reasoning: false },
 				b: { maxTokens: 8192 },
-				c: {}, // an empty pin is legal — the sanitizer drops it on write
+				c: {}, // una fijación vacía es legal: el saneador la descarta al escribir
 			},
 		});
 		assert.ok(r.ok);
@@ -158,7 +158,7 @@ describe("parseCustomModelOverridesBody — the strict write side", () => {
 	});
 });
 
-// ─── resolution ──────────────────────────────────────────────────────────
+// ─── resolución ──────────────────────────────────────────────────────────
 describe("resolveSettings — customProvider", () => {
 	it("resolves an absent section to concrete defaults", () => {
 		assert.deepEqual(resolveSettings(null).customProvider, { baseUrl: "", models: [], overrides: {}, manualModels: [] });
@@ -207,7 +207,7 @@ describe("manual model ids", () => {
 	});
 });
 
-// ─── provider build + live sync ──────────────────────────────────────────────
+// ─── construcción del proveedor + sincronización en vivo ─────────────────────
 describe("buildOpenAiCompatibleProvider / syncCustomProvider", () => {
 	after(() => piModels().deleteProvider(CUSTOM_PROVIDER.id));
 
@@ -224,9 +224,9 @@ describe("buildOpenAiCompatibleProvider / syncCustomProvider", () => {
 		assert.equal(m1!.baseUrl, "http://h/v1");
 		assert.equal(m1!.contextWindow, CUSTOM_MODEL_DEFAULT_CONTEXT_WINDOW);
 		assert.equal(m1!.maxTokens, CUSTOM_MODEL_DEFAULT_MAX_TOKENS);
-		assert.deepEqual(m1!.input, ["text"]); // text-only by default
-		assert.deepEqual(m2!.input, ["text", "image"]); // image-capable → Vision-eligible
-		assert.equal(m1!.contextWindow, CUSTOM_MODEL_DEFAULT_CONTEXT_WINDOW); // no endpoint value → default
+		assert.deepEqual(m1!.input, ["text"]); // solo texto por defecto
+		assert.deepEqual(m2!.input, ["text", "image"]); // admite imágenes → apto para Vision
+		assert.equal(m1!.contextWindow, CUSTOM_MODEL_DEFAULT_CONTEXT_WINDOW); // sin valor del endpoint → por defecto
 		assert.equal(m1!.maxTokens, CUSTOM_MODEL_DEFAULT_MAX_TOKENS);
 	});
 
@@ -236,7 +236,7 @@ describe("buildOpenAiCompatibleProvider / syncCustomProvider", () => {
 			models: [{ id: "big", context: 196608, maxTokens: 393216 }],
 		});
 		const [big] = provider.getModels();
-		assert.equal(big!.contextWindow, 196608); // 192k from the endpoint
+		assert.equal(big!.contextWindow, 196608); // 192k desde el endpoint
 		assert.equal(big!.maxTokens, 393216);
 	});
 
@@ -274,7 +274,7 @@ describe("buildOpenAiCompatibleProvider / syncCustomProvider", () => {
 		});
 		const [thinker, plain] = provider.getModels();
 		assert.equal(thinker!.reasoning, true);
-		// No thinkingLevelMap → pi-ai's default set, same as any reasoning model.
+		// Sin thinkingLevelMap → el conjunto por defecto de pi-ai, igual que cualquier modelo de razonamiento.
 		assert.deepEqual(getSupportedThinkingLevels(thinker!), ["off", "minimal", "low", "medium", "high"]);
 		assert.equal(plain!.reasoning, false);
 		assert.deepEqual(getSupportedThinkingLevels(plain!), ["off"]);
@@ -289,7 +289,7 @@ describe("buildOpenAiCompatibleProvider / syncCustomProvider", () => {
 	});
 });
 
-// ─── discovery (stubbed fetch) ───────────────────────────────────────────────
+// ─── descubrimiento (fetch sustituido) ───────────────────────────────────────
 describe("discoverModels", () => {
 	const realFetch = globalThis.fetch;
 	after(() => {
@@ -359,7 +359,7 @@ describe("discoverModels", () => {
 					{ id: "bool-reasoner", reasoning: true },
 					{ id: "thinking-flag", thinking: true },
 					{ id: "cap-reasoner", capabilities: ["completion", "reasoning"] },
-					{ id: "deepseek-r1-distill" }, // a reasoning-sounding NAME, no metadata → stays off
+					{ id: "deepseek-r1-distill" }, // un NOMBRE que suena a razonamiento, sin metadatos → sigue desactivado
 				],
 			},
 		}));

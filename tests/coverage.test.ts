@@ -17,11 +17,11 @@ import {
 import type { CoverageEntry } from "../src/core/contracts/graph.ts";
 
 /**
- * Extraction coverage — the pure core under the TEACHER-PROSE ruling
- * (owner, 2026-09-28): the extractor sees only the teacher's text
- * blocks; fingerprints, slots, tokens, and batching all derive from that
- * one selection. Everything else is invisible — it neither opens nor
- * joins a run.
+ * Cobertura de extracción: el núcleo puro bajo la decisión de la PROSA DEL PROFESOR
+ * (responsable, 2026-09-28): el extractor solo ve los bloques de texto del
+ * profesor; las huellas, las ranuras, los tokens y el agrupado en lotes derivan todos de esa
+ * única selección. Todo lo demás es invisible: ni abre ni
+ * se une a una ejecución.
  */
 
 function user(id: string, text: string): LhMessage {
@@ -36,7 +36,7 @@ function teacher(id: string, text: string): LhMessage {
 	} as unknown as LhMessage;
 }
 
-/** An assistant message calling `calls` (each {id,name}) — the bond anchor. */
+/** Un mensaje del asistente que llama a `calls` (cada uno {id,name}): el ancla del vínculo. */
 function assistantWithCalls(
 	id: string,
 	calls: Array<{ id: string; name: string; args?: unknown }>,
@@ -65,25 +65,25 @@ describe("messageFingerprint — what changes it, what never does", () => {
 		const same = messageFingerprint(teacher("m1", "hello world"));
 		assert.notEqual(a, b);
 		assert.equal(a, same);
-		// Role is hashed too — the same words from a LEARNER have no view
-		// lines at all (teacher prose only), so the fingerprints differ.
+		// El rol también entra en el hash: las mismas palabras de un ALUMNO no tienen ninguna línea
+		// de vista (solo la prosa del profesor), así que las huellas difieren.
 		assert.notEqual(a, messageFingerprint(user("m1", "hello world")));
 	});
 
 	it("the message id is the provenance tag — part of exactly what the extractor saw", () => {
-		// The view lines carry the [id] tag, so identical content under a
-		// different id is a DIFFERENT fingerprint: coverage matches the
-		// extraction view byte-for-byte. (Ids are stable in practice — the
-		// write-ahead persist owns them.)
+		// Las líneas de vista llevan la etiqueta [id], así que un contenido idéntico con un
+		// id distinto es una huella DISTINTA: la cobertura coincide con la
+		// vista de extracción byte a byte. (En la práctica los ids son estables: la
+		// persistencia anticipada es su responsable).
 		assert.notEqual(messageFingerprint(teacher("m1", "same")), messageFingerprint(teacher("m2", "same")));
-		// The same id + content re-fingerprints equal.
+		// El mismo id + contenido vuelve a dar una huella igual.
 		assert.equal(messageFingerprint(teacher("m1", "same")), messageFingerprint(teacher("m1", "same")));
 	});
 
 	it("marker messages are invisible — a plan-block attach never re-opens anything", () => {
-		// Wave D: the marker is its OWN message (not a part on another one);
-		// its view is empty, so it neither re-opens others nor itself
-		// carries any learning evidence.
+		// Oleada D: el marcador es un mensaje PROPIO (no una parte de otro);
+		// su vista está vacía, así que ni reabre a los demás ni él mismo
+		// lleva ninguna evidencia de aprendizaje.
 		const marker = newPlanBlockMessage("call_p1", {
 			kind: "full",
 			at: "2026-09-26T00:00:00.000Z",
@@ -92,7 +92,7 @@ describe("messageFingerprint — what changes it, what never does", () => {
 			edges: [],
 		}) as LhMessage;
 		assert.deepEqual(messageViewLines(marker, marker.id), []);
-		// And the message it rides beside keeps its fingerprint untouched:
+		// Y el mensaje junto al que viaja conserva su huella intacta:
 		const before = messageFingerprint(teacher("t1", "the chain rule"));
 		const withMarker = [teacher("t1", "the chain rule"), marker];
 		assert.equal(
@@ -103,8 +103,8 @@ describe("messageFingerprint — what changes it, what never does", () => {
 	});
 
 	it("quiz Q&A is INVISIBLE under the teacher-prose ruling (owner, 2026-09-28)", () => {
-		// Neither the asking message nor the graded answer produces view
-		// lines — a quiz exchange can never open or join an extraction run.
+		// Ni el mensaje que pregunta ni la respuesta corregida producen líneas de
+		// vista: un intercambio de quiz nunca puede abrir una ejecución de extracción ni unirse a ella.
 		const asking = assistantWithCalls("a1", [{ id: "q1", name: "quiz", args: { question: "Q?" } }]);
 		const answer = result("r1", "q1", "quiz", { questionText: "Q?", correct: true });
 		assert.deepEqual(messageViewLines(asking, "a1"), []);
@@ -143,11 +143,11 @@ describe("coverageOf — uncovered is DERIVED, never dual-tracked", () => {
 		const entries: CoverageEntry[] = [
 			{ chatId: "c1", fp: fp1, tokens: 1, foldedAt: "2026-09-15T00:00:00.000Z" },
 			{ chatId: "c1", fp: fp2, tokens: 1, foldedAt: "2026-09-15T00:00:00.000Z" },
-			// Another chat's entries are irrelevant to c1's coverage.
+			// Las entradas de otro chat son irrelevantes para la cobertura de c1.
 			{ chatId: "c2", fp: slot(messages, "m3").fp, tokens: 1, foldedAt: "2026-09-15T00:00:00.000Z" },
 		];
 		const cov = coverageOf(messages, entries, "c1");
-		// `uncovered` is INDEXES (the batcher needs positions for bonding):
+		// `uncovered` son ÍNDICES (el agrupador necesita posiciones para los vínculos):
 		assert.deepEqual(cov.uncovered, [2]);
 		assert.deepEqual(cov.slots[cov.uncovered[0]!]!.message.id, "m3");
 		assert.equal(cov.coveredCount, 2);
@@ -174,8 +174,8 @@ describe("coverageOf — uncovered is DERIVED, never dual-tracked", () => {
 
 describe("batchRuns — token-budgeted, consecutive, never splits a message", () => {
 	it("greedy oldest-first fill; the overflowing message starts the next run", () => {
-		// Each message's view line is ~14 tok (chars/4) → budget 45 fits
-		// three, the fourth overflows: [m1,m2,m3] + [m4].
+		// La línea de vista de cada mensaje son ~14 tokens (caracteres/4) → un presupuesto de 45 admite
+		// tres y el cuarto se desborda: [m1,m2,m3] + [m4].
 		const slots = coverageSlots([
 			teacher("m1", "a".repeat(40)),
 			teacher("m2", "b".repeat(40)),
@@ -203,9 +203,9 @@ describe("batchRuns — token-budgeted, consecutive, never splits a message", ()
 	});
 
 	it("learner messages and tool results never join a batch — teacher prose only (owner, 2026-09-28)", () => {
-		// The inseparability bond died with the ruling: tool results are
-		// invisible, so nothing needs keeping together. Batches are pure
-		// greedy runs over the TEACHER slots alone.
+		// El vínculo de inseparabilidad murió con la decisión: los resultados de herramienta son
+		// invisibles, así que no hay nada que mantener junto. Los lotes son ejecuciones
+		// voraces puras solo sobre las ranuras del PROFESOR.
 		const messages = [
 			user("u1", "learner asks"),
 			teacher("t1", "x".repeat(40)),
@@ -240,13 +240,13 @@ describe("batchTag — deterministic, ref-stable, mutation-sensitive", () => {
 
 describe("the all-sessions coverage GET is dead (extraction-UX close-out, 2026-09-24)", () => {
 	it("the route file is gone — the only coverage endpoint is the Extract POST", () => {
-		// UI confirmation (ff1ec7a): nothing client-side consumes the
-		// all-sessions list anymore — the sidebar block and the ring both
-		// read GET /api/chats/[id]'s coverage block. This pin guards against
-		// a merge resurrecting the dead surface.
+		// Confirmación de la interfaz (ff1ec7a): ya nada del lado del cliente consume la
+		// lista de todas las sesiones: tanto el bloque de la barra lateral como el anillo
+		// leen el bloque de cobertura de GET /api/chats/[id]. Esta fijación evita que
+		// una fusión resucite la superficie muerta.
 		assert.equal(fs.existsSync("app/api/graph/coverage/route.ts"), false, "the all-sessions GET route is deleted");
-		// stays by design: the manual-extract front door (sidebar block's
-		// Extract affordance) lives on.
+		// se queda a propósito: la puerta de entrada de la extracción manual (la indicación Extract
+		// del bloque de la barra lateral) sigue viva.
 		assert.equal(fs.existsSync("app/api/graph/coverage/extract/route.ts"), true, "the Extract POST survives");
 	});
 });

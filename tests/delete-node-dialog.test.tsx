@@ -4,24 +4,24 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { createElement } from "react";
 
 /**
- * The node-deletion confirm dialog (node interlude, Platform's 50bfcba
- * engine; multi-node extension + MINIMAL REWRITE, owner 2026-09-30):
- * render pins for the copy — the copy is design, not implementation.
- * The delete path itself is live-verified against the real API
- * (dev-verification notes); SSR here pins what static rendering CAN
- * pin.
+ * El diálogo de confirmación de borrado de nodos (interludio de nodos, motor 50bfcba de
+ * Platform; extensión a varios nodos + REESCRITURA MÍNIMA, responsable 2026-09-30):
+ * fijaciones de renderizado del texto; el texto es diseño, no implementación.
+ * La ruta de borrado en sí se verifica en vivo contra la API real
+ * (notas de verificación en desarrollo); aquí el SSR fija lo que el renderizado estático PUEDE
+ * fijar.
  *
- * The minimal contract (owner ruling, 2026-09-30): NO pre-flight
- * impact read — what full death takes is obvious, the fetch
- * flickered, and richer facts would only confuse as deletion
- * semantics evolve (rewiring talk is on the table). Title + names +
- * one permanence line + Cancel/Delete. And "node"/"nodes" is THE UI
- * word for graph objects (standardized everywhere, same ruling).
+ * El contrato mínimo (decisión del responsable, 2026-09-30): SIN lectura previa del
+ * impacto: lo que se lleva una muerte completa es obvio, la petición
+ * parpadeaba y unos datos más ricos solo confundirían a medida que evolucione la semántica
+ * del borrado (está sobre la mesa hablar de recablear). Título + nombres +
+ * una línea de permanencia + Cancel/Delete. Y "node"/"nodes" es LA palabra de la interfaz
+ * para los objetos del grafo (estandarizada en todas partes, misma decisión).
  */
 
 import { DeleteNodeBody, DeleteNodeDialog, EXTRACTION_RETRY_LINE } from "../components/delete-node-dialog.tsx";
 
-/** The body — pure, so SSR pins everything the live dialog shows. */
+/** El cuerpo: puro, así que el SSR fija todo lo que muestra el diálogo en vivo. */
 function bodyAt(nodes: { id: string; name: string }[], extra?: { failure?: { code: string; error: string } | null; busy?: boolean }) {
 	return renderToStaticMarkup(
 		createElement(DeleteNodeBody, {
@@ -55,11 +55,11 @@ describe("DeleteNodeBody — the minimal screen (owner, 2026-09-30)", () => {
 	it("single: 'Delete node?' title, the name alone in mono, the one permanence line", () => {
 		const html = bodyAt([{ id: "kepler", name: "Kepler's three laws" }]);
 		assert.match(html, /data-testid="delete-node-dialog"/);
-		// (owner, 2026-10-13 polish) the title in the abort-turn look —
-		// text-sm font-semibold (JetBrains Mono via the UI default), red
-		// kept, NO font-title serif; the NAME rides below in JetBrains
-		// Mono at normal text-sm size, NO code-block chrome — same shape
-		// as the session dialog.
+		// (responsable, pulido del 2026-10-13) el título con el aspecto de abort-turn:
+		// text-sm font-semibold (JetBrains Mono por defecto en la interfaz), se mantiene
+		// el rojo, SIN la serif font-title; el NOMBRE va debajo en JetBrains
+		// Mono a tamaño text-sm normal, SIN adorno de bloque de código: la misma forma
+		// que el diálogo de sesión.
 		assert.match(html, /Delete node\?/);
 		const title = html.match(/<h2[^>]*>/)?.[0] ?? "";
 		assert.match(title, /text-sm font-semibold text-destructive/);
@@ -71,7 +71,7 @@ describe("DeleteNodeBody — the minimal screen (owner, 2026-09-30)", () => {
 		assert.match(html, /data-testid="node-permanence-line"[^>]*>This permanently deletes the node — this cannot be undone\./);
 		assert.match(html, /data-testid="node-delete-cancel"/);
 		assert.match(html, /data-testid="node-delete-confirm"/);
-		// the Delete button carries the destructive red (owner, polish round)
+		// el botón Delete lleva el rojo destructivo (responsable, ronda de pulido)
 		assert.match(html, /border-destructive\/50[^>]*text-destructive/);
 	});
 
@@ -90,18 +90,18 @@ describe("DeleteNodeBody — the minimal screen (owner, 2026-09-30)", () => {
 			{ id: "newton", name: "Newton's second law" },
 			{ id: "hook", name: "Hooke's law" },
 		]);
-		assert.match(three, /Delete 3 nodes\?/); // plural title, NODES
+		assert.match(three, /Delete 3 nodes\?/); // título en plural, NODES
 		assert.match(three, /data-testid="node-names-code"/);
 		assert.match(three, /Kepler&#x27;s three laws, Newton&#x27;s second law, Hooke&#x27;s law/);
 		assert.ok(!three.includes('data-testid="node-name-code"'), "the single-name testid is gone in multi");
 		assert.match(three, /This permanently deletes all 3 nodes — this cannot be undone\./);
 		assert.ok(!three.includes("proposition"), "the old word is gone from the dialog");
 
-		// the cap: 10 names render 8 + ", and 2 more"
+		// el tope: 10 nombres muestran 8 + ", and 2 more"
 		const ten = bodyAt(Array.from({ length: 10 }, (_, i) => ({ id: `n${i}`, name: `Prop ${i}` })));
 		assert.match(ten, /Delete 10 nodes\?/);
-		assert.match(ten, /Prop 7/); // the 8th name still listed
-		assert.doesNotMatch(ten, /Prop 8</); // the 9th is not
+		assert.match(ten, /Prop 7/); // el 8.º nombre sigue en la lista
+		assert.doesNotMatch(ten, /Prop 8</); // el 9.º no
 		assert.match(ten, /, and 2 more/);
 	});
 
@@ -111,13 +111,13 @@ describe("DeleteNodeBody — the minimal screen (owner, 2026-09-30)", () => {
 		});
 		assert.match(conflict, /data-testid="node-delete-failure"/);
 		assert.match(conflict, new RegExp(EXTRACTION_RETRY_LINE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-		assert.doesNotMatch(conflict, /server line/); // the dock phrasing REPLACES the raw line for the known code
+		assert.doesNotMatch(conflict, /server line/); // la redacción del dock SUSTITUYE a la línea en bruto para el código conocido
 		assert.match(conflict, /data-testid="node-delete-retry"/);
 
 		const plain = bodyAt([{ id: "kepler", name: "Kepler's three laws" }], {
 			failure: { code: "not_found", error: "No such node" },
 		});
-		assert.match(plain, /No such node/); // honest raw line otherwise
+		assert.match(plain, /No such node/); // en otro caso, la línea en bruto, honesta
 	});
 
 	it("busy: the confirm reads 'Deleting…' and both buttons disable", () => {

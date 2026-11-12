@@ -1,8 +1,8 @@
 /**
- * The composer's attach button (issue #285): the picker's twin of a file
- * drop. Picked files become quoted path chips at the caret through the
- * desktop bridge; the browser build explains instead. Same linkedom
- * shims as file-path-drop-zone.test.tsx (no native Selection there).
+ * El botón de adjuntar del compositor (issue #285): el gemelo del selector de soltar
+ * un fichero. Los ficheros elegidos se convierten en etiquetas de ruta entre comillas en el cursor a través del
+ * puente de escritorio; la versión de navegador da una explicación en su lugar. Los mismos
+ * parches de linkedom que file-path-drop-zone.test.tsx (allí no hay Selection nativa).
  */
 import React, { act } from "react";
 (globalThis as Record<string, unknown>).React = React;

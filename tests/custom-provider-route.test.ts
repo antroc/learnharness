@@ -1,10 +1,10 @@
 /**
- * POST /api/custom-provider — the connect policy around manually typed model
- * ids. Two rules earn a route test (the pure pieces live in
+ * POST /api/custom-provider: la política de conexión en torno a los ids de modelo
+ * escritos a mano. Dos reglas merecen una prueba de ruta (las piezas puras están en
  * custom-endpoint.test.ts):
- *   1. Typed ids make a FAILED probe survivable, but never a rejected key.
- *   2. A failed probe never shrinks the snapshot it already stored: that prune
- *      would take the model metadata and the user's pins with it.
+ *   1. Los ids escritos hacen que un sondeo FALLIDO sea superable, pero nunca una clave rechazada.
+ *   2. Un sondeo fallido nunca encoge la instantánea que ya guardó: esa poda
+ *      se llevaría consigo los metadatos del modelo y las fijaciones del usuario.
  */
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
@@ -32,7 +32,7 @@ before(async () => {
 });
 
 const BASE = "http://h/v1";
-/** A connected endpoint with two discovered models, a pin on each, one typed id. */
+/** Un endpoint conectado con dos modelos descubiertos, una fijación en cada uno y un id escrito a mano. */
 const CONNECTED = {
 	version: 1,
 	customProvider: {

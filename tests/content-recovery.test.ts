@@ -31,8 +31,8 @@ test("native substack rows and literal document escapes in genuine comments rema
 test("inline lost prefixes recover only known full commands; display newlines remain whitespace", () => {
 	assert.equal(repairMathForDisplay("$\nabla f$"), math`$\nabla f$`);
 	assert.equal(repairMathForDisplay("$x+\ny$"), "$x+\ny$");
-	assert.equal(repairMathForDisplay("$x+\nu$"), math`$x+\nu$`); // approved typical-inline-authoring policy
-	assert.equal(repairMathForDisplay("$$\nabla f\n$$"), "$$\nabla f\n$$"); // display source whitespace
+	assert.equal(repairMathForDisplay("$x+\nu$"), math`$x+\nu$`); // política aprobada de autoría en línea típica
+	assert.equal(repairMathForDisplay("$$\nabla f\n$$"), "$$\nabla f\n$$"); // espacios en blanco de la fuente mostrada
 });
 test("physical display newlines and genuine row breaks/comments survive", () => {
 	const source = "$$\n" + math`\begin{aligned}a&=b\\% row comment` + "\nc&=d\end{aligned}\n$$";
@@ -43,7 +43,7 @@ test("proper nu survives every context, including fields with document escapes",
 		assert.equal(repairMathForDisplay(source), source);
 	}
 	assert.equal(repairMathForDisplay(math`First.\n\n$\nu$`), "First.\n\n" + math`$\nu$`);
-	assert.equal(repairMathForDisplay("$$\nu\n$$"), "$$\nu\n$$"); // LF + variable u in display
+	assert.equal(repairMathForDisplay("$$\nu\n$$"), "$$\nu\n$$"); // LF + variable u en la visualización
 });
 test("tabs recover known commands including to, not arbitrary whitespace", () => {
 	assert.equal(repairMathForDisplay("$$\nx\t+\ty\n$$"), "$$\nx\t+\ty\n$$");
