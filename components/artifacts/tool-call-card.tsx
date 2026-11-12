@@ -4,14 +4,16 @@ import { ChevronRight } from "lucide-react";
 import type { ArtifactPartProps } from "@/src/core";
 
 /**
- * The generic tool-call card (sources v1, 2026-09-19): a quiet, collapsed
- * one-liner per synchronous tool call — the tool name plus the headline
- * argument — expandable to the full input and output. The user's spec:
- * "at least the tool name; for read, the file name; everything collapsed
- * by default; not distracting — background stuff." Unregistered tools
- * still render nothing (chat.tsx's registry default); this card is only
- * for the learner-filesystem set (read/ls/find/grep) where the call IS
- * worth a trace in the transcript.
+ * La tarjeta genérica de llamada a herramienta (fuentes v1, 2026-09-19): una
+ * línea discreta y plegada por cada llamada síncrona a herramienta —el nombre
+ * de la herramienta más el argumento principal—, desplegable hasta la entrada
+ * y la salida completas. La especificación del usuario: «al menos el nombre
+ * de la herramienta; para read, el nombre del fichero; todo plegado por
+ * defecto; que no distraiga, cosas de fondo». Las herramientas no registradas
+ * siguen sin renderizar nada (el valor por defecto del registro de chat.tsx);
+ * esta tarjeta es solo para el conjunto del sistema de ficheros del alumno
+ * (read/ls/find/grep), donde la llamada SÍ merece dejar rastro en la
+ * transcripción.
  */
 
 interface ToolCallPart {
@@ -23,9 +25,10 @@ interface ToolCallPart {
 	errorText?: string;
 }
 
-/** The collapsed headline argument per tool: path for read/ls/show_image, pattern for
- *  find/grep — shown as given, never resolved (the absolute path lands in
- *  the expanded view when present in the output). */
+/** El argumento principal plegado por herramienta: la ruta en
+ * read/ls/show_image, el patrón en find/grep; se muestra tal cual, nunca
+ * resuelto (la ruta absoluta aparece en la vista desplegada cuando está en
+ * la salida). */
 function headlineArg(tool: string, input: unknown): string {
 	const inp = (input ?? {}) as Record<string, unknown>;
 	if (tool === "read" || tool === "ls" || tool === "show_image") {
@@ -33,18 +36,18 @@ function headlineArg(tool: string, input: unknown): string {
 		return p;
 	}
 	if (typeof inp.pattern === "string") return inp.pattern;
-	// list_propositions: the session id is the call's subject — the
-	// collapsed line reads "list_propositions chat_…". Shown as given
-	// (the id is exactly what list_sessions reported to the model).
+	// list_propositions: el id de sesión es el sujeto de la llamada; la
+	// línea plegada dice "list_propositions chat_…". Se muestra tal cual
+	// (el id es exactamente lo que list_sessions comunicó al modelo).
 	if (tool === "list_propositions" && typeof inp.session === "string" && inp.session.length > 0) {
 		return inp.session;
 	}
 	return "";
 }
 
-/** Render a tool result body: plain strings verbatim, image-bearing read
- *  results show their text + an attachment note (the image itself is the
- *  model's — the learner sees only that it happened). */
+/** Renderiza el cuerpo de un resultado de herramienta: las cadenas simples tal
+ * cual; los resultados de read con imágenes muestran su texto + una nota de
+ * adjunto (la imagen en sí es para el modelo; el alumno solo ve que ocurrió). */
 function outputText(output: unknown): string | null {
 	if (output == null) return null;
 	if (typeof output === "string") return output;

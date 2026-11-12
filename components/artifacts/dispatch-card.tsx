@@ -8,16 +8,17 @@ import { isModelsRefusal, isProviderKeyRefusal, type JobKind, type JobRecord } f
 import { BrailleSpinner } from "@/components/braille-spinner";
 
 /**
- * The dispatch card (contracts.ts "THE ASYNC PROTOCOL" §4): the tool-call
- * box for a background sub-agent. The tool part's output is the FIRE-AND-
- * FORGET ACK (a string) — never the result. Live status comes from the
- * chat-view jobs feed via JobsContext, matched by toolCallId:
+ * La tarjeta de despacho (contracts.ts "THE ASYNC PROTOCOL" §4): el cuadro
+ * de llamada a herramienta de un subagente en segundo plano. La salida de la
+ * parte de herramienta es el ACUSE DE LANZAR Y OLVIDAR (una cadena), nunca el
+ * resultado. El estado en directo viene del feed de tareas de la vista de
+ * chat a través de JobsContext, emparejado por toolCallId:
  *
- *   job unknown → "dispatched" pulse (the jobs feed hasn't seen it yet)
- *   running     → live activity card (activity line + elapsed)
- *   done/error  → quiet one-liner ("finished" / "failed") — the artifact
- *                 itself arrives in the steer message right below, so the
- *                 box must not duplicate it.
+ *   tarea desconocida → pulso de "dispatched" (el feed de tareas aún no la ha visto)
+ *   running           → tarjeta de actividad en directo (línea de actividad + tiempo transcurrido)
+ *   done/error        → una línea discreta ("finished" / "failed"); el
+ *                       artefacto en sí llega en el mensaje de reorientación
+ *                       justo debajo, así que el cuadro no debe duplicarlo.
  */
 const KIND_LABEL: Record<JobKind, string> = {
 	research: "Research agent",
@@ -35,12 +36,12 @@ export function DispatchCard({ toolCallId, kind }: { toolCallId: string; kind: J
 	if (!job || job.status === "running") {
 		return <DispatchActivityCard job={job} label={label} />;
 	}
-	// BYOK (owner, 2026-09-22): a job refused for missing models is INFO,
-	// not scary-error — gray glyph + "needs model setup" + the deep-link
-	// into the SetupDialog (the same flow the send interception uses).
-	// The provider-key refusal twin (zero-keys wave): a pinned model
-	// whose key is gone reads as the key being needed — the deep-link
-	// lands on the SetupDialog's first-key stage on its own.
+	// BYOK (responsable, 2026-09-22): una tarea rechazada por falta de modelos es INFORMACIÓN,
+	// no un error que asuste: glifo gris + "needs model setup" + el enlace directo
+	// al SetupDialog (el mismo flujo que usa la intercepción del envío).
+	// El gemelo del rechazo por clave de proveedor (oleada de cero claves): un modelo fijado
+	// cuya clave ha desaparecido se lee como que hace falta la clave; el enlace directo
+	// cae por sí solo en la etapa de primera clave del SetupDialog.
 	if (isModelsRefusal(job.error)) {
 		return <DispatchRefusedCard label={label} line="needs model setup" button="Set up models" />;
 	}
@@ -60,7 +61,7 @@ export function DispatchCard({ toolCallId, kind }: { toolCallId: string; kind: J
 	);
 }
 
-/** The refused card: quiet info tone — nothing red, nothing "failed". */
+/** La tarjeta de rechazo: tono informativo discreto; nada en rojo, nada de "failed". */
 function DispatchRefusedCard({ label, line, button }: { label: string; line: string; button: string }) {
 	const ctx = useContext(ChatActionsContext);
 	return (
@@ -86,8 +87,8 @@ function DispatchRefusedCard({ label, line, button }: { label: string; line: str
 }
 
 function DispatchActivityCard({ job, label }: { job: JobRecord | null; label: string }) {
-	// Elapsed from createdAt — jobs appear here only via the jobs feed (post-mount),
-	// so no SSR/hydration mismatch.
+	// Tiempo transcurrido desde createdAt; las tareas solo aparecen aquí a través del feed de tareas (tras montar),
+	// así que no hay discrepancia de SSR/hidratación.
 	const elapsed =
 		job && job.createdAt ? Math.max(0, Math.round((Date.now() - Date.parse(job.createdAt)) / 1000)) : null;
 	return (
@@ -96,10 +97,10 @@ function DispatchActivityCard({ job, label }: { job: JobRecord | null; label: st
 			data-testid="dispatch-card"
 		>
 			<div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-				{/* The working-state grammar (owner, streaming round 2026-10-01):
-				    the Braille spinner replaces the pulsing dot — one indicator
-				    everywhere. This is the ONLY dispatch-card change; the card's
-				    shape is untouched. */}
+				{/* La gramática del estado de trabajo (responsable, ronda de streaming
+				    2026-10-01): el spinner Braille sustituye al punto pulsante; un único
+				    indicador en todas partes. Este es el ÚNICO cambio de la tarjeta de
+				    despacho; la forma de la tarjeta no se toca. */}
 				<BrailleSpinner label={`${label} running`} />
 				{label}
 				{elapsed !== null && <span className="font-normal">· {elapsed}s</span>}

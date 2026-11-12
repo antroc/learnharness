@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 import { CheckIcon, ChevronRight } from "lucide-react";
 import { Hint } from "@/components/ui/hint";
 
-/** Shared research/PDF completion grammar. The host owns the summary; only
- * the expanded body is replaceable by a plugin renderer. */
+/** Gramática compartida de finalización de investigación/PDF. El host es dueño
+ * del resumen; solo el cuerpo desplegado se puede sustituir por un renderer de plugin. */
 export function WorkerResultDetails({ heading, children, icon = <CheckIcon className="size-3.5" />, testId, headerTestId, headerTooltip, disclosure = "labels", viewLabel = "view brief", hideLabel = "hide brief" }: {
 	heading: ReactNode;
 	children: ReactNode;
@@ -13,7 +13,7 @@ export function WorkerResultDetails({ heading, children, icon = <CheckIcon class
 	testId?: string;
 	headerTestId?: string;
 	headerTooltip?: string;
-	/** Native brief labels remain the default; compact results opt into a chevron. */
+	/** Las etiquetas nativas del informe siguen siendo el valor por defecto; los resultados compactos optan por un chevron. */
 	disclosure?: "labels" | "chevron";
 	viewLabel?: string;
 	hideLabel?: string;

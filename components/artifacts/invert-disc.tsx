@@ -1,9 +1,9 @@
-/** The invert disc (owner round, 2026-10-07): the half-filled circle that
- *  IS the invert toggle's sliding disc. Hand-rolled because lucide's
- *  Contrast leaves its half-moon unfilled (fill="none" by default) — the
- *  owner's catch: the filled side must be ACTUALLY filled. Same geometry
- *  as lucide's (circle r10 + left half-moon), the half carries
- *  fill="currentColor". */
+/** El disco de inversión (ronda del responsable, 2026-10-07): el círculo
+ * medio relleno que ES el disco deslizante del conmutador de inversión.
+ * Hecho a mano porque Contrast de lucide deja su media luna sin rellenar
+ * (fill="none" por defecto); lo detectó el responsable: el lado relleno debe
+ * estar REALMENTE relleno. Misma geometría que la de lucide (círculo r10 +
+ * media luna izquierda); la mitad lleva fill="currentColor". */
 export function InvertDiscIcon({ className }: { className?: string }) {
 	return (
 		<svg

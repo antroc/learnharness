@@ -6,8 +6,9 @@ import { PluginWorkerResultSurface } from "@/components/plugin-worker-result";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { usePlugins } from "@/components/plugins";
 
-/** A later marker is not a native tool result: the original call keeps its ack.
- * Preserve explicit data (including null/false) instead of treating it as absent. */
+/** Un marcador posterior no es un resultado nativo de herramienta: la llamada
+ * original conserva su acuse. Conserva los datos explícitos (incluidos null/false)
+ * en vez de tratarlos como ausentes. */
 export function pluginBackgroundPart(result: PluginBackgroundResult, toolCallId: string): LhViewPart & { background: PluginBackgroundMeta } {
 	return {
 		type: `tool-${result.toolName}`,
@@ -20,8 +21,9 @@ export function pluginBackgroundPart(result: PluginBackgroundResult, toolCallId:
 	};
 }
 
-/** Persisted presentation remains readable without any installed/enabled plugin.
- * Only the body is extensible: identity/status and formatter errors remain host-owned. */
+/** La presentación persistida sigue siendo legible sin ningún plugin instalado
+ * o activado. Solo el cuerpo es extensible: la identidad/estado y los errores
+ * del formateador siguen siendo del host. */
 export function PluginWorkerCard({ result, toolCallId }: { result: PluginBackgroundResult; toolCallId: string }) {
 	const { snapshot } = usePlugins();
 	const registration = snapshot.toolRenderers.find(entry => entry.renderer.toolName === result.toolName);

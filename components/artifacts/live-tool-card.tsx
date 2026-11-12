@@ -7,18 +7,20 @@ import { toolActivityLabel } from "@/src/core";
 import type { ArtifactPartProps } from "@/src/core";
 
 /**
- * The LIVE tool-input card (owner, streaming round 2026-10-01): what a
- * tool call looks like while the agent WRITES it. A tool part sits in
- * `input-streaming` for its whole execution (the bridge defers
- * input-available to tool_execution_end), so this card IS the working
- * state — spinner + shimmered activity label in the header (the retired
- * transcript bottom line's text, same recipe as the thinking row), and
- * the streaming input itself watchable on expand. The moment the call
- * settles, the part re-renders through the artifact registry and the
- * quiet settled card replaces this one.
+ * La tarjeta EN DIRECTO de la entrada de la herramienta (responsable, ronda de
+ * streaming 2026-10-01): el aspecto de una llamada a herramienta mientras el
+ * agente la ESCRIBE. Una parte de herramienta está en `input-streaming`
+ * durante toda su ejecución (el puente aplaza input-available hasta
+ * tool_execution_end), así que esta tarjeta ES el estado de trabajo: spinner
+ * + etiqueta de actividad con brillo en la cabecera (el texto de la retirada
+ * línea inferior de la transcripción, con la misma receta que la fila de
+ * razonamiento), y la propia entrada en streaming visible al desplegar. En
+ * cuanto la llamada se asienta, la parte se vuelve a renderizar mediante el
+ * registro de artefactos y la tarjeta asentada y discreta sustituye a esta.
  *
- * The one working-state grammar everywhere (owner): Braille spinner +
- * Shimmer(duration 1) — the thinking row, this card, the sidebar row.
+ * La única gramática del estado de trabajo en todas partes (responsable):
+ * spinner Braille + Shimmer(duration 1): la fila de razonamiento, esta
+ * tarjeta y la fila de la barra lateral.
  */
 interface StreamingToolPart {
 	type: string;
@@ -31,8 +33,8 @@ export function LiveToolCard({ part }: ArtifactPartProps) {
 	const p = part as StreamingToolPart;
 	const tool = p.type.replace(/^tool-/, "");
 	const inp = (p.input ?? {}) as Record<string, unknown>;
-	// The headline argument (ToolCallCard's rule, shown as given): path for
-	// read/ls, pattern for find/grep, session for list_propositions.
+	// El argumento principal (la regla de ToolCallCard, mostrado tal cual): la ruta en
+	// read/ls, el patrón en find/grep, la sesión en list_propositions.
 	let arg = "";
 	if (typeof inp.path === "string" && inp.path) arg = inp.path;
 	else if (typeof inp.pattern === "string" && inp.pattern) arg = inp.pattern;

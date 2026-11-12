@@ -8,11 +8,12 @@ import type { ArtifactPartProps, ImageSnapshot, ShowImageDetails } from "@/src/c
 import { useImageSnapshot } from "./use-image-snapshot";
 
 /**
- * The show_image card (issue #363): one of the learner's own images, as
- * document material like a figure — the picture, then a caption row with
- * "Image" + the teacher's caption left and the controls right. No invert
- * switch (owner decision: a photo inverts to a negative). A failed or
- * still-running call keeps the quiet tool-call card.
+ * La tarjeta de show_image (issue #363): una de las imágenes propias del
+ * alumno, como material del documento al estilo de una figura: la imagen y
+ * después una fila de pie con "Image" + el pie del profesor a la izquierda y
+ * los controles a la derecha. Sin interruptor de inversión (decisión del
+ * responsable: una foto invertida es un negativo). Una llamada fallida o aún
+ * en curso mantiene la tarjeta discreta de llamada a herramienta.
  */
 
 function isShowImageDetails(value: unknown): value is ShowImageDetails {
@@ -27,20 +28,20 @@ function isShowImageDetails(value: unknown): value is ShowImageDetails {
 	);
 }
 
-/** The learner's file name, without its directory. Pure. */
+/** El nombre de fichero del alumno, sin su directorio. Puro. */
 function baseName(path: string): string {
 	return path.split(/[\\/]/).pop() || "image";
 }
 
-/** The download name: the file's stem with the STORED format's extension
- *  (a converted or shrunk image is no longer the original bytes). Pure. */
+/** El nombre de descarga: la raíz del fichero con la extensión del formato
+ * GUARDADO (una imagen convertida o reducida ya no son los bytes originales). Puro. */
 export function imageDownloadName(image: Pick<ShowImageDetails, "path" | "mimeType">): string {
 	const stem = baseName(image.path).replace(/\.[^.]*$/, "") || "image";
 	return `${stem}.${image.mimeType === "image/png" ? "png" : "jpg"}`;
 }
 
-/** The image as a standalone SVG document — the shape the fullscreen
- *  overlay (an SVG viewer, sized by viewBox) takes. Pure. */
+/** La imagen como documento SVG independiente: la forma que admite la
+ * superposición a pantalla completa (un visor SVG dimensionado por viewBox). Puro. */
 export function imageSvgDocument(image: ImageSnapshot): string {
 	const { width, height } = image;
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><image href="data:${image.mimeType};base64,${image.data}" width="${width}" height="${height}"/></svg>`;
@@ -65,7 +66,7 @@ function StoredImageCard({ details }: { details: ShowImageDetails }) {
 	return <ImagePresentation image={{ ...image, path: details.path, caption: details.caption }} />;
 }
 
-/** Resolved presentation shared by inline display, download and fullscreen. */
+/** Presentación resuelta compartida por la vista en línea, la descarga y la pantalla completa. */
 export function ImagePresentation({ image }: { image: ImageSnapshot & Pick<ShowImageDetails, "path" | "caption"> }) {
 	const overlay = useSessionMermaid();
 	const save = () => {
@@ -73,12 +74,12 @@ export function ImagePresentation({ image }: { image: ImageSnapshot & Pick<ShowI
 		downloadFile(imageDownloadName(image), bytes, image.mimeType);
 	};
 	return (
-		/* Auto dimensions let the width/60vh constraints scale the whole picture
-		   proportionally, never enlarge it. The wrapper hugs its displayed width;
-		   w-0 + min-w-full keeps the caption from widening the card. */
+		/* Las dimensiones automáticas dejan que las restricciones de anchura/60vh
+		   escalen toda la imagen proporcionalmente, sin agrandarla nunca. El envoltorio
+		   se ciñe a su anchura mostrada; w-0 + min-w-full evita que el pie ensanche la tarjeta. */
 		<figure className="my-4 mx-auto w-fit max-w-full" data-testid="image-card">
 			<div className="w-fit max-w-full overflow-hidden rounded-lg">
-				{/* An in-memory image from the record; no Next image optimization. */}
+				{/* Una imagen en memoria procedente del registro; sin optimización de imágenes de Next. */}
 				{/* eslint-disable-next-line @next/next/no-img-element */}
 				<img
 					src={`data:${image.mimeType};base64,${image.data}`}

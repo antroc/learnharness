@@ -10,23 +10,25 @@ import { DispatchCard } from "@/components/artifacts/dispatch-card";
 import type { ArtifactPartProps, DemoResult } from "@/src/core";
 
 /**
- * Demo artifact card (W6): while the part is input-available, a job activity
- * card (the chat view's jobs feed — the job-card idiom); when output-available, the demo
- * runs in a SANDBOXED iframe (sandbox="allow-scripts", no allow-same-origin →
- * no access to app storage/cookies/DOM).
+ * Tarjeta del artefacto de demo (W6): mientras la parte está en
+ * input-available, una tarjeta de actividad de la tarea (el feed de tareas de
+ * la vista de chat; el idioma de job-card); cuando está en output-available,
+ * la demo se ejecuta en un iframe AISLADO (sandbox="allow-scripts", sin
+ * allow-same-origin → sin acceso al almacenamiento, las cookies ni el DOM de
+ * la app).
  *
- * The bridge script (contracts.ts "Demo iframe bridge") is auto-injected into
- * every demo by buildDemoSrcDoc — never the model's job: ResizeObserver →
- * postMessage {type:"demo-resize",height} (parent sizes the iframe) and
- * window.onerror → {type:"demo-error",message} (error chip on the card, with
- * a "Send to teacher" button that feeds the error back into the lesson — the
- * fix loop).
+ * El script puente (contracts.ts "Demo iframe bridge") lo inyecta
+ * automáticamente buildDemoSrcDoc en cada demo; nunca es tarea del modelo:
+ * ResizeObserver → postMessage {type:"demo-resize",height} (el padre
+ * dimensiona el iframe) y window.onerror → {type:"demo-error",message}
+ * (etiqueta de error en la tarjeta, con un botón "Send to teacher" que
+ * devuelve el error a la lección: el bucle de arreglo).
  *
- * Bridge message handling is a pure function (reduceDemoBridgeState) so
- * tests cover it without a DOM.
+ * El manejo de mensajes del puente es una función pura
+ * (reduceDemoBridgeState), así que las pruebas lo cubren sin DOM.
  */
 
-// ─── bridge injection + message handling (pure, testable) ───────────────────
+// ─── inyección del puente + manejo de mensajes (puro, comprobable) ──────────
 
 export const DEMO_BRIDGE_SCRIPT = `<script>(function(){
 var send=function(m){try{parent.postMessage(m,"*")}catch(e){}};
@@ -46,7 +48,7 @@ setTimeout(post,50);
 setTimeout(post,400);
 })();</script>`;
 
-/** Inject the bridge before </body> (or at the end of a body-less document). */
+/** Inyecta el puente antes de </body> (o al final de un documento sin body). */
 export function buildDemoSrcDoc(html: string): string {
 	if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, `${DEMO_BRIDGE_SCRIPT}</body>`);
 	return `${html}${DEMO_BRIDGE_SCRIPT}`;
@@ -62,7 +64,7 @@ export const INITIAL_DEMO_BRIDGE_STATE: DemoBridgeState = { height: null, error:
 const MIN_HEIGHT = 80;
 const MAX_HEIGHT = 2400;
 
-/** Pure reducer over incoming postMessage data (contracts.ts DemoBridgeMessage). */
+/** Reductor puro sobre los datos de postMessage entrantes (DemoBridgeMessage de contracts.ts). */
 export function reduceDemoBridgeState(state: DemoBridgeState, data: unknown): DemoBridgeState {
 	if (typeof data !== "object" || data === null) return state;
 	const message = data as { type?: unknown; height?: unknown; message?: unknown };
@@ -78,19 +80,21 @@ export function reduceDemoBridgeState(state: DemoBridgeState, data: unknown): De
 	return state;
 }
 
-// ─── the demo card ──────────────────────────────────────────────────────────
+// ─── la tarjeta de demo ─────────────────────────────────────────────────────
 
-/** The demo tool-call box: the part's output is the dispatch ack — the box
- * is the DispatchCard (live status via the chat view's jobs feed). The demo
- * itself renders from the steer message via DemoOutputCard. */
+/** El cuadro de la llamada a la herramienta de demo: la salida de la parte es
+ * el acuse del despacho; el cuadro es la DispatchCard (estado en directo a
+ * través del feed de tareas de la vista de chat). La demo en sí se renderiza
+ * a partir del mensaje de reorientación mediante DemoOutputCard. */
 export function DemoCard({ part }: ArtifactPartProps) {
 	if (part.state !== "output-available") return null;
 	return <DispatchCard toolCallId={part.toolCallId} kind="demo" />;
 }
 
-/** The demo artifact — exported: the steer card renders the delivered
- *  result. `messageId` + `initialInverted` carry the PERSISTED invert
- *  switch (details.ui.inverted via the artifact-ui route, owner 2026-10-07). */
+/** El artefacto de demo; se exporta porque la tarjeta de reorientación
+ * renderiza el resultado entregado. `messageId` + `initialInverted` llevan el
+ * interruptor de inversión PERSISTIDO (details.ui.inverted mediante la ruta
+ * artifact-ui, responsable 2026-10-07). */
 export function DemoOutputCard({
 	output,
 	messageId,
@@ -139,13 +143,13 @@ function DemoFrame({
 	const actions = useContext(ChatActionsContext);
 	const iframeRef = useRef<HTMLIFrameElement | null>(null);
 	const [state, setState] = useState<DemoBridgeState>(INITIAL_DEMO_BRIDGE_STATE);
-	// Brightness inversion (owner, 2026-10-07): the switch state PERSISTS on
-	// the steer record (details.ui.inverted) — seeded here, written through
-	// the silent artifact-ui route on toggle. Without a chat page (tests,
-	// previews) the toggle stays local-only. The filter rides the iframe
-	// element, which carries the card's white backing, so one filter flips
-	// page + content together while hue-rotate(180deg) undoes invert's hue
-	// flip.
+	// Inversión de brillo (responsable, 2026-10-07): el estado del interruptor PERSISTE en
+	// el registro de la reorientación (details.ui.inverted); se siembra aquí y se escribe a través
+	// de la ruta silenciosa artifact-ui al conmutar. Sin página de chat (pruebas,
+	// vistas previas) el conmutador se queda solo en local. El filtro va en el elemento
+	// iframe, que lleva el fondo blanco de la tarjeta, así que un único filtro voltea
+	// página + contenido a la vez mientras hue-rotate(180deg) deshace el giro de tono
+	// de invert.
 	const [inverted, setInverted] = useState(initialInverted);
 	const toggleInverted = (next: boolean) => {
 		setInverted(next);
@@ -160,8 +164,8 @@ function DemoFrame({
 
 	useEffect(() => {
 		const onMessage = (event: MessageEvent) => {
-			// Only messages from THIS demo's iframe (the sandbox gives it an
-			// opaque origin; the window reference still matches).
+			// Solo mensajes del iframe de ESTA demo (el sandbox le da un origen
+			// opaco; la referencia a la ventana sigue coincidiendo).
 			if (!iframeRef.current || event.source !== iframeRef.current.contentWindow) return;
 			setState((prev) => reduceDemoBridgeState(prev, event.data));
 		};
@@ -171,9 +175,10 @@ function DemoFrame({
 
 	return (
 		<div className="rounded-xl border bg-card p-4 text-card-foreground" data-testid="demo-card">
-			{/* Caption header (owner, 2026-10-07): kind label + title in the
-			   label's size/tracking (title normal-case, foreground) — the
-			   figure card's grammar plus a name. Switch + download far right. */}
+			{/* Cabecera del pie (responsable, 2026-10-07): etiqueta del tipo + título con el
+			   tamaño/espaciado de la etiqueta (título sin mayúsculas, color de primer plano):
+			   la gramática de la tarjeta de figura más un nombre. Interruptor + descarga a la
+			   derecha del todo. */}
 			<div className="flex items-center justify-between gap-2">
 				<div className="flex min-w-0 items-baseline gap-2">
 					<span className="shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -211,20 +216,20 @@ function DemoFrame({
 			<iframe
 				ref={iframeRef}
 				title={title}
-				// allow-scripts ONLY — no allow-same-origin: the demo can run code
-				// but never touch the app's storage, cookies, or DOM.
+				// SOLO allow-scripts, sin allow-same-origin: la demo puede ejecutar código
+				// pero nunca tocar el almacenamiento, las cookies ni el DOM de la app.
 				sandbox="allow-scripts"
 				srcDoc={srcDoc}
-				// scrolling OFF (owner, 2026-10-07): the bridge auto-sizes the
-				// iframe to its content, so an internal scrollbar can only appear
-				// before the first resize lands — and a scrollable iframe TRAPS
-				// the wheel (session scrolling stalls over the demo). With
-				// scrolling disabled the wheel chains straight to the session.
+				// scrolling DESACTIVADO (responsable, 2026-10-07): el puente ajusta el tamaño del
+				// iframe a su contenido, así que una barra de desplazamiento interna solo puede aparecer
+				// antes de que llegue el primer redimensionado, y un iframe desplazable ATRAPA
+				// la rueda (el scroll de la sesión se atasca sobre la demo). Con el scrolling
+				// desactivado, la rueda se encadena directamente a la sesión.
 				scrolling="no"
 				className="mt-2 w-full rounded-lg border bg-white"
-				// content-box: the bridge reports the CONTENT height — with the
-				// preflight's border-box the 2px border would eat into it and clip
-				// the bottom of the demo (smoke finding, 2026-10-07).
+				// content-box: el puente informa de la altura del CONTENIDO; con el
+				// border-box del preflight, el borde de 2px se comería parte de ella y recortaría
+				// la parte inferior de la demo (hallazgo de una prueba de humo, 2026-10-07).
 				style={{
 					height: state.height ?? 360,
 					boxSizing: "content-box",

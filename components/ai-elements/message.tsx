@@ -214,7 +214,7 @@ export const MessageBranchContent = ({
     [children]
   );
 
-  // Use useEffect to update branches when they change
+  // Usa useEffect para actualizar las ramas cuando cambian
   useEffect(() => {
     if (branches.length !== childrenArray.length) {
       setBranches(childrenArray);
@@ -243,7 +243,7 @@ export const MessageBranchSelector = ({
 }: MessageBranchSelectorProps) => {
   const { totalBranches } = useMessageBranch();
 
-  // Don't render if there's only one branch
+  // No renderiza nada si solo hay una rama
   if (totalBranches <= 1) {
     return null;
   }
@@ -329,25 +329,25 @@ export const MessageBranchPage = ({
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
-// Type-only version skew: @streamdown/code bundles shiki@3 types while
-// streamdown@2.5 expects shiki@4 types. Both work at runtime (each ships its
-// own highlighter); the cast papers over the .d.ts mismatch.
+// Desfase de versiones solo de tipos: @streamdown/code empaqueta los tipos de shiki@3
+// mientras que streamdown@2.5 espera los de shiki@4. Ambos funcionan en tiempo de ejecución (cada uno
+// trae su propio resaltador); el cast tapa la discrepancia de los .d.ts.
 //
-// Standard dollar authoring (owner, 2026-10-12): $...$ inline, $$ fenced
-// on separate lines for display. transformMathDelimiters stays as the
-// compatibility reader for old \(...\)/\[...\] content; its two-dollar
-// output remains valid alongside native single-dollar math.
+// Escritura estándar con dólares (responsable, 2026-10-12): $...$ en línea, $$ en
+// líneas separadas para las fórmulas destacadas. transformMathDelimiters se mantiene como
+// lector de compatibilidad para el contenido antiguo \(...\)/\[...\]; su salida con dos
+// dólares sigue siendo válida junto a las matemáticas nativas de un solo dólar.
 //
-// remark-breaks rides in the cjk plugin's remarkPluginsAfter slot (public
-// PluginConfig API): Streamdown's bare `remarkPlugins` PROP would REPLACE the
-// defaults ([remark-gfm, codeMeta]), silently dropping GFM and code-fence
-// metastring parsing. The slot appends after the defaults, which is the
-// standard remark-gfm → remark-breaks order.
+// remark-breaks va en la ranura remarkPluginsAfter del plugin cjk (API pública
+// PluginConfig): la PROP `remarkPlugins` suelta de Streamdown SUSTITUIRÍA los
+// valores por defecto ([remark-gfm, codeMeta]) y descartaría en silencio GFM y el
+// análisis del metastring de los bloques de código. La ranura añade tras los valores por defecto, que es
+// el orden estándar remark-gfm → remark-breaks.
 //
-// MERMAID is app-owned since the chrome-melt wave (2026-09-19): the md-blocks
-// `code` override intercepts mermaid fences and renders via
-// components/mermaid-render.ts — streamdown's internal mermaid machinery
-// (the plugin entry + the `mermaid` prop) is retired with it.
+// MERMAID es propiedad de la app desde la oleada chrome-melt (2026-09-19): la
+// sustitución `code` de md-blocks intercepta los bloques mermaid y los renderiza mediante
+// components/mermaid-render.ts; la maquinaria interna de mermaid de streamdown
+// (la entrada del plugin + la prop `mermaid`) se retira con ello.
 export const streamdownPlugins = {
   cjk: {
     ...cjk,
@@ -357,19 +357,19 @@ export const streamdownPlugins = {
   math: createMathPlugin({ singleDollarTextMath: true }),
 } as unknown as PluginConfig;
 
-// Remend's incomplete-HTML heuristic mistakes `<b` in `$a<b$` for a
-// partial tag and deletes the remaining source before math can tokenize.
-// Preserve that text (unfinished prose HTML may show literally); Streamdown's
-// separate sanitization/hardening and all other Markdown repairs stay enabled.
+// La heurística de HTML incompleto de Remend confunde `<b` en `$a<b$` con una
+// etiqueta parcial y borra el resto de la fuente antes de que las matemáticas se tokenicen.
+// Se conserva ese texto (el HTML de prosa sin terminar puede mostrarse literal); el saneado/endurecimiento
+// aparte de Streamdown y todas las demás reparaciones de Markdown siguen activos.
 export const streamdownRemend = { htmlTags: false };
 
-// Model output must not load remote images: a rendered
-// ![x](https://host/?d=...) sends data out with no click. Streamdown's
-// default harden step allows every image prefix, so this keeps its
-// raw → sanitize → harden pipeline and changes one option. A blocked image
-// becomes an "[Image blocked: alt]" badge. data: images were already
-// blocked by the sanitize step; the app's image and SVG cards don't render
-// through markdown. Links are unchanged.
+// La salida del modelo no debe cargar imágenes remotas: un
+// ![x](https://host/?d=...) renderizado envía datos fuera sin ningún clic. El paso
+// de endurecimiento por defecto de Streamdown admite cualquier prefijo de imagen, así que esto mantiene su
+// proceso raw → sanitize → harden y cambia una opción. Una imagen bloqueada
+// se convierte en una insignia "[Image blocked: alt]". Las imágenes data: ya las
+// bloqueaba el paso de saneado; las tarjetas de imagen y SVG de la app no se renderizan
+// a través de markdown. Los enlaces no cambian.
 const [hardenPlugin, hardenOptions] = defaultRehypePlugins.harden as [unknown, Record<string, unknown>];
 export const streamdownRehypePlugins = Object.values({
   ...defaultRehypePlugins,
@@ -378,9 +378,9 @@ export const streamdownRehypePlugins = Object.values({
 
 export const MessageResponse = memo(
   ({ className, children, ...props }: MessageResponseProps) => {
-    // Legacy backslash delimiters are converted in a single linear scan;
-    // native dollar math passes through to Streamdown unchanged. Incomplete
-    // legacy spans are left for a later render when their closer arrives.
+    // Los delimitadores heredados con barra invertida se convierten en un único recorrido lineal;
+    // las matemáticas nativas con dólar pasan a Streamdown sin cambios. Los tramos heredados
+    // incompletos se dejan para un render posterior, cuando llegue su cierre.
     const content =
       typeof children === "string"
         ? transformMathDelimiters(children)
@@ -389,8 +389,8 @@ export const MessageResponse = memo(
     return (
       <Streamdown
         className={cn(
-          // Source Sans 3 + emphasis-color tokens on every markdown surface
-          // (labels stay JetBrains Mono). Unlayered plain CSS wins over text-sm.
+          // Source Sans 3 + tokens de color de énfasis en toda superficie markdown
+          // (las etiquetas siguen en JetBrains Mono). El CSS plano sin capa gana a text-sm.
           "lh-prose size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
           className
         )}
@@ -411,8 +411,9 @@ export const MessageResponse = memo(
 
 MessageResponse.displayName = "MessageResponse";
 
-/** Recovery is a tool-text presentation concern, not a shape/answer-data
- * transform. Ordinary assistant/user prose keeps MessageResponse unchanged. */
+/** La recuperación es una cuestión de presentación del texto de herramientas, no
+ * una transformación de forma/datos de respuesta. La prosa normal del asistente
+ * o del usuario sigue usando MessageResponse sin cambios. */
 export function ToolContentResponse({ children, ...props }: MessageResponseProps) {
   return (
     <MessageResponse {...props}>

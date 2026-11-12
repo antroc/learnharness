@@ -17,6 +17,13 @@ def parse(path):
             out[k].pop()
     return out, order
 
+def reind(rest, ind):
+    """Sustituye la sangría común de las líneas por `ind`, manteniendo la relativa."""
+    ws = [re.match(r"^[ \t]*", l).group(0) for l in rest if l.strip()]
+    common = min(ws, key=len) if ws else ""
+    common = common if all(w.startswith(common) for w in ws) else ""
+    return [(ind + l[len(common):]) if l.strip() else l for l in rest]
+
 base = sys.argv[1]
 orig, _ = parse(base + ".txt")
 tr, order = parse(base + ".es.txt")
@@ -25,17 +32,16 @@ for k, header in order:
     lines = tr[k]
     o = orig.get(k, [])
     if lines and lines[0].lstrip().startswith("/*") and len(o) > 1:
-        # indentación = tabs iniciales de la 2.ª línea original
-        ind = re.match(r"^\t*", o[1]).group(0)
-        new = [lines[0]]
-        for l in lines[1:]:
-            new.append(ind + l.lstrip("\t"))
-        lines = new
+        # indentación = blancos iniciales (tabs y espacios) de la 2.ª línea original;
+        # se conserva la sangría relativa de la traducción (sesión 12)
+        lines = [lines[0]] + reind(lines[1:], re.match(r"^[ \t]*", o[1]).group(0))
     elif lines and lines[0].lstrip().startswith("/*") and len(o) == 1 and len(lines) > 1:
         m = re.match(r"^@@ \S+ (.+):(\d+)", header)
         src = open(m.group(1), encoding="utf-8").read().split("\n")[int(m.group(2)) - 1]
-        ind = re.match(r"^\t*", src).group(0)
-        lines = [lines[0]] + [ind + l.lstrip("\t") for l in lines[1:]]
+        ind = re.match(r"^[ \t]*", src).group(0)
+        if lines[1].lstrip().startswith("*"):
+            ind += " "
+        lines = [lines[0]] + reind(lines[1:], ind)
     res.append(header)
     res.extend(lines)
 open(base + ".es.txt", "w", encoding="utf-8").write("\n".join(res) + "\n")

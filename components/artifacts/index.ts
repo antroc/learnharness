@@ -9,48 +9,51 @@ import { ToolCallCard } from "@/components/artifacts/tool-call-card";
 import { ProblemCard, ConcludeCard } from "@/components/practice-cards";
 
 /**
- * Artifact renderer registry — the extension point for tool-part UI.
+ * Registro de renderers de artefactos: el punto de extensión de la UI de las
+ * partes de herramienta.
  *
- * chat.tsx renders any tool part it doesn't specially handle (i.e. not
- * quiz/ask) by looking the tool name up here. Add your renderer — do NOT
- * edit chat.tsx (see docs/archive/plan.md file-ownership rules).
+ * chat.tsx renderiza cualquier parte de herramienta que no trate de forma
+ * especial (es decir, que no sea quiz/ask) buscando aquí el nombre de la
+ * herramienta. Añade tu renderer; NO edites chat.tsx (ver las reglas de
+ * propiedad de ficheros de docs/archive/plan.md).
  *
- * Typical shape: while the part is input-available render an activity card
- * (the chat view's jobs feed reads GET /api/jobs?chatId=…; on completion call
- * ChatActionsContext.syncFromServer()); when output-available render the
- * artifact itself from part.output.
+ * Forma habitual: mientras la parte está en input-available, renderiza una
+ * tarjeta de actividad (el feed de tareas de la vista de chat lee GET
+ * /api/jobs?chatId=…; al terminar llama a
+ * ChatActionsContext.syncFromServer()); cuando está en output-available,
+ * renderiza el propio artefacto a partir de part.output.
  */
 export const artifactRenderers: Record<string, ComponentType<ArtifactPartProps>> = {
 	research: JobCard,
-	pdf: PdfJobCard, // sources v0 — live smoke 2026-09-19 caught the gap: without this the tool-pdf dispatch part rendered nothing
-	// plan_* parts render nothing inline by design: the phase seam is a
-	// message-level boundary, drawn by PhaseDivider in chat.tsx (the old
-	// part-level plan_init divider retired with it).
-	// Artifacts (W6 fills in the components):
+	pdf: PdfJobCard, // fuentes v0: la prueba de humo en vivo del 2026-09-19 detectó el hueco; sin esto la parte de despacho de tool-pdf no renderizaba nada
+	// Las partes plan_* no renderizan nada en línea a propósito: la frontera de fase es un
+	// límite a nivel de mensaje, dibujado por PhaseDivider en chat.tsx (el antiguo
+	// separador plan_init a nivel de parte se retiró con ello).
+	// Artefactos (W6 rellena los componentes):
 	demo: DemoCard,
 	visual: VisualCard,
-	// A learner image shown as-is (issue #363): the picture itself, inline.
+	// Una imagen del alumno mostrada tal cual (issue #363): la propia imagen, en línea.
 	show_image: ImageCard,
-	// The probe conclusion: the assessment belongs to the learner as much as
-	// to the transcript (docs/archive/probe-teach-split.md §2). Plain v1 card.
+	// La conclusión del sondeo: la evaluación pertenece tanto al alumno como a la
+	// transcripción (docs/archive/probe-teach-split.md §2). Tarjeta simple v1.
 	probe_done: ProbeDoneCard,
-	// The learner-filesystem set (sources v1): one quiet expandable
-	// tool-call card each — collapsed one-liner (tool name + headline
-	// argument), full input/output on expand.
+	// El conjunto del sistema de ficheros del alumno (fuentes v1): una tarjeta discreta
+	// y desplegable de llamada a herramienta por cada una: una línea plegada (nombre de la herramienta + argumento
+	// principal), con la entrada/salida completa al desplegar.
 	read: ToolCallCard,
 	ls: ToolCallCard,
 	find: ToolCallCard,
 	grep: ToolCallCard,
-	// The practice pair (2026-10-04): the pose renders the statement ONLY
-	// (the commitment lives in the call's arguments and never renders);
-	// the conclusion carries the outcome + verdict + the reveal.
+	// La pareja de práctica (2026-10-04): el planteamiento renderiza SOLO el enunciado
+	// (el compromiso vive en los argumentos de la llamada y nunca se renderiza);
+	// la conclusión lleva el resultado + el veredicto + la revelación.
 	problem: ProblemCard,
 	conclude: ConcludeCard,
-	// The prober's graph tools (wave 7): same quiet expandable card —
-	// collapsed one-liner (tool name + the session id for
-	// list_propositions), the tool's own compact row-per-line output
-	// (name / level / date) verbatim on expand, exactly the read/ls
-	// discipline (their results are pre-formatted strings too).
+	// Las herramientas de grafo del sondeador (oleada 7): la misma tarjeta discreta y desplegable:
+	// una línea plegada (nombre de la herramienta + el id de sesión en
+	// list_propositions) y, al desplegar, la salida compacta de la herramienta, una fila
+	// por línea (nombre / nivel / fecha), tal cual; exactamente la misma disciplina que
+	// read/ls (sus resultados también son cadenas ya formateadas).
 	list_sessions: ToolCallCard,
 	list_propositions: ToolCallCard,
 };

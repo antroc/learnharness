@@ -63,12 +63,12 @@ export const Reasoning = memo(
     children,
     ...props
   }: ReasoningProps) => {
-    // COLLAPSED BY DEFAULT, ALWAYS (owner, streaming round 2026-10-01):
-    // the old default opened on streaming and an auto-open effect
-    // re-fought a manual collapse — the block "wasn't collapsible until
-    // it finished". Collapsed is the default; opening is always the
-    // learner's click; the auto-close after the stream still tidies a
-    // row the learner had opened.
+    // PLEGADO POR DEFECTO, SIEMPRE (responsable, ronda de streaming 2026-10-01):
+    // el antiguo valor por defecto se abría durante el streaming y un efecto de apertura
+    // automática volvía a pelearse con un plegado manual: el bloque «no se podía plegar
+    // hasta que terminaba». Plegado es el valor por defecto; abrirlo es siempre un
+    // clic del alumno; el cierre automático tras el stream sigue ordenando una
+    // fila que el alumno hubiera abierto.
     const resolvedDefaultOpen = defaultOpen ?? false;
 
     const [isOpen, setIsOpen] = useControllableState<boolean>({
@@ -79,7 +79,7 @@ export const Reasoning = memo(
     const hasEverStreamedRef = useRef(isStreaming);
     const [hasAutoClosed, setHasAutoClosed] = useState(false);
 
-    // Auto-close when streaming ends (once only, and only if it ever streamed)
+    // Cierre automático al terminar el streaming (una sola vez, y solo si llegó a haber streaming)
     useEffect(() => {
       if (
         hasEverStreamedRef.current &&
@@ -129,11 +129,12 @@ export type ReasoningTriggerProps = ComponentProps<
   getThinkingMessage?: (isStreaming: boolean) => ReactNode;
 };
 
-/* The settled label (owner round, 2026-10-05): static "Agent's thinking" —
-   the duration was live-turn state that died on remount anyway ("thought
-   for a few seconds"), bookkeeping for information we knowingly lose. The
-   label pairs with the user's collapsed "Your thinking" rows — one
-   language; motion (spinner + shimmer) stays the working signal. */
+/* La etiqueta asentada (ronda del responsable, 2026-10-05): "Agent's thinking"
+   estático; la duración era estado del turno en vivo que de todos modos moría al
+   remontar («pensó durante unos segundos»), contabilidad de una información que
+   sabemos que perdemos. La etiqueta forma pareja con las filas plegadas
+   "Your thinking" del usuario: un solo lenguaje; el movimiento (spinner +
+   brillo) sigue siendo la señal de trabajo. */
 const defaultGetThinkingMessage = (isStreaming: boolean) => {
   if (isStreaming) {
     return <Shimmer duration={1}>Thinking...</Shimmer>;
@@ -153,28 +154,28 @@ export const ReasoningTrigger = memo(
     return (
       <CollapsibleTrigger
         className={cn(
-          /* The heading register (owner round 4, 2026-10-05): the small
-             mono caps of the card eyebrows — matching YOUR THINKING, whose
-             rail offsets it by exactly the one-character difference. */
+          /* El registro de encabezado (ronda 4 del responsable, 2026-10-05): las pequeñas
+             versalitas mono de los antetítulos de las tarjetas, a juego con YOUR THINKING,
+             cuyo raíl lo desplaza exactamente la diferencia de un carácter. */
           "flex w-full items-center gap-2 text-muted-foreground text-xs font-medium uppercase tracking-wide transition-colors hover:text-foreground",
           className
         )}
         {...props}
-        /* FOCUS HYGIENE (owner, keyboard round 2026-10-10): a pointer click
-           on the thinking toggle must not leave focus here — the learner's
-           next Enter submits, it must not re-toggle. Radix composes this
-           with its own toggle handler. */
+        /* HIGIENE DEL FOCO (responsable, ronda de teclado 2026-10-10): un clic de puntero
+           en el conmutador del razonamiento no debe dejar el foco aquí; el siguiente
+           Enter del alumno envía, no debe volver a conmutar. Radix lo compone con su
+           propio manejador del conmutador. */
         onClick={(e) => blurAfterPointerClick(e)}
       >
         {children ?? (
           <>
-            {/* The working-state grammar (owner, streaming round
-                2026-10-01): the Braille spinner replaces the brain icon
-                WHILE STREAMING ONLY — motion is the signal, so a finished
-                row carries no icon at all, just text + chevron. Size:
-                the component default (h-3) — IDENTICAL to the placeholder
-                spinner (owner, 2026-10-02): the handoff between the two
-                states must be visually seamless, one size everywhere. */}
+            {/* La gramática del estado de trabajo (responsable, ronda de streaming
+                2026-10-01): el spinner Braille sustituye al icono del cerebro SOLO
+                DURANTE EL STREAMING; el movimiento es la señal, así que una fila
+                terminada no lleva ningún icono, solo texto + chevron. Tamaño: el
+                valor por defecto del componente (h-3), IDÉNTICO al spinner provisional
+                (responsable, 2026-10-02): el traspaso entre ambos estados debe ser
+                visualmente imperceptible, un único tamaño en todas partes. */}
             {isStreaming && <BrailleSpinner label="Thinking" />}
             {getThinkingMessage(isStreaming)}
             <ChevronDownIcon
@@ -196,8 +197,8 @@ export type ReasoningContentProps = ComponentProps<
   children: string;
 };
 
-// Shares message.tsx's Streamdown config (math delimiters, dark mermaid,
-// remark-breaks) — reasoning renders the same contract as message text.
+// Comparte la configuración de Streamdown de message.tsx (delimitadores matemáticos, mermaid
+// oscuro, remark-breaks): el razonamiento renderiza con el mismo contrato que el texto del mensaje.
 
 export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => (

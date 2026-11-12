@@ -5,13 +5,16 @@ import { MessageResponse } from "@/components/ai-elements/message";
 import { isWebSourceUrl, type ArtifactPartProps, type PdfResult, type ResearchResult } from "@/src/core";
 
 /**
- * The research tool-call box (contracts.ts "THE ASYNC PROTOCOL" §4).
+ * El cuadro de llamada a la herramienta de investigación (contracts.ts
+ * "THE ASYNC PROTOCOL" §4).
  *
- * The part's output is the fire-and-forget dispatch ACK — the box itself is
- * the DispatchCard (live status via the chat view's jobs feed; quiet one-liner
- * once delivered). The research brief itself no longer renders from the
- * tool part at all: it rides the steer message (the user-role delivery
- * injected after the wake turn) and renders there via ResearchBriefCard.
+ * La salida de la parte es el ACUSE del despacho de lanzar y olvidar; el
+ * cuadro en sí es la DispatchCard (estado en directo a través del feed de
+ * tareas de la vista de chat; una línea discreta una vez entregado). El
+ * informe de investigación ya no se renderiza en absoluto desde la parte de
+ * herramienta: viaja en el mensaje de reorientación (la entrega con rol de
+ * usuario inyectada tras el turno de despertar) y se renderiza allí mediante
+ * ResearchBriefCard.
  */
 export function JobCard({ part }: ArtifactPartProps) {
 	if (part.state !== "output-available") return null;
@@ -19,10 +22,11 @@ export function JobCard({ part }: ArtifactPartProps) {
 }
 
 /**
- * The pdf dispatch box (sources v0) — the same async-protocol idiom as
- * JobCard: the ack output drives a DispatchCard (live "PDF reader" status
- * via the chat view's jobs feed); the brief itself rides the steer message
- * and renders under the PDF-complete badge in the transcript.
+ * El cuadro de despacho de pdf (fuentes v0): el mismo idioma del protocolo
+ * asíncrono que JobCard: la salida de acuse alimenta una DispatchCard (estado
+ * en directo de "PDF reader" a través del feed de tareas de la vista de
+ * chat); el informe en sí viaja en el mensaje de reorientación y se renderiza
+ * bajo la insignia de PDF completado en la transcripción.
  */
 export function PdfJobCard({ part }: ArtifactPartProps) {
 	if (part.state !== "output-available") return null;
@@ -30,9 +34,10 @@ export function PdfJobCard({ part }: ArtifactPartProps) {
 }
 
 /**
- * The PDF reading brief (sources v0) — markdown body + the consulted-pages
- * line. Exported: the steer card renders it under the PDF-complete badge,
- * the same expand-on-demand idiom as research.
+ * El informe de lectura del PDF (fuentes v0): cuerpo markdown + la línea de
+ * páginas consultadas. Se exporta: la tarjeta de reorientación lo renderiza
+ * bajo la insignia de PDF completado, el mismo idioma de desplegar a
+ * demanda que la investigación.
  */
 export function PdfBriefCard({ output }: { output: unknown }) {
 	const result = output as PdfResult | undefined;
@@ -44,9 +49,9 @@ export function PdfBriefCard({ output }: { output: unknown }) {
 		);
 	}
 	const failed = result.brief.startsWith("PDF failed");
-	// Read = extract/render output entered the loop; consulted = every page
-	// incl. search hits (the full audit set — the brief's citations may point
-	// there). The ?? fallbacks tolerate pre-split persisted records.
+	// Leídas = la salida de extract/render entró en el bucle; consultadas = todas las páginas,
+	// incluidos los resultados de búsqueda (el conjunto completo de auditoría; las citas del informe pueden apuntar
+	// allí). Las alternativas ?? toleran los registros persistidos anteriores a la separación.
 	const readList = result.pagesRead ?? result.pagesConsulted ?? [];
 	const consultedList = result.pagesConsulted ?? [];
 	return (
@@ -73,8 +78,9 @@ export function PdfBriefCard({ output }: { output: unknown }) {
 }
 
 /**
- * The research brief — markdown body + a small source link list. Exported:
- * the steer card (sub-agent result delivery) renders the same artifact.
+ * El informe de investigación: cuerpo markdown + una pequeña lista de enlaces
+ * a fuentes. Se exporta: la tarjeta de reorientación (entrega del resultado
+ * del subagente) renderiza el mismo artefacto.
  */
 export function ResearchBriefCard({ output }: { output: unknown }) {
 	const result = output as ResearchResult | undefined;
@@ -111,7 +117,7 @@ export function ResearchBriefCard({ output }: { output: unknown }) {
 										{s.title}
 									</a>
 								) : (
-									// Saved before sources were limited to http(s): never a link.
+									// Guardado antes de que las fuentes se limitaran a http(s): nunca es un enlace.
 									<span className="text-muted-foreground">{s.title}</span>
 								)}
 							</li>

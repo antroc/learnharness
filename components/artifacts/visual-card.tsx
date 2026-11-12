@@ -13,19 +13,21 @@ import { embedLearnerImage, type ArtifactPartProps, type VisualResult } from "@/
 import { useImageSnapshot } from "./use-image-snapshot";
 
 /**
- * Visual artifact card (W6 → ack protocol): the tool part's output is the
- * dispatch ack, so the tool-call box is the DispatchCard (live status via
- * the chat view's jobs feed). The SVG itself renders from the steer message
- * (sub-agent result delivery) via VisualOutputCard.
+ * Tarjeta del artefacto visual (W6 → protocolo de acuse): la salida de la
+ * parte de herramienta es el acuse del despacho, así que el cuadro de la
+ * llamada es la DispatchCard (estado en directo a través del feed de tareas
+ * de la vista de chat). El SVG en sí se renderiza a partir del mensaje de
+ * reorientación (entrega del resultado del subagente) mediante VisualOutputCard.
  *
- * Both display modes use an SVG image document: generated markup and its
- * styles never join the app's DOM. Downloads still contain the original SVG.
+ * Ambos modos de presentación usan un documento de imagen SVG: el marcado
+ * generado y sus estilos nunca se unen al DOM de la app. Las descargas siguen
+ * conteniendo el SVG original.
  */
 
-/** The svg root's DECLARED width in px, when there is one — the natural
- *  size the card displays at instead of stretching to full width (owner,
- *  2026-10-07). %, em, "auto", or a missing attribute → null (the caller
- *  falls back to full-width). Pure. */
+/** La anchura DECLARADA de la raíz svg en px, cuando la hay: el tamaño natural
+ * con el que la tarjeta se muestra en vez de estirarse a todo el ancho
+ * (responsable, 2026-10-07). %, em, "auto" o un atributo ausente → null (el
+ * llamante recurre a todo el ancho). Puro. */
 export function svgNaturalWidth(svg: string): number | null {
 	const m = /<svg\b[^>]*?\bwidth\s*=\s*["']([^"']+)["'][^>]*>/i.exec(svg);
 	if (!m) return null;
@@ -41,7 +43,7 @@ export function VisualCard({ part }: ArtifactPartProps) {
 	return <DispatchCard toolCallId={part.toolCallId} kind="visual" />;
 }
 
-/** The figure itself — exported: the steer card renders the delivered artifact. */
+/** La figura en sí; se exporta porque la tarjeta de reorientación renderiza el artefacto entregado. */
 export function VisualOutputCard({
 	output,
 	messageId,
@@ -56,11 +58,11 @@ export function VisualOutputCard({
 	const svg = result?.image && snapshot.image ? embedLearnerImage(result.svg, snapshot.image) : result?.svg ?? "";
 	const overlay = useSessionMermaid();
 	const actions = useContext(ChatActionsContext);
-	// Brightness inversion (owner, 2026-10-07): the switch state PERSISTS on
-	// the steer record (details.ui.inverted) — seeded here, written through
-	// the silent artifact-ui route on toggle; without a chat page (tests,
-	// previews) it stays local-only. The toggled state also feeds the
-	// fullscreen overlay (openFigure).
+	// Inversión de brillo (responsable, 2026-10-07): el estado del interruptor PERSISTE en
+	// el registro de la reorientación (details.ui.inverted); se siembra aquí y se escribe a través
+	// de la ruta silenciosa artifact-ui al conmutar; sin página de chat (pruebas,
+	// vistas previas) se queda solo en local. El estado conmutado alimenta también la
+	// superposición a pantalla completa (openFigure).
 	const [inverted, setInverted] = useState(initialInverted);
 	const toggleInverted = (next: boolean) => {
 		setInverted(next);
@@ -80,8 +82,8 @@ export function VisualOutputCard({
 		);
 	}
 	const failed = result.svg.length === 0;
-	// An annotated learner image (issue #363) is a photo: inverting it
-	// shows a negative, so it never inverts and shows no switch.
+	// Una imagen anotada del alumno (issue #363) es una foto: invertirla
+	// muestra un negativo, así que nunca se invierte y no muestra interruptor.
 	const invertible = result.image === undefined;
 	const shownInverted = invertible && inverted;
 	if (failed) {
@@ -97,11 +99,12 @@ export function VisualOutputCard({
 	}
 	if (result.image && !snapshot.image) return <div className="my-4 text-sm text-muted-foreground" role="status">{snapshot.failed ? "Image snapshot could not be loaded." : "Loading image…"}</div>;
 	return (
-		/* NO CARD CHROME (owner round, 2026-10-07): the figure is document
-		   material — no border, no padding box. Image first, then the CAPTION
-		   ROW below: "Figure" left, the controls right, both edges following
-		   the IMAGE's own width (the wrapper carries the natural-sizing law,
-		   so the row hugs a centered narrow figure, not the column). */
+		/* SIN ADORNOS DE TARJETA (ronda del responsable, 2026-10-07): la figura es
+		   material del documento: sin borde, sin caja de relleno. Primero la imagen y
+		   debajo la FILA DE PIE: "Figure" a la izquierda y los controles a la derecha,
+		   con ambos bordes siguiendo la anchura propia de la IMAGEN (el envoltorio
+		   lleva la ley de tamaño natural, así que la fila se ciñe a una figura
+		   estrecha centrada, no a la columna). */
 		<div
 			className={
 				!invertible || natural !== null
@@ -110,12 +113,12 @@ export function VisualOutputCard({
 			}
 			data-testid="visual-card"
 		>
-			{/* Ordinary figures keep their natural-width/full-width sizing law.
-			   Learner-image annotations use intrinsic auto sizing with a 60vh cap;
-			   width and height shrink together, with no cropping or enlargement.
-			   The invert filter rides the bg-white holder, so the backing flips
-			   white→black together with the strokes; transparent areas ARE the
-			   backing. */}
+			{/* Las figuras normales mantienen su ley de tamaño natural/a todo el ancho.
+			   Las anotaciones de imágenes del alumno usan un tamaño automático intrínseco
+			   con un tope de 60vh; anchura y altura se reducen a la vez, sin recortes ni
+			   ampliaciones. El filtro de inversión va en el contenedor bg-white, así que el
+			   fondo pasa de blanco a negro junto con los trazos; las zonas transparentes
+			   SON el fondo. */}
 			<div
 				className={
 					!invertible || natural !== null
@@ -142,8 +145,8 @@ export function VisualOutputCard({
 			}>
 				<div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Figure</div>
 				<div className={!invertible ? "ml-auto flex items-center gap-1.5" : "flex items-center gap-1.5"}>
-					{/* The invert affordance (owner round, 2026-10-07): the disc IS
-					    the half-filled contrast circle; the tooltip names it. */}
+					{/* La indicación de inversión (ronda del responsable, 2026-10-07): el disco ES
+					    el círculo de contraste medio relleno; el tooltip le pone nombre. */}
 					{invertible && (
 						<Toggle
 							checked={inverted}

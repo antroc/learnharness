@@ -11,36 +11,40 @@ import { PluginWorkerCard } from "@/components/artifacts/plugin-worker-card";
 import { WorkerResultDetails } from "@/components/artifacts/worker-result-presentation";
 
 /**
- * The sub-agent result delivery card (contracts.ts "THE ASYNC PROTOCOL" §4).
+ * La tarjeta de entrega del resultado del subagente (contracts.ts "THE ASYNC
+ * PROTOCOL" §4).
  *
- * When a background job completes, the wake pipeline injects a STEER message
- * into the transcript: a user-role UIMessage whose data part
- * ("data-subagent-artifact") carries the result. It renders as an artifact —
- * NEVER a learner bubble, never wrapped in a message container:
+ * Cuando una tarea en segundo plano termina, el proceso de despertar inyecta
+ * un mensaje de REORIENTACIÓN en la transcripción: un UIMessage con rol de
+ * usuario cuya parte de datos ("data-subagent-artifact") lleva el resultado.
+ * Se renderiza como artefacto, NUNCA como burbuja del alumno ni envuelto en un
+ * contenedor de mensaje:
  *
- *   research — a quiet "Research complete" one-liner that expands on demand
- *     (native <details>) to the full persisted brief + sources: the brief is
- *     too long to inline by default and the teacher's wake turn weaves it
- *     into the lesson anyway. Failures keep the failure card (the brief
- *     explains what went wrong).
- *   demo / visual — the artifact itself (sandboxed iframe / sanitized SVG).
- *     The sub-agent's verification notes are model-facing glue and do NOT
- *     render; only a failure note does.
- *   plugin — the separate later task outcome, with an optional registered
- *     tool renderer and a persisted readable fallback (the call keeps its ack).
+ *   research — una línea discreta "Research complete" que se despliega a
+ *     demanda (<details> nativo) hasta el informe completo persistido + las
+ *     fuentes: el informe es demasiado largo para mostrarlo en línea por
+ *     defecto y el turno de despertar del profesor lo integra de todos modos
+ *     en la lección. Los fallos conservan la tarjeta de fallo (el informe
+ *     explica qué salió mal).
+ *   demo / visual — el propio artefacto (iframe aislado / SVG saneado). Las
+ *     notas de verificación del subagente son pegamento dirigido al modelo y
+ *     NO se renderizan; solo se renderiza una nota de fallo.
+ *   plugin — el resultado aparte y posterior de la tarea, con un renderer de
+ *     herramienta registrado opcional y una alternativa legible persistida
+ *     (la llamada conserva su acuse).
  */
 export function SubagentSteerCard({ message }: { message: LhViewMessage }) {
 	const artifactPart = message.parts.find((p) => p.type === "data-subagent-artifact");
 	const data = artifactPart?.data as SubagentArtifactData | undefined;
-	// The abort steer (2026-09 dock semantics): its message-type part is
-	// data-subagent-aborted (the custom-message scheme — the part, not
-	// metadata, is the marker) — a quiet chip, mirroring the complete-badge.
+	// La reorientación de aborto (semántica del dock de 2026-09): su parte de tipo de mensaje es
+	// data-subagent-aborted (el esquema de mensajes personalizados: la parte, no los
+	// metadatos, es el marcador); una etiqueta discreta, reflejo de la insignia de completado.
 	if (!data) {
 		const aborted = message.parts.find((p) => p.type === "data-subagent-aborted") as
 			| { data?: { kind?: string; failure?: string } }
 			| undefined;
-		// Recovery/delivery failures share this marker family, but are not
-		// learner aborts and do not invent an outcome for an unreadable task.
+		// Los fallos de recuperación/entrega comparten esta familia de marcadores, pero no son
+		// abortos del alumno y no se inventan un resultado para una tarea ilegible.
 		if (typeof aborted?.data?.failure === "string") return (
 			<div data-testid="job-delivery-failure" role="alert" className="space-y-1 rounded-xl border bg-card p-4 text-sm">
 				<p className="font-medium">Background job recovery/delivery failed</p>
@@ -78,9 +82,9 @@ export function SubagentSteerCard({ message }: { message: LhViewMessage }) {
 	}
 }
 
-/** The aborted-job chip: mirrors the complete-badge one-liner — the
- * teacher's wake turn acknowledges the abort in the lesson itself,
- * this just marks what happened. */
+/** La etiqueta de tarea abortada: refleja la línea de la insignia de
+ * completado; el turno de despertar del profesor reconoce el aborto en la
+ * propia lección, esto solo marca lo que pasó. */
 function AbortedBadge({ kind }: { kind: string }) {
 	return (
 		<div data-testid="job-aborted-badge" className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -91,13 +95,13 @@ function AbortedBadge({ kind }: { kind: string }) {
 	);
 }
 
-/** Quiet one-liner, the research-badge idiom ported to PDF: the brief is
- * too long to inline by default and the teacher's wake turn weaves it in;
- * the badge marks delivery, the collapsed details carries the full text
- * + consulted pages. */
+/** Línea discreta, el idioma de la insignia de investigación llevado al PDF:
+ * el informe es demasiado largo para mostrarlo en línea por defecto y el
+ * turno de despertar del profesor lo integra; la insignia marca la entrega y
+ * los detalles plegados llevan el texto completo + las páginas consultadas. */
 function PdfCompleteBadge({ result }: { result: PdfResult }) {
-	// The honest count is READ pages (extract/render — sources v1 split);
-	// the ?? is runtime tolerance for pre-split persisted steers.
+	// La cuenta honesta son las páginas LEÍDAS (extract/render; separación de fuentes v1);
+	// el ?? es tolerancia en tiempo de ejecución para reorientaciones persistidas anteriores a la separación.
 	const readPages = result.pagesRead ?? result.pagesConsulted;
 	return (
 		<WorkerResultDetails testId="pdf-complete-badge" heading={<>
@@ -114,11 +118,12 @@ function PdfCompleteBadge({ result }: { result: PdfResult }) {
 	);
 }
 
-/** Quiet one-liner, the dispatch-settled idiom — the lesson lives in the
- * teacher's wake turn; the badge just marks delivery. The persisted brief
- * rides along in a collapsed <details> (the wave-1 "view full research"
- * affordance): full markdown + sources, one click away, no extra fetch —
- * the artifact part in the record is the single source of truth. */
+/** Línea discreta, el idioma de despacho asentado: la lección vive en el
+ * turno de despertar del profesor; la insignia solo marca la entrega. El
+ * informe persistido viaja en un <details> plegado (la indicación "view full
+ * research" de la oleada 1): markdown completo + fuentes, a un clic, sin
+ * petición adicional; la parte de artefacto del registro es la única fuente
+ * de verdad. */
 function ResearchCompleteBadge({ result }: { result: ResearchResult }) {
 	return (
 		<WorkerResultDetails testId="research-complete-badge" heading={<>

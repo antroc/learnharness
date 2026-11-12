@@ -1,13 +1,14 @@
 /**
- * Artifact download helpers (release polish, 2026-10-07): the tiny
- * save-a-blob seam shared by the demo + figure cards, plus the filename
- * slug. The slug is pure (test-pinned); downloadFile touches the DOM and
- * only runs on click.
+ * Auxiliares de descarga de artefactos (pulido de la versión, 2026-10-07): la
+ * pequeña frontera de guardar un blob compartida por las tarjetas de demo y de
+ * figura, más el slug del nombre de fichero. El slug es puro (fijado en las
+ * pruebas); downloadFile toca el DOM y solo se ejecuta al hacer clic.
  */
 
-/** Slugify a demo title into a filename stem — lowercase, accents folded,
- *  runs of non-alphanumerics collapsed to "-", trimmed, capped at 64
- *  chars. Empty/fully-symbolic titles fall back to "demo". */
+/** Convierte el título de una demo en la raíz de un nombre de fichero:
+ * minúsculas, acentos plegados, secuencias de caracteres no alfanuméricos
+ * reducidas a "-", recortado y con un tope de 64 caracteres. Los títulos
+ * vacíos o solo de símbolos recurren a "demo". */
 export function slugFilename(title: string): string {
 	const slug = title
 		.toLowerCase()
@@ -19,8 +20,8 @@ export function slugFilename(title: string): string {
 	return slug || "demo";
 }
 
-/** Save text (or bytes) as a downloaded file. The blob URL is revoked right
- *  after the click — Chromium keeps the download alive past the revoke. */
+/** Guarda texto (o bytes) como fichero descargado. La URL del blob se revoca
+ * justo después del clic; Chromium mantiene viva la descarga tras la revocación. */
 export function downloadFile(name: string, content: string | Uint8Array<ArrayBuffer>, mime: string): void {
 	const blob = new Blob([content], { type: mime });
 	const url = URL.createObjectURL(blob);
