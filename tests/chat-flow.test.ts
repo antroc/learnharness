@@ -1,16 +1,16 @@
 /**
- * Scripted integration test — the full teacher loop with zero tokens:
+ * Prueba de integración guionizada: el bucle completo del profesor sin gastar tokens:
  *
- *   learner opens chat → faux model calls `quiz` → server streams + persists
- *   → client grades and sends the ANSWER EVENT back
- *   → faux model reacts → transcript persisted.
+ *   el alumno abre el chat → el modelo simulado llama a `quiz` → el servidor hace streaming y persiste
+ *   → el cliente corrige y devuelve el EVENTO DE RESPUESTA
+ *   → el modelo simulado reacciona → transcripción persistida.
  *
- * Drives handleChatRequest directly (plain Request/Response — no Next server
- * needed) with a scripted pi engine (pi-ai's faux provider, docs/
- * docs/archive/pi-engine-swap.md §7). Wave B: POSTs carry ONE INPUT EVENT (never a client
- * transcript), the record is pi-native agent history (read through the
- * projection where a part shape is pinned), and the answer arrives as the
- * question call's real tool result (fork 1, owner 2026-09-26).
+ * Invoca handleChatRequest directamente (Request/Response normales, sin servidor
+ * Next) con un motor pi guionizado (el proveedor simulado de pi-ai, docs/
+ * docs/archive/pi-engine-swap.md §7). Oleada B: los POST llevan UN EVENTO DE ENTRADA (nunca una
+ * transcripción del cliente), el registro es historial de agente nativo de pi (se lee a través de la
+ * proyección cuando se fija la forma de una parte) y la respuesta llega como el
+ * resultado de herramienta real de la llamada de la pregunta (bifurcación 1, responsable 2026-09-26).
  */
 
 import assert from "node:assert/strict";
@@ -42,18 +42,18 @@ import { projectView } from "../src/core/view.ts";
 import type { PiEngine } from "../src/agent/models.ts";
 import type { LhMessage } from "../src/core/native-messages.ts";
 
-// Route-level pin (the chat-birth-stamp pattern): the dismiss route's
-// handler, driven directly. Env is the runner's (the same the static
-// store imports already resolved under).
+// Fijación a nivel de ruta (el patrón de chat-birth-stamp): el manejador de
+// la ruta de descarte, invocado directamente. El entorno es el del ejecutor (el
+// mismo en el que ya se resolvieron las importaciones estáticas del almacén).
 const dismissRoute = await import("../app/api/chats/[id]/dismiss/route.ts");
 const steerRoute = await import("../app/api/chats/[id]/steer/route.ts");
 const streamRoute = await import("../app/api/chats/[id]/stream/route.ts");
 const recordRoute = await import("../app/api/chats/[id]/route.ts");
 import { PATHS } from "../config.ts";
 
-// The key-presence turn gate (provider-key interlude, 2026-09-25): scripted
-// turns pin openrouter per chat — the gate reads env-first truth, so the
-// key must be present in the test process like any real setup.
+// La barrera de turno por presencia de clave (interludio de la clave del proveedor, 2026-09-25): los turnos
+// guionizados fijan openrouter por chat; la barrera lee la verdad del entorno primero, así que la
+// clave debe estar presente en el proceso de la prueba, como en cualquier configuración real.
 process.env.OPENROUTER_API_KEY ??= "test-key-presence-gate";
 
 const QUIZ_INPUT = {
@@ -69,9 +69,9 @@ const QUIZ_INPUT = {
 	nodeId: "planet-order",
 };
 
-/** Turn 1: a bit of reasoning, then the quiz tool call. Turn 2: plain text.
- *  Each response factory records the prompt it received (the transcript the
- *  model saw) — the old doStream capture, engine-shaped. */
+/** Turno 1: un poco de razonamiento y luego la llamada a la herramienta quiz. Turno 2: texto plano.
+ *  Cada fábrica de respuestas registra el prompt que recibió (la transcripción que
+ *  vio el modelo): la antigua captura de doStream, con forma de motor. */
 function scriptedTeacher(steps: (calls: string[][]) => FauxResponseStep[]): {
 	engine: PiEngine;
 	calls: string[][];
@@ -82,7 +82,7 @@ function scriptedTeacher(steps: (calls: string[][]) => FauxResponseStep[]): {
 	return { engine: { model: faux.getModel(), streamFn: faux.streamSimple }, calls };
 }
 
-/** The default two-turn lesson: probe quiz, then react to the answer. */
+/** La lección por defecto de dos turnos: quiz de sondeo y luego reacción a la respuesta. */
 function defaultLesson(calls: string[][]): FauxResponseStep[] {
 	return [
 		(context) => {
@@ -99,15 +99,15 @@ function defaultLesson(calls: string[][]): FauxResponseStep[] {
 	];
 }
 
-/** The handler seam (stateless per turn): each request builds a fresh agent
- *  off the record it is about to run — the factory tests inject. Wave B: the
- *  handler hands the factory the NATIVE build options (the record IS the
- *  agent state — no adapter conversion). */
+/** La frontera del manejador (sin estado por turno): cada petición construye un agente nuevo
+ *  a partir del registro que va a ejecutar; las pruebas inyectan la fábrica. Oleada B: el
+ *  manejador pasa a la fábrica las opciones de construcción NATIVAS (el registro ES el
+ *  estado del agente; sin conversión de adaptador). */
 function agentFactory(engine: PiEngine): Parameters<typeof handleChatRequest>[1] {
 	return (opts) => createTeacherAgent(undefined, { engine, messages: opts.messages });
 }
 
-/** The graded answer a client sends for a quiz (the shared grading seam). */
+/** La respuesta corregida que envía un cliente para un quiz (la frontera compartida de corrección). */
 function gradedAnswer(input: typeof QUIZ_INPUT, values: string[]) {
 	const options = normalizeOptions(input.options);
 	const qd: QuestionData = {
@@ -123,9 +123,9 @@ function gradedAnswer(input: typeof QUIZ_INPUT, values: string[]) {
 	return buildAnswer(qd, { values });
 }
 
-/** Parse an SSE body into its wire events (verbatim pi AgentEvents +
- *  the app-level error/turn-settled terminals). Structural beats substring:
- *  key order never matters. */
+/** Analiza un cuerpo SSE en sus eventos de cable (AgentEvents de pi literales +
+ *  los terminales de error/turno asentado de la aplicación). Lo estructural gana a la subcadena:
+ *  el orden de las claves nunca importa. */
 function eventsOf(body: string): Array<Record<string, any>> {
 	const out: Array<Record<string, any>> = [];
 	for (const line of body.split("\n")) {
@@ -139,16 +139,16 @@ async function drain(res: Response): Promise<string> {
 	if (res.status !== 200) {
 		assert.fail(`expected 200, got ${res.status}: ${await res.text()}`);
 	}
-	return res.text(); // consumes the SSE stream to completion (fires onFinish)
+	return res.text(); // consume el stream SSE hasta el final (dispara onFinish)
 }
 
-/** CONNECTION DIET B (owner, 2026-10-10 — parallel-session freeze postmortem):
- *  POST /api/chat no longer streams the turn — it acks and closes, and the
- *  submitter (like every view) attaches via the reattach stream. This
- *  mirrors drain(): assert the 200 ack, then drain the turn's SSE body to
- *  completion through runningTurn + subscribe — the same wire the GET
- *  route serves. Subscribe IMMEDIATELY after the ack: faux turns settle in
- *  microtask rounds, and the handle leaves the registry at settle. */
+/** DIETA DE CONEXIONES B (responsable, 2026-10-10 — postmortem de la congelación por sesiones paralelas):
+ *  POST /api/chat ya no hace streaming del turno: acusa recibo y cierra, y el
+ *  emisor (como toda vista) se engancha mediante el stream de reenganche. Esto
+ *  refleja drain(): comprueba el acuse 200 y luego vacía el cuerpo SSE del turno hasta
+ *  el final a través de runningTurn + subscribe, el mismo cable que sirve la ruta
+ *  GET. Suscríbete INMEDIATAMENTE tras el acuse: los turnos simulados se asientan en
+ *  rondas de microtareas y el identificador sale del registro al asentarse. */
 async function drainTurn(req: Request, factory: Parameters<typeof handleChatRequest>[1]): Promise<string> {
 	const cloned = req.clone();
 	const ack = await handleChatRequest(req, factory);
@@ -158,18 +158,18 @@ async function drainTurn(req: Request, factory: Parameters<typeof handleChatRequ
 	const { chatId } = (await cloned.json()) as { chatId: string };
 	const handle = runningTurn(chatId);
 	if (!handle)
-		// A short turn (a quick answer reaction) can settle INSIDE the
-		// handler's trailing awaits — the registry is already clear. There is
-		// nothing to drain: completion happened. (Body-reading callers get "" —
-		// their eventsOf asserts then fail loudly if this ever bites a long
-		// turn, which is the honest outcome for a lost wire.)
+		// Un turno corto (una reacción rápida a una respuesta) puede asentarse DENTRO de los
+		// awaits finales del manejador: el registro ya está vacío. No hay nada
+		// que vaciar: la finalización ya ocurrió. (Quien lee el cuerpo recibe "";
+		// sus aserciones de eventsOf fallarían entonces de forma ruidosa si esto afectara a un turno
+		// largo, que es el resultado honesto para un cable perdido).
 		return "";
 	return new Response(handle.subscribe()).text();
 }
 
-/** Drain a RUNNING turn's wire when the POST already happened (the ack
- *  path left nothing to consume — CONNECTION DIET B). Subscribe immediately:
- *  faux turns settle in microtask rounds. */
+/** Vacía el cable de un turno EN EJECUCIÓN cuando el POST ya se hizo (la ruta
+ *  del acuse no dejó nada que consumir; DIETA DE CONEXIONES B). Suscríbete de inmediato:
+ *  los turnos simulados se asientan en rondas de microtareas. */
 async function drainRunning(chatId: string): Promise<string> {
 	const handle = runningTurn(chatId);
 	if (!handle) assert.fail(`no running turn to drain: ${chatId}`);
@@ -188,8 +188,8 @@ function waitFor(cond: () => boolean, timeoutMs = 8000, what = "condition"): Pro
 	});
 }
 
-/** A teacher whose step 1 blocks on an external gate — a turn held mid-run
- *  so view-cancel / reattach / abort timing is deterministic. */
+/** Un profesor cuyo paso 1 se bloquea en una barrera externa: un turno retenido a mitad de ejecución
+ *  para que los tiempos de cancelación de vista / reenganche / aborto sean deterministas. */
 function gatedTeacher(gate: Promise<void>): PiEngine {
 	const faux = createFauxCore({});
 	faux.setResponses([
@@ -201,8 +201,8 @@ function gatedTeacher(gate: Promise<void>): PiEngine {
 	return { model: faux.getModel(), streamFn: faux.streamSimple };
 }
 
-/** A teacher that NEVER resolves except on abort (the jobs abortableFactory
- *  pattern): the only way this turn can end is the remote kill. */
+/** Un profesor que NUNCA se resuelve salvo con un aborto (el patrón abortableFactory
+ *  de jobs): la única forma de que este turno termine es la terminación remota. */
 function abortableTeacher(): PiEngine {
 	const faux = createFauxCore({});
 	faux.setResponses([
@@ -220,14 +220,14 @@ function post(chatId: string, input: unknown): Request {
 	return new Request("http://test/api/chat", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
-		// Wave B: the input-events contract — one explicit event per POST,
-		// never a client transcript.
+		// Oleada B: el contrato de eventos de entrada: un evento explícito por POST,
+		// nunca una transcripción del cliente.
 		body: JSON.stringify({ chatId, input }),
 	});
 }
 
-/** The silent-dismissal route POST (module scope — the parallel-rounds
- *  pins drive it too). */
+/** El POST de la ruta de descarte silencioso (a nivel de módulo: las fijaciones
+ *  de rondas paralelas también la usan). */
 function dismissPost(chatId: string, toolCallId: string, kind: "quiz" | "ask" | "explain" = "quiz"): Promise<Response> {
 	return dismissRoute.POST(
 		new Request(`http://test/api/chats/${chatId}/dismiss`, {
@@ -241,15 +241,15 @@ function dismissPost(chatId: string, toolCallId: string, kind: "quiz" | "ask" | 
 	);
 }
 
-/** BYOK turn gate (owner, 2026-09-22): no factory floor — a chat needs a
- *  conversation model before any turn streams. The scripted tests give
- *  each chat a per-chat pin exactly like the setup flow does in
- *  production (the injected faux engine still runs the loop). */
+/** Barrera de turno BYOK (responsable, 2026-09-22): sin suelo de fábrica; un chat necesita un
+ *  modelo de conversación antes de que ningún turno haga streaming. Las pruebas guionizadas dan
+ *  a cada chat una fijación por chat exactamente como lo hace el flujo de configuración en
+ *  producción (el motor simulado inyectado sigue ejecutando el bucle). */
 function createConfiguredChat(title: string) {
 	const chat = chatStore.createChat(title);
 	chatStore.saveSettings(chat.id, { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" } });
-	// nodeId is required on teach quizzes (owner ruling 2026-09-26) — the
-	// scripted lessons quiz against this seeded tree.
+	// nodeId es obligatorio en los quizzes de enseñanza (decisión del responsable 2026-09-26); las
+	// lecciones guionizadas hacen quizzes sobre este árbol sembrado.
 	chatStore.saveTree(chat.id, {
 		nodes: [
 			{ id: "planet-order", title: "Planet order" },
@@ -269,7 +269,7 @@ after(() => {
 		try {
 			fs.unlinkSync(path.join(PATHS.chats, `${id}.json`));
 		} catch {
-			/* already gone */
+			/* ya no existe */
 		}
 	}
 });
@@ -280,12 +280,12 @@ describe("teacher chat flow (scripted model)", () => {
 		const chat = createConfiguredChat("Test: solar system");
 		createdChats.push(chat.id);
 
-		// ── Turn 1: learner opens with a topic; teacher probes with a quiz ──
+		// ── Turno 1: el alumno abre con un tema; el profesor sondea con un quiz ──
 		await drainTurn(post(chat.id, { type: "text", text: "teach me the solar system" }), agentFactory(engine));
 
 		const saved1 = chatStore.getChat(chat.id)!;
-		// Native record: user + assistant (fork 1 — the clean question's
-		// placeholder result never persists, so the record ends at the call).
+		// Registro nativo: usuario + asistente (bifurcación 1: el resultado provisional de la pregunta
+		// limpia nunca se persiste, así que el registro termina en la llamada).
 		assert.equal(saved1.messages.length, 2, "user message + assistant response persisted");
 		const assistantMsg = saved1.messages[1]!;
 		assert.equal(assistantMsg.role, "assistant");
@@ -299,8 +299,8 @@ describe("teacher chat flow (scripted model)", () => {
 		assert.equal((quizCall as { id?: string }).id, "call-1");
 		assert.deepEqual((quizCall as { arguments?: unknown }).arguments, QUIZ_INPUT);
 
-		// The projection pins the client view: reasoning part + a pending
-		// (input-available) quiz part — the dock's mount state.
+		// La proyección fija la vista del cliente: parte de razonamiento + una parte de quiz
+		// pendiente (input-available), el estado de montaje del dock.
 		const view1 = projectView(saved1.messages);
 		const reasoningPart = view1[1]!.parts.find((p) => p.type === "reasoning");
 		assert.ok(reasoningPart && reasoningPart.type === "reasoning", "reasoning part projected");
@@ -309,24 +309,24 @@ describe("teacher chat flow (scripted model)", () => {
 		assert.equal((quizPart as { state?: string }).state, "input-available", "unanswered quiz = pending state (resume record)");
 		assert.deepEqual((quizPart as { input?: unknown }).input, QUIZ_INPUT);
 
-		// The pending-question gate sees it (the native seam).
+		// La barrera de pregunta pendiente la ve (la frontera nativa).
 		const pending = danglingQuestionOf(saved1.messages);
 		assert.equal(pending?.toolCallId, "call-1");
 		assert.equal(pending?.tool, "quiz");
 		assert.deepEqual(pending?.input, QUIZ_INPUT);
 
-		// ── The learner answers: the client grades and posts the ANSWER
-		// EVENT — the answer lands as the call's real tool result. ──
+		// ── El alumno responde: el cliente corrige y envía el EVENTO DE
+		// RESPUESTA; la respuesta llega como el resultado de herramienta real de la llamada. ──
 		const answer = gradedAnswer(QUIZ_INPUT, ["Mercury"]);
 		assert.equal(answer.correct, true);
 		await drainTurn(post(chat.id, { type: "answer", toolCallId: "call-1", answer }), agentFactory(engine));
 
-		// ── The teacher reacts — the projection groups the reaction into the
-		// SAME assistant view message as the answered quiz (the native
-		// grouping canon: consecutive assistant/toolResult messages bounded
-		// by user messages form one group). ──
+		// ── El profesor reacciona: la proyección agrupa la reacción en el
+		// MISMO mensaje de vista del asistente que el quiz respondido (el canon de
+		// agrupación nativo: los mensajes assistant/toolResult consecutivos delimitados
+		// por mensajes de usuario forman un grupo). ──
 		const saved2 = chatStore.getChat(chat.id)!;
-		// Native: user, assistant, answer toolResult, reaction assistant.
+		// Nativo: usuario, asistente, toolResult de la respuesta, asistente de la reacción.
 		assert.equal(saved2.messages.length, 4, "the answer + reaction append natively");
 		assert.equal((saved2.messages[2] as { role?: string }).role, "toolResult", "the graded answer is the call's tool result");
 		const view2 = projectView(saved2.messages);
@@ -335,22 +335,22 @@ describe("teacher chat flow (scripted model)", () => {
 		const textPart = finalParts.find((p) => p.type === "text");
 		assert.ok(textPart && textPart.type === "text", "reaction text appended after the tool part");
 		assert.match((textPart as { text?: string }).text!, /Mercury it is/);
-		// The answered quiz part is still there, now with its output.
+		// La parte del quiz respondido sigue ahí, ahora con su salida.
 		const answeredQuiz = finalParts.find((p) => p.type === "tool-quiz");
 		assert.ok(answeredQuiz && answeredQuiz.type === "tool-quiz" && (answeredQuiz as { state?: string }).state === "output-available");
-		// The graded answer rode the record as the call's tool result and
-		// round-trips through JSON (undefined keys drop) — compare its
-		// SUBSTANCE, not key-for-key against the in-memory build.
+		// La respuesta corregida viajó en el registro como resultado de herramienta de la llamada y
+		// hace el viaje de ida y vuelta por JSON (las claves undefined desaparecen): compara su
+		// SUSTANCIA, no clave por clave con lo construido en memoria.
 		const out = (answeredQuiz as { output?: { kind?: string; correct?: boolean } }).output!;
 		assert.equal(out.kind, "quiz");
 		assert.equal(out.correct, true);
 
-		// The model actually received the graded answer as a tool result.
+		// El modelo recibió de verdad la respuesta corregida como resultado de herramienta.
 		assert.equal(calls.length, 2, "model saw exactly two prompts");
 		const toolResultSent = calls[1]!.some((c) => c.includes("toolResult") || c.includes("Mercury"));
 		assert.ok(toolResultSent, "continuation prompt carries the tool result to the model");
 
-		// No pending question remains.
+		// No queda ninguna pregunta pendiente.
 		assert.equal(danglingQuestionOf(saved2.messages), null);
 	});
 
@@ -363,13 +363,13 @@ describe("teacher chat flow (scripted model)", () => {
 		const chat = createConfiguredChat("Test: malformed input");
 		createdChats.push(chat.id);
 
-		// A text event with no text: refused at the parse boundary.
+		// Un evento de texto sin texto: rechazado en la frontera de análisis.
 		const res = await handleChatRequest(post(chat.id, { type: "text" }), agentFactory(scriptedTeacher(defaultLesson).engine));
 		assert.equal(res.status, 400, "malformed input is a clean 400");
 		assert.equal(isTurnRunning(chat.id), false, "the refusal never registered a turn");
 
-		// An ANSWER with no dangling question call: the orphan-400 discipline
-		// (the server owns the record — it validates the target call).
+		// Una RESPUESTA sin llamada de pregunta colgante: la disciplina del 400 huérfano
+		// (el servidor es responsable del registro: valida la llamada destino).
 		const res2 = await handleChatRequest(
 			post(chat.id, { type: "answer", toolCallId: "call-none", answer: { correct: true } }),
 			agentFactory(scriptedTeacher(defaultLesson).engine),
@@ -377,7 +377,7 @@ describe("teacher chat flow (scripted model)", () => {
 		assert.equal(res2.status, 400, "an answer with no pending question call is refused");
 		assert.equal(isTurnRunning(chat.id), false);
 
-		// And the chat is NOT locked: the next (valid) turn is accepted.
+		// Y el chat NO queda bloqueado: se acepta el siguiente turno (válido).
 		const ok = await handleChatRequest(
 			post(chat.id, { type: "text", text: "teach me" }),
 			agentFactory(scriptedTeacher(defaultLesson).engine),
@@ -387,12 +387,12 @@ describe("teacher chat flow (scripted model)", () => {
 	});
 
 	it("streams the toolCall partial before tool_execution_start/end (protocol pin for the 'Writing a question…' shimmer)", async () => {
-		// Wave D: the wire is VERBATIM pi AgentEvents. The client's writing
-		// indicator derives 'input-streaming' from a toolCall block seen in a
-		// message_update with no execution yet; the dock mounts on a CLEAN
-		// tool_execution_end. Pin the ordering that drives both — if the
-		// passthrough ever stopped emitting one of these, the indicator or
-		// the dock would silently die.
+		// Oleada D: el cable son AgentEvents de pi LITERALES. El indicador de escritura
+		// del cliente deriva 'input-streaming' de un bloque toolCall visto en un
+		// message_update aún sin ejecución; el dock se monta con un tool_execution_end
+		// LIMPIO. Fija el orden que gobierna ambos: si el paso directo
+		// dejara alguna vez de emitir uno de ellos, el indicador o
+		// el dock morirían en silencio.
 		const { engine } = scriptedTeacher(defaultLesson);
 		const chat = createConfiguredChat("Test: protocol pin");
 		createdChats.push(chat.id);
@@ -411,22 +411,22 @@ describe("teacher chat flow (scripted model)", () => {
 	});
 
 	it("a pump-fired wake turn never double-appends its steer (Wave B regression of the 2026-09-18 bug)", { timeout: 15000 }, async () => {
-		// THE SHAPE: the pump fires {type:'steer'} while the SAME steer still
-		// sits at the head of the delivery queue (the pump shifts its entry
-		// only AFTER the turn registers). Wave B's claimSteers filter checked
-		// only the PRE-write-ahead record, so the copy carried by the input
-		// was invisible — the marker persisted TWICE with the same id, two
-		// view messages shared one React key, and the client crashed (live,
-		// 2026-09-26: steer_job_muhlokbf_84e9373c in chat_muhlcltz).
+		// LA FORMA: la bomba dispara {type:'steer'} mientras la MISMA reorientación sigue
+		// en la cabeza de la cola de entrega (la bomba quita su entrada
+		// solo DESPUÉS de que el turno se registre). El filtro claimSteers de la oleada B miraba
+		// solo el registro ANTERIOR a la persistencia anticipada, así que la copia que llevaba la entrada
+		// era invisible: el marcador se persistía DOS VECES con el mismo id, dos
+		// mensajes de vista compartían una clave de React y el cliente fallaba (en vivo,
+		// 2026-09-26: steer_job_muhlokbf_84e9373c en chat_muhlcltz).
 		const chat = createConfiguredChat("Test: wake single-copy");
 		createdChats.push(chat.id);
-		// Seed a plain-text turn (no dangling question — waitForIdle must pass).
+		// Siembra un turno de texto plano (sin pregunta colgante: waitForIdle debe pasar).
 		const seed = scriptedTeacher(() => [() => fauxAssistantMessage([fauxText("On it — dispatched the researcher.")])]);
 		await drainTurn(post(chat.id, { type: "text", text: "research it" }), agentFactory(seed.engine));
 
-		// The pump's turn runner, faithfully shaped but scripted (the real one
-		// is chat-handler's module-level wiring; this file's import already set
-		// it — we override for the scripted engine, as jobs.test does).
+		// El ejecutor de turnos de la bomba, con forma fiel pero guionizado (el real
+		// es el cableado a nivel de módulo de chat-handler; la importación de este fichero ya lo
+		// estableció: lo sustituimos por el motor guionizado, como hace jobs.test).
 		const wake = scriptedTeacher(() => [() => fauxAssistantMessage([fauxText("Good research — building on it.")])]);
 		setTurnRunner(async (chatId, input) => {
 			const res = await handleChatInput(chatId, input, agentFactory(wake.engine));
@@ -434,20 +434,20 @@ describe("teacher chat flow (scripted model)", () => {
 			return res.status;
 		});
 
-		// A REAL job record — chatIdOf resolves the chat through the job
-		// store (details.jobId indexes it); a synthetic id with no record
-		// yields "" and the pump silently no-ops (the hang this test taught
-		// us about on first contact).
+		// Un registro de tarea REAL: chatIdOf resuelve el chat a través del almacén
+		// de tareas (details.jobId lo indexa); un id sintético sin registro
+		// devuelve "" y la bomba no hace nada en silencio (el cuelgue que esta prueba nos
+		// enseñó en el primer contacto).
 		const job = jobStore.createJob({ kind: "research", chatId: chat.id, toolCallId: "call-1" });
 		const steer = buildSubagentSteer(
 			job,
 			{ brief: "The Mercury answer, with sources.", sources: [{ title: "NASA", url: "https://nasa.gov" }] },
 		);
-		// NOTE: deliverJobResult resolves at CLAIM time (the wake turn's own
-		// claimSteers pops the queue inside handleChatInput — the write-ahead
-		// persist is imminent but the TURN is still running). The record
-		// assertion therefore waits for the wake response to land.
-		await deliverJobResult(steer); // queue + pump → waitForIdle → the wake turn
+		// NOTA: deliverJobResult se resuelve al RECLAMAR (el claimSteers del propio turno
+		// de despertar vacía la cola dentro de handleChatInput: la persistencia anticipada
+		// es inminente, pero el TURNO sigue en ejecución). Por eso la aserción sobre el
+		// registro espera a que llegue la respuesta del despertar.
+		await deliverJobResult(steer); // cola + bomba → waitForIdle → el turno de despertar
 		await waitFor(() => {
 			const rec = chatStore.getChat(chat.id);
 			const at = rec?.messages.findIndex((m) => (m as { id?: string }).id === steer.id) ?? -1;
@@ -463,18 +463,18 @@ describe("teacher chat flow (scripted model)", () => {
 	});
 
 	it("Wave C steering: a mid-run result injects BETWEEN turn units — never splitting a toolCall from its toolResult", { timeout: 15000 }, async () => {
-		// THE OWNER'S CORRECTION (2026-09-26): a real lesson is ONE continuous
-		// teach→quiz→teach run, so a subagent result must land BETWEEN messages
-		// inside the run — pi's steering queue, drained at turn boundaries
-		// (after a completed assistant message AND its tool results). Waiting
-		// for run end (follow-ups) can never fire mid-lesson: the question
-		// stopper pre-empts that poll at exactly the moments a run DOES end.
+		// LA CORRECCIÓN DEL RESPONSABLE (2026-09-26): una lección real es UNA ejecución continua
+		// enseñar→quiz→enseñar, así que el resultado de un subagente debe llegar ENTRE mensajes
+		// dentro de la ejecución: la cola de reorientación de pi, vaciada en los límites de turno
+		// (tras un mensaje de asistente completado Y sus resultados de herramienta). Esperar
+		// al final de la ejecución (follow-ups) nunca puede dispararse a mitad de lección: el detenedor
+		// de preguntas se adelanta a ese sondeo justo en los momentos en que una ejecución SÍ termina.
 		const chat = createConfiguredChat("Test: mid-run steering");
 		createdChats.push(chat.id);
 
-		// Step 1 (gated): a non-question tool — an unknown name yields an
-		// error toolResult WITHOUT terminating, so the run continues. Step 2:
-		// the reaction AFTER the boundary injection (records its prompt).
+		// Paso 1 (con barrera): una herramienta que no es pregunta; un nombre desconocido produce un
+		// toolResult de error SIN terminar, así que la ejecución continúa. Paso 2:
+		// la reacción DESPUÉS de la inyección en el límite (registra su prompt).
 		let release!: () => void;
 		const gate = new Promise<void>((r) => (release = r));
 		let release2!: () => void;
@@ -493,10 +493,10 @@ describe("teacher chat flow (scripted model)", () => {
 			},
 			async (context) => {
 				seen.push(context.messages.map((m) => JSON.stringify((m as { content: unknown }).content)).join("\n"));
-				// HOLD the turn open past the injection: the marker's
-				// message_end already fired, so the job must be flipped
-				// done NOW (dock fix, owner 2026-09-26) — not at this
-				// turn's settle.
+				// MANTÉN el turno abierto más allá de la inyección: el message_end
+				// del marcador ya se disparó, así que la tarea debe marcarse
+				// terminada AHORA (arreglo del dock, responsable 2026-09-26), no al
+				// asentarse este turno.
 				jobFlippedMidTurn = jobStore.getJob(jobIdMid)?.status;
 				await gate2;
 				return fauxAssistantMessage([fauxText("Folded the marker in.")]);
@@ -504,40 +504,40 @@ describe("teacher chat flow (scripted model)", () => {
 		]);
 		const engine: PiEngine = { model: faux.getModel(), streamFn: faux.streamSimple };
 
-		// A wake here would be a BUG (delivery must ride the live run) — the
-		// counter keeps an erroneous wake hermetic and assertable.
+		// Un despertar aquí sería un FALLO (la entrega debe viajar en la ejecución viva); el
+		// contador mantiene un despertar erróneo hermético y comprobable.
 		let wakes = 0;
 		setTurnRunner(async () => {
 			wakes++;
 			return 200;
 		});
 
-		// The turn floats mid-run: step 1 is gated, the run is live.
+		// El turno flota a mitad de ejecución: el paso 1 tiene barrera, la ejecución está viva.
 		const res = handleChatRequest(post(chat.id, { type: "text", text: "teach" }), agentFactory(engine));
 		await waitFor(() => isTurnRunning(chat.id), 8000, "the turn is live");
 
-		// The result lands MID-RUN: the pump hands it to the live agent's
-		// steering queue (vehicle 1) — the queued marker waits for the
-		// in-flight turn to complete so the injection lands at its boundary.
+		// El resultado llega A MITAD DE EJECUCIÓN: la bomba lo pasa a la cola de reorientación
+		// del agente vivo (vehículo 1); el marcador encolado espera a que el
+		// turno en curso termine para que la inyección llegue en su límite.
 		const job = jobStore.createJob({ kind: "research", chatId: chat.id, toolCallId: "call-mid" });
 		jobIdMid = job.id;
-		// The runner stores the result BEFORE delivery (finalizeJob reads it).
+		// El ejecutor guarda el resultado ANTES de la entrega (finalizeJob lo lee).
 		jobStore.updateJob(job.id, { status: "done", result: { brief: "Mid-run brief.", sources: [] }, delivery: { kind: "result", status: "pending" } });
 		const steer = buildSubagentSteer(job, { brief: "Mid-run brief.", sources: [] });
 		const delivery = deliverJobResult(steer);
-		await new Promise((r) => setTimeout(r, 300)); // vehicle 1 hands off
+		await new Promise((r) => setTimeout(r, 300)); // el vehículo 1 hace el traspaso
 		assert.equal(wakes, 0, "no wake — the live run owns the delivery");
 
-		release(); // step 1 completes → tool result → TURN BOUNDARY → inject → step 2
-		// Step 2 has pended briefly — give the wire seam a beat, then release.
+		release(); // el paso 1 termina → resultado de herramienta → LÍMITE DE TURNO → inyección → paso 2
+		// El paso 2 ha quedado pendiente un momento: da un respiro a la frontera del cable y luego libera.
 		await new Promise((r) => setTimeout(r, 150));
 		release2();
 		await drain(await res);
-		await delivery; // resolves at settleSteers (the run persisted the marker)
+		await delivery; // se resuelve en settleSteers (la ejecución persistió el marcador)
 		assert.equal(jobFlippedMidTurn, "done", "worker completion is independent of the streaming teacher turn");
 
-		// Record shape: the marker sits BETWEEN completed turn units — after
-		// the toolResult it must never split, adjacent to it.
+		// Forma del registro: el marcador queda ENTRE unidades de turno completadas, tras
+		// el toolResult, que nunca debe partir, y adyacente a él.
 		const record = chatStore.getChat(chat.id)!;
 		const at = (role: string, pred: (m: LhMessage) => boolean) =>
 			record.messages.findIndex((m) => (m as { role?: string }).role === role && pred(m as never));
@@ -558,11 +558,11 @@ describe("teacher chat flow (scripted model)", () => {
 	});
 
 	it("the view canon HOISTS reasoning above the message text (owner ruling 2026-09-26)", () => {
-		// GLM emits trailing reasoning tokens — the persisted content lands
-	// [text, thinking] (and [text, thinking, toolCall]), which arrival-order
-	// presentation rendered as reasoning UNDER its message. The projection
-	// stable-partitions: reasoning parts first (their own order), then the
-	// rest — live partials and settled records alike.
+		// GLM emite tokens de razonamiento al final: el contenido persistido queda
+	// [text, thinking] (y [text, thinking, toolCall]), que la presentación por orden
+	// de llegada mostraba con el razonamiento DEBAJO de su mensaje. La proyección
+	// hace una partición estable: primero las partes de razonamiento (en su orden) y luego
+	// el resto, tanto en los parciales vivos como en los registros asentados.
 		const baseMessage = {
 			role: "assistant",
 			api: "openai-completions",
@@ -588,7 +588,7 @@ describe("teacher chat flow (scripted model)", () => {
 		assert.equal(order[0], "reasoning", "reasoning renders FIRST regardless of content order");
 		assert.ok(order.indexOf("text") > order.indexOf("reasoning"), "text follows the reasoning");
 		assert.equal(order[order.length - 1], "tool-quiz", "the tool call stays last");
-		// The canonical think-first shape is unchanged.
+		// La forma canónica de pensar primero no cambia.
 		const leadingThink: LhMessage = {
 			...baseMessage,
 			id: "a_lead",
@@ -611,14 +611,14 @@ describe("teacher chat flow (scripted model)", () => {
 			inFlight: true,
 			streamingIds: new Set(["a_empty"]),
 		} as never;
-		// streaming: the message's ARRIVAL renders — one empty reasoning part
-		// (chat.tsx Reasoning isStreamings the last part: same spinner +
-		// shimmer as the placeholder it replaces — seamless handoff).
+		// streaming: se muestra la LLEGADA del mensaje, una parte de razonamiento vacía
+		// (Reasoning de chat.tsx aplica isStreaming a la última parte: el mismo indicador +
+		// brillo que el provisional al que sustituye; traspaso sin costuras).
 		const view = projectView([{ id: "u0", role: "user", content: "hi", timestamp: 1 } as never, emptyArrived], live);
 		const parts = view[1]!.parts.filter((p) => p.type !== "step-start");
 		assert.deepEqual(parts.map((p) => p.type), ["reasoning"], "empty streaming message = the thinking row");
 		assert.equal(parts[0]!.text, "", "empty until the first token lands");
-		// settled (no live window): presentation-only, hidden as always.
+		// asentado (sin ventana viva): solo de presentación, oculto como siempre.
 		const settled = projectView([{ id: "u0", role: "user", content: "hi", timestamp: 1 } as never, emptyArrived]);
 		assert.equal(settled.length, 1, "a settled empty message renders nothing");
 	});
@@ -632,18 +632,18 @@ describe("teacher chat flow (scripted model)", () => {
 
 		const res = await handleChatRequest(post(chat.id, { type: "text", text: "hold my turn" }), agentFactory(engine));
 		assert.equal(res.status, 200);
-		// CONNECTION DIET B (2026-10-10): the POST is a closed ack — the view
-		// wire is the reattach stream. Attach, read one chunk, then cancel —
-		// the browser view leaves mid-stream.
+		// DIETA DE CONEXIONES B (2026-10-10): el POST es un acuse cerrado; el cable de la vista
+		// es el stream de reenganche. Engánchate, lee un fragmento y cancela:
+		// la vista del navegador se va a mitad del stream.
 		const view = new Response(runningTurn(chat.id)!.subscribe());
 		const reader = view.body!.getReader();
 		await reader.read();
 		await reader.cancel();
-		// The turn is STILL a running background object — no view killed it.
+		// El turno SIGUE siendo un objeto en segundo plano en ejecución: ninguna vista lo mató.
 		assert.equal(isTurnRunning(chat.id), true, "cancel detached the view only — the turn runs on");
 		assert.ok(runningTurn(chat.id), "the running-turn registry still holds the handle");
 
-		// It runs to FULL completion with nobody watching, then settles alone.
+		// Se ejecuta HASTA EL FINAL sin nadie mirando y luego se asienta solo.
 		release();
 		await waitFor(() => !isTurnRunning(chat.id), 8000, "turn settle after view cancel");
 		const saved = chatStore.getChat(chat.id)!;
@@ -652,18 +652,18 @@ describe("teacher chat flow (scripted model)", () => {
 	});
 
 	it("an ungradeable quiz is rejected at the call boundary, the error reaches the model, and the model retries", async () => {
-		// The authoring contract (question-core superRefine): a quiz whose
-		// correctAnswer matches no option value must NEVER reach the dock —
-		// the boundary re-runs the schema at the call boundary, marks the
-		// call invalid, and returns the validation error to the teacher as
-		// a tool result. The loop re-prompts the model, which retries in the
-		// same turn. This pins that whole mechanism (the live Nietzsche bug).
+		// El contrato de autoría (superRefine de question-core): un quiz cuyo
+		// correctAnswer no coincide con el valor de ninguna opción NUNCA debe llegar al dock;
+		// la frontera vuelve a aplicar el esquema en el límite de la llamada, marca la
+		// llamada como inválida y devuelve el error de validación al profesor como
+		// resultado de herramienta. El bucle vuelve a preguntar al modelo, que reintenta en el
+		// mismo turno. Esto fija todo ese mecanismo (el fallo en vivo de Nietzsche).
 		const BAD_QUIZ_INPUT = {
 			question: "What is Nietzsche's genealogical claim about religion?",
 			type: "check",
 			nodeId: "genealogy",
 			options: [{ label: "A cultural diagnosis" }, { label: "Atheism as a conclusion" }],
-			correctAnswer: "cultural-diagnosis", // the exact live failure shape: a slug, no match
+			correctAnswer: "cultural-diagnosis", // la forma exacta del fallo en vivo: un slug, sin coincidencia
 			explanation: "Genealogy diagnoses, it does not convert.",
 		};
 
@@ -689,9 +689,9 @@ describe("teacher chat flow (scripted model)", () => {
 		createdChats.push(chat.id);
 		const body = await drainTurn(post(chat.id, { type: "text", text: "quiz me" }), agentFactory(engine));
 
-		// WIRE pin (the live modal-realism crash): the invalid call's execution
-		// end is an ERROR — the dock only mounts on a CLEAN tool_execution_end,
-		// so a malformed quiz can never reach it. The retry's end is clean.
+		// Fijación del CABLE (el fallo en vivo de modal-realism): el final de ejecución de la
+		// llamada inválida es un ERROR; el dock solo se monta con un tool_execution_end LIMPIO,
+		// así que un quiz mal formado nunca puede llegar a él. El final del reintento es limpio.
 		const events = eventsOf(body);
 		const badEnd = events.find((e) => e.type === "tool_execution_end" && e.toolCallId === "call-bad");
 		assert.ok(badEnd, "the invalid call's execution end is on the wire");
@@ -701,18 +701,18 @@ describe("teacher chat flow (scripted model)", () => {
 		assert.ok(goodEnd, "the valid retry's execution end is on the wire");
 		assert.equal(goodEnd.isError, false, "the valid retry's end is CLEAN — the dock mounts on it");
 
-		// The model was re-prompted (the error did not end the turn)…
+		// Se volvió a preguntar al modelo (el error no terminó el turno)…
 		assert.equal(calls.length, 2, "the invalid call triggered a second model prompt");
-		// …and the second prompt carried the validation error back as a tool result.
+		// …y el segundo prompt llevaba de vuelta el error de validación como resultado de herramienta.
 		assert.match(
 			calls[1]!.join(" "),
 			/does not match any option value/,
 			"the validation error reached the model",
 		);
 
-		// The transcript: the failed call persisted as an ERROR RESULT (the
-		// model's retry context — errored question calls DO persist), the
-		// retry as the dangling quiz. The projection renders the error part.
+		// La transcripción: la llamada fallida se persistió como RESULTADO DE ERROR (el
+		// contexto de reintento del modelo: las llamadas de pregunta con error SÍ se persisten), y el
+		// reintento como el quiz colgante. La proyección muestra la parte de error.
 		const saved = chatStore.getChat(chat.id)!;
 		const view = projectView(saved.messages);
 		const quizParts = view[1]!.parts.filter((p) => p.type === "tool-quiz");
@@ -730,19 +730,19 @@ describe("teacher chat flow (scripted model)", () => {
 	});
 
 	it("structurally invalid quiz input (unhealable garbage) never reaches the dock and retries clean", async () => {
-		// The two-tier world (owner, 2026-10-09 — the universal argument
-		// heal): a JSON-ENCODED stand-in for the schema shape (the live
-		// string-options habit) now heals at EVERY registry — see
-		// tests/tool-heal.test.ts for that pin — so the structural reject
-		// this test holds is the OTHER tier: garbage no mechanical rule
-		// could rescue (not JSON, not an array) rejects honestly at the
-		// boundary — tool-input-error, never a pending question — and the
-		// model's clean retry becomes the pending quiz.
+		// El mundo de dos niveles (responsable, 2026-10-09 — la reparación universal
+		// de argumentos): un sustituto CODIFICADO EN JSON de la forma del esquema (la costumbre en vivo
+		// de pasar las opciones como cadena) ahora se repara en TODOS los registros (ver
+		// tests/tool-heal.test.ts para esa fijación), así que el rechazo estructural
+		// que mantiene esta prueba es el OTRO nivel: basura que ninguna regla mecánica
+		// podría rescatar (ni JSON ni un array) se rechaza honestamente en la
+		// frontera (tool-input-error, nunca una pregunta pendiente) y el
+		// reintento limpio del modelo se convierte en el quiz pendiente.
 		const STRINGY_QUIZ_INPUT = {
 			question: "Lewis's indexical analysis of 'actual' — which is it?",
 			type: "check",
 			nodeId: "indexicals",
-			options: "definitely not a JSON array — denim all the way down", // ← unhealable garbage
+			options: "definitely not a JSON array — denim all the way down", // ← basura irreparable
 			correctAnswer: "indexical",
 			explanation: "Indexical: every world is actual to its own inhabitants.",
 		};
@@ -775,12 +775,12 @@ describe("teacher chat flow (scripted model)", () => {
 	});
 
 	it("parallel quiz calls are asked, saved, and answered in the model's call order", async () => {
-		// The live modal-realism observation: the teacher batched two quizzes
-		// in one turn, and the dock showed the SECOND one first (the backward
-		// part scan), so the interaction order was reversed vs the record.
-		// Pins: (A) danglingQuestionOf picks the FIRST unanswered question in
-		// call order; (B) question tools execute sequentially, so their
-		// tool-input-available chunks arrive in call order on the wire.
+		// La observación en vivo de modal-realism: el profesor agrupó dos quizzes
+		// en un turno y el dock mostró primero el SEGUNDO (el recorrido hacia atrás
+		// de las partes), así que el orden de interacción quedó invertido respecto al registro.
+		// Fija: (A) danglingQuestionOf elige la PRIMERA pregunta sin responder en
+		// orden de llamada; (B) las herramientas de pregunta se ejecutan en secuencia, así que sus
+		// fragmentos tool-input-available llegan por el cable en orden de llamada.
 		const QUIZ_A = { ...QUIZ_INPUT, question: "Quiz A: which planet is closest to the sun?" };
 		const QUIZ_B = { ...QUIZ_INPUT, question: "Quiz B: which planet is largest?" };
 
@@ -796,23 +796,23 @@ describe("teacher chat flow (scripted model)", () => {
 		createdChats.push(chat.id);
 		const body = await drainTurn(post(chat.id, { type: "text", text: "quiz me twice" }), agentFactory(engine));
 
-		// (B) wire determinism: question tools execute sequentially, so the
-		// quizzes' CLEAN execution ends arrive in call order (the dock mounts
-		// on clean ends — the mount order is the wire order).
+		// (B) determinismo del cable: las herramientas de pregunta se ejecutan en secuencia, así que los
+		// finales de ejecución LIMPIOS de los quizzes llegan en orden de llamada (el dock se monta
+		// con finales limpios: el orden de montaje es el orden del cable).
 		const events = eventsOf(body);
 		const endA = events.findIndex((e) => e.type === "tool_execution_end" && e.toolCallId === "call-a" && e.isError === false);
 		const endB = events.findIndex((e) => e.type === "tool_execution_end" && e.toolCallId === "call-b" && e.isError === false);
 		assert.ok(endA !== -1 && endB !== -1, "both quizzes' clean ends are on the wire");
 		assert.ok(endA < endB, "call A's end precedes call B's (sequential execution)");
 
-		// Saved in call order (the projection preserves the content order).
+		// Guardados en orden de llamada (la proyección conserva el orden del contenido).
 		const saved = chatStore.getChat(chat.id)!;
 		const quizIds = projectView(saved.messages)[1]!.parts
 			.filter((p) => p.type === "tool-quiz")
 			.map((p) => (p as { toolCallId: string }).toolCallId);
 		assert.deepEqual(quizIds, ["call-a", "call-b"], "parts persisted in call order");
 
-		// (A) the dock serializes answering in the same order: A first, then B.
+		// (A) el dock serializa las respuestas en el mismo orden: primero A, luego B.
 		const pending = danglingQuestionOf(saved.messages);
 		assert.equal(pending?.toolCallId, "call-a", "the FIRST asked question is the dock subject");
 		// …the learner answers A: the answer lands as call-a's tool result —
