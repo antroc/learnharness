@@ -1,28 +1,28 @@
 
 /**
- * Demo + visual artifact tests (W6) — deterministic, zero network, no real
- * Chrome:
+ * Pruebas de demos + artefactos visuales (W6): deterministas, sin red y sin
+ * Chrome real:
  *
- *   1. bridge-script injection (buildDemoSrcDoc) + the pure bridge-message
- *      reducer (reduceDemoBridgeState)
- *   2. card rendering (static markup): sandboxed iframe attrs, error chip,
- *      failure notes, SVG image documents
- *   3. the demo-builder loop with a FAKE model + FAKE headless (success with
- *      a fix iteration, untested-final verification, never-clean failure,
- *      no-Chrome failure)
- *   4. the visual-maker loop (fake model + fake headless): render-and-look
- *      success, forced look on premature finish, never-writes failure
- *   5. job runners + dispatch (demo part → demo job → steer via a fake
- *      deliver; visual failure path; end-to-end dispatch through
- *      handleChatRequest with the ack protocol)
- *   6. tool registry wiring (server-executed dispatch tools, schemas)
+ *   1. inyección del script puente (buildDemoSrcDoc) + el reductor puro de
+ *      mensajes del puente (reduceDemoBridgeState)
+ *   2. renderizado de tarjetas (marcado estático): atributos del iframe aislado, etiqueta de error,
+ *      notas de fallo, documentos de imagen SVG
+ *   3. el bucle de demo-builder con un modelo FALSO + headless FALSO (éxito con
+ *      una iteración de arreglo, verificación final no probada, fallo nunca limpio,
+ *      fallo sin Chrome)
+ *   4. el bucle de visual-maker (modelo falso + headless falso): éxito de renderizar y mirar,
+ *      mirada forzada ante un final prematuro, fallo por no escribir nunca
+ *   5. ejecutores de tareas + despacho (parte de demo → tarea de demo → reorientación mediante una entrega
+ *      falsa; ruta de fallo del visual; despacho de extremo a extremo a través de
+ *      handleChatRequest con el protocolo de acuse)
+ *   6. cableado del registro de herramientas (herramientas de despacho ejecutadas en el servidor, esquemas)
  *
- * Cleanup follows tests/jobs.test.ts idioms (created chat/job files removed
- * in the after() hook; overrides reset in finally blocks).
+ * La limpieza sigue las costumbres de tests/jobs.test.ts (los ficheros de chat/tarea creados se borran
+ * en el hook after(); las sustituciones se restablecen en bloques finally).
  */
 
 import React from "react";
-(globalThis as Record<string, unknown>).React = React; // tsx classic-JSX shim (see render-cards.test.tsx)
+(globalThis as Record<string, unknown>).React = React; // parche del JSX clásico de tsx (ver render-cards.test.tsx)
 
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
@@ -66,9 +66,9 @@ import { projectView as projectNative } from "../src/core/view.ts";
 import type { PiEngine } from "../src/agent/models.ts";
 
 /**
- * A fake deliver seam + a runner wired like the chat-handler's, per test:
- * capture the steer and mimic the pipeline's final status flip so the job
- * record reads exactly as production does after the wake turn completes.
+ * Una frontera de entrega falsa + un ejecutor cableado como el de chat-handler, por prueba:
+ * captura la reorientación e imita el cambio de estado final del proceso para que el registro
+ * de la tarea se lea exactamente como en producción tras completarse el turno de despertar.
  */
 function testRunner() {
 	const steers: SteerMessage[] = [];
@@ -89,9 +89,9 @@ function testRunner() {
 }
 import { artifactRenderers } from "../components/artifacts/index.ts";
 
-// The key-presence turn gate (provider-key interlude, 2026-09-25): scripted
-// turns pin openrouter per chat — the gate reads env-first truth, so the
-// key must be present in the test process like any real setup.
+// La barrera de turno por presencia de clave (interludio de la clave del proveedor, 2026-09-25): los turnos
+// guionizados fijan openrouter por chat; la barrera lee la verdad del entorno primero, así que la
+// clave debe estar presente en el proceso de la prueba, como en cualquier configuración real.
 process.env.OPENROUTER_API_KEY ??= "test-key-presence-gate";
 
 
@@ -105,14 +105,14 @@ after(() => {
 		try {
 			fs.unlinkSync(path.join(PATHS.chats, `${id}.json`));
 		} catch {
-			/* already gone */
+			/* ya no existe */
 		}
 	}
 	for (const id of createdJobs) {
 		try {
 			fs.unlinkSync(path.join(JOBS_DIR, `${id}.json`));
 		} catch {
-			/* already gone */
+			/* ya no existe */
 		}
 	}
 	headlessOverride.current = undefined;
@@ -120,9 +120,9 @@ after(() => {
 	visualModelOverride.current = undefined;
 });
 
-/** A scripted pi engine (faux provider): the response queue replaces the old
- *  doGenerate turn counter — one queued response per model call (tool-call
- *  turn or final text), consumed in order. */
+/** Un motor pi guionizado (proveedor simulado): la cola de respuestas sustituye al antiguo
+ *  contador de turnos de doGenerate; una respuesta encolada por llamada al modelo (turno de
+ *  llamada a herramienta o texto final), consumidas en orden. */
 function scriptedModel(turns: Array<{ toolCalls?: Array<{ toolCallId: string; toolName: string; input: unknown }>; text?: string }>): PiEngine {
 	const steps: FauxResponseStep[] = turns.map((step) => {
 		if (step.toolCalls) {
@@ -138,7 +138,7 @@ function scriptedModel(turns: Array<{ toolCalls?: Array<{ toolCallId: string; to
 	return { model: faux.getModel(), streamFn: faux.streamSimple };
 }
 
-// ─── fake headless ───────────────────────────────────────────────────────────
+// ─── headless falso ──────────────────────────────────────────────────────────
 
 const CLEAN_RUN: DemoRunResult = { consoleErrors: [], pageErrors: [], failedRequests: [], ok: true };
 const BROKEN_RUN: DemoRunResult = {
@@ -149,9 +149,9 @@ const BROKEN_RUN: DemoRunResult = {
 };
 
 function fakeHeadless(opts: {
-	/** Return BROKEN_RUN for html matching this substring, else CLEAN_RUN. */
+	/** Devuelve BROKEN_RUN para el html que contenga esta subcadena; si no, CLEAN_RUN. */
 	brokenWhenIncludes?: string;
-	/** Throw for the first N renderSvg calls (then succeed). */
+	/** Lanza en las N primeras llamadas a renderSvg (y luego tiene éxito). */
 	renderFailures?: number;
 } = {}): HeadlessApi & { demoRuns: string[]; svgRenders: string[] } {
 	const api = {
@@ -172,8 +172,8 @@ function fakeHeadless(opts: {
 			if (opts.renderFailures && api.svgRenders.length <= opts.renderFailures) {
 				throw new Error("XML parse error");
 			}
-			// The shared native image processor decodes renders, so a signature
-			// alone is no longer a successful fake raster.
+			// El procesador de imágenes nativo compartido decodifica los renderizados, así que una firma
+			// sola ya no es un ráster falso válido.
 			const canvas = createCanvas(1, 1);
 			canvas.getContext("2d").fillRect(0, 0, 1, 1);
 			return canvas.toBuffer("image/png");
@@ -198,7 +198,7 @@ function noChromeHeadless(): HeadlessApi {
 	};
 }
 
-// ─── 1. bridge injection + reducer ───────────────────────────────────────────
+// ─── 1. inyección del puente + reductor ──────────────────────────────────────
 
 describe("demo bridge", () => {
 	it("injects the resize + error hooks before </body>", () => {
@@ -207,7 +207,7 @@ describe("demo bridge", () => {
 		assert.match(srcDoc, /demo-error/);
 		assert.match(srcDoc, /ResizeObserver/);
 		assert.match(srcDoc, /window\.addEventListener\("error"/);
-		// the bridge lands inside the document, and the original content survives
+		// el puente queda dentro del documento y el contenido original sobrevive
 		assert.ok(srcDoc.indexOf("ResizeObserver") < srcDoc.indexOf("</body>"));
 		assert.match(srcDoc, /<canvas id="c">/);
 	});
@@ -224,28 +224,28 @@ describe("demo bridge", () => {
 		state = reduceDemoBridgeState(state, { type: "demo-resize", height: 421.7 });
 		assert.equal(state.height, 422);
 		assert.equal(state.error, null);
-		// clamped
+		// acotado
 		state = reduceDemoBridgeState(state, { type: "demo-resize", height: 99999 });
 		assert.equal(state.height, 2400);
 		state = reduceDemoBridgeState(state, { type: "demo-resize", height: 5 });
 		assert.equal(state.height, 80);
-		// invalid payloads ignored
+		// las cargas inválidas se ignoran
 		assert.equal(reduceDemoBridgeState(state, { type: "demo-resize", height: "tall" }).height, 80);
 		assert.equal(reduceDemoBridgeState(state, { type: "demo-resize" }).height, 80);
-		// errors recorded, with a fallback message
+		// los errores se registran, con un mensaje alternativo
 		state = reduceDemoBridgeState(state, { type: "demo-error", message: "x is not defined" });
 		assert.equal(state.error, "x is not defined");
 		assert.equal(state.height, 80, "error does not clobber height");
 		state = reduceDemoBridgeState(state, { type: "demo-error" });
 		assert.equal(state.error, "unknown error");
-		// unknown types and non-objects ignored
+		// los tipos desconocidos y lo que no son objetos se ignoran
 		assert.deepEqual(reduceDemoBridgeState(state, { type: "something-else" }), state);
 		assert.deepEqual(reduceDemoBridgeState(state, "demo-resize"), state);
 		assert.deepEqual(reduceDemoBridgeState(state, null), state);
 	});
 });
 
-// ─── 2. card rendering ───────────────────────────────────────────────────────
+// ─── 2. renderizado de tarjetas ──────────────────────────────────────────────
 
 const DEMO_HTML = "<!doctype html><html><body><h1>oscillator</h1><script>let t=0;</script></body></html>";
 
@@ -308,8 +308,8 @@ describe("dispatch card rendering (the tool-call ack box)", () => {
 		assert.equal(html, "");
 	});
 
-	// sources v0 — the live browser smoke (2026-09-19) caught the pdf dispatch
-	// part rendering nothing: PdfJobCard is the fix.
+	// fuentes v0: la prueba de humo en vivo en el navegador (2026-09-19) pilló que la parte de despacho
+	// de pdf no mostraba nada: PdfJobCard es el arreglo.
 	it("pdf dispatch renders the live PDF-reader card while the job runs", () => {
 		const pdfJob: JobRecord = ({
 			id: "jp1",
@@ -364,7 +364,7 @@ describe("steer card rendering (the delivered artifact)", () => {
 		assert.match(html, /demo-error/);
 		assert.match(html, /Damped oscillator/);
 		assert.match(html, /interactive demo/i);
-		// the model-facing protocol text never renders for the learner
+		// el texto de protocolo de cara al modelo nunca se muestra al alumno
 		assert.ok(!html.includes("do NOT wait"), "no protocol glue in the bubble");
 	});
 
@@ -387,8 +387,8 @@ describe("steer card rendering (the delivered artifact)", () => {
 		const html = renderToStaticMarkup(<SubagentSteerCard message={projectNative([steer])[0] as never} />);
 		assert.ok(html.includes(encodeURIComponent(svg)), "the image URL contains the original SVG");
 		assert.match(html, /Figure/);
-		// Natural sizing (owner, 2026-10-07): a DECLARED width (200) means the
-		// holder hugs + centers rather than stretching full-width.
+		// Tamaño natural (responsable, 2026-10-07): un ancho DECLARADO (200) significa que el
+		// contenedor se ciñe + se centra en vez de estirarse a todo el ancho.
 		assert.match(html, /w-fit/, "holder hugs the declared size");
 		assert.match(html, /class="block h-auto max-w-full"/, "image shrinks to fit only when oversized");
 		assert.ok(!html.includes("Looking at the render"), "model-facing notes never render");
@@ -396,8 +396,8 @@ describe("steer card rendering (the delivered artifact)", () => {
 
 	it("renders the abort chip for an aborted job's steer (2026-09 dock semantics; the message type is the marker PART)", () => {
 		const steer = buildAbortSteer({ id: "jc", kind: "research", toolCallId: "cc" });
-		// Wave B: the steer is a native marker — the card renders its
-		// PROJECTION (the same view the transcript renderer hands it).
+		// Oleada B: la reorientación es un marcador nativo; la tarjeta muestra su
+		// PROYECCIÓN (la misma vista que le pasa el renderizador de la transcripción).
 		const view = projectNative([steer])[0]!;
 		assert.equal((steer.details as { aborted: boolean }).aborted, true);
 		assert.equal(view.parts.length, 2, "text (teacher-facing) + the data-subagent-aborted marker part");
@@ -405,9 +405,9 @@ describe("steer card rendering (the delivered artifact)", () => {
 		assert.match(html, /job-aborted-badge/);
 		assert.match(html, /research/, "the job's kind, lower-cased like the complete-badge idiom");
 		assert.match(html, /aborted by the learner/);
-		// the teacher-facing protocol text never renders for the learner
+		// el texto de protocolo de cara al profesor nunca se muestra al alumno
 		assert.ok(!html.includes("no brief is coming"), "no protocol glue in the chip");
-		// the badge renders off the PART, not metadata (the custom-message scheme)
+		// la insignia se muestra a partir de la PARTE, no de los metadatos (el esquema de mensajes personalizados)
 		const noMeta = { ...view, metadata: {} };
 		const htmlNoMeta = renderToStaticMarkup(<SubagentSteerCard message={noMeta as never} />);
 		assert.match(htmlNoMeta, /job-aborted-badge/, "metadata is pump mechanics, never the render seam");
@@ -429,9 +429,9 @@ describe("steer card rendering (the delivered artifact)", () => {
 		assert.match(html, /complete/);
 		assert.match(html, /2 sources/);
 		assert.match(html, /view brief/, "the expansion affordance is offered");
-		// the one-liner is a native <details> — collapsed by default, so the
-		// brief + sources ride in the DOM but never clutter the transcript
-		// until the learner opens them (the wave-1 "view full research" ask)
+		// el resumen de una línea es un <details> nativo, plegado por defecto, así que el
+		// encargo + las fuentes van en el DOM pero nunca recargan la transcripción
+		// hasta que el alumno los abre (la petición de la oleada 1 de "ver la investigación completa")
 		assert.match(html, /<details[^>]*data-testid="research-complete-badge"/, "a real disclosure");
 		assert.ok(!/<details[^>]*open/.test(html), "collapsed by default — no `open` attribute");
 		assert.ok(html.includes("founded the Academy"), "the persisted brief rides inside the details");
@@ -456,7 +456,7 @@ describe("steer card rendering (the delivered artifact)", () => {
 		assert.match(html, /<details[^>]*data-testid="pdf-complete-badge"/, "a real disclosure like the research badge");
 		assert.ok(!/<details[^>]*open/.test(html), "collapsed by default");
 		assert.ok(html.includes("power rule"), "the brief rides inside the details");
-		// the path/question are sub-agent context — never learner-facing chrome
+		// la ruta/pregunta son contexto del subagente, nunca interfaz de cara al alumno
 		assert.ok(!html.includes("/Users/x/course/chapter-3.pdf"), "the file path never renders");
 	});
 
@@ -514,20 +514,20 @@ describe("artifact chrome — scrollbar, invert toggles, downloads (release poli
 	it("figure card: NO card chrome, image first, caption row BELOW (owner round, 2026-10-07)", () => {
 		const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><circle cx="50" cy="50" r="20"/></svg>';
 		const html = renderToStaticMarkup(<VisualOutputCard output={{ svg }} />);
-		// Document material: the outer box carries no card styling.
+		// Material de documento: la caja exterior no lleva estilo de tarjeta.
 		const rootAt = html.indexOf('data-testid="visual-card"');
 		const root = html.slice(rootAt - 200, rootAt);
 		assert.ok(!root.includes("rounded-xl border"), "no card container");
-		// Image BEFORE the caption row; the caption label and the controls follow it.
+		// La imagen ANTES de la fila del pie; la etiqueta del pie y los controles van después.
 		const svgAt = html.indexOf('data-testid="visual-svg"');
 		const captionAt = html.indexOf(">Figure<");
 		assert.ok(svgAt !== -1 && captionAt !== -1 && svgAt < captionAt, "the caption row sits below the image");
 		assert.ok(captionAt < html.indexOf("visual-download"), "the controls ride the caption row");
-		// The invert affordance: the contrast-circle disc + the tooltip.
+		// La indicación de invertir: el disco de círculo de contraste + la descripción emergente.
 		assert.ok(html.includes("size-3"), "the icon disc");
 		assert.ok(html.includes('title="Invert colors"'), "the tooltip names the toggle");
-		// The half-moon is ACTUALLY filled (owner catch: lucide's Contrast
-		// renders it hollow — fill="none" default; ours fills currentColor).
+		// La media luna está REALMENTE rellena (detalle del responsable: el Contrast de lucide
+		// la dibuja hueca, fill="none" por defecto; la nuestra se rellena con currentColor).
 		assert.ok(
 			html.includes('fill="currentColor" stroke="none"'),
 			"the filled half of the invert disc",
@@ -560,9 +560,9 @@ describe("artifact chrome — scrollbar, invert toggles, downloads (release poli
 
 describe("bridge height: the body-based measure (ratchet fix, 2026-10-07)", () => {
 	it("DEMO_BRIDGE_SCRIPT measures the BODY (scrollHeight + rect + margins), not the viewport-clamped documentElement", () => {
-		// documentElement.scrollHeight = max(content, viewport) latches at
-		// the parent's own height — a demo could grow but never shrink on
-		// window resize (owner-reported). The body metrics are pure content.
+		// documentElement.scrollHeight = max(contenido, viewport) se queda enganchado en
+		// la propia altura del padre: una demo podía crecer pero nunca encoger al
+		// redimensionar la ventana (informado por el responsable). Las métricas del body son contenido puro.
 		assert.ok(DEMO_BRIDGE_SCRIPT.includes("Math.max(b.scrollHeight,b.getBoundingClientRect().height)"));
 		assert.ok(DEMO_BRIDGE_SCRIPT.includes("getComputedStyle(b)"));
 		assert.ok(!/post=function\(\)\{send\(\{type:"demo-resize",height:document\.documentElement\.scrollHeight\}\)\};/.test(DEMO_BRIDGE_SCRIPT));
@@ -595,10 +595,10 @@ describe("setSteerUiInverted (the persisted invert switch, 2026-10-07)", () => {
 	});
 });
 
-// Generated-figure image boundaries are covered in svg-image.test.tsx.
-// There is no longer a partial regex sanitizer in the display path.
+// Los límites de las imágenes de figuras generadas se cubren en svg-image.test.tsx.
+// Ya no hay un saneador parcial con expresiones regulares en la ruta de visualización.
 
-// ─── 3. the demo-builder loop ────────────────────────────────────────────────
+// ─── 3. el bucle de demo-builder ─────────────────────────────────────────────
 
 const BROKEN_HTML = "<!doctype html><html><body>BROKEN<script>foo();</script></body></html>";
 const GOOD_HTML = "<!doctype html><html><body><canvas id=\"c\"></canvas><script>requestAnimationFrame(function step(){});</script></body></html>";
@@ -669,7 +669,7 @@ describe("demo builder (fake model + fake headless)", () => {
 	});
 });
 
-// ─── 4. the visual-maker loop ────────────────────────────────────────────────
+// ─── 4. el bucle de visual-maker ─────────────────────────────────────────────
 
 const SVG_1 = '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="100"><line x1="10" y1="50" x2="290" y2="50"/></svg>';
 
@@ -718,8 +718,8 @@ describe("visual maker (fake model + fake headless)", () => {
 		const headless = fakeHeadless();
 		const model = scriptedModel([
 			{ toolCalls: [{ toolCallId: "w1", toolName: "write_svg", input: { svg: SVG_1 } }] },
-			{ text: "Done." }, // premature finish — no render yet
-			{ text: "Looked at it — correct." }, // after the forced look
+			{ text: "Done." }, // final prematuro: aún sin renderizado
+			{ text: "Looked at it — correct." }, // tras la mirada forzada
 		]);
 		const result = await runVisualMaker({ brief: "b" }, { engine: model, headless });
 		assert.equal(result.svg, SVG_1, "delivered after the forced look");
@@ -732,9 +732,9 @@ describe("visual maker (fake model + fake headless)", () => {
 		const model = scriptedModel([
 			{ toolCalls: [{ toolCallId: "w1", toolName: "write_svg", input: { svg: SVG_1 } }] },
 			{ toolCalls: [{ toolCallId: "r1", toolName: "render_svg", input: {} }] },
-			// A miss: old_text not in the document (error fed back, nothing changed)
+			// Un fallo: old_text no está en el documento (se devuelve el error, nada cambia)
 			{ toolCalls: [{ toolCallId: "e1", toolName: "edit_svg", input: { old_text: "NOT-PRESENT", new_text: "x" } }] },
-			// A hit: exactly one occurrence — applied
+			// Un acierto: exactamente una aparición; se aplica
 			{ toolCalls: [{ toolCallId: "e2", toolName: "edit_svg", input: { old_text: '<line x1="10"', new_text: '<line x1="20"' } }] },
 			{ toolCalls: [{ toolCallId: "r2", toolName: "render_svg", input: {} }] },
 			{ text: "Moved the start of the line." },
@@ -749,7 +749,7 @@ describe("visual maker (fake model + fake headless)", () => {
 	it("edit_svg before write_svg errors and never edits nothing into a deliverable", async () => {
 		const headless = fakeHeadless();
 		const model = scriptedModel([
-			// Nothing written yet — the edit must error, not crash the loop
+			// Aún no se ha escrito nada: la edición debe dar error, no hacer fallar el bucle
 			{ toolCalls: [{ toolCallId: "e0", toolName: "edit_svg", input: { old_text: "svg", new_text: "x" } }] },
 			{ text: "Cannot proceed." },
 		]);
@@ -786,7 +786,7 @@ describe("visual maker (fake model + fake headless)", () => {
 	});
 });
 
-// ─── 5. job runners + dispatch ───────────────────────────────────────────────
+// ─── 5. ejecutores de tareas + despacho ──────────────────────────────────────
 
 const DEMO_INPUT = { title: "Compound interest", brief: "Slider for rate, curve of growth over 30 years." };
 
@@ -807,12 +807,12 @@ async function drain(res: Response): Promise<string> {
 	return res.text();
 }
 
-/** CONNECTION DIET B (owner, 2026-10-10): the POST acks and closes; drain
- *  the turn's wire through the reattach stream instead (settle-tolerant:
- *  a short turn may finish inside the handler). */
+/** DIETA DE CONEXIONES B (responsable, 2026-10-10): el POST acusa recibo y cierra; vacía
+ *  en su lugar el cable del turno a través del stream de reenganche (tolerante al asentamiento:
+ *  un turno corto puede terminar dentro del manejador). */
 async function drainRunning(chatId: string): Promise<string> {
 	const handle = runningTurn(chatId);
-	if (!handle) return ""; // the turn already settled — completion happened
+	if (!handle) return ""; // el turno ya se asentó: la finalización ya ocurrió
 	return new Response(handle.subscribe()).text();
 }
 
@@ -821,8 +821,8 @@ describe("demo/visual job runners", () => {
 	it("runJob completes a demo: result on the job, steer via deliver, ack stays on the part", async () => {
 		const chat = chatStore.createChat("Test: demo runner");
 		createdChats.push(chat.id);
-		// Wave B: a NATIVE fixture (the record holds agent history) — the
-		// runner's transcript scan reads it through the projection.
+		// Oleada B: un fixture NATIVO (el registro contiene historial de agente); el recorrido de la
+		// transcripción del ejecutor lo lee a través de la proyección.
 		chatStore.saveMessages(chat.id, [
 			{ id: "u1", role: "user", content: "show me compounding", timestamp: 1 } as never,
 			{
@@ -851,7 +851,7 @@ describe("demo/visual job runners", () => {
 		const job = jobStore.createJob({ kind: "demo", chatId: chat.id, toolCallId: "call-d1" });
 		createdJobs.push(job.id);
 
-		// runJob has no headless injection point — the module override is the seam.
+		// runJob no tiene punto de inyección de headless: la sustitución del módulo es la frontera.
 		headlessOverride.current = fakeHeadless();
 		demoModelOverride.current = scriptedModel([
 			{ toolCalls: [{ toolCallId: "w1", toolName: "write_demo", input: { html: GOOD_HTML } }] },
@@ -874,14 +874,14 @@ describe("demo/visual job runners", () => {
 		assert.equal(result.html, GOOD_HTML);
 		assert.equal(result.tested, true);
 
-		// The steer carries the artifact for the renderer.
+		// La reorientación lleva el artefacto para el renderizador.
 		assert.equal(steers.length, 1, "exactly one steer");
 		const data = steers[0]!.details as { kind: string; result: unknown };
 		assert.equal(data.kind, "demo");
 		assert.deepEqual(data.result, result);
 
-		// The tool part keeps the DISPATCH ACK forever — the result never
-		// rewrites it (the teacher gets the result once, via the steer).
+		// La parte de herramienta conserva el ACUSE DE DESPACHO para siempre: el resultado nunca
+		// la reescribe (el profesor recibe el resultado una vez, mediante la reorientación).
 		const saved = projectNative(chatStore.getChat(chat.id)!.messages);
 		const part = saved[1]!.parts.find((p) => p.type === "tool-demo");
 		assert.ok(part && part.type === "tool-demo", "demo tool part persisted");
@@ -940,18 +940,18 @@ describe("demo/visual job runners", () => {
 	it("dispatch through a teacher turn: the call acks mid-turn and the runner completes in the background", async () => {
 		const chat = chatStore.createChat("Test: demo spawn dispatch");
 		createdChats.push(chat.id);
-		// BYOK turn gate (owner, 2026-09-22): the scripted chat needs a
-		// conversation model — the per-chat pin, exactly like the setup flow.
+		// Barrera de turno BYOK (responsable, 2026-09-22): el chat guionizado necesita un
+		// modelo de conversación: la fijación por chat, exactamente como el flujo de configuración.
 		chatStore.saveSettings(chat.id, { model: { provider: "openrouter", id: "z-ai/glm-5.3-flash" } });
 
-		// A teacher that calls demo on turn 1, then continues in the SAME turn.
+		// Un profesor que llama a demo en el turno 1 y luego continúa en el MISMO turno.
 		const teacher = scriptedModel([
 			{ toolCalls: [{ toolCallId: "call-d2", toolName: "demo", input: DEMO_INPUT }] },
 			{ text: "Here it is." },
 		]);
 
-		// The overrides must be live BEFORE the request — dispatch fires the
-		// runner mid-stream, inside the tool execute.
+		// Las sustituciones deben estar activas ANTES de la petición: el despacho lanza el
+		// ejecutor a mitad del stream, dentro del execute de la herramienta.
 		demoModelOverride.current = scriptedModel([
 			{ toolCalls: [{ toolCallId: "w1", toolName: "write_demo", input: { html: GOOD_HTML } }] },
 			{ toolCalls: [{ toolCallId: "r1", toolName: "run_demo", input: {} }] },
@@ -967,14 +967,14 @@ describe("demo/visual job runners", () => {
 					headers: { "Content-Type": "application/json" },
 					body: JSON.stringify({
 						chatId: chat.id,
-						// Wave B: the input-events contract — one event,
-						// never a client transcript.
+						// Oleada B: el contrato de eventos de entrada: un evento,
+						// nunca una transcripción del cliente.
 						input: { type: "text", text: "teach me compounding" },
 					}),
 				}),
-				// The handler hands the factory the native build options
-				// (messages are the merged record; the record IS the agent
-				// state — no adapter conversion).
+				// El manejador pasa a la fábrica las opciones de construcción nativas
+				// (los mensajes son el registro fusionado; el registro ES el estado del
+				// agente; sin conversión de adaptador).
 				(opts) =>
 					createTeacherAgent(undefined, {
 						engine: teacher,
@@ -995,7 +995,7 @@ describe("demo/visual job runners", () => {
 			assert.equal(job!.kind, "demo");
 			createdJobs.push(job!.id);
 
-			// The background runner (fire-and-forget) completes with the overrides.
+			// El ejecutor en segundo plano (lanzar y olvidar) termina con las sustituciones.
 			await waitFor(() => jobStore.getJob(job!.id)!.status !== "running", 8000, "demo job completion");
 			const done = jobStore.getJob(job!.id)!;
 			assert.equal(done.status, "done");
@@ -1009,7 +1009,7 @@ describe("demo/visual job runners", () => {
 			assert.equal(steers.length, 1, "one job, one steer");
 			assert.equal((steers[0]!.details as { jobId: string }).jobId, job!.id);
 
-			// Idempotency: dispatch dedupes by toolCallId — no second job.
+			// Idempotencia: el despacho elimina duplicados por toolCallId; no hay segunda tarea.
 			assert.equal(jobStore.listJobs(chat.id).length, 1, "no duplicate job for the same tool part");
 		} finally {
 			demoModelOverride.current = undefined;
@@ -1018,7 +1018,7 @@ describe("demo/visual job runners", () => {
 	});
 });
 
-// ─── 6. registry wiring ──────────────────────────────────────────────────────
+// ─── 6. cableado del registro de herramientas ────────────────────────────────
 
 describe("tool + renderer registry wiring", () => {
 	it("demo and visual are SERVER-EXECUTED dispatch tools with the contract schemas", () => {
@@ -1040,21 +1040,21 @@ describe("tool + renderer registry wiring", () => {
 	it("the artifact renderer registry maps demo/visual to the W6 cards", () => {
 		assert.equal(artifactRenderers.demo, DemoCard);
 		assert.equal(artifactRenderers.visual, VisualCard);
-		// sources v0 — pdf maps to its dispatch card (the live-smoke gap)
+		// fuentes v0: pdf se asocia a su tarjeta de despacho (el hueco de la prueba de humo en vivo)
 		assert.equal(artifactRenderers.pdf, PdfJobCard);
-		// sources v1 — the learner-filesystem set maps to the generic tool-call card
+		// fuentes v1: el conjunto del sistema de ficheros del alumno se asocia a la tarjeta genérica de llamada a herramienta
 		for (const t of ["read", "ls", "find", "grep"]) {
 			assert.equal(artifactRenderers[t], ToolCallCard, `${t} renders the tool-call card`);
 		}
-		// wave 7 — the prober's graph tools join the SAME discipline (they
-		// rendered like nothing happened before this interlude)
+		// oleada 7: las herramientas de grafo del sondeador se suman a la MISMA disciplina (antes de este
+		// interludio se mostraban como si no hubiera pasado nada)
 		for (const t of ["list_sessions", "list_propositions"]) {
 			assert.equal(artifactRenderers[t], ToolCallCard, `${t} renders the tool-call card`);
 		}
 	});
 
 	it("the tool-call card: the prober's graph tools — collapsed headline + their compact row output", () => {
-		// list_propositions: the session id is the call's subject
+		// list_propositions: el id de la sesión es el sujeto de la llamada
 		const propPart = {
 			type: "tool-list_propositions",
 			state: "output-available",
@@ -1064,12 +1064,12 @@ describe("tool + renderer registry wiring", () => {
 		};
 		const html = renderToStaticMarkup(<ToolCallCard part={propPart as never} />);
 		assert.match(html, /list_propositions/);
-		assert.match(html, /chat_mtiudjao_776beada/); // the collapsed headline
-		assert.match(html, /Kepler&#x27;s laws/); // the row output, verbatim (apostrophe HTML-escaped)
+		assert.match(html, /chat_mtiudjao_776beada/); // el titular plegado
+		assert.match(html, /Kepler&#x27;s laws/); // la salida de las filas, literal (el apóstrofo escapado en HTML)
 		assert.ok(html.includes("<details"), "collapsed by default");
 
-		// list_sessions: no headline arg (empty input) — the tool name alone,
-		// exactly the ls-with-no-path discipline
+		// list_sessions: sin argumento de titular (entrada vacía); solo el nombre de la herramienta,
+		// exactamente la disciplina de ls sin ruta
 		const sessPart = {
 			type: "tool-list_sessions",
 			state: "output-available",
@@ -1093,10 +1093,10 @@ describe("tool + renderer registry wiring", () => {
 			output: "Calculus notes\nThe derivative measures force.",
 		};
 		const html = renderToStaticMarkup(<ToolCallCard part={part as never} />);
-		// collapsed headline: tool name + path as given
+		// titular plegado: nombre de la herramienta + la ruta tal cual
 		assert.match(html, /read/);
 		assert.match(html, /notes\/calculus\.md/);
-		// expandable payload: input JSON + output text
+		// carga desplegable: JSON de entrada + texto de salida
 		assert.match(html, /Input/);
 		assert.match(html, /Output/);
 		assert.match(html, /The derivative measures force\./);
