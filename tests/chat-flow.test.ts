@@ -1369,7 +1369,10 @@ it("explain tool call persists as a pending part; the free-text answer reveals t
 	// el resultado de herramienta de la llamada): su texto Y la instantánea del compromiso viajan en ella.
 	const seen = calls[1]!.join("\n");
 	assert.match(seen, /It stays near the Sun\./);
-	assert.match(seen, /committed/);
+	// Antes había aquí `assert.match(seen, /committed/)`, pero solo coincidía con el prompt
+	// del sistema en inglés: el resultado de herramienta que ve el modelo lleva únicamente
+	// {kind, text}. El compromiso le llega por los argumentos de la llamada (correctAnswer),
+	// que es lo que comprueba la línea siguiente.
 	assert.match(seen, /small angular separation/);
 	assert.ok(!/"explanation"/.test(seen), "the answer record carries no explanation field");
 	assert.equal(danglingQuestionOf(saved2.messages), null, "no pending question remains");
