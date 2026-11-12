@@ -1,19 +1,23 @@
 "use client";
 /**
- * The Keyboard section (thin settings wave): view / rebind / reset over
- * core/keyboard.ts's registry. The overrides persist in localStorage
- * (lh:keymap, overrides-only, merged over DEFAULT_BINDINGS), so rebinding
- * is INSTANT — the dispatcher reads the map per keydown, no reload.
+ * La sección Keyboard (oleada de ajustes ligeros): ver / reasignar /
+ * restablecer sobre el registro de core/keyboard.ts. Las sustituciones
+ * persisten en localStorage (lh:keymap, solo sustituciones, fusionadas sobre
+ * DEFAULT_BINDINGS), así que reasignar es INSTANTÁNEO: el despachador lee el
+ * mapa en cada keydown, sin recargar.
  *
- * Rebind flow: click Rebind → the row listens for the next keydown
- * (capture phase, preventDefault — nothing types anywhere), eventBinding
- * normalizes it, saveOverrides persists. Escape cancels. displayOnly
- * actions (a surface owns those keys — the question dock's row machine)
- * are listed for reading but never rebindable.
+ * Flujo de reasignación: clic en Rebind → la fila escucha el siguiente
+ * keydown (fase de captura, preventDefault: no se escribe nada en ningún
+ * sitio), eventBinding lo normaliza y saveOverrides lo persiste. Escape
+ * cancela. Las acciones displayOnly (una superficie es dueña de esas
+ * teclas: la máquina de filas del dock de preguntas) se listan para leerlas
+ * pero nunca se pueden reasignar.
  *
- * Plugin actions share this editor/store. Plugin assignments protect core
- * bindings, override competing plugin defaults, and refuse user collisions.
- * Existing core-to-core rebinding behavior is unchanged.
+ * Las acciones de plugins comparten este editor/almacén. Las asignaciones
+ * de plugins protegen las combinaciones del núcleo, sustituyen los valores
+ * por defecto de plugins en competencia y rechazan las colisiones del
+ * usuario. El comportamiento existente de reasignación entre acciones del
+ * núcleo no cambia.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -41,8 +45,9 @@ const SCOPES: { scope: KeyScope; label: string }[] = [
 	{ scope: "graph", label: "Graph" },
 ];
 
-/** The overrides map after ONE change (pure — exported for tests):
- *  binding null = reset the action to its default (key removed). */
+/** El mapa de sustituciones tras UN cambio (puro; exportado para las
+ * pruebas): combinación null = restablecer la acción a su valor por defecto
+ * (clave eliminada). */
 export function nextOverrides(
 	current: KeymapOverrides,
 	id: KeymapAction,
@@ -65,12 +70,12 @@ export function KeyboardSection() {
 	const { candidates, rows: pluginRows } = usePluginShortcutRows();
 	const beginRebind = (id: KeymapAction) => { setRebindError(null); setRebinding(id); };
 
-	// localStorage is read post-mount (SSR-safe); `nonce` re-reads after writes.
+	// localStorage se lee tras el montaje (seguro para SSR); `nonce` vuelve a leer tras las escrituras.
 	useEffect(() => {
 		setOverrides(loadOverrides());
 	}, [nonce, revision]);
 
-	// The capture listener — only while a rebind is armed.
+	// El listener de captura, solo mientras hay una reasignación armada.
 	useEffect(() => {
 		if (!rebinding) return;
 		const onKey = (e: KeyboardEvent) => {
@@ -83,9 +88,9 @@ export function KeyboardSection() {
 				setRebinding(null); setRebindError(null);
 				return;
 			}
-			// Modifier keydowns arrive one by one (⌘ down, then ⇧, then the
-			// key) — each is a keydown this capture listener sees. They are
-			// not bindings; keep listening for the real key.
+			// Los keydown de los modificadores llegan de uno en uno (⌘ pulsada, luego ⇧, luego la
+			// tecla); cada uno es un keydown que ve este listener de captura. No son
+			// combinaciones; hay que seguir escuchando hasta la tecla real.
 			if (e.key === "Control" || e.key === "Meta" || e.key === "Alt" || e.key === "Shift") return;
 			const binding = eventBinding(e);
 			if (!binding) return;

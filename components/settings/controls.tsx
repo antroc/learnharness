@@ -1,18 +1,20 @@
 "use client";
 /**
- * Thin settings primitives (settings-app wave): the control kit the
- * settings dialog needs. Sections → groups → rows; everything SSRs clean
- * (render tests pin the sections' markup).
+ * Primitivas de ajustes ligeros (oleada de la app de ajustes): el kit de
+ * controles que necesita el diálogo de ajustes. Secciones → grupos → filas;
+ * todo se renderiza limpio en SSR (las pruebas de render fijan el marcado de
+ * las secciones).
  *
- * The dependency graying (owner, 2026-09-20) follows the graph viewer's
- * render-panel convention: the WHOLE row dims (opacity-40, label and
- * control together) and the control itself locks — the row owns the dim.
+ * El atenuado por dependencia (responsable, 2026-09-20) sigue la convención
+ * del panel de renderizado del visor del grafo: TODA la fila se atenúa
+ * (opacity-40, etiqueta y control juntos) y el propio control se bloquea;
+ * la fila es dueña del atenuado.
  */
 
 import { useLayoutEffect, useRef, useState, type ComponentPropsWithRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/** A section block: pronounced mono heading + content. */
+/** Un bloque de sección: encabezado mono marcado + contenido. */
 export function SettingsSection({
 	title,
 	hint,
@@ -20,7 +22,7 @@ export function SettingsSection({
 	testid,
 }: {
 	title: string;
-	/** One quiet line under the header — only where it earns its place. */
+	/** Una línea discreta bajo la cabecera, solo donde se gana su sitio. */
 	hint?: string;
 	children: React.ReactNode;
 	testid?: string;
@@ -34,8 +36,8 @@ export function SettingsSection({
 	);
 }
 
-/** A labeled sub-group inside a section (owner, 2026-09-20: clear
- *  separation — Models / Tools / Prompts read as three blocks). */
+/** Un subgrupo con etiqueta dentro de una sección (responsable, 2026-09-20:
+ * separación clara; Models / Tools / Prompts se leen como tres bloques). */
 export function SettingsGroup({
 	label,
 	children,
@@ -53,8 +55,8 @@ export function SettingsGroup({
 	);
 }
 
-/** One label + one control. Label left (with optional muted hint), control
- *  right — the settings row shape. */
+/** Una etiqueta + un control. Etiqueta a la izquierda (con pista atenuada
+ * opcional) y control a la derecha: la forma de una fila de ajustes. */
 export function SettingsRow({
 	label,
 	hint,
@@ -66,8 +68,8 @@ export function SettingsRow({
 	hint?: ReactNode;
 	children: React.ReactNode;
 	testid?: string;
-	/** Dependency graying, graph-view style: the whole row dims when the
-	 *  control is inert (parent off, no file yet, …). */
+	/** Atenuado por dependencia, al estilo de la vista del grafo: toda la fila
+	 * se atenúa cuando el control está inerte (padre desactivado, aún sin fichero, …). */
 	dimmed?: boolean;
 }) {
 	return (
@@ -81,9 +83,10 @@ export function SettingsRow({
 	);
 }
 
-/** The existing Agent/Appearance collapsed-menu look, shared with dictation.
- * `unavailable` preserves callers that gate clicks without native disabling;
- * `disabled` retains native button semantics where the caller requires them. */
+/** El aspecto existente de menú plegado de Agent/Appearance, compartido con
+ * el dictado. `unavailable` conserva los llamantes que bloquean los clics
+ * sin desactivación nativa; `disabled` mantiene la semántica nativa del
+ * botón donde el llamante la necesita. */
 export function SettingsMenuTrigger({
 	value, unavailable, disabled, className, ...props
 }: Omit<ComponentPropsWithRef<"button">, "value" | "children"> & {
@@ -105,7 +108,7 @@ export function SettingsMenuTrigger({
 	</button>;
 }
 
-/** The on/off switch — a plain button in the switch role. */
+/** El interruptor de encendido/apagado: un botón simple con el rol switch. */
 export function Toggle({
 	checked,
 	disabled,
@@ -117,13 +120,14 @@ export function Toggle({
 	checked: boolean;
 	disabled?: boolean;
 	onChange: (next: boolean) => void;
-	/** Accessible name for the switch role. */
+	/** Nombre accesible para el rol switch. */
 	label: string;
-	/** Optional icon disc (owner round, 2026-10-07): the figure cards' invert
-	 *  toggle renders the half-filled contrast circle AS the disc — the icon
-	 *  carries the meaning; plain toggles keep the plain disc. */
+	/** Disco con icono opcional (ronda del responsable, 2026-10-07): el
+	 * conmutador de inversión de las tarjetas de figura renderiza el círculo de
+	 * contraste medio relleno COMO disco; el icono lleva el significado y los
+	 * conmutadores simples mantienen el disco liso. */
 	discIcon?: ReactNode;
-	/** Optional native tooltip on the switch. */
+	/** Tooltip nativo opcional en el interruptor. */
 	title?: string;
 }) {
 	return (
@@ -138,16 +142,16 @@ export function Toggle({
 			onClick={() => onChange(!checked)}
 			className={cn(
 				"relative h-4.5 w-8 shrink-0 rounded-full border border-border transition-colors",
-				// Owner (2026-09-20): on is a gray track with a WHITE disc (a full-white
-				// track was too loud); off stays the muted track. Theme wave: the on
-				// track is the theme accent (Default's accent IS that gray).
+				// Responsable (2026-09-20): activado es un raíl gris con un disco BLANCO (un raíl
+				// totalmente blanco era demasiado llamativo); desactivado sigue siendo el raíl atenuado. Oleada de temas: el raíl
+				// activado es el acento del tema (el acento de Default ES ese gris).
 				checked ? "bg-(--lh-accent)" : "bg-muted",
 				disabled && "cursor-not-allowed",
 			)}
 		>
 			{discIcon ? (
-				// The icon IS the disc: same size, same slide, same state colors —
-				// only the knob's face changes (the invert affordance).
+				// El icono ES el disco: mismo tamaño, mismo deslizamiento, mismos colores de estado;
+				// solo cambia la cara del pomo (la indicación de inversión).
 				<span
 					className={cn(
 						"absolute left-0 top-0.5 flex size-3 items-center justify-center rounded-full transition-transform",
@@ -160,8 +164,8 @@ export function Toggle({
 				<span
 					className={cn(
 						"absolute left-0 top-0.5 size-3 rounded-full transition-transform",
-						// 2px inset from each inner edge, both states (owner round: the on
-						// disc used to touch the pill's right edge).
+						// 2px de margen desde cada borde interior, en ambos estados (ronda del responsable: el disco
+						// activado tocaba antes el borde derecho de la píldora).
 						checked ? "translate-x-4 bg-foreground" : "translate-x-0.5 bg-muted-foreground",
 					)}
 				/>
@@ -170,7 +174,7 @@ export function Toggle({
 	);
 }
 
-/** A thin select — native element, options as given. */
+/** Un select ligero: elemento nativo, opciones tal como vienen. */
 export function ThinSelect({
 	value,
 	onChange,
@@ -203,7 +207,7 @@ export function ThinSelect({
 	);
 }
 
-/** Shared graph/settings range control; the label and value stay paired. */
+/** Control de rango compartido de grafo/ajustes; la etiqueta y el valor van emparejados. */
 export function SettingsSlider({ label, min, max, step, value, display, onChange, disabled, showLabel = true }: {
 	label: string;
 	min?: number;
@@ -211,7 +215,7 @@ export function SettingsSlider({ label, min, max, step, value, display, onChange
 	step?: number;
 	value: number;
 	display?: string;
-	/** SettingsRow supplies the visible label when false. */
+	/** SettingsRow aporta la etiqueta visible cuando es false. */
 	showLabel?: boolean;
 	onChange: (value: number) => void;
 	disabled?: boolean;
@@ -225,11 +229,12 @@ export function SettingsSlider({ label, min, max, step, value, display, onChange
 	</label>;
 }
 
-/** Internal acknowledgement: false retains a rejected/unsaved draft. */
+/** Acuse interno: false conserva un borrador rechazado/sin guardar. */
 export type SettingsCommitResult = boolean | Promise<boolean>;
 
-/** A thin hex/text input committing on blur + Enter (settings pace, not
- *  typing pace — every commit is a section PUT). */
+/** Una entrada hex/de texto ligera que confirma al perder el foco + con
+ * Enter (al ritmo de los ajustes, no al de la escritura: cada confirmación
+ * es un PUT de sección). */
 export function CommitInput({
 	value,
 	placeholder,
@@ -242,10 +247,10 @@ export function CommitInput({
 	max,
 	step,
 }: {
-	/** "" = unset (the factory default). Mirrors the STORED record —
-	 *  after a clamped/normalized commit this flows back and the field
-	 *  snaps to the stored truth (owner repro: a negative size kept
-	 *  displaying "-5" while 12 was stored). */
+	/** "" = sin valor (el valor de fábrica). Refleja el registro GUARDADO: tras
+	 * una confirmación acotada/normalizada esto vuelve y el campo salta a la
+	 * verdad guardada (reproducción del responsable: un tamaño negativo seguía
+	 * mostrando "-5" mientras se había guardado 12). */
 	value: string;
 	placeholder?: string;
 	onCommit: (next: string) => SettingsCommitResult;
@@ -257,9 +262,9 @@ export function CommitInput({
 	max?: number;
 	step?: number;
 }) {
-	// Keep the native editing buffer: number inputs can display an incomplete
-	// token while exposing value="" and badInput=true. Writing a controlled
-	// value back on blur/render would erase text we cannot reconstruct.
+	// Conserva el búfer de edición nativo: las entradas numéricas pueden mostrar un token
+	// incompleto mientras exponen value="" y badInput=true. Volver a escribir un valor controlado
+	// al perder el foco o en el render borraría un texto que no podemos reconstruir.
 	const [initialValue] = useState(value);
 	const [, renderAcknowledgement] = useState(0);
 	const input = useRef<HTMLInputElement>(null);
@@ -289,11 +294,11 @@ export function CommitInput({
 			const accepted = await onCommit(next);
 			if (accepted && input.current === element && revision.current === version && latestCommit.current === ticket) {
 				dirty.current = false;
-				// Reconcile even when normalization accepted the old canonical value.
+				// Reconcilia incluso cuando la normalización aceptó el antiguo valor canónico.
 				renderAcknowledgement((n) => n + 1);
 			}
 		} catch {
-			// Domain adapters own error presentation; a rejected save keeps text.
+			// Los adaptadores de dominio se encargan de presentar los errores; un guardado rechazado conserva el texto.
 		} finally {
 			pending.current.delete(version);
 		}

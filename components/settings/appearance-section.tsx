@@ -1,34 +1,39 @@
 "use client";
 /**
- * The Appearance + Graph sections (thin settings wave).
+ * Las secciones Appearance + Graph (oleada de ajustes ligeros).
  *
- * Appearance controls resolve against the factory in the provider; writes
- * PUT the whole appearance section and hand the delta back so the CSS
- * variables move IMMEDIATELY (the section's whole point — it must DO
- * something). Theme wave (2026-11-04): the theme grid (./theme-cards.tsx)
- * sits on top and sets every color; the "Colors" block below holds one
- * hex override per theme color (empty = the theme's), kept across theme
- * switches; "Typography" holds the type knobs. Hex inputs commit on
- * blur/Enter.
+ * Los controles de apariencia se resuelven contra los valores de fábrica en
+ * el provider; las escrituras hacen PUT de toda la sección appearance y
+ * devuelven el delta para que las variables CSS cambien AL INSTANTE (es todo
+ * el sentido de la sección: tiene que HACER algo). Oleada de temas
+ * (2026-11-04): la cuadrícula de temas (./theme-cards.tsx) va arriba y fija
+ * todos los colores; el bloque "Colors" de debajo guarda una sustitución hex
+ * por cada color del tema (vacío = el del tema), que se conserva al cambiar
+ * de tema; "Typography" guarda los controles tipográficos. Las entradas hex
+ * confirman al perder el foco o con Enter.
  *
- * Graph graying (owner, 2026-09-20) follows the graph viewer's render-panel
- * convention: the whole row dims when a parent is off (stored values
- * persist but resolve inert — the switch shows stored, the dim effective).
+ * El atenuado de Graph (responsable, 2026-09-20) sigue la convención del
+ * panel de renderizado del visor del grafo: toda la fila se atenúa cuando
+ * un padre está desactivado (los valores guardados persisten pero se
+ * resuelven inertes: el interruptor muestra lo guardado, el atenuado lo
+ * efectivo).
  *
- * Reading font (appearance wave, 2026-09-26, owner ruling): a searchable
- * dropdown of the user's INSTALLED fonts (FontMenuList over model-menu's
- * machine) fed by window.queryLocalFonts() in the desktop shell — the
- * enumeration is click-bound (the API requires user activation), deduped
- * to unique families, the factory family excluded (the DEFAULT row is
- * it). In a plain dev browser the API is absent → a small curated list
- * + a footer that says exactly that — never a fabricated system list.
- * The custom-family input inside the menu is the manual escape path.
- * Empty/unset keeps meaning Source Sans 3.
+ * Fuente de lectura (oleada de apariencia, 2026-09-26, decisión del
+ * responsable): un desplegable con búsqueda de las fuentes INSTALADAS del
+ * usuario (FontMenuList sobre la maquinaria de model-menu), alimentado por
+ * window.queryLocalFonts() en el armazón de escritorio. La enumeración va
+ * ligada a un clic (la API requiere activación del usuario), se deduplica a
+ * familias únicas y excluye la familia de fábrica (la fila DEFAULT es esa).
+ * En un navegador de desarrollo normal la API no existe → una pequeña lista
+ * curada + un pie que dice exactamente eso; nunca una lista del sistema
+ * inventada. La entrada de familia personalizada dentro del menú es la vía
+ * de escape manual. Vacío/sin valor sigue significando Source Sans 3.
  *
- * Overrides live in two homes by design: `background` and
- * `mdRendering.boldColor/italicColor` keep their pre-theme keys (existing
- * records keep their colors); the other nine sit in `colors`. core/
- * themes.ts effectiveColors is the one place they merge.
+ * Las sustituciones viven en dos sitios a propósito: `background` y
+ * `mdRendering.boldColor/italicColor` conservan sus claves anteriores a los
+ * temas (los registros existentes conservan sus colores); las otras nueve
+ * están en `colors`. effectiveColors de core/themes.ts es el único sitio
+ * donde se fusionan.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -48,15 +53,15 @@ import { FontMenuList } from "./model-menu";
 import { ThemeCards } from "./theme-cards.tsx";
 import { CommitInput, SettingsMenuTrigger, SettingsRow, Toggle } from "./controls.tsx";
 
-/** The factory reading family — the DEFAULT row's identity (unset =
- *  this). Exported for tests. */
+/** La familia de lectura de fábrica: la identidad de la fila DEFAULT (sin
+ * valor = esta). Exportada para las pruebas. */
 export const DEFAULT_READING_FONT = "Source Sans 3";
 
-/** The dev-browser fallback list (queryLocalFonts is absent there):
- *  the app's own knowns plus a handful of ubiquitous macOS families,
- *  honestly LABELED as common — never presented as the system's real
- *  list. The factory family is absent: the DEFAULT row is it. Exported
- *  for tests. */
+/** La lista alternativa del navegador de desarrollo (allí no existe
+ * queryLocalFonts): las fuentes conocidas de la propia app más un puñado de
+ * familias omnipresentes de macOS, ROTULADAS honestamente como comunes;
+ * nunca se presenta como la lista real del sistema. No incluye la familia
+ * de fábrica: la fila DEFAULT es esa. Exportada para las pruebas. */
 export const CURATED_FALLBACK_FONTS: readonly string[] = [
 	"Arial",
 	"CMU Serif",
@@ -71,21 +76,21 @@ export const CURATED_FALLBACK_FONTS: readonly string[] = [
 	"Verdana",
 ];
 
-/** window.queryLocalFonts' shape as this section consumes it (family is
- *  the only field used; the API returns one FontData per FACE — the
- *  caller dedupes). */
+/** La forma de window.queryLocalFonts tal como la consume esta sección
+ * (family es el único campo que se usa; la API devuelve un FontData por
+ * cada ESTILO y el llamante deduplica). */
 type LocalFontsApi = () => Promise<Array<{ family: string }>>;
 
-/** The Local Font Access seam — read lazily (SSR has no window, and
- *  render-time access would evaluate the API on the server). */
+/** La frontera de Local Font Access, leída de forma perezosa (en SSR no hay
+ * window, y acceder durante el render evaluaría la API en el servidor). */
 function localFontsApi(): LocalFontsApi | null {
 	if (typeof window === "undefined") return null;
 	return (window as unknown as { queryLocalFonts?: LocalFontsApi }).queryLocalFonts ?? null;
 }
 
-/** Compose the reading-font pick: null (or blank) = the factory
- *  Source Sans 3; otherwise the family verbatim (trimmed — the
- *  sanitizer trims again server-side). Pure — exported for tests. */
+/** Compone la elección de fuente de lectura: null (o en blanco) = la
+ * Source Sans 3 de fábrica; si no, la familia tal cual (recortada; el
+ * saneador vuelve a recortar en el servidor). Puro; exportado para las pruebas. */
 export function composeFontFamily(
 	appearance: AppearanceSettings | undefined,
 	family: string | null,
@@ -94,7 +99,7 @@ export function composeFontFamily(
 	return { ...appearance, fontFamily: value === "" ? null : value };
 }
 
-/** The Colors grid's labels and the one hint that explains a key. */
+/** Las etiquetas de la cuadrícula Colors y la única pista que explica una clave. */
 const COLOR_LABELS: Record<ThemeColorKey, { label: string; note?: string }> = {
 	background: { label: "Background" },
 	accent: { label: "Accent", note: "Focus rings, toggles, selection" },
@@ -110,15 +115,15 @@ const COLOR_LABELS: Record<ThemeColorKey, { label: string; note?: string }> = {
 	warning: { label: "Warning" },
 };
 
-/** The legacy test ids of the three pre-theme rows (kept stable). */
+/** Los ids de prueba heredados de las tres filas anteriores a los temas (se mantienen estables). */
 const LEGACY_TESTIDS: Partial<Record<ThemeColorKey, string>> = {
 	background: "input-background",
 	bold: "input-bold-color",
 	italic: "input-italic-color",
 };
 
-/** The stored override for one theme color ("" = none). Pure — exported
- *  for tests. */
+/** La sustitución guardada de un color del tema ("" = ninguna). Puro;
+ * exportado para las pruebas. */
 export function colorOverride(appearance: AppearanceSettings | undefined, key: ThemeColorKey): string {
 	if (key === "background") return appearance?.background ?? "";
 	if (key === "bold") return appearance?.mdRendering?.boldColor ?? "";
@@ -126,8 +131,8 @@ export function colorOverride(appearance: AppearanceSettings | undefined, key: T
 	return appearance?.colors?.[key] ?? "";
 }
 
-/** Compose one override into the section ("" = back to the theme's).
- *  Every other field rides along untouched. Pure — exported for tests. */
+/** Compone una sustitución en la sección ("" = volver al del tema). Todos
+ * los demás campos viajan intactos. Puro; exportado para las pruebas. */
 export function composeColorOverride(
 	appearance: AppearanceSettings | undefined,
 	key: ThemeColorKey,
@@ -143,7 +148,7 @@ export function composeColorOverride(
 	return { ...appearance, colors };
 }
 
-/** "Reset all": every color back to the theme's; type knobs untouched. */
+/** "Reset all": todos los colores vuelven a los del tema; los controles tipográficos no se tocan. */
 export function clearColorOverrides(appearance: AppearanceSettings | undefined): AppearanceSettings {
 	const { background: _bg, colors: _colors, ...rest } = appearance ?? {};
 	const md = appearance?.mdRendering;
@@ -192,33 +197,33 @@ export function AppearanceSection({
 	appearance,
 	onSectionChange,
 }: {
-	/** The record's appearance delta (absent = factory). */
+	/** El delta de apariencia del registro (ausente = de fábrica). */
 	appearance: AppearanceSettings | undefined;
-	/** PUT the whole appearance section; the page re-applies on success. */
+	/** Hace PUT de toda la sección appearance; la página la vuelve a aplicar si tiene éxito. */
 	onSectionChange: (next: AppearanceSettings) => boolean | Promise<boolean>;
 }) {
 	const { appearance: resolved, activeTheme, colors, themes, refreshThemes } = useAppearance();
 	const md = appearance?.mdRendering;
 
-	// The font dropdown's open state + its enumeration cache. undefined =
-	// not enumerated yet (desktop: click-bound queryLocalFonts pending);
-	// null = enumeration UNAVAILABLE (the API is absent in a plain
-	// browser, rejected, or resolved EMPTY — Electron 44's local-fonts
-	// grant passes and the enumeration still yields zero fonts,
-	// reproduced 2026-09-26) → the curated fallback; a list = the deduped
-	// families. enumEmpty distinguishes WHY it fell back, for the footer.
+	// El estado abierto del desplegable de fuentes + su caché de enumeración. undefined =
+	// aún sin enumerar (escritorio: queryLocalFonts ligado al clic, pendiente);
+	// null = enumeración NO DISPONIBLE (la API no existe en un navegador
+	// normal, se rechazó o se resolvió VACÍA: el permiso local-fonts de Electron 44
+	// se concede y aun así la enumeración no devuelve ninguna fuente,
+	// reproducido el 2026-09-26) → la alternativa curada; una lista = las familias
+	// deduplicadas. enumEmpty distingue POR QUÉ se recurrió a la alternativa, para el pie.
 	const [fontMenuOpen, setFontMenuOpen] = useState(false);
 	const [localFonts, setLocalFonts] = useState<string[] | null | undefined>(undefined);
 	const [enumEmpty, setEnumEmpty] = useState(false);
 	const menuAnchorRef = useRef<HTMLSpanElement>(null);
 	const interactions = useInteractionLayers();
 
-	// The enumeration runs INSIDE the trigger click — queryLocalFonts
-	// requires user activation, so it cannot be a mount effect. First
-	// open only: the families are cached for the section's life (font
-	// installs mid-dialog are not a case); ANY unavailable enumeration
-	// (absent / rejected / empty) falls back to the curated list rather
-	// than an empty picker.
+	// La enumeración se ejecuta DENTRO del clic del disparador: queryLocalFonts
+	// requiere activación del usuario, así que no puede ser un efecto de montaje. Solo
+	// la primera apertura: las familias se cachean durante la vida de la sección (instalar
+	// fuentes con el diálogo abierto no es un caso); CUALQUIER enumeración no disponible
+	// (inexistente / rechazada / vacía) recurre a la lista curada en vez de
+	// a un selector vacío.
 	const openFontMenu = () => {
 		setFontMenuOpen((open) => {
 			if (!open && localFonts === undefined) {
@@ -230,16 +235,16 @@ export function AppearanceSection({
 					void api()
 						.then((fonts) => {
 							const installed = fonts.map((f) => f.family);
-							// The bundled families join the installed ones (they
-							// render whether or not the OS has them), but only
-							// when the OS list was actually read.
+							// Las familias empaquetadas se unen a las instaladas (se
+							// renderizan las tenga o no el SO), pero solo
+							// cuando de verdad se leyó la lista del SO.
 							const families = [...new Set(installed.length ? [...installed, ...Object.keys(BUNDLED_READING_FONTS)] : [])]
 								.filter((f) => f !== DEFAULT_READING_FONT)
 								.sort((a, b) => a.localeCompare(b));
 							if (families.length === 0) {
-								// Resolved-but-empty: not a failure the catch sees —
-								// an honest unavailable (this Electron 44 build
-								// enumerates nothing even granted).
+								// Resuelta pero vacía: no es un fallo que vea el catch;
+								// es un «no disponible» honesto (esta compilación de Electron 44
+								// no enumera nada aunque tenga permiso).
 								setLocalFonts(null);
 								setEnumEmpty(true);
 							} else {
@@ -261,9 +266,9 @@ export function AppearanceSection({
 		onSectionChange(composeFontFamily(appearance, family));
 	};
 
-	// The dropdown contract (agent-section's, mirrored): any click
-	// outside the open menu — or an Esc — closes it. Esc is CLAIMED with
-	// stopPropagation so the settings dialog behind does NOT also close.
+	// El contrato del desplegable (el de agent-section, reflejado): cualquier clic
+	// fuera del menú abierto —o un Esc— lo cierra. El Esc se RECLAMA con
+	// stopPropagation para que el diálogo de ajustes de detrás NO se cierre también.
 	useEffect(() => {
 		if (!fontMenuOpen) return;
 		const onPointerDown = (e: PointerEvent) => {
@@ -274,7 +279,7 @@ export function AppearanceSection({
 			if (target instanceof Element && target.closest('[role="dialog"]')) {
 				setFontMenuOpen(false);
 			}
-			// else: outside the dialog — the dialog's own close handles it.
+			// si no: fuera del diálogo; lo gestiona el propio cierre del diálogo.
 		};
 		document.addEventListener("pointerdown", onPointerDown);
 		return () => document.removeEventListener("pointerdown", onPointerDown);
@@ -290,8 +295,8 @@ export function AppearanceSection({
 				onImported={() => void refreshThemes()}
 				onRemoved={(removed) => {
 					void refreshThemes();
-					// The server already fell back to Default; the write keeps the
-					// dialog's record mirror and the live vars in step with it.
+					// El servidor ya recurrió a Default; la escritura mantiene el espejo del
+					// registro del diálogo y las variables en vivo sincronizados con ello.
 					if (removed.id === activeTheme.id) onSectionChange({ ...appearance, theme: "default" });
 				}}
 			/>
@@ -332,12 +337,11 @@ export function AppearanceSection({
 				testid="row-font"
 			>
 				<span ref={fontMenuOpen ? menuAnchorRef : undefined} className="relative flex items-center gap-2">
-					{/* The shared Agent/Appearance collapsed-menu trigger.
-					    The tooltip rides the CLOSED button ONLY
-					    (owner ruling 2026-09-26: never while
-					    the dropdown is out — it popped over the open
-					    menu when the wrap covered the whole anchor
-					    span). */}
+					{/* El disparador compartido de menú plegado de Agent/Appearance.
+					    El tooltip va SOLO en el botón CERRADO (decisión del
+					    responsable 2026-09-26: nunca con el desplegable abierto;
+					    aparecía sobre el menú abierto cuando el envoltorio cubría
+					    todo el span del ancla). */}
 					{(() => {
 						const triggerButton = (
 							<SettingsMenuTrigger
@@ -391,14 +395,14 @@ export function AppearanceSection({
 					ariaLabel="prose font size"
 					testid="input-prose-size"
 					onCommit={(v) => {
-						// Empty = factory default (owner, fix wave): omit the key so the record
-						// UNSETS and the field stays empty (absence, not null, is the
-						// unset for numbers). Number("") is 0, so the old clamp wrote 12.
+						// Vacío = valor de fábrica (responsable, oleada de arreglos): se omite la clave para que el registro
+						// QUEDE SIN VALOR y el campo siga vacío (para los números, la ausencia, no null, es
+						// el «sin valor»). Number("") es 0, así que el antiguo acotado escribía 12.
 						if (v === "") {
 							return onSectionChange({ ...appearance, proseFontSize: undefined });
 						}
 						const n = Number(v);
-						if (!Number.isFinite(n)) return false; // bad input: no write, factory stays
+						if (!Number.isFinite(n)) return false; // entrada errónea: no se escribe, se mantiene el de fábrica
 						return onSectionChange({ ...appearance, proseFontSize: Math.min(24, Math.max(12, Math.round(n))) });
 					}}
 				/>
@@ -425,8 +429,8 @@ export function AppearanceSection({
 					ariaLabel="heading weight"
 					testid="input-heading-weight"
 					onCommit={(v) => {
-						// Empty = factory default (owner, fix wave): Number("") is 0, so
-						// Absence is the unset representation — the old clamp wrote 100.
+						// Vacío = valor de fábrica (responsable, oleada de arreglos): Number("") es 0, así que
+						// la ausencia es la representación del «sin valor»; el antiguo acotado escribía 100.
 						if (v === "") {
 							return onSectionChange({ ...appearance, mdRendering: { ...md, headingWeight: undefined } });
 						}
@@ -450,42 +454,44 @@ export function GraphSection({
 	graph: GraphSettings | undefined;
 	onSectionChange: (next: GraphSettings) => boolean | Promise<boolean>;
 }) {
-	// Wave 7 collapse (owner ruling 2026-09-23): the section is the MASTER
-	// SWITCH — the embedding/clustering/labeling rungs are gone; clustering
-	// is the free birth-session partition derived on read, labels ARE session
-	// names. The chunk budget (2026-10-02) joined it as the section's second
-	// and only other control: it denominates the coverage ring AND gates the
-	// auto-extraction trigger (turn settle ≥ budget fires the run).
+	// Simplificación de la oleada 7 (decisión del responsable 2026-09-23): la sección es el INTERRUPTOR
+	// GENERAL; los peldaños de embedding/clustering/etiquetado ya no existen; el clustering
+	// es la partición gratuita por sesión de nacimiento derivada en lectura, y las etiquetas SON los nombres
+	// de sesión. El presupuesto de fragmento (2026-10-02) se le unió como segundo y único otro
+	// control de la sección: denomina el anillo de cobertura Y controla el
+	// disparador de extracción automática (asentar un turno ≥ presupuesto lanza la ejecución).
 	//
-	// Resolved through the SAME core resolver the server's effective
-	// settings use (one source of truth, the 4096-fallback fix 2026-10-02):
-	// the hint and placeholder report exactly the number the trigger waits
-	// for — never a second hand-rolled default.
+	// Se resuelve con el MISMO resolvedor del núcleo que usan los ajustes efectivos
+	// del servidor (una única fuente de verdad, el arreglo de la alternativa de 4096 del 2026-10-02):
+	// la pista y el texto provisional indican exactamente el número que espera el
+	// disparador; nunca un segundo valor por defecto hecho a mano.
 	const resolved = resolveSettings(graph === undefined ? null : { version: 1, graph }).graph;
 	return (
 		<>
-			{/* EXTRACTION (renamed, owner 2026-10-06): this switch is the DATA
-			    channel — the pipeline, the auditor, the prober's graph tools. It
-			    was born labeled "Graph" and that label lied once the rendering
-			    switch below arrived: off ≠ no graph, off = the graph stops
-			    growing. The testid keeps the old name's shape (row-enabled) so
-			    this stays one rename, not a test re-pin. */}
+			{/* EXTRACCIÓN (renombrada, responsable 2026-10-06): este interruptor es el
+			    canal de DATOS: el proceso, el auditor, las herramientas de grafo del
+			    sondeador. Nació con la etiqueta "Graph", y esa etiqueta mentía desde
+			    que llegó el interruptor de renderizado de abajo: desactivado ≠ sin
+			    grafo; desactivado = el grafo deja de crecer. El testid conserva la
+			    forma del nombre antiguo (row-enabled) para que esto siga siendo un
+			    solo renombrado, no una nueva fijación de las pruebas. */}
 			<SettingsRow label="Extraction" hint="Off = the graph stops growing" testid="graph-row-enabled">
 				<Toggle
 					checked={graph?.enabled ?? true}
 					label="extraction enabled"
 					onChange={(on) =>
-						// Compose, never replace-whole (the section PUT is, but the
-					// row must not drop its sibling field — fixed with the budget
-					// row's arrival: the old { enabled: on } wiped a stored budget).
+						// Componer, nunca sustituir entero (el PUT de la sección sí lo hace, pero la
+					// fila no debe perder su campo hermano; se arregló al llegar la fila del
+					// presupuesto: el antiguo { enabled: on } borraba un presupuesto guardado).
 						onSectionChange({ ...graph, enabled: on })
 					}
 				/>
 			</SettingsRow>
-			{/* GRAPH RENDERING (owner, 2026-10-06 — the release graph-controls
-			    round): display-only. Off = the home shows the chains view
-			    instead of the canvas. The ledgers, the pipeline, everything
-			    data keeps working — that is the extraction switch above. */}
+			{/* RENDERIZADO DEL GRAFO (responsable, 2026-10-06; la ronda de controles
+			    del grafo de la versión): solo de presentación. Desactivado = el inicio
+			    muestra la vista de cadenas en vez del lienzo. Los registros, el
+			    proceso, todo lo de datos sigue funcionando: eso es el interruptor de
+			    extracción de arriba. */}
 			<SettingsRow label="Graph rendering" hint="Off = home shows the chains view" testid="graph-row-rendering">
 				<Toggle
 					checked={graph?.rendering ?? true}
@@ -505,16 +511,16 @@ export function GraphSection({
 					ariaLabel="extraction chunk budget"
 					testid="input-chunk-tokens"
 					onCommit={(v) => {
-						// Empty = factory default (the fix-wave discipline): absence is
-						// the unset for numbers — Number("") is 0, so clamping would
-						// write the floor instead of unsetting.
+						// Vacío = valor de fábrica (la disciplina de la oleada de arreglos): para los números, la ausencia es
+						// el «sin valor»; Number("") es 0, así que acotar escribiría
+						// el suelo en vez de dejarlo sin valor.
 						if (v === "") {
 							return onSectionChange({ ...graph, extractionChunkTokens: undefined });
 						}
 						const n = Number(v);
-						if (!Number.isFinite(n) || n <= 0) return false; // bad input: no write
-						// Mirror the server sanitize exactly: floor only (cost
-						// protection), no ceiling — a big budget is the user's call.
+						if (!Number.isFinite(n) || n <= 0) return false; // entrada errónea: no se escribe
+						// Refleja exactamente el saneado del servidor: solo suelo (protección
+						// de costes), sin techo; un presupuesto grande es decisión del usuario.
 						return onSectionChange({
 							...graph,
 							extractionChunkTokens: Math.max(EXTRACTION_CHUNK_TOKENS_FLOOR, Math.round(n)),

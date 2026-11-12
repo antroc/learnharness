@@ -41,8 +41,9 @@ const Context = createContext({
 	dismissWarning: () => {},
 });
 
-/** UI lifetime spans setup's keys → models transition. Only existing safe controls
- * are used; account IDs remain control values, never displayed account labels. */
+/** La vida de la UI abarca la transición keys → models de la configuración.
+ * Solo se usan controles seguros ya existentes; los ids de cuenta siguen siendo
+ * valores de control, nunca etiquetas de cuenta mostradas. */
 export function ChatGPTUIProvider({ children }: { children: React.ReactNode }) {
 	const bridge = useChatGPTBridge();
 	const web = typeof window !== "undefined" && bridge !== window.lh?.chatgpt;
@@ -115,8 +116,8 @@ export function ChatGPTUIProvider({ children }: { children: React.ReactNode }) {
 			return;
 		}
 		if (next.pending) { attempt.pending = true; attempt.phase = "pending"; return; }
-		// login() normally acknowledges pending immediately; verified completion is
-		// a later status notification. The acknowledgement itself is not success.
+		// login() normalmente acusa el estado pendiente de inmediato; la finalización verificada es
+		// una notificación de estado posterior. El acuse en sí no es un éxito.
 		if (attempt.pending || loginReply) void complete(attempt, next);
 	}
 	receive.current = (value) => {
@@ -162,7 +163,7 @@ export function ChatGPTUIProvider({ children }: { children: React.ReactNode }) {
 		setError(null);
 		setDismissedError(status.error);
 		if (cancel) {
-			// Keep cancellation serialized even after login's pending IPC reply.
+			// La cancelación sigue serializada incluso tras la respuesta IPC pendiente de login.
 			operation.current = "cancel"; setBusy(true);
 			const request = ++statusSequence.current;
 			void bridge?.cancel().then(async (value: unknown) => {
@@ -176,7 +177,7 @@ export function ChatGPTUIProvider({ children }: { children: React.ReactNode }) {
 					next = refresh === statusSequence.current ? publishStatus(current) : statusRef.current;
 				} else next = publishStatus(value);
 				if (next && !next.pending) {
-					setDismissedError(value.error); // Dismiss only this cancellation's error, not a newer failure.
+					setDismissedError(value.error); // Descarta solo el error de esta cancelación, no un fallo más reciente.
 					if (dialogRef.current === owner) showDialog(null);
 				} else if (next) setError(CONTROL_ERROR);
 			}).catch(() => { if (mounted.current && generation.current === intent) setError(CONTROL_ERROR); }).finally(() => {
@@ -206,8 +207,8 @@ export function ChatGPTUIProvider({ children }: { children: React.ReactNode }) {
 				next = refresh === statusSequence.current ? publishStatus(current) : statusRef.current;
 			} else next = publishStatus(value);
 			if (!next) return;
-			// Dismissed status warnings belong to an earlier action. Only a new
-			// disconnect outcome (or an explicit IPC error envelope above) reopens one.
+			// Los avisos de estado descartados pertenecen a una acción anterior. Solo un nuevo
+			// resultado de desconexión (o un sobre de error IPC explícito, arriba) vuelve a abrir uno.
 			const failure = [value.error, next.error].find((message) => message && (kind === "disconnect" || message !== dismissedError)) ?? null;
 			if (kind === "disconnect" && !next.accounts.some((a) => a.id === target)) {
 				if (dialogRef.current === owner) {
@@ -229,9 +230,9 @@ export function ChatGPTUIProvider({ children }: { children: React.ReactNode }) {
 		try {
 			let value: unknown = await bridge.login(registration || undefined);
 			if (!owns(attempt) || attempt.phase === "consent") return;
-			// Never publish an old acknowledgement over a newer event. If events
-			// coalesced past pending before the acknowledgement arrived, read the
-			// current backend state after it rather than losing that completion.
+			// Nunca publiques un acuse antiguo encima de un evento más reciente. Si los eventos
+			// se combinaron más allá de pending antes de que llegara el acuse, lee el
+			// estado actual del backend después de él en vez de perder esa finalización.
 			if (request !== statusSequence.current && isStatus(value)) {
 				if (value.error) { setError(value.error); finish(attempt); return; }
 				attempt.pending = true; attempt.phase = "pending";
@@ -243,8 +244,8 @@ export function ChatGPTUIProvider({ children }: { children: React.ReactNode }) {
 			if (!next) { finish(attempt); return; }
 			reconcile(next, true);
 		} catch { if (owns(attempt)) { setError(CONTROL_ERROR); finish(attempt); } }
-		// No finally: pending OAuth outlives this IPC promise. Only its status
-		// completion, failure, or explicit cancellation releases the attempt.
+		// Sin finally: el OAuth pendiente sobrevive a esta promesa IPC. Solo su finalización
+		// de estado, un fallo o una cancelación explícita liberan el intento.
 	}
 	const context = {
 		status, busy, error: warning ? null : visibleError, inlineError: dialog || warning ? null : visibleError, warning: dialog?.kind === "warning" ? null : warning,
@@ -319,7 +320,7 @@ export function ChatGPTUIProvider({ children }: { children: React.ReactNode }) {
 
 function ContinueButton({ onClick, disabled, testid = "chatgpt-login" }: { onClick: () => void; disabled: boolean; testid?: string }) {
 	return <Button type="button" variant="outline" size="sm" data-testid={testid} onClick={onClick} disabled={disabled} className="cursor-pointer disabled:cursor-not-allowed">
-		{/* Official unmodified mark; existing secondary button hover/focus treatment. */}
+		{/* Marca oficial sin modificar; el tratamiento hover/focus del botón secundario existente. */}
 		{/* eslint-disable-next-line @next/next/no-img-element */}
 		<img src="/siwc/chatgpt-logo-white.svg" width="16" height="16" alt="" aria-hidden="true" />
 		Continue with ChatGPT
@@ -330,7 +331,7 @@ function AccountDialog({ children, onClose, busy }: { children: React.ReactNode;
 	return <ConnectionDialog label="ChatGPT account" testid="chatgpt-account-dialog" backdropTestid="chatgpt-dialog-backdrop" onClose={onClose} busy={busy}>{children}</ConnectionDialog>;
 }
 
-/** Shared compact settings/setup row; account selection precedes the quiet action. */
+/** Fila compacta compartida de ajustes/configuración; la selección de cuenta precede a la acción discreta. */
 export function ChatGPTConnection({ labelClassName }: { setup?: boolean; labelClassName?: string } = {}) {
 	const ui = useContext(Context);
 	const active = ui.status.accounts.find((a) => a.id === ui.status.activeId && a.connected);
@@ -346,7 +347,7 @@ export function ChatGPTConnection({ labelClassName }: { setup?: boolean; labelCl
 	</div>;
 }
 
-/** Contextual consent discovery belongs beside background model choices only. */
+/** El descubrimiento contextual del consentimiento va solo junto a las elecciones de modelos en segundo plano. */
 export function ChatGPTBackgroundAccess({ provider }: { provider: string | undefined }) {
 	const ui = useContext(Context);
 	const account: Account | undefined = ui.status.accounts.find((a) => a.id === ui.status.activeId && a.connected);

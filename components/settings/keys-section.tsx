@@ -1,26 +1,30 @@
 "use client";
 /**
- * The Keys section (wave-5 polish, 2026-09-21 — owner design): a MINIMAL
- * key-value table. Provider left, masked key right, no description hints
- * (they took too much space), the "Get a key ↗" link a tiny muted guest.
- * Clicking a writable row unfolds a paste field + Save (+ Delete for a
- * file-sourced value) beneath it; Esc or a second click folds it away.
- * The Add-provider control is the LAST ROW of the table and uses the
- * app's shared dropdown look (ProviderMenuList — fuzzy search over the
- * 33 pi-ai providers).
+ * La sección Keys (pulido de la oleada 5, 2026-09-21; diseño del
+ * responsable): una tabla clave-valor MÍNIMA. Proveedor a la izquierda,
+ * clave enmascarada a la derecha, sin pistas de descripción (ocupaban
+ * demasiado), y el enlace "Get a key ↗" como invitado diminuto y atenuado.
+ * Al hacer clic en una fila escribible se despliega debajo un campo para
+ * pegar + Save (+ Delete para un valor que viene del fichero); Esc o un
+ * segundo clic lo vuelven a plegar. El control de añadir proveedor es la
+ * ÚLTIMA FILA de la tabla y usa el aspecto de desplegable compartido de la
+ * app (ProviderMenuList: búsqueda difusa sobre los 33 proveedores de pi-ai).
  *
- * Owner rulings carried in:
- *  - Env-owned rows (a real environment variable owns the name — dev
- *    .env.local or launch env) render READ-ONLY + dimmed, no paste field:
- *    a paste box on a key the UI cannot make live would mislead.
- *  - OpenRouter is NOT special: one provider among 33, a row only when
- *    stored, otherwise it lives in the Add dropdown like everyone else.
- *  - Providers groups API keys, subscriptions, dictation and search.
- *    Unknown variables stay masked/read-only at the end of Model API keys.
+ * Decisiones del responsable incorporadas:
+ *  - Las filas que pertenecen al entorno (una variable de entorno real es
+ *    dueña del nombre: .env.local en desarrollo o el entorno de arranque) se
+ *    renderizan SOLO LECTURA + atenuadas, sin campo para pegar: un cuadro de
+ *    pegado en una clave que la UI no puede activar induciría a error.
+ *  - OpenRouter NO es especial: un proveedor más entre 33; una fila solo si
+ *    está guardada y, si no, vive en el desplegable de añadir como todos.
+ *  - Providers agrupa las claves de API, las suscripciones, el dictado y la
+ *    búsqueda. Las variables desconocidas siguen enmascaradas/solo lectura al
+ *    final de Model API keys.
  *
- * API: GET /api/keys (masked statuses + the providers array), PUT
- * /api/keys/:id (shape-gated 400s land inline), DELETE. Saves take
- * effect immediately. Plaintext never returns from the store.
+ * API: GET /api/keys (estados enmascarados + el array de proveedores), PUT
+ * /api/keys/:id (los 400 con barrera de forma aparecen en línea), DELETE.
+ * Los guardados surten efecto de inmediato. El texto en claro nunca vuelve
+ * del almacén.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -44,8 +48,9 @@ import { MenuShell } from "@/components/menu-shell";
 import { notifySettingsSaved } from "@/components/settings-signal";
 import { DictationLanguageSetting } from "@/components/dictation-language";
 
-/** One pi-ai provider with plain API-key auth (the Platform seam —
- *  derived from pi-ai's own env-key table; no drift possible). */
+/** Un proveedor de pi-ai con autenticación simple por clave de API (la
+ * frontera de Platform; derivada de la propia tabla de claves de entorno de
+ * pi-ai: no puede haber deriva). */
 export interface ProviderKeyInfo {
 	id: string;
 	envVar: string;
@@ -57,7 +62,7 @@ interface KeysResponse {
 	providers?: ProviderKeyInfo[];
 }
 
-/** The custom endpoint's non-secret status (GET /api/custom-provider). */
+/** El estado no secreto del endpoint personalizado (GET /api/custom-provider). */
 interface CustomStatus {
 	keyReuseRequired: boolean;
 	revision: string;
@@ -65,7 +70,7 @@ interface CustomStatus {
 	keySource: "env" | "file" | "none";
 	baseUrl: string;
 	models: CustomModel[];
-	/** User pins by model id (context / max output / thinking). */
+	/** Fijaciones del usuario por id de modelo (contexto / salida máxima / razonamiento). */
 	overrides: Record<string, CustomModelOverride>;
 	manualModels: string[];
 	keyPresent: boolean;
@@ -78,34 +83,36 @@ async function readCustomStatus(inspectKey = false): Promise<CustomStatus> {
 	return { keyReuseRequired: Boolean(cp.keyReuseRequired), revision: response.headers.get("etag") ?? "", authMode: cp.authMode ?? "keyless", keySource: cp.keySource ?? "none", baseUrl: cp.baseUrl ?? "", models: cp.models ?? [], overrides: cp.overrides ?? {}, manualModels: cp.manualModels ?? [], keyPresent: Boolean(cp.keyPresent) };
 }
 
-/** The curated tools group, pinned by id (the catalog owns the copy;
- *  these ids are the contract). Derived from the catalog (search wave,
- *  2026-09-20: the Google CSE pair retired, Tavily + Brave joined) — the
- *  section can never drift from core/auth-keys.ts again. */
+/** El grupo curado de herramientas, fijado por id (el catálogo es dueño del
+ * texto; estos ids son el contrato). Derivado del catálogo (oleada de
+ * búsqueda, 2026-09-20: se retiró la pareja de Google CSE y se unieron
+ * Tavily + Brave); la sección ya no puede desviarse de core/auth-keys.ts. */
 const TOOL_IDS = AUTH_KEYS.map((k) => k.id) as readonly string[];
 
-/** The custom endpoint's synthetic Add-provider entry (offered only while unconfigured). */
+/** La entrada sintética de añadir proveedor del endpoint personalizado (solo se ofrece mientras no está configurado). */
 export const CUSTOM_PROVIDER_INFO: ProviderKeyInfo = {
 	id: CUSTOM_PROVIDER.id,
 	envVar: CUSTOM_PROVIDER.envVar,
 	label: CUSTOM_PROVIDER.label,
 };
 
-/** The classification driving the table groups. Pure — exported for
- *  tests. OpenRouter is un-pinned (wave-5 owner ruling): no synthesis,
- *  no special row — it rides the same provider classification. */
+/** La clasificación que determina los grupos de la tabla. Puro; exportado
+ * para las pruebas. OpenRouter ya no está fijado (decisión del responsable
+ * en la oleada 5): sin síntesis, sin fila especial; pasa por la misma
+ * clasificación de proveedores. */
 export function classifyKeys(
 	statuses: readonly AuthKeyStatus[],
 	providers: readonly ProviderKeyInfo[] | undefined,
 ): {
-	/** Stored provider keys (env or file), in GET order. */
+	/** Claves de proveedor guardadas (entorno o fichero), en el orden del GET. */
 	providerRows: AuthKeyStatus[];
-	/** The curated tools rows (synthesized when absent — always shown,
-	 *  they carry the docs links a first boot needs). */
+	/** Las filas curadas de herramientas (sintetizadas si faltan; siempre se
+	 * muestran porque llevan los enlaces a la documentación que necesita un
+	 * primer arranque). */
 	toolRows: AuthKeyStatus[];
-	/** Unknown file vars — preserved, read-only. */
+	/** Variables desconocidas del fichero: se conservan, solo lectura. */
 	unknownRows: AuthKeyStatus[];
-	/** Providers without a stored key — the Add dropdown's options. */
+	/** Proveedores sin clave guardada: las opciones del desplegable de añadir. */
 	addable: ProviderKeyInfo[];
 } {
 	const byId = new Map(statuses.map((s) => [s.id, s]));
@@ -123,14 +130,14 @@ export function classifyKeys(
 	const unknownRows: AuthKeyStatus[] = [];
 	for (const s of statuses) {
 		if (isTool(s.id)) continue;
-		// The custom endpoint's key has its OWN home (the Custom endpoint
-		// section), so it never shows here — not as a provider row, not as an
-		// "other stored variable".
+		// La clave del endpoint personalizado tiene su PROPIO sitio (la sección Custom
+		// endpoint), así que nunca aparece aquí: ni como fila de proveedor ni como
+		// «otra variable guardada».
 		if (s.id === CUSTOM_PROVIDER.envVar) continue;
 		if (providerEnv.has(s.id) || (!s.info && providers === undefined)) providerRows.push(s);
 		else if (!s.info) unknownRows.push(s);
-		// (pre-interlude catalogs: a curated-but-unclassified status still
-		// renders as a provider row so nothing disappears)
+		// (catálogos anteriores al interludio: un estado curado pero sin clasificar sigue
+		// renderizándose como fila de proveedor para que no desaparezca nada)
 		else providerRows.push(s);
 	}
 	return {
@@ -141,16 +148,17 @@ export function classifyKeys(
 	};
 }
 
-/** A key row names its credential, not whichever provider sorts first.
- * Pi exposes Zen and Go separately but both read OPENCODE_API_KEY. */
+/** Una fila de clave nombra su credencial, no el proveedor que salga
+ * primero al ordenar. Pi expone Zen y Go por separado, pero ambos leen
+ * OPENCODE_API_KEY. */
 export function providerKeyLabel(id: string, providers: readonly ProviderKeyInfo[] | undefined): string | undefined {
 	const matches = providers?.filter((p) => p.envVar === id);
 	if (matches?.some((p) => p.id === "opencode") && matches.some((p) => p.id === "opencode-go")) return "OpenCode (Zen / Go)";
 	return matches?.[0]?.label;
 }
 
-/** The minimal status line, e.g. "…ab12 · 64 chars" (" · env" marks an
- *  environment-owned value — the row itself is read-only then). Pure. */
+/** La línea de estado mínima, p. ej. "…ab12 · 64 chars" (" · env" marca un
+ * valor que pertenece al entorno; la fila es entonces de solo lectura). Puro. */
 export function keyStatusLine(status: AuthKeyStatus): string {
 	if (!status.present || !status.masked) return "not set";
 	const tail = status.masked.replace(/ \((\d+) chars\)$/, "");
@@ -158,9 +166,11 @@ export function keyStatusLine(status: AuthKeyStatus): string {
 	return `${tail} · ${chars}${status.source === "env" ? " · env" : ""}`;
 }
 
-/** One table row: label left, tiny docs link + status right. Writable
- *  rows click-unfold an editor beneath (owner interaction); env-owned
- *  rows are dimmed and read-only (a paste box there would mislead). */
+/** Una fila de la tabla: etiqueta a la izquierda, enlace diminuto a la
+ * documentación + estado a la derecha. Las filas escribibles despliegan un
+ * editor debajo al hacer clic (interacción del responsable); las que
+ * pertenecen al entorno van atenuadas y de solo lectura (un cuadro de pegado
+ * ahí induciría a error). */
 function KeyTableRow({
 	label,
 	docsUrl,
@@ -173,15 +183,15 @@ function KeyTableRow({
 	testid,
 }: {
 	label: string;
-	/** The "Get a key ↗" target — curated keys carry one. */
+	/** El destino de "Get a key ↗"; las claves curadas llevan uno. */
 	docsUrl?: string;
 	status: AuthKeyStatus;
 	expanded: boolean;
 	onToggle: () => void;
 	onSave: (value: string) => Promise<string | null>;
 	onDelete?: () => Promise<void>;
-	/** Folds the editor (owner, fix wave: the way OUT of a paste prompt
-	 *  must be visible — Cancel beside Save/Delete, not only Esc). */
+	/** Pliega el editor (responsable, oleada de arreglos: la SALIDA de una
+	 * petición de pegado debe ser visible; Cancel junto a Save/Delete, no solo Esc). */
 	onCancel: () => void;
 	testid: string;
 }) {
@@ -200,10 +210,10 @@ function KeyTableRow({
 		setBusy(false);
 	}
 
-	// INLINE editing (owner, fix wave: "type the keys in line — more
-	// table-like"): the expanded row becomes the editor itself — label
-	// left, the paste field filling the middle, Save | Cancel (| Delete)
-	// right — instead of a second line beneath the row.
+	// Edición EN LÍNEA (responsable, oleada de arreglos: «escribir las claves en línea, más
+	// como una tabla»): la fila desplegada se convierte en el propio editor —etiqueta
+	// a la izquierda, el campo de pegado ocupando el centro, Save | Cancel (| Delete)
+	// a la derecha— en vez de una segunda línea debajo de la fila.
 	if (expanded && !envOwned) {
 		return (
 			<div data-testid={testid}>
@@ -300,8 +310,9 @@ function KeyTableRow({
 	);
 }
 
-/** The Add-provider control — the table's last row, the app's shared
- *  dropdown look (portaled menu, the search + arrow-walk machine). */
+/** El control de añadir proveedor: la última fila de la tabla, con el
+ * aspecto de desplegable compartido de la app (menú en portal, la
+ * maquinaria de búsqueda + recorrido con flechas). */
 function AddProviderRow({
 	addable,
 	onPick,
@@ -346,8 +357,8 @@ function AddProviderRow({
 					preferredSide="down"
 					menuClass="flex w-72 flex-col rounded-xl border border-border bg-card p-2 text-xs shadow-xl"
 				>
-					{/* Close on pick (owner, fix wave): a chosen provider ends
-					    the dropdown — the paste row is the next step. */}
+					{/* Cerrar al elegir (responsable, oleada de arreglos): elegir un
+					    proveedor termina el desplegable; la fila de pegado es el siguiente paso. */}
 					<ProviderMenuList
 						providers={addable}
 						onPick={(p) => {
@@ -362,10 +373,10 @@ function AddProviderRow({
 }
 
 export function KeysSection({
-	/** A deep-linked row to unfold on arrival (zero-keys wave): the
-	 *  dictation error's click lands here on DEEPGRAM_API_KEY. Followed
-	 *  while mounted too — the settings dialog's while-open retarget
-	 *  pattern. undefined = nothing seeded. */
+	/** Una fila enlazada directamente que se despliega al llegar (oleada de
+	 * cero claves): el clic del error de dictado llega aquí con
+	 * DEEPGRAM_API_KEY. También se sigue con el componente montado: el patrón
+	 * de redirigir con el diálogo de ajustes abierto. undefined = nada sembrado. */
 	initialRow,
 }: {
 	initialRow?: string;
@@ -373,16 +384,16 @@ export function KeysSection({
 	const [statuses, setStatuses] = useState<AuthKeyStatus[] | null>(null);
 	const [providers, setProviders] = useState<ProviderKeyInfo[] | undefined>(undefined);
 	const [loading, setLoading] = useState(true);
-	/** The unfolded row (its id), null = all folded. Seeded by the
-	 *  deep-link (initialRow) and re-followed when it retargets. */
+	/** La fila desplegada (su id); null = todas plegadas. La siembra el enlace
+	 * directo (initialRow) y se vuelve a seguir cuando este redirige. */
 	const [openRow, setOpenRow] = useState<string | null>(initialRow ?? null);
-	/** The paste editor for a freshly chosen Add-provider target. */
+	/** El editor de pegado para un destino recién elegido en añadir proveedor. */
 	const [adding, setAdding] = useState<ProviderKeyInfo | null>(null);
-	// Only previously opened providers are cached. Escape folds their editors
-	// without destroying drafts; explicit Save/Cancel still discard them.
+	// Solo se cachean los proveedores abiertos antes. Escape pliega sus editores
+	// sin destruir los borradores; Save/Cancel explícitos siguen descartándolos.
 	const [addingEditors, setAddingEditors] = useState<ProviderKeyInfo[]>([]);
 	const [addError, setAddError] = useState<string | null>(null);
-	/** The custom endpoint's status + whether its connect editor is open. */
+	/** El estado del endpoint personalizado + si su editor de conexión está abierto. */
 	const [custom, setCustom] = useState<CustomStatus | null>(null);
 	const [addingCustom, setAddingCustom] = useState(false);
 	const [customEditorMounted, setCustomEditorMounted] = useState(false);
@@ -413,12 +424,12 @@ export function KeysSection({
 		} finally {
 			setLoading(false);
 		}
-		// Best-effort and independent: the custom endpoint's status must never
-		// blank the provider-key list above if its fetch fails.
+		// Con el mejor esfuerzo e independiente: el estado del endpoint personalizado nunca debe
+		// dejar en blanco la lista de claves de proveedor de arriba si su petición falla.
 		try {
 			setCustom(await readCustomStatus());
 		} catch {
-			/* custom status unavailable — leave it unset */
+			/* estado personalizado no disponible: se deja sin valor */
 		}
 	};
 
@@ -426,9 +437,9 @@ export function KeysSection({
 		void reload();
 	}, []);
 
-	// The deep-link follow: a retarget while the section is open (the
-	// same while-open pattern the dialog's section nav uses) unfolds the
-	// named row; a fresh mount seeds it via the useState initializer.
+	// El seguimiento del enlace directo: una redirección con la sección abierta (el
+	// mismo patrón con el diálogo abierto que usa la navegación de secciones) despliega la
+	// fila nombrada; un montaje nuevo la siembra mediante el inicializador de useState.
 	useEffect(() => {
 		if (initialRow !== undefined) setOpenRow(initialRow);
 	}, [initialRow]);
@@ -444,9 +455,9 @@ export function KeysSection({
 			return body.error ?? `Save failed (${res.status})`;
 		}
 		await reload();
-		// The cross-surface keys signal (zero-keys wave): the zero-keys pill,
-		// the setup dialog's stage advance, and any other keys reader hear
-		// that a key landed — deletions included (see deleteKey below).
+		// La señal de claves entre superficies (oleada de cero claves): la píldora de cero claves,
+		// el avance de etapa del diálogo de configuración y cualquier otro lector de claves se enteran
+		// de que ha llegado una clave, también de los borrados (ver deleteKey más abajo).
 		notifySettingsSaved("keys");
 		return null;
 	}
@@ -457,8 +468,9 @@ export function KeysSection({
 		notifySettingsSaved("keys");
 	}
 
-	/** Forget the custom endpoint (config + key server-side), same rhythm as
-	 *  deleteKey: fire, re-read, broadcast so the catalog narrows everywhere. */
+	/** Olvida el endpoint personalizado (configuración + clave en el servidor),
+	 * con el mismo ritmo que deleteKey: lanzar, volver a leer y difundir para
+	 * que el catálogo se reduzca en todas partes. */
 	async function disconnectCustom(revision: string): Promise<string | null> {
 		const res = await fetch("/api/custom-provider", { method: "DELETE", headers: { "content-type": "application/json", "if-match": revision }, body: JSON.stringify({}) }).catch(() => null);
 		if (!res?.ok) return res ? ((await res.json().catch(() => ({}))).error ?? "Disconnect failed.") : "Disconnect failed. Check your connection.";
@@ -496,7 +508,7 @@ export function KeysSection({
 						onToggle={() => setOpenRow(openRow === status.id ? null : status.id)}
 						onSave={async (v) => {
 							const err = await saveKey(status.id, v);
-							if (!err) setOpenRow(null); // fold on success — rest state
+							if (!err) setOpenRow(null); // plegar si tiene éxito: estado de reposo
 							return err;
 						}}
 						onCancel={() => setOpenRow(null)}
@@ -616,8 +628,8 @@ export function KeysSection({
 	);
 }
 
-/** The paste field for a provider chosen in the Add dropdown — rendered
- *  beneath the Add row until saved or cancelled. */
+/** El campo de pegado para un proveedor elegido en el desplegable de añadir;
+ * se renderiza bajo la fila de añadir hasta que se guarda o se cancela. */
 function AddProviderEditor({
 	provider,
 	active,
@@ -679,8 +691,10 @@ function AddProviderEditor({
 	);
 }
 
-/** One donor editor for first setup and Settings; setup omits offline pin and
- * disconnect controls, while authentication/revisions/manual IDs stay identical. */
+/** Un único editor donante para la primera configuración y para Settings;
+ * la configuración omite la fijación sin conexión y los controles de
+ * desconexión, mientras que la autenticación, las revisiones y los ids
+ * manuales son idénticos. */
 export function CustomEndpointSetup({ onSaved }: { onSaved: () => void | Promise<void> }) {
 	const [status, setStatus] = useState<CustomStatus | null>(null);
 	const [error, setError] = useState(false);
@@ -693,7 +707,7 @@ export function CustomEndpointSetup({ onSaved }: { onSaved: () => void | Promise
 	return <CustomEndpointEditor key={status.revision} setup revision0={status.revision} authMode0={status.authMode} keySource0={status.keySource} keyReuseRequired0={status.keyReuseRequired} baseUrl0={status.baseUrl} keyPresent={status.keyPresent} models={status.models} overrides={status.overrides} manualModels0={status.manualModels} onSaved={onSaved} onPinsSaved={reload} onReload={reload} onCancel={reload} />;
 }
 
-/** The custom endpoint's status row (shown once configured); clicking re-opens the editor. */
+/** La fila de estado del endpoint personalizado (se muestra una vez configurado); al hacer clic se vuelve a abrir el editor. */
 function CustomEndpointRow({
 	status,
 	expanded,
@@ -723,8 +737,9 @@ function CustomEndpointRow({
 	);
 }
 
-/** A pin row's raw input state — "" means "no pin": the endpoint's own value,
- *  then the compiled default, decides. `reasoning` is tri-state. */
+/** El estado de entrada en bruto de una fila de fijación: "" significa «sin
+ * fijación»: decide el valor propio del endpoint y, después, el valor por
+ * defecto compilado. `reasoning` tiene tres estados. */
 interface PinDraft {
 	context: string;
 	maxTokens: string;
@@ -737,7 +752,7 @@ const pinDraft = (pin: CustomModelOverride | undefined): PinDraft => ({
 	reasoning: pin?.reasoning === undefined ? "" : pin.reasoning ? "on" : "off",
 });
 
-/** One draft row per discovered model, seeded from the stored pins. */
+/** Una fila de borrador por cada modelo descubierto, sembrada a partir de las fijaciones guardadas. */
 function draftsFor(
 	models: readonly CustomModel[],
 	overrides: Record<string, CustomModelOverride>,
@@ -745,8 +760,9 @@ function draftsFor(
 	return Object.fromEntries(models.map((m) => [m.id, pinDraft(overrides[m.id])]));
 }
 
-/** Drafts → the PATCH payload (replace-whole): a blank field sends nothing and
- *  a fully blank model is absent — which IS the un-pin. */
+/** Borradores → la carga del PATCH (sustituye entero): un campo en blanco
+ * no envía nada y un modelo totalmente en blanco queda ausente, que ES el
+ * quitar la fijación. */
 function pinsPayload(drafts: Record<string, PinDraft>): Record<string, CustomModelOverride> {
 	const out: Record<string, CustomModelOverride> = {};
 	for (const [id, d] of Object.entries(drafts)) {
@@ -759,13 +775,14 @@ function pinsPayload(drafts: Record<string, PinDraft>): Record<string, CustomMod
 	return out;
 }
 
-/** testids must survive ids carrying slashes, colons, dots. */
+/** Los testids deben sobrevivir a ids con barras, dos puntos y puntos. */
 const pinTestid = (prefix: string, id: string) => `${prefix}-${id.replace(/[^a-z0-9-]/gi, "_")}`;
 
-/** The custom endpoint's connect editor: base URL + key → POST /api/custom-provider
- *  (validate + discover + register), and the per-model limits form → PATCH (pins,
- *  no probe, so it works with the local server switched off). Image capability is
- *  detected automatically. */
+/** El editor de conexión del endpoint personalizado: URL base + clave → POST
+ * /api/custom-provider (validar + descubrir + registrar), y el formulario de
+ * límites por modelo → PATCH (fijaciones, sin sondeo, así que funciona con
+ * el servidor local apagado). La capacidad de imagen se detecta
+ * automáticamente. */
 function CustomEndpointEditor({
 	setup = false,
 	active = true,
@@ -789,13 +806,13 @@ function CustomEndpointEditor({
 	onReload: () => void | Promise<void>;
 	baseUrl0: string;
 	keyPresent: boolean;
-	/** The discovered models — one limits row each. */
+	/** Los modelos descubiertos: una fila de límites por cada uno. */
 	models: readonly CustomModel[];
-	/** Their stored user pins. */
+	/** Sus fijaciones de usuario guardadas. */
 	overrides: Record<string, CustomModelOverride>;
 	manualModels0: readonly string[];
 	onSaved: () => void | Promise<void>;
-	/** Pins saved — the editor stays open (a form, not a connect). */
+	/** Fijaciones guardadas: el editor sigue abierto (es un formulario, no una conexión). */
 	onPinsSaved: () => void | Promise<void>;
 	onCancel: () => void;
 	onDelete?: (revision: string) => Promise<string | null>;
@@ -832,8 +849,8 @@ function CustomEndpointEditor({
 	const [manualModels, setManualModels] = useState(manualModels0.join(", "));
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	// The limits form: edited drafts over the stored pins, plus the last saved
-	// payload as the dirty baseline (the server's echo is what gets stored).
+	// El formulario de límites: borradores editados sobre las fijaciones guardadas, más la última
+	// carga guardada como referencia de cambios (lo que se guarda es el eco del servidor).
 	const [drafts, setDrafts] = useState<Record<string, PinDraft>>(() => draftsFor(models, overrides));
 	const [baseline, setBaseline] = useState(() => JSON.stringify(pinsPayload(draftsFor(models, overrides))));
 	const [pinsBusy, setPinsBusy] = useState(false);
@@ -863,7 +880,7 @@ function CustomEndpointEditor({
 			return;
 		}
 		setRevision(res.headers.get("etag") ?? revision);
-		// The server's stored map is the truth — echo it back.
+		// El mapa guardado del servidor es la verdad: se refleja de vuelta.
 		const body = (await res.json().catch(() => null)) as { overrides?: Record<string, CustomModelOverride> } | null;
 		const next = draftsFor(models, body?.overrides ?? pinsPayload(current));
 		setDrafts(next);
@@ -958,9 +975,9 @@ function CustomEndpointEditor({
 				>
 					Cancel
 				</button>
-				{/* Disconnect rides beside Connect, exactly the stored-key rows' Delete:
-				    quiet text, one click, no confirm — and only once there IS an
-				    endpoint (a fresh add has nothing to delete). */}
+				{/* Disconnect va junto a Connect, exactamente como el Delete de las filas
+				    de claves guardadas: texto discreto, un clic, sin confirmación, y solo
+				    cuando SÍ hay un endpoint (uno recién añadido no tiene nada que borrar). */}
 				{onDelete && baseUrl0.trim() && (
 					<button
 						type="button"
