@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { createDockMorph, naturalDockHeight } from "../components/dock-morph.ts";
 
-// Deterministic CSS/WAAPI geometry seam; browser frame verification is separate.
+// Frontera determinista de geometría CSS/WAAPI; la verificación de fotogramas en el navegador va aparte.
 function fixture() {
 	let timeline = 0;
 	let natural = 44;
@@ -25,8 +25,8 @@ function fixture() {
 				setKeyframes(next: Keyframe[]) { animation.frames = next; animation.retargets++; },
 				updateTiming(timing: OptionalEffectTiming) {
 					animation.duration = timing.duration;
-					// Model the transient finish hazard of shrinking duration before
-					// resetting currentTime (including a 90ms -> 30ms retarget).
+					// Modela el riesgo transitorio de finalización al encoger la duración antes de
+					// restablecer currentTime (incluida una redirección de 90ms -> 30ms).
 					if (typeof timing.duration === "number" && animation.currentTime !== null && animation.currentTime >= timing.duration) animation.playState = "finished";
 				},
 			},
@@ -48,7 +48,7 @@ function fixture() {
 			visible = Number.parseFloat(String(frames[0]!.height));
 			return animation;
 		},
-		// A height owner must not enumerate/cancel unrelated shell animations.
+		// Un responsable de la altura no debe enumerar/cancelar animaciones ajenas del armazón.
 		getAnimations() { throw new Error("unrelated animations are not ours"); },
 	} as unknown as HTMLElement;
 	const morph = createDockMorph();

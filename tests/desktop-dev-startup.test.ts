@@ -1,4 +1,4 @@
-/** Dev shell readiness and the REAL main-process boot path, without a display. */
+/** Disponibilidad del armazón de desarrollo y la ruta de arranque REAL del proceso principal, sin pantalla. */
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";
@@ -70,7 +70,7 @@ describe("development server readiness", () => {
 	});
 	it("times out a refused connection with an actionable endpoint and last cause", async () => {
 		await endpoint((_req, res) => res.end(), async url => {
-			// Use an unbound local port, without assuming any fixed port is free.
+			// Usa un puerto local sin enlazar, sin suponer que ningún puerto fijo está libre.
 			const reserve = http.createServer(); await new Promise<void>(resolve => reserve.listen(0, "127.0.0.1", resolve));
 			const absent = url.replace(new URL(url).port, String((reserve.address() as AddressInfo).port));
 			await new Promise<void>(resolve => reserve.close(() => resolve()));

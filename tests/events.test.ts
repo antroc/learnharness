@@ -1,16 +1,16 @@
 /**
- * THE EVENT BUS + NOTIFICATION CHANNEL (push-architecture slice 1,
- * 2026-10-02): the bus is pure core law (typed, globalThis-shared, error-
- * isolated); the SSE seam is one connection per open window — frames in,
- * cancel out, bus untouched. These pins are the channel's contract: every
- * future consumer (chat view, sidebar, dock) builds on exactly this.
+ * EL BUS DE EVENTOS + EL CANAL DE NOTIFICACIONES (porción 1 de la arquitectura push,
+ * 2026-10-02): el bus es ley pura del núcleo (tipado, compartido vía globalThis, con errores
+ * aislados); la frontera SSE es una conexión por ventana abierta: entran fotogramas,
+ * sale la cancelación, el bus no se toca. Estas fijaciones son el contrato del canal: todo
+ * consumidor futuro (vista del chat, barra lateral, dock) se construye exactamente sobre esto.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { emit, subscribe, type ServerEvent } from "../src/core/events.ts";
 import { eventsResponse } from "../src/server/events-stream.ts";
 
-// ─── the bus ────────────────────────────────────────────────────────────────
+// ─── el bus ─────────────────────────────────────────────────────────────────
 
 describe("event bus", () => {
 	it("delivers typed events with their payload to every subscriber", () => {
@@ -52,9 +52,9 @@ describe("event bus", () => {
 	});
 
 	it("the registry is globalThis-backed — the Next multi-entry law (turn-liveness discipline)", () => {
-		// Every module instance must share ONE bus or nothing propagates
-		// (the original incident: page render vs route each held a private
-		// singleton). The key IS the contract.
+		// Todas las instancias del módulo deben compartir UN bus o no se propaga nada
+		// (el incidente original: el renderizado de la página y la ruta tenían cada uno un
+		// singleton privado). La clave ES el contrato.
 		const g = globalThis as { __lhEventBus?: unknown };
 		assert.ok(g.__lhEventBus instanceof Set, "the bus lives on globalThis");
 	});
@@ -62,7 +62,7 @@ describe("event bus", () => {
 	it("an unsubscribe DURING emit is safe (snapshot iteration)", () => {
 		const got: string[] = [];
 		let off2: () => void = () => {};
-		const off1 = subscribe(() => off2()); // listener 2 leaves mid-emit
+		const off1 = subscribe(() => off2()); // el listener 2 se va a mitad de la emisión
 		off2 = subscribe((e) => got.push(e.type));
 		emit("chats-changed", {});
 		off1();
@@ -71,7 +71,7 @@ describe("event bus", () => {
 	});
 });
 
-// ─── the SSE seam ───────────────────────────────────────────────────────────
+// ─── la frontera SSE ────────────────────────────────────────────────────────
 
 function decode(chunk: Uint8Array): string {
 	return new TextDecoder().decode(chunk);
@@ -85,8 +85,8 @@ describe("eventsResponse (the SSE seam)", () => {
 		assert.equal(res.headers.get("Cache-Control"), "no-cache, no-transform");
 		assert.equal(res.headers.get("X-Accel-Buffering"), "no");
 		const reader = res.body!.getReader();
-		// The listener attached synchronously in start() — emit NOW lands
-		// as a queued chunk (no race, single-threaded).
+		// El listener se enganchó de forma síncrona en start(): emitir AHORA llega
+		// como un fragmento encolado (sin carrera, un solo hilo).
 		emit("turn-started", { chatId: "chat_x" });
 		const { value, done } = await reader.read();
 		assert.equal(done, false);
@@ -103,21 +103,21 @@ describe("eventsResponse (the SSE seam)", () => {
 		const second = eventsResponse();
 		const r1 = first.body!.getReader();
 		const r2 = second.body!.getReader();
-		await r1.cancel(); // window one goes away
+		await r1.cancel(); // la ventana uno desaparece
 		emit("turn-settled", { chatId: "chat_y" });
-		// window two still receives…
+		// la ventana dos sigue recibiendo…
 		const { value } = await r2.read();
 		assert.match(decode(value!), /event: turn-settled/);
-		// …and window one's stream is finished — no frame, just done.
+		// …y el stream de la ventana uno ha terminado: sin fotograma, solo done.
 		const after = await r1.read();
 		assert.equal(after.done, true, "the cancelled connection carries nothing further");
 		await r2.cancel();
 	});
 
 	it("the connection ends WITHOUT a [DONE] sentinel — the client owns the lifetime", async () => {
-		// A turn's stream terminates itself; the notification channel never
-		// self-closes. Pin the difference: settled events do NOT close the
-		// stream — it stays live for the next event.
+		// El stream de un turno se termina solo; el canal de notificaciones nunca
+		// se cierra por sí mismo. Fija la diferencia: los eventos settled NO cierran el
+		// stream; sigue vivo para el siguiente evento.
 		const res = eventsResponse();
 		const reader = res.body!.getReader();
 		emit("turn-settled", { chatId: "chat_z" });

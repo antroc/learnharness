@@ -109,8 +109,8 @@ async function fixture(language: "pl" | "en" = "pl", delayedRead?: Promise<Respo
 	let firstMount = true;
 	const mount = async () => {
 		await act(async () => { root.render(<Harness />); });
-		// Each fixture is a new server record. Explicitly invalidate a prior
-		// fixture's window-lifetime cache, but do not refetch on remounts.
+		// Cada fixture es un registro nuevo del servidor. Invalida explícitamente la caché de vida
+		// de ventana de un fixture anterior, pero no vuelvas a pedir en los remontajes.
 		if (firstMount && setting.language !== undefined) {
 			await act(async () => { notifySettingsSaved("dictation"); });
 		}
@@ -143,7 +143,7 @@ test("side recording has a fixed destination, and main finish never waits for or
 	await act(async () => { await finishDictation(); await f.dictation.finishFor("side:another"); });
 	assert.equal(f.dictation.phase, "recording");
 	assert.deepEqual(side, []);
-	// A shortcut at another focused input stops the current run, not a second capture.
+	// Un atajo en otro campo con el foco detiene la ejecución actual, no inicia una segunda captura.
 	await act(async () => { f.dictation.toggleFor({ id: "side:another", append: (text) => { other.push(text); } }); });
 	assert.equal(f.dictation.phase, "stopping"); assert.equal(f.state.captures, 1);
 	await act(async () => { socket.final("final tail"); socket.end(); });
@@ -198,7 +198,7 @@ test("waits for the saved language; reconnect preserves it and finals still flus
 	assert.equal(first.language, "pl");
 	await act(async () => { first.open(); first.final("Cześć"); });
 	assert.deepEqual(f.state.appends, []);
-	// A preference refresh during capture affects the next run only.
+	// Una actualización de preferencias durante la captura solo afecta a la ejecución siguiente.
 	f.state.record.dictation = { language: "multi" };
 	await act(async () => { notifySettingsSaved("dictation"); });
 	await act(async () => { first.end(1006); });

@@ -15,7 +15,7 @@ describe("Nova-3 dictation language contract", () => {
 		for (const code of ["en", "fr", "ru", "sv", "pl", "en-GB", "pt-BR", "zh-Hant", "ar-EG", "multi"]) {
 			assert.ok(isDictationLanguage(code), code);
 		}
-		// Xhosa and Zulu are documented for multi, not monolingual Nova-3.
+		// El xhosa y el zulú están documentados para multi, no para Nova-3 monolingüe.
 		for (const code of ["xh", "zu", "en-CA", "auto", "xx", "pl&model=other", null, 3]) {
 			assert.equal(isDictationLanguage(code), false, String(code));
 		}

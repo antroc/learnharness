@@ -1,7 +1,7 @@
-/** The app window's real will-navigate and window-open handlers, run against
- * fake Electron: links may leave the app only for a browser or mail client.
- * Other schemes reach OS protocol handlers (smb: can leak credentials,
- * search-ms:/ms-msdt: have been abused, file: launches local apps). */
+/** Los manejadores reales will-navigate y window-open de la ventana de la aplicación, ejecutados contra
+ * un Electron falso: los enlaces solo pueden salir de la aplicación hacia un navegador o un cliente de correo.
+ * Otros esquemas llegan a los manejadores de protocolo del sistema operativo (smb: puede filtrar credenciales,
+ * se ha abusado de search-ms:/ms-msdt:, file: lanza aplicaciones locales). */
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { readFileSync } from "node:fs";

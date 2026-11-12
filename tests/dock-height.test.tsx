@@ -6,7 +6,7 @@ import { createRoot } from "react-dom/client";
 import { parseHTML } from "linkedom";
 
 const dom = parseHTML("<!doctype html><html><body></body></html>");
-// Linkedom omits compatMode; browser-loaded KaTeX expects standards mode.
+// Linkedom omite compatMode; KaTeX cargado en el navegador espera el modo estándar.
 Object.defineProperty(dom.document, "compatMode", { value: "CSS1Compat" });
 Object.assign(globalThis, {
 	window: dom.window, document: dom.document, HTMLElement: dom.window.HTMLElement,
@@ -30,9 +30,9 @@ Object.assign(globalThis, {
 		overflowY: el.style.overflowY || (el.classList.contains("overflow-y-auto") ? "auto" : "visible"),
 	}),
 });
-// Install browser globals before importing any UI: the shared Markdown/plugin
-// renderer graph can transitively import chat.tsx and dock-height.ts. A static
-// dock import would select the hook's SSR effect before this setup ever runs.
+// Instala los globales del navegador antes de importar ninguna interfaz: el grafo compartido de
+// renderizadores de Markdown/plugins puede importar indirectamente chat.tsx y dock-height.ts. Una importación
+// estática del dock elegiría el efecto SSR del hook antes de que se ejecute esta preparación.
 const { QuestionDock } = await import("../components/question-dock.tsx");
 const { PracticeDock } = await import("../components/practice-dock.tsx");
 const { dockHeightBudget, syncDockHeight, useDockHeight, forwardDockWheel } = await import("../components/dock-height.ts");
@@ -76,8 +76,8 @@ describe("dockHeightBudget — whole dock, not just its question", () => {
 	});
 });
 
-// These mocked dimensions test the DOM/lifecycle seam, not real CSS layout.
-// Live-browser checks separately exercise actual field sizing and WAAPI.
+// Estas dimensiones simuladas prueban la frontera del DOM/ciclo de vida, no el layout CSS real.
+// Las comprobaciones en el navegador vivo ejercitan por separado el tamaño real del campo y WAAPI.
 const sizes: Record<string, number> = {};
 let animating = false;
 dom.window.HTMLElement.prototype.getAnimations = () => animating ? [{} as Animation] : [];
@@ -108,8 +108,8 @@ function Fixture({ expanded = true, practice = false, enabled = true, inspected,
 	const [inset, setInset] = useState(0);
 	useDockHeight({ scrollRef, blockRef, viewportRef, bodyRef, shellRef, contentRef,
 		expanded, enabled, mode: practice ? "practice:p1" : "question:q1", onScrollbarInset: setInset, onHeight, onLayout });
-	// Like DockOverlay's later morph/reserve layout effect: constraints must
-	// already be applied in this same commit, not an after-paint correction.
+	// Como el efecto de layout posterior de transformación/reserva de DockOverlay: las restricciones ya
+	// deben aplicarse en este mismo commit, no en una corrección tras el pintado.
 	useLayoutEffect(() => { if (blockRef.current) inspected?.(blockRef.current); });
 	return <><div ref={scrollRef} data-part="column" /><div ref={blockRef} data-part="block" data-inset={inset}>
 		<div ref={viewportRef} data-part="viewport"><div ref={bodyRef} data-part="body">
@@ -232,7 +232,7 @@ describe("measured question/practice DOM and observer lifecycle", () => {
 			const previousReserve = reserves.at(-1);
 			animating = true;
 			try {
-				// Late editor/preparation DOM changes: no Fixture/parent render.
+				// Cambios tardíos del DOM del editor/preparación: sin renderizado del Fixture/padre.
 				sizes.content = sizes.content! + 150;
 				sizes.column = 500;
 				await act(async () => observers.at(-1)!.callback());

@@ -1,11 +1,11 @@
 /**
- * The dock shell's variant key — the WAAPI height-morph trigger. Pinned
- * after the practice-fold fix (owner, 2026-10-06): the expanded term
- * belongs to every docked variant, so a practice dock's fold/unfold
- * morphs exactly like a teaching question's. Before the fix the key
- * read `pending ? expanded : "-"` — pending is null in practice, the
- * key never changed on the fold, and the practice dock's height jumped
- * instantly between form and bar while teaching morphed.
+ * La clave de variante del armazón del dock: el disparador de la transformación de altura con WAAPI. Se fijó
+ * tras el arreglo del plegado de la práctica (responsable, 2026-10-06): el término expandido
+ * pertenece a todas las variantes acopladas, así que el plegado/desplegado de un dock de práctica
+ * se transforma exactamente igual que el de una pregunta de enseñanza. Antes del arreglo la clave
+ * era `pending ? expanded : "-"`: pending es null en la práctica, la
+ * clave nunca cambiaba al plegar y la altura del dock de práctica saltaba
+ * al instante entre formulario y barra mientras que la enseñanza se transformaba.
  */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";

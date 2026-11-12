@@ -4,8 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { after, it } from "node:test";
 
-// An isolated store and fake key ensure this exercises the real composition
-// without reading the developer's settings or calling a paid provider.
+// Un almacén aislado y una clave falsa garantizan que esto ejercite la composición real
+// sin leer los ajustes del desarrollador ni llamar a un proveedor de pago.
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), "lh-exa-"));
 process.env.LH_DATA_DIR = path.join(dir, "data");
 process.env.LH_AUTH_FILE = path.join(dir, "auth.json");

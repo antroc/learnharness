@@ -1,4 +1,4 @@
-/** Run the real payload-curation script in throwaway repository fixtures. */
+/** Ejecuta el script real de selección de la carga en fixtures de repositorio desechables. */
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
@@ -46,8 +46,8 @@ function withPayload(test: (fixture: {
 			write(`core-plugins/${id}/LICENSE`, "bundled-license");
 		}
 		write(path.join("scripts", "plugin-loader.cjs"), "exports.load = () => {};\n");
-		// Declaration generation is tested separately. This fixture tests payload
-		// curation, not the TypeScript compiler or the full application sources.
+		// La generación de declaraciones se prueba por separado. Este fixture prueba la selección
+		// de la carga, no el compilador de TypeScript ni las fuentes completas de la aplicación.
 		write(path.join("scripts", "build-plugin-types.mjs"), `import fs from 'node:fs'; import path from 'node:path'; fs.mkdirSync(process.argv[2], {recursive:true}); fs.writeFileSync(path.join(process.argv[2], 'index.d.ts'), 'export interface Example {}'); fs.writeFileSync(path.join(process.argv[2], 'package.json'), JSON.stringify({version:'1.0.0'}));`);
 		write(path.join("public", "plugin-loader.js"), "export {};\n");
 		for (const file of AUTHORING_DOCS) {
@@ -107,7 +107,7 @@ describe("desktop standalone payload", () => {
 	it("removes traced authoring sources/installers/dev Electron, preserving runtime modules and native binaries", () => {
 		withPayload(({ root, write, run }) => {
 			for (const extra of [path.join("dist", "old.app", "nested.dmg"), path.join("node_modules", "electron", "dist", "electron.exe"), path.join("plugins", "rich-code-blocks", "tests", "browser.mjs")]) {
-				// BOTH copies exist: curation must not touch the real repo's build/runtime.
+				// Existen AMBAS copias: la selección no debe tocar el build/runtime del repositorio real.
 				write(extra);
 				write(path.join(STANDALONE, extra));
 			}

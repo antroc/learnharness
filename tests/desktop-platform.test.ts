@@ -1,4 +1,4 @@
-/** Platform window chrome + packaging policy, without launching Electron. */
+/** Adorno de ventana por plataforma + política de empaquetado, sin lanzar Electron. */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -12,9 +12,9 @@ const mainFile = fileURLToPath(new URL("../electron/main.cjs", import.meta.url))
 const mainSource = readFileSync(mainFile, "utf8");
 const mainRequire = createRequire(mainFile);
 
-/** Decline the single-instance lock so normal boot never spawns a server.
- * Then call the REAL createWindow with a stub Electron API and inspect its
- * constructor options. No rewritten copy of the production logic. */
+/** Rechaza el bloqueo de instancia única para que el arranque normal nunca lance un servidor.
+ * Luego llama al createWindow REAL con una API de Electron de relleno e inspecciona las opciones
+ * de su constructor. Sin una copia reescrita de la lógica de producción. */
 function windowOptions(platform: string, env: Record<string, string> = {}, reported?: { mode: string; background?: string }) {
 	class FakeWindow {
 		constructor(readonly options: unknown) {}
@@ -34,10 +34,10 @@ function windowOptions(platform: string, env: Record<string, string> = {}, repor
 		__dirname: dirname(mainFile),
 	};
 	runInNewContext(mainSource, context, { filename: mainFile });
-	// What the renderer reports over lh:appearance (the active theme).
+	// Lo que el renderizador informa por lh:appearance (el tema activo).
 	if (reported) runInNewContext(`appearance = normalizeAppearance(${JSON.stringify(reported)})`, context);
 	const win = runInNewContext('createWindow("http://127.0.0.1:9000")', context) as FakeWindow;
-	// The options originate in a VM realm; normalize prototypes for assertions.
+	// Las opciones nacen en un realm de VM; normaliza los prototipos para las aserciones.
 	return JSON.parse(JSON.stringify(win.options));
 }
 
@@ -348,7 +348,7 @@ describe("desktop release workflow", () => {
 	assert.ok(script);
 	type Release = { id: number; tag_name: string; draft: boolean };
 
-	/** Execute the REAL action script with an in-memory GitHub API. */
+	/** Ejecuta el script REAL de la acción con una API de GitHub en memoria. */
 	async function prepareDraft(releases: Release[]) {
 		const created: Record<string, unknown>[] = [];
 		const listReleases = () => {};
@@ -420,7 +420,7 @@ describe("desktop release workflow", () => {
 
 	it("reuses an existing draft without creating another", async () => {
 		assert.deepEqual(await prepareDraft([{ id: 10, tag_name: "v0.3.0", draft: true }]), []);
-		// Match the publisher's support for legacy unprefixed tags too.
+		// Coincide también con el soporte del publicador para las etiquetas antiguas sin prefijo.
 		assert.deepEqual(await prepareDraft([{ id: 10, tag_name: "0.3.0", draft: true }]), []);
 	});
 

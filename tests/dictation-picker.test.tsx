@@ -22,7 +22,7 @@ async function key(element: HTMLElement, value: string) {
 	await act(async () => {
 		const event = new window.Event("keydown", { bubbles: true, cancelable: true });
 		Object.assign(event, { key: value });
-		// linkedom omits the browser's window capture path.
+		// linkedom omite la ruta de captura de window del navegador.
 		interactionController?.captureKeyDown(event as KeyboardEvent);
 		element.dispatchEvent(event);
 	});
@@ -79,8 +79,8 @@ async function fixture(failRead = false) {
 			else delete (globalThis as Record<string, unknown>)[name];
 		}
 	};
-	// The outer surface observes the capture-snapshotted owner, rather than
-	// recreating the retired independent document-level dismissal listener.
+	// La superficie exterior observa al responsable capturado en la instantánea, en vez de
+	// recrear el listener de descarte independiente a nivel de documento ya retirado.
 	doc.addEventListener("keydown", (event) => {
 		if ((event as KeyboardEvent).key === "Escape" && !interactionController?.getEventOwner(event as KeyboardEvent)) state.outerEscapes++;
 	});
@@ -90,8 +90,8 @@ async function fixture(failRead = false) {
 	const mount = async () => { await act(async () => { root.render(<WithLayers><DictationLanguageSetting /></WithLayers>); }); };
 	dispose = async () => { await act(async () => { setDictationActive(false); root.unmount(); }); };
 	await mount();
-	// Fixtures represent distinct server records; remounts within a fixture
-	// deliberately keep the window-lifetime confirmed preference.
+	// Los fixtures representan registros distintos del servidor; los remontajes dentro de un fixture
+	// conservan a propósito la preferencia confirmada con vida de ventana.
 	await act(async () => { notifySettingsSaved("dictation"); });
 	return {
 		state,
@@ -148,8 +148,8 @@ test("Enter on a focused option preserves native button activation", async () =>
 		Object.assign(event, { key: "Enter" });
 		option.dispatchEvent(event);
 		prevented = event.defaultPrevented;
-		// linkedom does not implement native keyboard activation. Follow the
-		// browser's default action only if the handler left it uncancelled.
+		// linkedom no implementa la activación nativa por teclado. Sigue la
+		// acción por defecto del navegador solo si el manejador la dejó sin cancelar.
 		if (!prevented) option.click();
 	});
 	assert.equal(prevented, false, "focused option Enter must retain its native click");

@@ -3,13 +3,13 @@ import { describe, it } from "node:test";
 import { escAbortTarget } from "../components/chat.tsx";
 
 /**
- * THE LAYERED ESC (owner report, 2026-10-04): Esc over an open overlay —
- * a mermaid focus, the plan popup, the setup dialog — must CLOSE THE
- * OVERLAY, never dismiss a pending question (or abort a turn) underneath.
- * KeyboardShortcuts dispatches lh:kbd-abort-turn on every unclaimed Esc
- * and its window listener registers FIRST, so the overlays' own listeners
- * can never outrun it — the state gate in ChatView (this ruling, exported
- * pure) is the defense. Priority = stacking order.
+ * EL ESC POR CAPAS (informe del responsable, 2026-10-04): Esc sobre un overlay abierto
+ * (un foco de mermaid, la ventana emergente del plan, el diálogo de configuración) debe CERRAR EL
+ * OVERLAY, nunca descartar una pregunta pendiente (ni abortar un turno) que haya debajo.
+ * KeyboardShortcuts despacha lh:kbd-abort-turn en cada Esc no reclamado
+ * y su listener de window se registra PRIMERO, así que los listeners propios de los overlays
+ * nunca pueden adelantarlo: la barrera de estado de ChatView (esta decisión, exportada
+ * como función pura) es la defensa. Prioridad = orden de apilamiento.
  */
 describe("escAbortTarget (the layered-Esc ruling)", () => {
 	const none = { abortAsk: false, mermaidFocus: false, planOpen: false, setupOpen: false, pending: false, problem: false, busy: false };
