@@ -509,3 +509,26 @@ falsos positivos).
   TODOS LOS LOTES TERMINADOS (M1–M4, C1–C9). Pendiente solo lo opcional: revisión final
   (alinear src/core/plugin-agents.ts con docs/plugin-api/plugin-agents.md, anotado en la
   sesión 8; repasar los pocos avisos de la comprobación global).
+- Sesión 15 (revisión final): JSDoc de src/core/plugin-agents.ts alineados con la prosa de
+  docs/plugin-api/plugin-agents.md (14 de 18 bloques cambiados; 3 ya coincidían y el de
+  cabecera del fichero no figura en la referencia). Como el fichero ya estaba traducido,
+  `sugerir_api.py` se ejecutó sobre la versión inglesa de FETCH_HEAD extraída aparte (con ruta
+  absoluta: `comentarios.cjs` resuelve las rutas desde la raíz del repo); los ids coinciden
+  con los de la versión traducida. Ojo: el `.es.txt` necesita la cabecera completa
+  `@@ id ruta:línea` (con «@@ id» a secas `cuenta.py` y `aplicar` no reconocen el bloque).
+  Comprobación global de cobertura repetida (1.042 ficheros, 8.439 bloques): los avisos
+  restantes son literales en inglés (mensajes de error, salidas de modelos, citas del vault
+  de la prueba de concepto y de un comentario de pi-agent-core) o directivas. Encontrados y
+  traducidos a mano 5 comentarios que la herramienta no extraía porque su `DIRECTIVE` trata
+  como directiva cualquier comentario que empiece por «global » (sin distinguir mayúsculas):
+  components/{path-input,plugin-knowledge-picker,question-dock (2)}.tsx y
+  scripts/smoke-plugin-browser.mjs. En tests/api-key-hook.test.ts la cita de models.ts se
+  actualizó a su texto traducido. Se dejan en inglés, por ser contenido de cadenas de código
+  (plugins y scripts generados dentro de plantillas): los comentarios `//` dentro de las
+  plantillas de scripts/smoke-plugin-runtime.mjs (≈30 líneas) y de
+  plugins/flashcards/tests/scheduler.test.cjs (`node -e`, 1 línea en inglés). Los `dist/`
+  de examples/plugins y next-env.d.ts (generado) no se tocan.
+  Comprobación de anclas: sin enlaces rotos (solo los 4 falsos positivos conocidos).
+  Inconsistencia de glosario conocida, no corregida: *seam* aparece como «juntura» en
+  docs/archive/ y en los primeros ficheros de C1 (antes de fijar «frontera» en la sesión 6).
+  REVISIÓN FINAL TERMINADA.
