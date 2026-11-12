@@ -469,7 +469,7 @@ describe("tool descriptions carry mechanics only, no question-craft", () => {
 			path.join(PATHS.root, "src/agent/prompts/shared/20-question-tools.md"),
 			"utf-8",
 		);
-		assert.ok(shared.includes("asymmetry"), "the option craft moved here, not deleted");
-		assert.ok(shared.includes("TRANSCRIBED SPEECH"), "the dictation-leniency note lives here");
+		assert.ok(shared.includes("asimetría"), "the option craft moved here, not deleted");
+		assert.ok(shared.includes("HABLA TRANSCRITA"), "the dictation-leniency note lives here");
 	});
 });
