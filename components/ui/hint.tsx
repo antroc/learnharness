@@ -5,35 +5,36 @@ import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/comp
 import { bindingForAction, formatBinding, type KeyAction } from "@/src/core"
 
 /**
- * The tooltip composition for icon and pill controls (tooltip wave, owner
- * 2026-09-25; subtlety round same day). The styled passive tooltip carries
- * the label, with the control's shortcut appended in parentheses when
- * it has one ("Dictate (⌘D)") — the owner call: the em-dash suffix read
- * as too much air.
+ * La composición de tooltips para los controles de icono y de píldora
+ * (oleada de tooltips, responsable 2026-09-25; ronda de sutileza del mismo
+ * día). El tooltip pasivo con estilo lleva la etiqueta, con el atajo del
+ * control añadido entre paréntesis cuando lo tiene ("Dictate (⌘D)"); la
+ * decisión del responsable: el sufijo con raya dejaba demasiado aire.
  *
- * The binding is override-aware: pass `action` for registry shortcuts (a
- * user rebind in Settings → Keyboard changes the suffix live), or
- * `binding` for surface-owned keys with no registry entry ("escape" for a
- * dialog close, "enter" for a form submit).
+ * La combinación tiene en cuenta las sustituciones: pasa `action` para los
+ * atajos del registro (una reasignación del usuario en Ajustes → Keyboard
+ * cambia el sufijo en vivo), o `binding` para las teclas propias de una
+ * superficie sin entrada en el registro ("escape" para cerrar un diálogo,
+ * "enter" para enviar un formulario).
  *
- * children must be a single element able to take a ref (TooltipTrigger
- * asChild merges onto it — no wrapper DOM, no layout shift).
+ * children debe ser un único elemento que admita una ref (TooltipTrigger
+ * asChild se fusiona con él: sin DOM envoltorio ni desplazamiento del layout).
  */
 
 interface HintProps {
 	label: string
-	/** Registry action whose LIVE binding is shown (override-aware). */
+	/** Acción del registro cuya combinación EN VIVO se muestra (tiene en cuenta las sustituciones). */
 	action?: KeyAction
-	/** Surface-owned binding ("escape", "enter") — keys the registry
-	 *  deliberately doesn't dispatch (Esc closes the dialog itself; Enter
-	 *  submits the form the button belongs to). */
+	/** Combinación propia de la superficie ("escape", "enter"): teclas que el
+	 * registro no despacha a propósito (Esc cierra el propio diálogo; Enter
+	 * envía el formulario al que pertenece el botón). */
 	binding?: string
 	side?: "top" | "bottom" | "left" | "right"
 	children: React.ReactElement
 }
 
-/** The composition itself, pure — "Dictate" + ⌘D → "Dictate (⌘D)". Exported
- *  for the mechanism pins (tests/tooltip-mechanism.test.tsx). */
+/** La composición en sí, pura: "Dictate" + ⌘D → "Dictate (⌘D)". Exportada
+ * para las fijaciones del mecanismo (tests/tooltip-mechanism.test.tsx). */
 export function hintText(label: string, action?: KeyAction, binding?: string): string {
 	const live = action
 		? formatBinding(bindingForAction(action))

@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** Plain-text, noninteractive badge; callers supply any meaning and color. */
+/** Insignia de texto simple y no interactiva; los llamantes aportan el significado y el color. */
 export function StatusBadge({ text, color }: { text: string; color?: string }) {
 	return (
 		<span

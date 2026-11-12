@@ -24,9 +24,11 @@ function onChange(hub: Hub, listener: () => void): () => void {
 	const offResync = hub?.onResync(listener);
 	return () => { offEvent?.(); offResync?.(); };
 }
-/** Reserve the new tab synchronously in the click gesture. Only a one-use
- * same-origin action URL enters app JS; provider URLs remain in the owner.
- * Electron dev has no tabs: its narrow main-process opener performs this step. */
+/** Reserva la pestaña nueva de forma síncrona dentro del gesto de clic.
+ * Solo una URL de acción de un solo uso y del mismo origen entra en el JS de
+ * la app; las URL del proveedor se quedan en el responsable. Electron en
+ * desarrollo no tiene pestañas: su abridor acotado del proceso principal
+ * hace este paso. */
 async function withBrowser<T>(action: () => Promise<Reply<T>>): Promise<T> {
 	const external = window.lh?.subscriptionTransport === "web" ? window.lh.openSubscriptionBrowser : undefined;
 	const tab = external ? null : window.open("about:blank", "_blank");

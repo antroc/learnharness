@@ -1,22 +1,24 @@
 "use client";
 /**
- * The model menu (extracted 2026-09-20 from model-picker.tsx, owner ask:
- * the agent settings' role selects use the EXACT same dropdown as the
- * chat model selector — same look, same machine). The fuzzy search +
- * arrow-walk + Enter pick machine lives here once; each mount owns only
- * the popover shell (positioning, outside-click, Esc — the chat control
- * opens UP from the bottom bar, the settings rows open DOWN inside the
- * dialog).
+ * El menú de modelos (extraído el 2026-09-20 de model-picker.tsx, a petición
+ * del responsable: los selects de rol de los ajustes del agente usan
+ * EXACTAMENTE el mismo desplegable que el selector de modelo del chat; mismo
+ * aspecto, misma maquinaria). La maquinaria de búsqueda difusa + recorrido
+ * con flechas + elección con Enter vive aquí una sola vez; cada montaje solo
+ * es dueño del armazón del popover (posicionamiento, clic fuera, Esc: el
+ * control del chat se abre HACIA ARRIBA desde la barra inferior y las filas
+ * de ajustes se abren HACIA ABAJO dentro del diálogo).
  *
- * The appearance wave (2026-09-26) added the reading-font picker over the
- * same machine: FontMenuList (families instead of models, plus the
- * always-offerable DEFAULT row and a custom-family escape input).
+ * La oleada de apariencia (2026-09-26) añadió el selector de fuente de
+ * lectura sobre la misma maquinaria: FontMenuList (familias en vez de
+ * modelos, más la fila DEFAULT que siempre se puede ofrecer y una entrada de
+ * escape para una familia personalizada).
  *
- * Keyboard machine (owner polish, 2026-09-17): focus STAYS in the search
- * field — ↑/↓ walk the filtered results (clamped, no wrap), Enter picks
- * the walked row (or the first result when nothing is walked).
- * stopPropagation keeps these keys out of every other listener while the
- * menu is open.
+ * Maquinaria de teclado (pulido del responsable, 2026-09-17): el foco SE
+ * QUEDA en el campo de búsqueda; ↑/↓ recorren los resultados filtrados
+ * (acotado, sin dar la vuelta) y Enter elige la fila recorrida (o el primer
+ * resultado si no se ha recorrido nada). stopPropagation mantiene estas
+ * teclas fuera de cualquier otro listener mientras el menú está abierto.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -31,9 +33,9 @@ function priceLabel(cost: ModelCatalogEntry["cost"]): string {
 	return `${fmt(cost.input)}/${fmt(cost.output)}`;
 }
 
-/** The model dropdown body — fuzzy search + ranked list. `models ===
- *  undefined` is the catalog-loading state; an empty result list gets
- *  its own quiet line. */
+/** El cuerpo del desplegable de modelos: búsqueda difusa + lista ordenada.
+ * `models === undefined` es el estado de carga del catálogo; una lista de
+ * resultados vacía tiene su propia línea discreta. */
 export function ModelMenuList({
 	models,
 	effectiveId,
@@ -42,27 +44,27 @@ export function ModelMenuList({
 	footer,
 	vision,
 }: {
-	/** The full catalog — undefined while it loads. */
+	/** El catálogo completo; undefined mientras carga. */
 	models: ModelCatalogEntry[] | undefined;
-	/** Currently effective id (the row gets the quiet highlight). */
+	/** El id efectivo actual (la fila recibe el resaltado discreto). */
 	effectiveId: string | undefined;
-	/** The effective id's provider (model-slots wave: the catalog
-	 *  federates multiple providers and ids can collide across them —
-	 *  the highlight must match BOTH coordinates or it lands on the
-	 *  wrong row). */
+	/** El proveedor del id efectivo (oleada de ranuras de modelo: el catálogo
+	 * federa varios proveedores y los ids pueden chocar entre ellos; el
+	 * resaltado debe coincidir en AMBAS coordenadas o cae en la fila
+	 * equivocada). */
 	effectiveProvider?: string;
-	/** Receives the chosen entry. */
+	/** Recibe la entrada elegida. */
 	onPick: (entry: ModelCatalogEntry) => void;
-	/** Quiet footer note under the list (context-specific). */
+	/** Nota discreta al pie de la lista (según el contexto). */
 	footer?: string;
-	/** Vision slot: only image-capable models are selectable — plus every
-	 *  custom-endpoint model, whose capability the endpoint may not report.
-	 *  Image-capable ones float to the top. */
+	/** Ranura de visión: solo se pueden elegir modelos que admiten imágenes,
+	 * más todos los modelos de endpoints personalizados, cuya capacidad puede
+	 * que el endpoint no informe. Los que admiten imágenes suben arriba. */
 	vision?: boolean;
 }) {
-	// Vision slot: built-ins must report image input; custom-endpoint models
-	// stay selectable (the endpoint may not report a modality). Image-capable
-	// ones float to the top of the list.
+	// Ranura de visión: los integrados deben declarar entrada de imagen; los modelos de endpoints
+	// personalizados siguen siendo elegibles (puede que el endpoint no informe la modalidad). Los que admiten
+	// imágenes suben al principio de la lista.
 	const visionItems = vision
 		? models?.filter((m) => m.input.includes("image") || m.provider === CUSTOM_PROVIDER.id)
 		: models;
@@ -102,8 +104,9 @@ export function ModelMenuList({
 	);
 }
 
-/** The thinking-level dropdown body — the levels this model actually
- *  supports, ✓ on the effective one. Same shape as the chat selector's. */
+/** El cuerpo del desplegable de niveles de razonamiento: los niveles que
+ * este modelo admite de verdad, con ✓ en el efectivo. Misma forma que el
+ * del selector del chat. */
 export function ThinkingMenuList({
 	levels,
 	effectiveLevel,
@@ -114,7 +117,7 @@ export function ThinkingMenuList({
 	levels: string[];
 	effectiveLevel: string | undefined;
 	onPick: (level: string) => void;
-	/** Shown instead of the list when there are no levels. */
+	/** Se muestra en lugar de la lista cuando no hay niveles. */
 	empty?: string;
 	footer?: string;
 }) {
@@ -145,11 +148,12 @@ export function ThinkingMenuList({
 	);
 }
 
-/** The provider-picker dropdown body (keys wave-5 polish, 2026-09-21:
- *  the owner wanted the Add-provider control to match the app's dropdown
- *  language) — the same fuzzy-search + arrow-walk + Enter machine over
- *  the pi-ai provider table. Rows read: provider label, its env var in
- *  quiet mono on the right. */
+/** El cuerpo del desplegable de selección de proveedor (pulido de la oleada
+ * 5 de claves, 2026-09-21: el responsable quería que el control de añadir
+ * proveedor siguiera el lenguaje de los desplegables de la app): la misma
+ * maquinaria de búsqueda difusa + recorrido con flechas + Enter sobre la
+ * tabla de proveedores de pi-ai. Las filas muestran la etiqueta del
+ * proveedor y, a la derecha, su variable de entorno en mono discreta. */
 export function ProviderMenuList({
 	providers,
 	onPick,
@@ -234,57 +238,60 @@ export function ProviderMenuList({
 	);
 }
 
-/** The reading-font dropdown's row set — the SAME fuzzy + arrow-walk +
- *  Enter machine over font families (appearance wave, 2026-09-26). The
- *  DEFAULT row (null) is a candidate like any family: it matches empty
- *  and "source"/"sans"/"default" queries, so an unfiltered list opens
- *  with the default first and a searched list drops it honestly — Enter
- *  can never pick a row that isn't on screen. Pure — exported for
- *  tests. */
+/** El conjunto de filas del desplegable de fuente de lectura: la MISMA
+ * maquinaria difusa + recorrido con flechas + Enter sobre familias de
+ * fuentes (oleada de apariencia, 2026-09-26). La fila DEFAULT (null) es una
+ * candidata como cualquier familia: coincide con consultas vacías y con
+ * "source"/"sans"/"default", así que una lista sin filtrar se abre con el
+ * valor por defecto primero y una lista filtrada lo quita honestamente:
+ * Enter nunca puede elegir una fila que no esté en pantalla. Puro;
+ * exportado para las pruebas. */
 export function fontMenuResults(query: string, families: string[]): Array<string | null> {
 	const scored = families
 		.map((f) => ({ f, s: fuzzyScore(query, f) }))
 		.filter((r) => r.s !== null)
 		.sort((a, b) => b.s! - a.s! || a.f.localeCompare(b.f))
 		.map((r) => r.f);
-	// The default row's searchable identity: the factory family + the
-	// word "default" (the suffix it renders with).
+	// La identidad buscable de la fila por defecto: la familia de fábrica + la
+	// palabra "default" (el sufijo con el que se renderiza).
 	const defaultScore = fuzzyScore(query, "Source Sans 3", "default");
 	if (query.trim() === "" || defaultScore !== null) return [null, ...scored];
 	return scored;
 }
 
-/** The custom-family action row's decision (pure, 2026-09-26): a typed
- *  query that matches NO family becomes the "Use '<query>'" custom pick —
- *  a matching family is the better pick, so the action row only exists
- *  when there is nothing else to pick. Exported for tests. */
+/** La decisión de la fila de acción de familia personalizada (pura,
+ * 2026-09-26): una consulta escrita que no coincide con NINGUNA familia se
+ * convierte en la elección personalizada "Use '<query>'"; una familia que
+ * coincide es mejor elección, así que la fila de acción solo existe cuando
+ * no hay nada más que elegir. Exportada para las pruebas. */
 export function customFamilyFor(query: string, families: string[]): string | null {
 	const trimmed = query.trim();
 	if (trimmed === "") return null;
 	return fontMenuResults(query, families).length === 0 ? trimmed : null;
 }
 
-/** The reading-font dropdown body — ONE search field (owner ask
- *  2026-09-26: "why two?"): the fuzzy machine filters the families, and
- *  when nothing matches, a "Use '<query>'" action row commits the typed
- *  text as a custom family — the old separate custom input is gone, the
- *  search field absorbed its job. `families === undefined` is the
- *  enumerating state; the curated fallback arrives as plain families with
- *  a footer that says so honestly. */
+/** El cuerpo del desplegable de fuente de lectura: UN solo campo de
+ * búsqueda (petición del responsable 2026-09-26: «¿por qué dos?»): la
+ * maquinaria difusa filtra las familias y, cuando nada coincide, una fila de
+ * acción "Use '<query>'" confirma el texto escrito como familia
+ * personalizada; la antigua entrada personalizada aparte ya no existe, el
+ * campo de búsqueda absorbió su función. `families === undefined` es el
+ * estado de enumeración; la alternativa curada llega como familias simples
+ * con un pie que lo dice honestamente. */
 export function FontMenuList({
 	families,
 	effectiveFamily,
 	onPick,
 	footer,
 }: {
-	/** Enumerated font families (already deduped/sorted by the caller);
-	 *  undefined while the enumeration runs. */
+	/** Familias de fuentes enumeradas (ya deduplicadas/ordenadas por el
+	 * llamante); undefined mientras se ejecuta la enumeración. */
 	families: string[] | undefined;
-	/** The stored override (null = the factory Source Sans 3). */
+	/** La sustitución guardada (null = la Source Sans 3 de fábrica). */
 	effectiveFamily: string | null;
-	/** Receives the pick: a family string, or null for the default. */
+	/** Recibe la elección: una cadena de familia, o null para el valor por defecto. */
 	onPick: (family: string | null) => void;
-	/** Quiet footer note under the list. */
+	/** Nota discreta al pie de la lista. */
 	footer?: string;
 }) {
 	const [query, setQuery] = useState("");
@@ -302,8 +309,8 @@ export function FontMenuList({
 	}, [menuIdx]);
 
 	const results = fontMenuResults(query, families ?? []);
-	// The custom-family action row: only when a typed query matches
-	// nothing (a matching family is the better pick). Enter picks it.
+	// La fila de acción de familia personalizada: solo cuando una consulta escrita no coincide
+	// con nada (una familia que coincide es mejor elección). Enter la elige.
 	const customFamily = customFamilyFor(query, families ?? []);
 	const walkable: Array<string | null> = customFamily !== null ? ["__custom__"] : results;
 
@@ -315,7 +322,7 @@ export function FontMenuList({
 				value={query}
 				onChange={(e) => {
 					setQuery(e.target.value);
-					setMenuIdx(null); // new query → the walk restarts on Enter/↓
+					setMenuIdx(null); // consulta nueva → el recorrido vuelve a empezar con Enter/↓
 				}}
 				onKeyDown={(e) => {
 					if (e.key === "ArrowDown" || e.key === "ArrowUp") {

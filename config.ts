@@ -1,52 +1,54 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Repository root (this file is at <root>/config.ts). */
+/** Raíz del repositorio (este fichero está en <root>/config.ts). */
 export const ROOT = path.dirname(fileURLToPath(import.meta.url));
 
 /**
- * THE data-location seam (the Electron contract, 2026-09-17): LH_DATA_DIR
- * relocates every MUTABLE record — chat sessions, graph ledgers, the
- * embedding model cache — when set. The desktop shell points it at
- * userData so nothing is written inside the read-only .app bundle
- * (macOS translocation guarantees the bundle is read-only anyway).
- * Unset (plain web dev / repo work) it resolves to the repo's data/,
- * byte-for-byte as before. Read-only assets (prompts) stay ROOT-anchored
- * on purpose: they ship inside the app bundle by design.
+ * LA frontera de la ubicación de los datos (el contrato de Electron,
+ * 2026-09-17): LH_DATA_DIR reubica todo registro MUTABLE —sesiones de chat,
+ * registros del grafo, la caché del modelo de embeddings— cuando está
+ * definido. El armazón de escritorio lo apunta a userData para que no se
+ * escriba nada dentro del paquete .app de solo lectura (la translocación de
+ * macOS garantiza de todos modos que el paquete sea de solo lectura). Sin
+ * definir (desarrollo web normal / trabajo en el repo) se resuelve al data/
+ * del repo, byte a byte como antes. Los recursos de solo lectura (prompts)
+ * se anclan a ROOT a propósito: van dentro del paquete de la app por diseño.
  */
-// Mutable runtime paths are not deployment assets. Turbopack analyzes each
-// path-producing call independently, so derived paths need their own opt-out.
-// Keep ROOT/teacherPrompt traceable: read-only shipped assets still belong.
+// Las rutas mutables de tiempo de ejecución no son recursos del despliegue. Turbopack analiza cada
+// llamada que produce una ruta por separado, así que las rutas derivadas necesitan su propia exclusión.
+// ROOT/teacherPrompt siguen siendo rastreables: los recursos de solo lectura que se distribuyen sí cuentan.
 const DATA_ROOT = process.env.LH_DATA_DIR
 	? path.resolve(/* turbopackIgnore: true */ process.env.LH_DATA_DIR)
 	: path.join(/* turbopackIgnore: true */ ROOT, "data");
 
 export const PATHS = {
 	root: ROOT,
-	/** Teacher system prompt — the agent's instructions (src/agent/). */
+	/** Prompt de sistema del profesor: las instrucciones del agente (src/agent/). */
 	teacherPrompt: path.join(ROOT, "src", "agent", "system-prompt.md"),
 	data: DATA_ROOT,
-	/** Chat sessions (AI SDK UIMessage transcripts, one JSON file per chat). */
+	/** Sesiones de chat (transcripciones UIMessage del AI SDK, un fichero JSON por chat). */
 	chats: path.join(/* turbopackIgnore: true */ DATA_ROOT, "chats"),
 	graph: path.join(/* turbopackIgnore: true */ DATA_ROOT, "graph"),
-	/** Debug artifacts (env-gated): data/debug/provider-events/<chatId>.jsonl
-	 * raw provider stream recordings (src/agent/provider-events.ts). */
+	/** Artefactos de depuración (activados por entorno): data/debug/provider-events/<chatId>.jsonl
+	 * grabaciones del stream en bruto del proveedor (src/agent/provider-events.ts). */
 	debug: path.join(/* turbopackIgnore: true */ DATA_ROOT, "debug"),
 } as const;
 
-// ─── Models ────────────────────────────────────────────────────────────────
-// BYOK ALL THE WAY DOWN (owner, 2026-09-22): there are NO factory default
-// models. Every engine resolves from the user's model slots (settings.json
-// models section: strong/cheap/vision) over per-role/ChatSettings overrides,
-// and a chain that ends empty REFUSES honestly (503 models_not_configured).
-// .env stays for secrets (API keys) only. What remains here are ENGINE
-// CONSTRUCTION FACTS: the thinking-level scale and the default order.
+// ─── Modelos ───────────────────────────────────────────────────────────────
+// BYOK DE ARRIBA ABAJO (responsable, 2026-09-22): NO hay modelos por defecto
+// de fábrica. Todo motor se resuelve a partir de las ranuras de modelo del usuario (sección
+// models de settings.json: strong/cheap/vision) sobre las sustituciones por rol/ChatSettings,
+// y una cadena que acaba vacía SE NIEGA honestamente (503 models_not_configured).
+// .env se queda solo para los secretos (claves de API). Lo que queda aquí son HECHOS DE
+// CONSTRUCCIÓN DEL MOTOR: la escala de niveles de razonamiento y el orden por defecto.
 
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
-/** Every agent role in the app. The conversation pair (prober/teacher)
- *  resolves chat.model → strong slot; background roles resolve their own
- *  override → tier slot (core/settings-resolution.ts ROLE_SLOT). */
+/** Todos los roles de agente de la app. La pareja de conversación
+ * (prober/teacher) resuelve chat.model → ranura strong; los roles en segundo
+ * plano resuelven su propia sustitución → ranura del nivel (ROLE_SLOT de
+ * core/settings-resolution.ts). */
 export type ModelRole =
 	| "prober"
 	| "teacher"
@@ -59,100 +61,116 @@ export type ModelRole =
 	| "sideQuestion";
 
 /**
- * The LIVE graph store (src/store/graph.ts) — owned by the app's extraction
- * pipeline. Line shapes: src/core/contracts.ts. CHAINS ARE THE STORED
- * TRUTH (owner, 2026-09-30): edges are a derived view, never stored.
+ * El almacén del grafo EN VIVO (src/store/graph.ts), propiedad del proceso
+ * de extracción de la app. Formas de las líneas: src/core/contracts.ts. LAS
+ * CADENAS SON LA VERDAD GUARDADA (responsable, 2026-09-30): las aristas son
+ * una vista derivada, nunca se guardan.
  */
 export const LEDGER_FILES = {
 	nodes: path.join(/* turbopackIgnore: true */ PATHS.graph, "nodes.jsonl"),
 	chains: path.join(/* turbopackIgnore: true */ PATHS.graph, "chains.jsonl"),
 	sessions: path.join(/* turbopackIgnore: true */ PATHS.graph, "sessions.jsonl"),
-	/** Per-message extraction coverage (contracts/graph.ts CoverageEntry;
-	 *  the checkpoint's replacement for chat extractions — notes keep
-	 *  sessions.jsonl, whole-file as they are). */
+	/** Cobertura de extracción por mensaje (CoverageEntry de contracts/graph.ts;
+	 * el sustituto del punto de control para las extracciones de chats: las
+	 * notas conservan sessions.jsonl, de fichero completo, tal como están). */
 	coverage: path.join(/* turbopackIgnore: true */ PATHS.graph, "coverage.jsonl"),
 } as const;
 
 /**
- * Notes-import bookkeeping (NOT a ledger): one JSON map, src-id → NotesSource
- * record (contracts/graph.ts) — the file path + import time + the run's usage
- * log. Read-modify-write like a chat file, not append-only like the ledgers.
+ * Contabilidad de la importación de notas (NO es un registro de eventos):
+ * un único mapa JSON, src-id → registro NotesSource (contracts/graph.ts):
+ * la ruta del fichero + la hora de importación + el log de uso de la
+ * ejecución. Se lee-modifica-escribe como un fichero de chat, no se añade
+ * al final como los registros.
  */
 export const SOURCES_FILE = path.join(/* turbopackIgnore: true */ PATHS.graph, "sources.json");
-/** Presentation-only source names/folder placement; never extraction identity. */
+/** Nombres de fuentes/colocación en carpetas solo de presentación; nunca la identidad de extracción. */
 export const SOURCE_ORGANIZATION_FILE = path.join(/* turbopackIgnore: true */ PATHS.graph, "source-organization.json");
-/** The layout ledger (read-modify-write like sources.json): nodeId →
- *  {x,y} resting positions from the incremental settle (core/layout.ts).
- *  Carries an updatedAt stamp for future live-physics conflict handling. */
+/** El registro de disposición (se lee-modifica-escribe como sources.json):
+ * nodeId → posiciones de reposo {x,y} del asentamiento incremental
+ * (core/layout.ts). Lleva un sello updatedAt para la futura gestión de
+ * conflictos con física en vivo. */
 export const POSITIONS_FILE = path.join(/* turbopackIgnore: true */ PATHS.graph, "positions.json");
 
 /**
- * Graph render settings (the settings-panel controls): one small JSON blob,
- * read-modify-write. Shared shape/sanitizer: src/core/render-settings.ts.
+ * Ajustes de renderizado del grafo (los controles del panel de ajustes): un
+ * pequeño blob JSON que se lee-modifica-escribe. Forma/saneador compartidos:
+ * src/core/render-settings.ts.
  */
 export const RENDER_SETTINGS_FILE = path.join(/* turbopackIgnore: true */ PATHS.graph, "render-settings.json");
 
-/** The graph-family FORMAT STAMP sidecar (schema-versioning wave,
- *  2026-10-10): one version for the whole family — the four JSONL ledgers,
- *  sources.json, render-settings.json. LAZY v1: absent = v1; the first
- *  graph-family write creates it. positions.json is REBUILDABLE and rides
- *  along unversioned by design (owner ruling). */
+/** El fichero adjunto del SELLO DE FORMATO de la familia del grafo (oleada
+ * de versionado de esquemas, 2026-10-10): una versión para toda la familia:
+ * los cuatro registros JSONL, sources.json y render-settings.json. v1
+ * PEREZOSA: ausente = v1; la primera escritura de la familia del grafo lo
+ * crea. positions.json es RECONSTRUIBLE y va sin versionar a propósito
+ * (decisión del responsable). */
 export const GRAPH_FORMAT_FILE = path.join(/* turbopackIgnore: true */ PATHS.graph, "format.json");
 
 /**
- * THE USER SETTINGS RECORD (settings-storage wave, 2026-09-19): one
- * versioned, DELTA-shaped JSON blob at the data-dir seam holding every
- * non-secret product preference — general, agent (background
- * model/thinking overrides + tool toggles + prompt-override switches),
- * appearance, graph. Explicit user choices only: ABSENT keys resolve to the
- * factory defaults compiled into src/core/settings.ts (FACTORY_SETTINGS), so
- * a software update that adds a knob (new tool, new role, new appearance
- * field) needs no migration — old records simply lack the new keys. The
- * version field is a PRIVATE schema counter for breaking shape changes
- * only (field renamed/meaning changed), unrelated to the app release
- * version. Secrets (API keys, login tokens) NEVER live here — auth.json /
- * .env.local keep that role. (The `chat` default-settings section died
- * with per-session models, owner 2026-09-28 — sessions own their model
- * from birth, stamped from the strong slot.)
+ * EL REGISTRO DE AJUSTES DEL USUARIO (oleada de almacenamiento de ajustes,
+ * 2026-09-19): un único blob JSON versionado y con forma DELTA en la
+ * frontera del directorio de datos, que guarda todas las preferencias no
+ * secretas del producto: general, agent (sustituciones de
+ * modelo/razonamiento en segundo plano + conmutadores de herramientas +
+ * interruptores de sustitución de prompts), appearance, graph. Solo
+ * elecciones explícitas del usuario: las claves AUSENTES se resuelven a los
+ * valores de fábrica compilados en src/core/settings.ts (FACTORY_SETTINGS),
+ * así que una actualización del software que añade un control (herramienta
+ * nueva, rol nuevo, campo de apariencia nuevo) no necesita migración: los
+ * registros antiguos simplemente no tienen las claves nuevas. El campo de
+ * versión es un contador PRIVADO del esquema solo para cambios de forma
+ * incompatibles (campo renombrado/significado cambiado), sin relación con la
+ * versión de la app. Los secretos (claves de API, tokens de inicio de
+ * sesión) NUNCA viven aquí: ese papel lo tienen auth.json / .env.local. (La
+ * sección de ajustes por defecto `chat` murió con los modelos por sesión,
+ * responsable 2026-09-28: las sesiones son dueñas de su modelo desde su
+ * nacimiento, sellado a partir de la ranura strong.)
  */
 export const SETTINGS_FILE = path.join(/* turbopackIgnore: true */ DATA_ROOT, "settings.json");
 
 /**
- * User prompt-override files (settings-storage wave, 2026-09-19): the
- * per-segment system-prompt overrides mirroring the SOURCE layout
- * (src/agent/prompts/) — the shared base as prompts/system-prompt.md,
- * fragments as prompts/teacher/<file> / prompts/prober/<file>. File
- * PRESENCE alone is not the override: settings.json's agent.prompts map
- * (segmentPath → boolean) is the explicit switch, so a user can keep a
- * customized file on disk but run the source default to compare. The
- * segment list itself is ALWAYS derived from source at runtime (the
- * loader in src/store/prompt-overrides.ts) — code updates that add,
- * remove, or reorder fragments adapt automatically; an override keyed to
- * a vanished segment stops composing but stays on disk.
+ * Ficheros de sustitución de prompts del usuario (oleada de almacenamiento
+ * de ajustes, 2026-09-19): las sustituciones del prompt de sistema por
+ * segmento, reflejando la disposición de la FUENTE (src/agent/prompts/): la
+ * base compartida como prompts/system-prompt.md y los fragmentos como
+ * prompts/teacher/<fichero> / prompts/prober/<fichero>. La sola PRESENCIA
+ * del fichero no es la sustitución: el mapa agent.prompts de settings.json
+ * (segmentPath → boolean) es el interruptor explícito, así que un usuario
+ * puede tener un fichero personalizado en disco y ejecutar el valor por
+ * defecto de la fuente para comparar. La lista de segmentos se deriva
+ * SIEMPRE de la fuente en tiempo de ejecución (el cargador de
+ * src/store/prompt-overrides.ts): las actualizaciones del código que
+ * añaden, quitan o reordenan fragmentos se adaptan solas; una sustitución
+ * asociada a un segmento desaparecido deja de componerse pero se queda en
+ * disco.
  */
 export const PROMPTS_OVERRIDE_DIR = path.join(/* turbopackIgnore: true */ DATA_ROOT, "prompts");
 
 /**
- * Imported custom themes (theme wave, 2026-11-04): one `<id>.json` per
- * theme (core/themes.ts ThemeFile shape), written by POST /api/themes and
- * listed beside the built-in presets. The settings record names the
- * active one by id (appearance.theme).
+ * Temas personalizados importados (oleada de temas, 2026-11-04): un
+ * `<id>.json` por tema (la forma ThemeFile de core/themes.ts), escrito por
+ * POST /api/themes y listado junto a los predefinidos integrados. El
+ * registro de ajustes nombra el activo por su id (appearance.theme).
  */
 export const THEMES_DIR = path.join(/* turbopackIgnore: true */ DATA_ROOT, "themes");
 
 /**
- * THE AUTH/KEY STORE (auth-keys wave, 2026-09-19): BYOK provider keys in a
- * flat {VAR: value} JSON map — the SAME file the Electron app has always
- * hand-edited (owner decision: option A, zero migration). Desktop main.cjs
- * passes LH_AUTH_FILE pointing at userData/auth.json (mode 0600); in dev
- * (no Electron) the default is the repo-root auth.json (gitignored, same
- * pattern as .env.local — a worktree may symlink it to the master copy).
- * The SERVER reads/writes this file directly at call time (no restart to
- * change a key); it reflects the values into process.env at boot with
- * FILL-GAP precedence — real environment variables (incl. .env.local in
- * dev) always win (src/server/keys.ts). Hand-edits still work: the file is
- * re-read from disk on every API access. Secrets NEVER go in settings.json
- * — this file keeps that role, alongside .env.local.
+ * EL ALMACÉN DE AUTENTICACIÓN/CLAVES (oleada de claves de autenticación,
+ * 2026-09-19): claves de proveedor BYOK en un mapa JSON plano {VAR: valor},
+ * el MISMO fichero que la app de Electron siempre ha editado a mano
+ * (decisión del responsable: opción A, sin migración). main.cjs de
+ * escritorio pasa LH_AUTH_FILE apuntando a userData/auth.json (modo 0600);
+ * en desarrollo (sin Electron) el valor por defecto es el auth.json de la
+ * raíz del repo (ignorado por git, el mismo patrón que .env.local; un
+ * worktree puede enlazarlo simbólicamente a la copia maestra). El SERVIDOR
+ * lee/escribe este fichero directamente en el momento de la llamada (sin
+ * reiniciar para cambiar una clave); al arrancar refleja los valores en
+ * process.env con precedencia de RELLENO DE HUECOS: las variables de entorno
+ * reales (incluido .env.local en desarrollo) siempre ganan
+ * (src/server/keys.ts). Las ediciones a mano siguen funcionando: el fichero
+ * se vuelve a leer del disco en cada acceso a la API. Los secretos NUNCA van
+ * en settings.json; este fichero tiene ese papel, junto a .env.local.
  */
 export const AUTH_FILE = process.env.LH_AUTH_FILE
 	? path.resolve(/* turbopackIgnore: true */ process.env.LH_AUTH_FILE)

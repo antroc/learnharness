@@ -1,16 +1,19 @@
 "use client";
 /**
- * THE THEME PICKER (theme wave, 2026-11-04): a grid of theme cards — the
- * presets, then the imported customs, then the dashed "Import JSON" card —
- * under a header that names the active theme and offers "Export JSON".
+ * EL SELECTOR DE TEMAS (oleada de temas, 2026-11-04): una cuadrícula de
+ * tarjetas de tema —los predefinidos, después los personalizados importados
+ * y después la tarjeta discontinua "Import JSON"— bajo una cabecera que
+ * nombra el tema activo y ofrece "Export JSON".
  *
- * Each card previews its theme with literal colors (never the page's live
- * tokens): an "Aa ai" sample on the theme background (text + accent ink)
- * and four dots — surface, accent, error, success. Picking a card only
- * changes `appearance.theme`; overrides ride along untouched. Imports POST
- * the file's JSON to /api/themes (the server validates; its error shows in
- * the import card). Export downloads the ACTIVE theme with every override
- * applied — re-importing it reproduces what is on screen.
+ * Cada tarjeta previsualiza su tema con colores literales (nunca los tokens
+ * en vivo de la página): una muestra "Aa ai" sobre el fondo del tema (texto
+ * + tinta de acento) y cuatro puntos: superficie, acento, error y éxito.
+ * Elegir una tarjeta solo cambia `appearance.theme`; las sustituciones
+ * viajan intactas. Las importaciones hacen POST del JSON del fichero a
+ * /api/themes (el servidor valida; su error se muestra en la tarjeta de
+ * importación). La exportación descarga el tema ACTIVO con todas las
+ * sustituciones aplicadas: volver a importarlo reproduce lo que hay en
+ * pantalla.
  */
 
 import { useRef, useState } from "react";
@@ -18,8 +21,9 @@ import { CheckIcon, DownloadIcon, Trash2Icon, UploadIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { exportThemeFile, type AppearanceSettings, type Theme } from "@/src/core";
 
-/** The selected card's frame: a 2px gap in the dialog surface, then a 1px
- *  ring in the theme accent (the check by the name does the rest). */
+/** El marco de la tarjeta seleccionada: un hueco de 2px en la superficie
+ * del diálogo y después un anillo de 1px en el acento del tema (la marca
+ * junto al nombre hace el resto). */
 const SELECTED_FRAME = "shadow-[0_0_0_2px_var(--card),0_0_0_3px_var(--lh-accent)]";
 
 function Dot({ color, edge }: { color: string; edge?: string }) {
@@ -32,7 +36,7 @@ function Dot({ color, edge }: { color: string; edge?: string }) {
 	);
 }
 
-/** The literal-color miniature: never reads the page tokens. */
+/** La miniatura con colores literales: nunca lee los tokens de la página. */
 function Preview({ theme }: { theme: Theme }) {
 	const c = theme.colors;
 	return (
@@ -54,7 +58,7 @@ function Preview({ theme }: { theme: Theme }) {
 	);
 }
 
-/** Save a JSON file through a transient object URL (browser + Electron). */
+/** Guarda un fichero JSON mediante una URL de objeto transitoria (navegador + Electron). */
 function downloadJson(filename: string, data: unknown) {
 	const url = URL.createObjectURL(new Blob([`${JSON.stringify(data, null, "\t")}\n`], { type: "application/json" }));
 	const a = document.createElement("a");
@@ -64,7 +68,7 @@ function downloadJson(filename: string, data: unknown) {
 	URL.revokeObjectURL(url);
 }
 
-/** The Theme row of Settings → Appearance (see the file header). */
+/** La fila Theme de Ajustes → Appearance (ver la cabecera del fichero). */
 export function ThemeCards({
 	themes,
 	active,
@@ -73,16 +77,16 @@ export function ThemeCards({
 	onRemoved,
 	onImported,
 }: {
-	/** Presets, then customs (the provider's catalog). */
+	/** Los predefinidos y después los personalizados (el catálogo del provider). */
 	themes: readonly Theme[];
-	/** The active theme — its card is pressed. */
+	/** El tema activo: su tarjeta está pulsada. */
 	active: Theme;
-	/** The record delta — the export applies its overrides. */
+	/** El delta del registro: la exportación aplica sus sustituciones. */
 	appearance: AppearanceSettings | undefined;
 	onSelect: (id: string) => void;
-	/** After a successful DELETE (the catalog must be re-read). */
+	/** Tras un DELETE con éxito (hay que volver a leer el catálogo). */
 	onRemoved: (theme: Theme) => void;
-	/** After a successful import (the catalog must be re-read). */
+	/** Tras una importación con éxito (hay que volver a leer el catálogo). */
 	onImported: (theme: Theme) => void;
 }) {
 	const fileRef = useRef<HTMLInputElement>(null);
@@ -205,7 +209,7 @@ export function ThemeCards({
 					data-testid="theme-import-file"
 					onChange={(e) => {
 						const file = e.target.files?.[0];
-						e.target.value = ""; // the same file can be picked again
+						e.target.value = ""; // se puede volver a elegir el mismo fichero
 						if (file) void importFile(file);
 					}}
 				/>

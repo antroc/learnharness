@@ -5,7 +5,7 @@ import { PluginMountPoint } from "@/components/plugins";
 import { PluginSettingsRows } from "@/components/plugin-ui-host";
 import { SettingsSection } from "./controls";
 
-/** Plugin persistence belongs to the registration; the host only presents it. */
+/** La persistencia del plugin pertenece al registro; el host solo la presenta. */
 export function PluginSettingsPage({ plugin }: { plugin: FrontendPlugin }) {
 	const { info, settings } = plugin;
 	const name = info.manifest?.name ?? info.id;

@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { fuzzyScore } from "@/src/core";
 
-/** The model picker's search, arrow-walk, row styling and scrolling machine.
- * Models and dictation languages supply only their catalog and row content.
- * The caller owns the shared MenuShell and dismissal behavior. */
+/** La maquinaria de búsqueda, recorrido con flechas, estilo de filas y
+ * desplazamiento del selector de modelos. Los modelos y los idiomas de
+ * dictado solo aportan su catálogo y el contenido de las filas. El llamante
+ * es dueño del MenuShell compartido y del comportamiento de cierre. */
 export function SearchMenuList<T>({
 	items, itemKey, searchTerms, compare, prioritize, isSelected, onPick, renderItem,
 	searchTestid, listTestid, optionTestid, placeholder, ariaLabel, loading, empty,
@@ -15,9 +16,10 @@ export function SearchMenuList<T>({
 	itemKey: (item: T) => string;
 	searchTerms: (item: T) => string[];
 	compare?: (a: T, b: T) => number;
-	/** Optional grouping key: items it answers true for sort ahead of the
-	 *  rest, fuzzy rank still deciding within each group (a stable partition,
-	 *  never a filter — nothing is hidden). */
+	/** Clave de agrupación opcional: los elementos para los que devuelve true
+	 * se ordenan delante del resto, y la puntuación difusa sigue decidiendo
+	 * dentro de cada grupo (una partición estable, nunca un filtro: no se oculta
+	 * nada). */
 	prioritize?: (item: T) => boolean;
 	isSelected: (item: T) => boolean;
 	onPick: (item: T) => void;

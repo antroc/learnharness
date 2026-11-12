@@ -1,24 +1,28 @@
 "use client";
 /**
- * THE SETTINGS DIALOG (settings-app wave, 2026-09-20): the thin settings
- * page graduated into the designed surface — a centered modal over
- * everything, left section nav + one scrolling content column.
+ * EL DIÁLOGO DE AJUSTES (oleada de la app de ajustes, 2026-09-20): la página
+ * de ajustes ligeros se graduó a la superficie diseñada: un modal centrado
+ * sobre todo, con navegación de secciones a la izquierda + una única columna
+ * de contenido con desplazamiento.
  *
- * Owner decisions this wave:
- * - Dialog, not a page: opens over whatever screen you're on (the payoff:
- *   appearance edits restyle the chat LIVE behind the dialog). Escape,
- *   backdrop, and ✕ all close. Modal-only — /settings redirects, so
- *   nothing links into a dead surface.
- * - Left section nav in the app's mono chrome, with small decorative
- *   Lucide icons for the built-in sections; active = bg-accent. Icons
- *   inherit the row's color, without a separate palette.
- * - The dialog is surface-agnostic by construction: the sections talk to
- *   /api/settings* and localStorage only, so this shell can be re-mounted
- *   as a true OS window in the Electron round with near-zero churn.
+ * Decisiones del responsable en esta oleada:
+ * - Diálogo, no página: se abre sobre la pantalla en la que estés (la
+ *   recompensa: las ediciones de apariencia cambian el estilo del chat EN
+ *   VIVO detrás del diálogo). Escape, el fondo y ✕ lo cierran. Solo modal:
+ *   /settings redirige, así que nada enlaza a una superficie muerta.
+ * - Navegación de secciones a la izquierda con la tipografía mono de la
+ *   interfaz de la app, con pequeños iconos decorativos de Lucide para las
+ *   secciones integradas; activa = bg-accent. Los iconos heredan el color
+ *   de la fila, sin paleta propia.
+ * - El diálogo es agnóstico de la superficie por construcción: las secciones
+ *   solo hablan con /api/settings* y localStorage, así que este armazón se
+ *   puede volver a montar como una verdadera ventana del SO en la ronda de
+ *   Electron casi sin cambios.
  *
- * The record + the single `write` seam moved here from the thin page:
- * one record instance for the whole dialog, sections write through it,
- * switching sections never refetches.
+ * El registro + la única frontera `write` se trasladaron aquí desde la
+ * página ligera: una única instancia del registro para todo el diálogo, las
+ * secciones escriben a través de ella y cambiar de sección nunca vuelve a
+ * pedir nada.
  */
 
 import {
@@ -61,9 +65,9 @@ import { usePlugins } from "@/components/plugins";
 import { ChatGPTUIProvider } from "./chatgpt-connection.tsx";
 import { NativeSubscriptionUIProvider } from "./subscription-connections.tsx";
 
-/** Owner (2026-09-20): hints earn their place — mechanics-explaining
- *  prose is out; only the keyboard note stays (storage location is a
- *  real question users ask). */
+/** Responsable (2026-09-20): las pistas tienen que ganarse su sitio; fuera
+ * la prosa que explica la mecánica; solo se queda la nota del teclado (la
+ * ubicación del almacenamiento es una pregunta real de los usuarios). */
 const SECTIONS = [
 	{ id: "keys", label: "Providers", icon: KeyIcon },
 	{ id: "agent", label: "Agent", icon: BotIcon },
@@ -74,14 +78,14 @@ const SECTIONS = [
 ] as const;
 type SectionId = (typeof SECTIONS)[number]["id"] | "plugins" | "core-plugins" | `plugin:${string}`;
 
-/** `open(section?, row?)` — the optional ROW deep-links into the Keys
- *  section with that row unfolded (zero-keys wave: the dictation error's
- *  click lands on the Deepgram row). `row` is the KEY ID (the env-var
- *  name, e.g. DEEPGRAM_API_KEY — KeysSection's openRow state), not the
- *  row's testid. */
+/** `open(section?, row?)`: la FILA opcional enlaza directamente a la sección
+ * Keys con esa fila desplegada (oleada de cero claves: el clic del error de
+ * dictado llega a la fila de Deepgram). `row` es el ID DE LA CLAVE (el
+ * nombre de la variable de entorno, p. ej. DEEPGRAM_API_KEY: el estado
+ * openRow de KeysSection), no el testid de la fila. */
 const DialogContext = createContext<{ open: (section?: string, row?: string) => void }>({ open: () => {} });
-// Authority belongs to the persistent Settings host, not a particular field or
-// open/close lifetime: a delayed response must not roll back a newer ACK.
+// La autoridad pertenece al host persistente de Settings, no a un campo concreto ni a
+// una vida de apertura/cierre: una respuesta tardía no debe deshacer un ACK más reciente.
 interface SettingsWriteOrder {
 	issued: number;
 	acknowledged: number;
@@ -91,9 +95,10 @@ interface SettingsWriteOrder {
 }
 const WriteOrderContext = createContext<RefObject<SettingsWriteOrder> | null>(null);
 
-/** AppShell-level mount: the sidebar row and the mod+, chord call this.
- *  `open(section)` lands the dialog on a specific section (the first-run
- *  setup flow deep-links to Keys when no provider key exists yet). */
+/** Montaje a nivel de AppShell: la fila de la barra lateral y el atajo mod+,
+ * llaman a esto. `open(section)` abre el diálogo en una sección concreta (el
+ * flujo de configuración del primer uso enlaza directamente a Keys cuando
+ * aún no existe ninguna clave de proveedor). */
 export function SettingsDialogProvider({
 	children,
 }: {
@@ -107,8 +112,8 @@ export function SettingsDialogProvider({
 	const [landOnRow, setLandOnRow] = useState<string | null>(null);
 	const [navigationRequest, setNavigationRequest] = useState(0);
 	const open = useCallback((section?: string, row?: string) => {
-		// Returning to this singleton is a bounded request, not a forced pop.
-		// Controlled layers may accept closure before React commits it.
+		// Volver a este singleton es una petición acotada, no un pop forzado.
+		// Las capas controladas pueden aceptar el cierre antes de que React lo confirme.
 		if (interactions.getLayer(layerId) && interactions.popTo(layerId) !== "closed") return;
 		interactions.invalidateOpening();
 		setNavigationRequest(request => request + 1);
@@ -151,11 +156,11 @@ function SettingsDialog({
 	initialSection: SectionId;
 	navigationRequest: number;
 	layerId: string;
-	/** The keys-section row to unfold (see DialogContext above). */
+	/** La fila de la sección keys que se despliega (ver DialogContext arriba). */
 	initialRow: string | null;
 }) {
-	// Keep the original visual frame and plain dim backdrop. The shared
-	// untransformed boundary also contains this modal's portaled menus.
+	// Conserva el marco visual original y el fondo atenuado simple. El límite
+	// compartido sin transformar contiene también los menús en portal de este modal.
 	return <SettingsDialogBody onClose={onClose} initialSection={initialSection}
 		initialRow={initialRow} navigationRequest={navigationRequest}
 		renderFrame={frame => <HostDialog open layerId={layerId} ownerId={null}
@@ -166,8 +171,8 @@ function SettingsDialog({
 			}}>{frame.props.children}</HostDialog>} />;
 }
 
-/** The dialog without the portal/backdrop — the SSR-testable frame
- *  (portals render nothing under renderToStaticMarkup). */
+/** El diálogo sin el portal/fondo: el marco comprobable en SSR (los portales
+ * no renderizan nada con renderToStaticMarkup). */
 export function SettingsDialogBody({
 	onClose,
 	initialSection = "keys",
@@ -176,13 +181,14 @@ export function SettingsDialogBody({
 	renderFrame,
 }: {
 	onClose: () => void;
-	/** The runtime supplies the shared modal shell; standalone SSR retains the frame. */
+	/** El tiempo de ejecución aporta el armazón modal compartido; el SSR independiente conserva el marco. */
 	renderFrame?: (frame: ReactElement<{ children: ReactNode }>) => ReactNode;
 	initialSection?: SectionId;
-	/** Repeated opens must retarget even when the requested section is unchanged. */
+	/** Las aperturas repetidas deben redirigir aunque la sección pedida no cambie. */
 	navigationRequest?: number;
-	/** The keys row to unfold on arrival (null = none). While-open
-	 *  retargets follow it exactly like initialSection below. */
+	/** La fila de keys que se despliega al llegar (null = ninguna). Las
+	 * redirecciones con el diálogo abierto la siguen exactamente igual que a
+	 * initialSection, más abajo. */
 	initialRow?: string | null;
 }) {
 	const { onAppearanceChange } = useAppearance();
@@ -195,16 +201,16 @@ export function SettingsDialogBody({
 	);
 	const [error, setError] = useState<string | null>(null);
 	const [fileAccessError, setFileAccessError] = useState<string | null>(null);
-	// MenuShell open-count — drives the content column's scroll lock.
+	// Recuento de MenuShell abiertos: controla el bloqueo de desplazamiento de la columna de contenido.
 	const [openMenus, setOpenMenus] = useState(0);
 	const contentRef = useRef<HTMLDivElement | null>(null);
-	// Scroll-lock (fix wave, owner ruling: the scrollbar MAY stay,
-	// scrolling must NOT happen, nothing may move): the content column
-	// keeps overflow-y-auto — the scrollbar and every width stay exactly
-	// as they are — and while any MenuShell is open, non-passive wheel +
-	// touchmove listeners on the column preventDefault. React attaches
-	// synthetic wheel/touch passively at the root, so this needs the
-	// native-listener ref seam.
+	// Bloqueo del desplazamiento (oleada de arreglos, decisión del responsable: la barra PUEDE quedarse,
+	// NO debe haber desplazamiento, nada puede moverse): la columna de contenido
+	// mantiene overflow-y-auto —la barra de desplazamiento y todas las anchuras se quedan exactamente
+	// como están— y, mientras haya algún MenuShell abierto, unos listeners no pasivos de wheel +
+	// touchmove en la columna hacen preventDefault. React engancha los eventos
+	// sintéticos de rueda/táctiles de forma pasiva en la raíz, así que esto necesita la
+	// frontera de ref con listener nativo.
 	useEffect(() => {
 		const el = contentRef.current;
 		if (!el || openMenus === 0) return;
@@ -228,11 +234,11 @@ export function SettingsDialogBody({
 		};
 	}, []);
 	const [active, setActive] = useState<SectionId>(initialSection);
-	// A deep-link fired while the dialog is ALREADY open (first exercised by
-	// the wave-6 embedding picker's "Add a provider key first…" link — the
-	// picker itself died with wave 7, the mechanism is general) changes
-	// initialSection under our feet — follow it, or the link silently does
-	// nothing.
+	// Un enlace directo lanzado con el diálogo YA abierto (lo estrenó el enlace
+	// "Add a provider key first…" del selector de embeddings de la oleada 6; el
+	// selector murió con la oleada 7, pero el mecanismo es general) cambia
+	// initialSection bajo nuestros pies: hay que seguirlo o el enlace no hace
+	// nada en silencio.
 	useEffect(() => {
 		setActive(initialSection);
 	}, [initialSection, navigationRequest]);
@@ -240,8 +246,8 @@ export function SettingsDialogBody({
 	const enabledPlugins = snapshot.plugins.filter(plugin => plugin.info.enabled);
 	const activePluginId = active.startsWith("plugin:") ? active.slice("plugin:".length) : null;
 	const activePlugin = enabledPlugins.find(plugin => plugin.info.id === activePluginId);
-	// Keep a deep link pending while discovery loads. Once discovery settles,
-	// disabled/uninstalled destinations return to management, never stale DOM.
+	// Mantiene pendiente un enlace directo mientras carga el descubrimiento. Cuando se asienta,
+	// los destinos desactivados/desinstalados vuelven a la gestión, nunca a un DOM obsoleto.
 	const missingPlugin = activePluginId !== null && !activePlugin && !snapshot.loading;
 	const management = snapshot.plugins.find(plugin => plugin.info.id === activePluginId)?.info.origin === "core" ? "core-plugins" : "plugins";
 	useEffect(() => {
@@ -255,8 +261,8 @@ export function SettingsDialogBody({
 		...enabledPlugins.map(plugin => ({ id: `plugin:${plugin.info.id}` as const, label: plugin.info.manifest?.name ?? plugin.info.id })),
 	];
 
-	// A save may finish after its original dialog closes. Publish its
-	// acknowledged snapshot to whichever Settings instance is mounted now.
+	// Un guardado puede terminar después de que se cierre su diálogo original. Publica su
+	// instantánea confirmada en la instancia de Settings que esté montada ahora.
 	useEffect(() => {
 		const authority = writeOrder.current;
 		const apply = (record: UserSettings, fileAccessError: string | null) => {
@@ -267,8 +273,8 @@ export function SettingsDialogBody({
 		return () => { authority.listeners.delete(apply); };
 	}, [writeOrder]);
 
-	// Fetch once per dialog mount. 200 {settings: null} is FIRST BOOT.
-	// A GET started before a newer acknowledged save cannot roll it back.
+	// Una petición por cada montaje del diálogo. 200 {settings: null} es el PRIMER ARRANQUE.
+	// Un GET iniciado antes de un guardado confirmado más reciente no puede deshacerlo.
 	useEffect(() => {
 		const authority = writeOrder.current;
 		const acknowledgedAtRead = authority.acknowledged;
@@ -290,9 +296,10 @@ export function SettingsDialogBody({
 		return () => { alive = false; };
 	}, [writeOrder]);
 
-	/** ONE writer for the whole dialog: PUT the whole section, keep the
-	 *  record mirror in sync, surface route errors inline (a 400 is a
-	 *  schema mistake caught by the validation surface). */
+	/** UN único escritor para todo el diálogo: hace PUT de la sección completa,
+	 * mantiene sincronizado el espejo del registro y muestra en línea los
+	 * errores de la ruta (un 400 es un error de esquema detectado por la
+	 * superficie de validación). */
 	const write = useCallback(
 		async (
 			section: "general" | "agent" | "models" | "appearance" | "graph" | "compaction",
@@ -313,8 +320,8 @@ export function SettingsDialogBody({
 					if (ticket === writeOrder.current.issued) setError(`${section}: ${detail.error ?? res.status}`);
 					return false;
 				}
-				// Only the acknowledged record is canonical: never substitute the
-				// request body, including when normalization leaves the old value.
+				// Solo el registro confirmado es canónico: nunca se sustituye por el cuerpo de la
+				// petición, ni siquiera cuando la normalización deja el valor antiguo.
 				const reply = (await res.json().catch(() => null)) as { settings?: UserSettings; fileAccessError?: string } | null;
 				const stored = reply?.settings;
 				if (!stored || typeof stored !== "object" || Array.isArray(stored) || stored.version !== 1 ||
@@ -327,8 +334,8 @@ export function SettingsDialogBody({
 					writeOrder.current.record = stored;
 					writeOrder.current.fileAccessError = reply?.fileAccessError ?? null;
 					for (const apply of writeOrder.current.listeners) apply(stored, writeOrder.current.fileAccessError);
-					// Every accepted response is a full canonical record, including
-					// appearance saved by an earlier, still-pending section request.
+					// Cada respuesta aceptada es un registro canónico completo, incluida la
+					// apariencia guardada por una petición de sección anterior aún pendiente.
 					onAppearanceChange(stored.appearance);
 				}
 				notifySettingsSaved(section);
@@ -351,11 +358,11 @@ export function SettingsDialogBody({
 			className="settings-dialog-pop flex h-[620px] max-h-[85vh] w-[920px] max-w-[90vw] flex-col overflow-hidden rounded-md border border-border bg-card shadow-xl"
 			onClick={(e) => e.stopPropagation()}
 		>
-			{/* Header — the app's quiet CMU title language. */}
+			{/* Cabecera: el lenguaje discreto de títulos CMU de la app. */}
 			<header className="flex h-15 shrink-0 items-center gap-3 border-b border-border px-5">
 				<h2 className="font-title text-2xl tracking-tight">Settings</h2>
 				<Hint
-						// Esc closes through the shared interaction owner.
+						// Esc cierra a través del dueño compartido de las interacciones.
 						label="Close"
 						binding="escape"
 						side="left"
@@ -381,8 +388,8 @@ export function SettingsDialogBody({
 			</header>
 
 			<div className="flex min-h-0 flex-1">
-				{/* Left nav — mono labels and theme-inherited decorative icons,
-					    active = bg-accent. */}
+				{/* Navegación izquierda: etiquetas mono e iconos decorativos que heredan
+					    el tema; activa = bg-accent. */}
 				<nav
 					aria-label="Settings sections"
 					data-testid="settings-nav"
@@ -410,12 +417,12 @@ export function SettingsDialogBody({
 					))}
 				</nav>
 
-				{/* Content column — one section at a time, this scrolls — and
-				    LOCKS while any MenuShell is open (owner ruling: no
-				    scrolling with a dropdown down; MenuShell announces
-				    open/close, the count keeps overlap honest). The lock
-				    intercepts wheel/touch instead of hiding the scrollbar —
-				    nothing may shift when the lock engages. */}
+				{/* Columna de contenido: una sección cada vez; esta se desplaza y se
+				    BLOQUEA mientras haya algún MenuShell abierto (decisión del
+				    responsable: no se desplaza con un desplegable abierto; MenuShell
+				    anuncia la apertura/cierre y el recuento mantiene honesto el
+				    solapamiento). El bloqueo intercepta la rueda/el táctil en vez de
+				    ocultar la barra de desplazamiento: nada puede moverse al activarse. */}
 				<div
 					ref={contentRef}
 					className="min-w-0 flex-1 overflow-y-auto"

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { BrailleSpinner } from "@/components/braille-spinner";
 import { SettingsRow, Toggle } from "./controls.tsx";
 
-/** Observational snapshot from electron/main.cjs; never updater permission. */
+/** Instantánea de observación de electron/main.cjs; nunca un permiso del actualizador. */
 export type UpdateState = {
 	status: "idle" | "checking" | "downloading" | "up-to-date" | "downloaded" | "error" | "disabled";
 	version: string | null;
@@ -18,9 +18,10 @@ export const MANUAL_UPDATE_HINT = "Checking downloads available updates. Downloa
 export const AUTO_UPDATE_HINT = "Check at startup and every 24 hours. Turning this off does not stop updates already in progress or ready to install.";
 const UPDATE_ERROR = "Couldn’t check for updates. Try again later.";
 
-/** Subscribe before requesting the snapshot. IPC replies and pushes can
- * cross; a revision prevents an older reply from hiding a newer event.
- * The banner shares this read-only observer so late loads recover too. */
+/** Se suscribe antes de pedir la instantánea. Las respuestas IPC y los
+ * envíos pueden cruzarse; una revisión evita que una respuesta antigua
+ * oculte un evento más reciente. El aviso comparte este observador de solo
+ * lectura para que las cargas tardías también se recuperen. */
 export function useUpdateState() {
 	const [state, setState] = useState<UpdateState | null>(null);
 	const [failed, setFailed] = useState(false);
@@ -55,8 +56,9 @@ export function updateStatusText(state: UpdateState | null): string | null {
 	}
 }
 
-/** Version information is useful everywhere; update controls only belong
- * to a shell with an available updater. Opening this row never checks. */
+/** La información de versión es útil en todas partes; los controles de
+ * actualización solo tienen sentido en un armazón con actualizador
+ * disponible. Abrir esta fila nunca comprueba nada. */
 export function UpdateSettings({
 	autoUpdate,
 	onAutoUpdateChange,

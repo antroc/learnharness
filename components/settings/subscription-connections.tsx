@@ -47,7 +47,7 @@ export function NativeSubscriptionUIProvider({ children }: { children: React.Rea
 		mounted.current = true; void refresh();
 		const off = bridge?.onChange(() => { void refresh(); notifySettingsSaved("keys"); });
 		return () => { mounted.current = false; generation.current++; off?.(); };
-		// The root-lifetime subscriber reads current state through refs.
+		// El suscriptor con la vida de la raíz lee el estado actual a través de refs.
 	}, [bridge]);
 	useEffect(() => { setPromptValue(""); }, [prompt?.id]);
 	function open(providerId: NativeSubscriptionProviderId) {
@@ -130,8 +130,8 @@ export function NativeSubscriptionConnection({ providerId, labelClassName }: { p
 	</div>;
 }
 export function SubscriptionConnections({ setup = false }: { setup?: boolean }) {
-	// Providers uses ordinary settings-label typography. The setup surface
-	// keeps its existing compact labels; dialogs and actions are untouched.
+	// Providers usa la tipografía normal de las etiquetas de ajustes. La superficie de configuración
+	// conserva sus etiquetas compactas existentes; los diálogos y las acciones no se tocan.
 	const labelClassName = setup ? undefined : "font-prose text-(length:--lh-prose-size) text-foreground";
 	return <div className="space-y-3" data-testid="subscription-connections"><ChatGPTConnection setup={setup} labelClassName={labelClassName} />{NATIVE_SUBSCRIPTIONS.map((p) => <NativeSubscriptionConnection key={p.providerId} providerId={p.providerId} labelClassName={labelClassName} />)}</div>;
 }

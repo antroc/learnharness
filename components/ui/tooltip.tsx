@@ -9,7 +9,7 @@ import { Slot, VisuallyHidden, type Tooltip as TooltipPrimitive } from "radix-ui
 import { InteractionLayerOwner, useOptionalInteractionLayers } from "@/components/interaction-layers"
 import { cn } from "@/lib/utils"
 
-/** Cold pointer rest. Keyboard focus opens immediately; no tooltip owns keys. */
+/** Reposo frío del puntero. El foco de teclado abre de inmediato; ningún tooltip es dueño de teclas. */
 export const TOOLTIP_DELAY_MS = 500
 
 type Timer = ReturnType<typeof setTimeout>
@@ -69,7 +69,7 @@ function useTooltip() {
   return value
 }
 
-/** Standard convex hull/ray intersection for the optional hover transit area. */
+/** Intersección estándar de envolvente convexa/rayo para la zona opcional de tránsito del hover. */
 function hull(points: Point[]): Point[] {
   const sorted = [...points].sort((a, b) => a.x - b.x || a.y - b.y)
   const cross = (a: Point, b: Point, c: Point) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
@@ -219,8 +219,8 @@ const PositionedContent = React.forwardRef<HTMLDivElement, ContentProps>(functio
     const cleanup = setRef(forwardedRef, node)
     if (typeof cleanup === "function") return () => { contentRef.current = null; setContent(null); cleanup() }
   }, [forwardedRef, setContent])
-  // Retain the source-compatible prop type, but passive tooltips never observe
-  // Escape. In particular there is no dismissal primitive or keyboard listener.
+  // Se conserva el tipo de prop compatible con el código fuente, pero los tooltips pasivos nunca observan
+  // Escape. En concreto, no hay ninguna primitiva de cierre ni listener de teclado.
   void onEscapeKeyDown
   void forceMount
   React.useLayoutEffect(() => { setContentId(id); return () => setContentId() }, [id, setContentId])
@@ -244,8 +244,8 @@ const PositionedContent = React.forwardRef<HTMLDivElement, ContentProps>(functio
       if (!(target instanceof Node) || contentRef.current?.contains(target)) return
       const outside = () => {
         const event = new CustomEvent("tooltip.pointerDownOutside", { cancelable: true, detail: { originalEvent } })
-        // Dispatch at the original target so the existing callback receives
-        // the normal target/currentTarget and cancellable custom-event API.
+        // Despacha en el destino original para que el callback existente reciba
+        // el target/currentTarget normal y la API de evento personalizado cancelable.
         const handler = () => latest.current.onPointerDownOutside?.(event)
         target.addEventListener(event.type, handler, { once: true })
         target.dispatchEvent(event)
