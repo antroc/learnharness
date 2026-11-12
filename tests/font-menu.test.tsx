@@ -1,10 +1,10 @@
 /**
- * The appearance wave's font dropdown (2026-09-26): the pure row-set
- * (fontMenuResults — the DEFAULT row is a fuzzy candidate, so Enter can
- * never pick a row that isn't on screen), the pick composer (null = the
- * factory Source Sans 3), the curated dev-browser fallback roster, the
- * FontMenuList SSR shape, and the emphasis-ink factory ruling (globals.css
- * no longer ships #ee928c/#6fa9d6 — unset inks are the text color).
+ * El desplegable de fuentes de la oleada de apariencia (2026-09-26): el conjunto puro de filas
+ * (fontMenuResults: la fila DEFAULT es candidata difusa, así que Enter nunca
+ * puede elegir una fila que no esté en pantalla), el compositor de la elección (null = la
+ * Source Sans 3 de fábrica), la plantilla seleccionada de alternativas del navegador de desarrollo, la
+ * forma SSR de FontMenuList y la decisión de fábrica sobre la tinta de énfasis (globals.css
+ * ya no incluye #ee928c/#6fa9d6: las tintas sin definir son el color del texto).
  */
 
 import assert from "node:assert/strict";
@@ -29,10 +29,10 @@ describe("fontMenuResults — the DEFAULT row is a candidate, never a ghost pick
 	it("the default row matches its own identity (source/sans/default), not everything", () => {
 		assert.deepEqual(fontMenuResults("georgia", families), ["Georgia"]);
 		assert.deepEqual(fontMenuResults("menlo", families), ["Menlo"]);
-		// the default row is reachable by search…
+		// la fila por defecto se alcanza con la búsqueda…
 		assert.deepEqual(fontMenuResults("source", families)[0], null);
 		assert.ok(fontMenuResults("default", families).includes(null));
-		// …and drops out of unrelated queries
+		// …y desaparece en las consultas que no tienen que ver
 		assert.ok(!fontMenuResults("georgia", families).includes(null));
 	});
 
@@ -62,8 +62,8 @@ describe("the curated dev-browser fallback", () => {
 		assert.ok(CURATED_FALLBACK_FONTS.includes("CMU Serif"));
 		assert.ok(CURATED_FALLBACK_FONTS.includes("Georgia"));
 		assert.ok(CURATED_FALLBACK_FONTS.includes("JetBrains Mono"), "the bundled mono is always offered");
-		// the factory family lives ONLY as the DEFAULT row — never a
-		// duplicated family row
+		// la familia de fábrica vive SOLO como la fila DEFAULT, nunca como una
+		// fila de familia duplicada
 		assert.ok(!CURATED_FALLBACK_FONTS.includes(DEFAULT_READING_FONT));
 	});
 });
@@ -78,9 +78,9 @@ describe("FontMenuList (thin SSR)", () => {
 		assert.ok(html.includes('data-testid="font-option-Georgia"'), "a family row");
 		assert.ok(html.includes('data-testid="font-option-Menlo"'), "another family row");
 		assert.ok(html.includes('data-testid="font-search"'), "the search field");
-		// ONE field (owner ask 2026-09-26: "why two?") — the custom-family
-		// input is gone; the search field absorbed its job via the
-		// "Use '<query>'" action row.
+		// UN campo (petición del responsable 2026-09-26: «¿por qué dos?»): el campo de familia
+		// personalizada desapareció; el campo de búsqueda absorbió su función mediante la
+		// fila de acción "Use '<query>'".
 		assert.ok(!html.includes('data-testid="font-custom-input"'), "no separate custom input");
 		assert.ok(!html.includes('data-testid="font-custom-set"'), "no Set button");
 		assert.ok(!html.includes("Type a family name"), "no second field placeholder");
@@ -119,7 +119,7 @@ describe("the appearance section's font control (thin SSR)", () => {
 		assert.ok(html.includes('data-testid="font-trigger"'), "the trigger");
 		assert.ok(html.includes(DEFAULT_READING_FONT), "unset shows the factory family");
 		assert.ok(html.includes('aria-expanded="false"'), "the collapsed state");
-		// the old CommitInput is retired
+		// el antiguo CommitInput está retirado
 		assert.ok(!html.includes('data-testid="input-font"'));
 		assert.ok(!html.includes('placeholder="Source Sans 3"'));
 	});
@@ -172,7 +172,7 @@ describe("customFamilyFor — the single-field custom escape (2026-09-26)", () =
 
 	it("a matching family is the better pick — no action row", () => {
 		assert.equal(customFamilyFor("georgia", families), null);
-		// the default row matches too — "source"/"sans"/"default" queries pick it
+		// la fila por defecto también coincide: las consultas "source"/"sans"/"default" la eligen
 		assert.equal(customFamilyFor("source", families), null);
 	});
 

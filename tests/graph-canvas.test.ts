@@ -1,12 +1,12 @@
 /**
- * Pure-helper tests for the hand-rolled canvas renderer
- * (components/graph-canvas.ts). The renderer class itself is DOM-bound
- * (canvas, rAF, ResizeObserver) and is verified live in the browser; the
- * math it runs on every frame must be exact, so it is pinned here.
+ * Pruebas de los auxiliares puros del renderizador de lienzo hecho a mano
+ * (components/graph-canvas.ts). La clase del renderizador en sí depende del DOM
+ * (canvas, rAF, ResizeObserver) y se verifica en vivo en el navegador; las
+ * matemáticas que ejecuta en cada fotograma deben ser exactas, así que se fijan aquí.
  *
- * The camera-ratio convention is the load-bearing contract with the
- * persisted settings: sigma's ratio (1 = fit, SMALLER = zoomed in) is kept
- * verbatim so stored labelZoom values survive the renderer swap.
+ * La convención de la proporción de la cámara es el contrato que sostiene la relación con los
+ * ajustes persistidos: la proporción de sigma (1 = encajar, MENOR = más zoom) se conserva
+ * literal para que los valores labelZoom guardados sobrevivan al cambio de renderizador.
  */
 
 import assert from "node:assert/strict";
@@ -34,39 +34,39 @@ import {
 
 describe("zoomRatioOf (the sigma-compatible camera ratio)", () => {
 	test("1 at fit zoom, smaller when zoomed in, larger when zoomed out", () => {
-		assert.equal(zoomRatioOf(2, 2), 1); // at fit
-		assert.equal(zoomRatioOf(2, 4), 0.5); // zoomed in 2x -> ratio halves
-		assert.equal(zoomRatioOf(2, 1), 2); // zoomed out 2x -> ratio doubles
+		assert.equal(zoomRatioOf(2, 2), 1); // al encajar
+		assert.equal(zoomRatioOf(2, 4), 0.5); // zoom ×2 hacia dentro -> la proporción se reduce a la mitad
+		assert.equal(zoomRatioOf(2, 1), 2); // zoom ×2 hacia fuera -> la proporción se duplica
 	});
 });
 
 describe("labelAlpha (the single zoom gate)", () => {
 	test("fully visible at/below the threshold, faded out after the span", () => {
-		// Proportional span: at gate 0.5 the span is 0.5 × 0.5 = 0.25.
-		assert.equal(labelAlpha(0.5, 0.5), 1); // at the threshold
-		assert.equal(labelAlpha(0.25, 0.5), 1); // zoomed further in: stays 1
-		assert.equal(labelAlpha(0.625, 0.5), 0.5); // mid-fade (span midpoint)
-		assert.equal(labelAlpha(0.75, 0.5), 0); // one proportional span out: gone
-		assert.equal(labelAlpha(2.0, 0.5), 0); // far out: clamped
+		// Tramo proporcional: con el umbral 0.5 el tramo es 0.5 × 0.5 = 0.25.
+		assert.equal(labelAlpha(0.5, 0.5), 1); // en el umbral
+		assert.equal(labelAlpha(0.25, 0.5), 1); // con más zoom: se queda en 1
+		assert.equal(labelAlpha(0.625, 0.5), 0.5); // a mitad del fundido (punto medio del tramo)
+		assert.equal(labelAlpha(0.75, 0.5), 0); // un tramo proporcional más allá: desaparece
+		assert.equal(labelAlpha(2.0, 0.5), 0); // muy lejos: acotado
 	});
 
 	test("the span is PROPORTIONAL to the gate (2026-09-17), not absolute", () => {
-		// The old absolute 0.5-ratio span read as a 100% relative change at
-		// the old 0.5 gate but a bare 12% sliver at the tuned 8× gate (ratio
-		// 4). Proportional = one consistent handoff feel at any gate.
+		// El antiguo tramo absoluto de proporción 0.5 suponía un cambio relativo del 100% con
+		// el antiguo umbral 0.5, pero una astilla de apenas el 12% con el umbral ajustado de 8× (proporción
+		// 4). Proporcional = la misma sensación de traspaso con cualquier umbral.
 		assert.equal(LABELS_FADE_RATIO, 0.5);
-		// At the tuned default (gate 4): fades across ratio 4 → 6 (8× → 12×
-		// on screen), one full ladder stop.
-		assert.equal(labelAlpha(4, 4), 1); // at the gate
-		assert.equal(labelAlpha(5, 4), 0.5); // mid-fade
-		assert.equal(labelAlpha(6, 4), 0); // one proportional span out: gone
-		// The relative shape is identical at the old gate: 0.5 → 0.75.
-		assert.equal(labelAlpha(5, 4), 0.5); // mid-fade at the tuned gate, same relative shape
+		// Con el valor por defecto ajustado (umbral 4): el fundido va de la proporción 4 a la 6 (de 8× a 12×
+		// en pantalla), un peldaño completo de la escalera.
+		assert.equal(labelAlpha(4, 4), 1); // en el umbral
+		assert.equal(labelAlpha(5, 4), 0.5); // a mitad del fundido
+		assert.equal(labelAlpha(6, 4), 0); // un tramo proporcional más allá: desaparece
+		// La forma relativa es idéntica con el antiguo umbral: 0.5 → 0.75.
+		assert.equal(labelAlpha(5, 4), 0.5); // a mitad del fundido con el umbral ajustado, misma forma relativa
 	});
 
 	test("node labels and cluster labels cross-fade over the exact same span", () => {
-		// The renderer draws cluster labels at 1 - labelAlpha; the two must
-		// always sum to 1 within the fade and never coexist at full opacity.
+		// El renderizador dibuja las etiquetas de los clústeres con 1 - labelAlpha; ambos deben
+		// sumar siempre 1 dentro del fundido y nunca coexistir con opacidad completa.
 		for (const gate of [0.5, 4]) {
 			for (let ratio = 0; ratio <= 8; ratio += gate / 8) {
 				const node = labelAlpha(ratio, gate);
@@ -79,21 +79,21 @@ describe("labelAlpha (the single zoom gate)", () => {
 });
 
 describe("d3 camera composition (the persisted-camera restore path)", () => {
-	// The renderer restores a persisted camera via
-	// zoomIdentity.translate(x, y).scale(k) — the same composition fit()
-	// uses. d3's Transform.translate() shifts in SCALED space while
-	// .scale() keeps the translation: identity.translate(X, Y).scale(K)
-	// is exactly {k: K, x: X, y: Y}. This pins that law (the persisted
-	// {k, x, y} shape round-trips through the composition) so a d3
-	// upgrade that changes it fails here, not as a wrong camera.
+	// El renderizador restaura una cámara persistida mediante
+	// zoomIdentity.translate(x, y).scale(k), la misma composición que usa
+	// fit(). El Transform.translate() de d3 desplaza en el espacio ESCALADO mientras que
+	// .scale() conserva la traslación: identity.translate(X, Y).scale(K)
+	// es exactamente {k: K, x: X, y: Y}. Esto fija esa ley (la forma persistida
+	// {k, x, y} hace el viaje de ida y vuelta por la composición) para que una actualización
+	// de d3 que la cambie falle aquí y no como una cámara equivocada.
 	test("zoomIdentity.translate(X, Y).scale(K) === {k: K, x: X, y: Y}", async () => {
 		const { zoomIdentity } = await import("d3-zoom");
 		const t = zoomIdentity.translate(120, -40).scale(3.5);
 		assert.equal(t.k, 3.5);
 		assert.equal(t.x, 120);
 		assert.equal(t.y, -40);
-		// And the inverse direction: a stored camera re-applies to the
-		// same screen position for the same world point.
+		// Y la dirección inversa: una cámara guardada se vuelve a aplicar a la
+		// misma posición de pantalla para el mismo punto del mundo.
 		const p = t.apply([7, 9]);
 		assert.deepEqual(p, [7 * 3.5 + 120, 9 * 3.5 - 40]);
 	});
@@ -101,13 +101,13 @@ describe("d3 camera composition (the persisted-camera restore path)", () => {
 
 describe("fitTransform", () => {
 	test("centers the bbox and respects padding", () => {
-		// A 100x50 graph in a 500x300 viewport, 40px padding:
-		// available 420x220 -> k = min(4.2, 4.4) = 4.2
+		// Un grafo de 100x50 en un viewport de 500x300, con 40px de relleno:
+		// disponible 420x220 -> k = min(4.2, 4.4) = 4.2
 		const t = fitTransform({ minX: -50, maxX: 50, minY: -25, maxY: 25 }, 500, 300, 40);
 		assert.ok(Math.abs(t.k - 4.2) < 1e-9, `k=${t.k}`);
-		assert.ok(Math.abs(t.x - 250) < 1e-9, `x=${t.x}`); // centered
+		assert.ok(Math.abs(t.x - 250) < 1e-9, `x=${t.x}`); // centrado
 		assert.ok(Math.abs(t.y - 150) < 1e-9, `y=${t.y}`);
-		// World center maps to viewport center:
+		// El centro del mundo corresponde al centro del viewport:
 		assert.ok(Math.abs(0 * t.k + t.x - 250) < 1e-9);
 	});
 
@@ -127,21 +127,21 @@ describe("arrowGeometry", () => {
 	test("the shaft starts outside the source disc", () => {
 		const g = arrowGeometry({ x: 0, y: 0 }, { x: 100, y: 0 }, 6, 6, 5)!;
 		assert.ok(Math.abs(g.shaftFrom.x - 6) < 1e-9 && Math.abs(g.shaftFrom.y) < 1e-9);
-		// Shaft ends at the head base; head is drawn from base to tip.
+		// El cuerpo termina en la base de la punta; la punta se dibuja de la base al extremo.
 		assert.ok(Math.abs(g.shaftTo.x - 89) < 1e-9);
 	});
 
 	test("the head triangle is symmetric around the shaft axis (0.8x wideness)", () => {
 		const g = arrowGeometry({ x: 0, y: 0 }, { x: 100, y: 0 }, 6, 6, 5)!;
-		// halfW = 0.4 x headLength = 2; both base corners share x, mirrored y.
+		// halfW = 0.4 x headLength = 2; las dos esquinas de la base comparten x, con la y reflejada.
 		assert.ok(Math.abs(Math.abs(g.left.y) - 2) < 1e-9 && Math.abs(Math.abs(g.right.y) - 2) < 1e-9);
-		assert.ok(Math.abs(g.left.y + g.right.y) < 1e-9); // mirror
+		assert.ok(Math.abs(g.left.y + g.right.y) < 1e-9); // reflejo
 		assert.ok(Math.abs(g.left.x - g.right.x) < 1e-9);
 	});
 
 	test("works at arbitrary angles (diagonal stays normalized)", () => {
 		const a = { x: 0, y: 0 };
-		const b = { x: 60, y: 80 }; // len 100, dir (0.6, 0.8)
+		const b = { x: 60, y: 80 }; // longitud 100, dirección (0.6, 0.8)
 		const g = arrowGeometry(a, b, 10, 10, 8)!;
 		assert.ok(Math.abs(g.tip.x - (60 - 0.6 * 10)) < 1e-9 && Math.abs(g.tip.y - (80 - 0.8 * 10)) < 1e-9);
 	});
@@ -150,9 +150,9 @@ describe("arrowGeometry", () => {
 		assert.equal(arrowGeometry({ x: 5, y: 5 }, { x: 5, y: 5 }, 6, 6, 5), null);
 	});
 
-	// The rendering arc's geometry laws (owner, 2026-09-30): an edge INTO
-	// an imp point is drawn with toRadius 0 (headless, terminates at the
-	// center); an edge OUT of one with fromRadius 0 (starts at the center).
+	// Las leyes geométricas del arco de renderizado (responsable, 2026-09-30): una arista HACIA
+	// un punto imp se dibuja con toRadius 0 (sin punta, termina en el
+	// centro); una arista QUE SALE de uno, con fromRadius 0 (empieza en el centro).
 	test("toRadius 0 — the tip lands exactly at the target CENTER (headless convergence)", () => {
 		const g = arrowGeometry({ x: 0, y: 0 }, { x: 100, y: 0 }, 6, 0, 5)!;
 		assert.ok(Math.abs(g.tip.x - 100) < 1e-9 && Math.abs(g.tip.y) < 1e-9, "tip = the center, past which no shaft draws");
@@ -186,9 +186,9 @@ describe("pickNearest (distance-check picking)", () => {
 	});
 
 	test("the picking pad extends the hitbox beyond the disc", () => {
-		// 20px away, only reachable because the pad covers it.
+		// a 20px, solo alcanzable porque el relleno lo cubre.
 		assert.equal(pickNearest(nodes, 28, 18, 25)?.id, "a");
-		// Beyond the pad: nothing.
+		// Más allá del relleno: nada.
 		assert.equal(pickNearest(nodes, 30, 40, 3), null);
 	});
 
@@ -210,15 +210,15 @@ describe("sanitizeRegionTuning (dev number inputs)", () => {
 		const t = sanitizeRegionTuning(undefined);
 		assert.deepEqual(t, DEFAULT_REGION_TUNING);
 		const half = sanitizeRegionTuning({ blur: 7.2 });
-		assert.equal(half.blur, 10); // snapped to the new ladder floor (owner, 2026-10-07)
+		assert.equal(half.blur, 10); // ajustado al nuevo suelo de la escalera (responsable, 2026-10-07)
 		assert.equal(half.dilation, DEFAULT_REGION_TUNING.dilation);
 	});
 
 	test("garbage clamps: NaN falls back, out-of-range clamps", () => {
 		const t = sanitizeRegionTuning({ dilation: Number.NaN, blur: -5, bitmap: 99999, edgeAlpha: 42 });
-		assert.equal(t.dilation, DEFAULT_REGION_TUNING.dilation); // NaN -> default
-		assert.equal(t.blur, REGION_BLUR_LADDER[0]); // snapped to the ladder floor
-		assert.equal(t.bitmap, REGION_BITMAP_OPTIONS[REGION_BITMAP_OPTIONS.length - 1]); // 99999 snaps to the largest option
+		assert.equal(t.dilation, DEFAULT_REGION_TUNING.dilation); // NaN -> por defecto
+		assert.equal(t.blur, REGION_BLUR_LADDER[0]); // ajustado al suelo de la escalera
+		assert.equal(t.bitmap, REGION_BITMAP_OPTIONS[REGION_BITMAP_OPTIONS.length - 1]); // 99999 se ajusta a la opción más grande
 		assert.equal(t.edgeAlpha, 1);
 	});
 
@@ -230,7 +230,7 @@ describe("sanitizeRegionTuning (dev number inputs)", () => {
 
 describe("boxBlurRound (premultiplied region blur)", () => {
 	test("spreads a single opaque px into its neighborhood and conserves sum", () => {
-		// 5x5 RGBA, one white opaque pixel at (2,2)
+		// RGBA de 5x5, un píxel blanco opaco en (2,2)
 		const w = 5, h = 5;
 		const a = new Float32Array(w * h * 4);
 		const center = (2 * w + 2) * 4;
@@ -238,15 +238,15 @@ describe("boxBlurRound (premultiplied region blur)", () => {
 		const tmp = new Float32Array(a.length);
 		const b = new Float32Array(a.length);
 		boxBlurRound(a, tmp, b, w, h, 1);
-		// Alpha conservation: total alpha unchanged.
+		// Conservación del alfa: el alfa total no cambia.
 		let sumA = 0;
 		for (let i = 3; i < b.length; i += 4) sumA += b[i]!;
 		assert.ok(Math.abs(sumA - 255) < 1e-3, `alpha sum ${sumA}`);
-		// The center dimmed, the 8 neighbors picked some up.
+		// El centro se atenuó y los 8 vecinos recogieron parte.
 		assert.ok(b[center + 3]! < 255 && b[center + 3]! > 0);
 		const up = ((1 * w) + 2) * 4 + 3;
 		assert.ok(b[up]! > 0, "neighbor got alpha");
-		// Far corner (4,4) untouched.
+		// La esquina lejana (4,4) queda intacta.
 		assert.equal(b[(4 * 5 + 4) * 4 + 3], 0);
 	});
 
@@ -277,7 +277,7 @@ describe("sanitizePhysicsTuning (physics controls)", () => {
 			velocityDecay: 3,
 		});
 		assert.equal(t.chargeStrength, DEFAULT_PHYSICS_TUNING.chargeStrength);
-		assert.equal(t.linkStrength, 4); // sweep-validated cap (8 explodes, 5 wobbles)
+		assert.equal(t.linkStrength, 4); // tope validado con un barrido (8 explota, 5 titubea)
 		assert.equal(t.linkDistance, 10);
 		assert.equal(t.gravity, 0.48);
 		assert.equal(t.clusterPull, 0);
@@ -288,18 +288,18 @@ describe("sanitizePhysicsTuning (physics controls)", () => {
 
 
 describe("wrapRegionLabel (wave 7: session names / file paths)", () => {
-	// A fake measure: chars are 5px wide, spaces 4px — enough to drive
-	// wrap decisions deterministically.
+	// Una medida falsa: los caracteres miden 5px y los espacios 4px; suficiente para
+	// gobernar las decisiones de ajuste de línea de forma determinista.
 	const measure = (s: string) => s.length * 5;
-	const W = 20; // 4 chars per line
+	const W = 20; // 4 caracteres por línea
 
 	it("fits → single line, untouched", () => {
 		assert.deepEqual(wrapRegionLabel("Plato", 100, 3, measure), ["Plato"]);
 	});
 
 	it("wraps words, no cap hit", () => {
-		// W=20 at 5px/char = 3 chars a line: every word lands alone, four
-		// lines, cap 4 never reached, no ellipsis.
+		// W=20 a 5px/carácter = 3 caracteres por línea: cada palabra queda sola, cuatro
+		// líneas, nunca se alcanza el tope de 4, sin puntos suspensivos.
 		assert.deepEqual(wrapRegionLabel("aaa bbb ccc ddd", W, 4, measure), [
 			"aaa",
 			"bbb",
@@ -319,15 +319,15 @@ describe("wrapRegionLabel (wave 7: session names / file paths)", () => {
 		const path = "/users/amos/notes/physics/lecture-notes.md";
 		const lines = wrapRegionLabel(path, W, 3, measure);
 		assert.equal(lines.length, 3);
-		// every kept line fits the width; the last carries the ellipsis
+		// cada línea conservada cabe en el ancho; la última lleva los puntos suspensivos
 		assert.ok(lines[2]!.endsWith("…"), "long path capped with ellipsis");
 		assert.ok(measure(lines[0]!) <= W, "first chunk fits");
 		assert.ok(measure(lines[1]!) <= W, "second chunk fits");
 	});
 
 	it("a remainder that FITS the width rides as a plain last line (no false ellipsis)", () => {
-		// W=25 at 5px/char = 5 chars a line: "aa bb" fits exactly, the
-		// tail "cc dd" fits too — two plain lines, cap never binds.
+		// W=25 a 5px/carácter = 5 caracteres por línea: "aa bb" cabe justo y la
+		// cola "cc dd" también: dos líneas normales, el tope nunca actúa.
 		assert.deepEqual(wrapRegionLabel("aa bb cc dd", 25, 3, measure), ["aa bb", "cc dd"]);
 	});
 
@@ -358,8 +358,8 @@ describe("applyClusterLabels (the label-only rename channel)", () => {
 
 	it("patches the matching cluster and re-wraps its region meta", () => {
 		const f = fixture();
-		// 5px/char and W=220: a 45-char title just overflows one line
-		// ("...for the" is 40 chars, appending " graph" reads 46).
+		// 5px/carácter y W=220: un título de 45 caracteres desborda justo una línea
+		// ("...for the" son 40 caracteres; al añadir " graph" son 46).
 		const longTitle = "A much longer new session title for the graph";
 		const changed = applyClusterLabels(
 			f.clusters, f.regionMeta, new Map([["chat_a", longTitle]]),
@@ -368,7 +368,7 @@ describe("applyClusterLabels (the label-only rename channel)", () => {
 		assert.equal(changed, true);
 		assert.equal(f.clusters[0]!.label, longTitle);
 		assert.deepEqual(f.regionMeta[0]!.lines, ["A much longer new session title for the", "graph"]);
-		// untouched entries stay byte-identical
+		// las entradas no tocadas siguen idénticas byte a byte
 		assert.equal(f.clusters[1]!.label, null);
 		assert.equal(f.clusters[2]!.label, "Orbital mechanics");
 		assert.deepEqual(f.regionMeta[2]!.lines, ["Orbital mechanics"]);

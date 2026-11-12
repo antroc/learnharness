@@ -1,17 +1,17 @@
 /**
- * Stand-in for the claude CLI in tests. Reads the stream-json input from
- * stdin, then replays the scenario file named by FAKE_CLAUDE_SCENARIO line by
- * line. Lines with a "fake" key are directives instead of output:
- *   {"fake":"hold"}                          stay alive until killed, like the CLI waiting on a held MCP call
- *   {"fake":"exit","code":1,"stderr":"..."}  write stderr and exit with that code
- *   {"fake":"call","id":"toolu_...","name":"read","arguments":{...}}  call the MCP bridge and wait for its result
- *   {"fake":"start-call",...}                start the same request without waiting for its result
- *   {"fake":"cancel-call","id":"toolu_..."} cancel an individual pending MCP request
- *   {"fake":"checkpoint"}                   notify the parent after previous sends finish
- *   {"fake":"wait-for-message"}              pause until the test releases the child over IPC
- *   {"fake":"ignore-term"}                   ignore SIGTERM to exercise kill escalation
- *   {"fake":"reply"}                         stream one assistant message whose text is every result so far, joined by " | "
- * FAKE_CLAUDE_STDIN, when set, receives the stdin it read.
+ * Sustituto de la CLI claude en las pruebas. Lee la entrada stream-json de
+ * stdin y luego reproduce línea a línea el fichero de escenario indicado por
+ * FAKE_CLAUDE_SCENARIO. Las líneas con una clave "fake" son directivas en vez de salida:
+ *   {"fake":"hold"}                          sigue vivo hasta que lo maten, como la CLI esperando una llamada MCP retenida
+ *   {"fake":"exit","code":1,"stderr":"..."}  escribe stderr y sale con ese código
+ *   {"fake":"call","id":"toolu_...","name":"read","arguments":{...}}  llama al puente MCP y espera su resultado
+ *   {"fake":"start-call",...}                inicia la misma petición sin esperar su resultado
+ *   {"fake":"cancel-call","id":"toolu_..."} cancela una petición MCP pendiente concreta
+ *   {"fake":"checkpoint"}                   avisa al padre cuando terminan los envíos anteriores
+ *   {"fake":"wait-for-message"}              se pausa hasta que la prueba libera al hijo por IPC
+ *   {"fake":"ignore-term"}                   ignora SIGTERM para ejercitar la escalada de la terminación
+ *   {"fake":"reply"}                         emite un mensaje del asistente cuyo texto son todos los resultados hasta ahora, unidos por " | "
+ * FAKE_CLAUDE_STDIN, si está definido, recibe el stdin que leyó.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { on } from "node:events";

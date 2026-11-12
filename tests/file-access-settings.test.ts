@@ -5,8 +5,8 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, beforeEach, describe, it } from "node:test";
 
-// Every store, route and composition-root import sees only these synthetic
-// locations. No real settings, credential files or learning records are used.
+// Todo almacén, ruta e importación de la raíz de composición ve solo estas ubicaciones
+// sintéticas. No se usan ajustes, ficheros de credenciales ni registros de aprendizaje reales.
 const root = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "lh-folder-settings-")));
 const home = path.join(root, "home");
 const data = path.join(root, "data");

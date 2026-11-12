@@ -10,7 +10,7 @@ interface PathBridge {
 	[key: string]: unknown;
 }
 
-/** Execute the actual preload in a VM, without Electron, IPC or app startup. */
+/** Ejecuta el preload real en una VM, sin Electron, IPC ni arranque de la aplicación. */
 function fixture(resolve: (file: unknown) => string) {
 	let bridge!: PathBridge;
 	const supplied: unknown[] = [];

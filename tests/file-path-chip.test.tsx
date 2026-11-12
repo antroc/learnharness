@@ -32,7 +32,7 @@ describe("FilePathChip", () => {
 	it("supports atomic editor rendering without requiring an editor in transcripts", () => {
 		const document = documentFor(<FilePathChip path="C:\\notes\\chapter.txt" contentEditable={false} className="editor-chip" />);
 		const chip = document.body.firstElementChild!;
-		// React SSR emits contentEditable; linkedom preserves attribute case.
+		// El SSR de React emite contentEditable; linkedom conserva las mayúsculas del atributo.
 		const editableAttribute = chip.getAttributeNames().find((name) => name.toLowerCase() === "contenteditable")!;
 		assert.equal(chip.getAttribute(editableAttribute), "false");
 		assert.ok(chip.classList.contains("editor-chip"));

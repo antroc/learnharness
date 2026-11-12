@@ -2,9 +2,9 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { fuzzyScore } from "../src/core/fuzzy.ts";
 
-// The picker's search ranking (pi's /model pattern): tokens must each match
-// some field; exact beats prefix beats buried substring; whole-query
-// contiguity in one field is a bonus.
+// La ordenación de la búsqueda del selector (el patrón /model de pi): cada token debe coincidir con
+// algún campo; exacto gana a prefijo, que gana a subcadena enterrada; que la consulta
+// completa sea contigua en un campo es un extra.
 
 describe("fuzzyScore", () => {
 	const fields = (id: string, name: string) => ["openrouter", id, name];
@@ -21,17 +21,17 @@ describe("fuzzyScore", () => {
 
 	it("ranks exact field equality above prefix above buried substring", () => {
 		const exact = fuzzyScore("flash", "openrouter", "flash", "other"); // field === token
-		const prefix = fuzzyScore("flash", "openrouter", "flash-2", "other"); // field startsWith
+		const prefix = fuzzyScore("flash", "openrouter", "flash-2", "other"); // el campo empieza por
 		const buried = fuzzyScore("flash", "openrouter", "z-ai/glm-5.3-flash", "other");
 		assert.ok(exact !== null && prefix !== null && buried !== null);
 		assert.ok(exact > prefix && prefix > buried, `${exact} > ${prefix} > ${buried}`);
 	});
 
 	it("rewards whole-query contiguity in a single field", () => {
-		const split = fuzzyScore("glm flash", ...fields("z-ai/glm-5.3-flash", "x")); // two fields, no contiguity
-		const joined = fuzzyScore("glm 5.3", ...fields("z-ai/glm-5.3-flash", "x")); // contiguous in the id
+		const split = fuzzyScore("glm flash", ...fields("z-ai/glm-5.3-flash", "x")); // dos campos, sin contigüidad
+		const joined = fuzzyScore("glm 5.3", ...fields("z-ai/glm-5.3-flash", "x")); // contiguo en el id
 		assert.ok(split !== null && joined !== null);
-		// same per-token points; joined earns the +50 contiguity bonus
+		// los mismos puntos por token; junto gana el extra de contigüidad de +50
 		assert.ok(joined > split, `${joined} > ${split}`);
 	});
 

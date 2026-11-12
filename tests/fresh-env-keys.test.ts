@@ -1,23 +1,23 @@
 /**
- * LH_IGNORE_ENV_KEYS=1 — the fresh-user switch (owner, interlude,
- * 2026-09-22): env keys invisible app-wide; only auth.json counts.
+ * LH_IGNORE_ENV_KEYS=1: el interruptor de usuario nuevo (responsable, interludio,
+ * 2026-09-22): las claves del entorno son invisibles en toda la aplicación; solo cuenta auth.json.
  *
- * This file is deliberately its OWN PROCESS under node:test: the switch
- * is BOOT-TIME (initAuthEnv deletes the managed env vars once per
- * process), so the switched boot can only be pinned in a process that
- * starts with the switch set. The UNSET behavior (env wins, fill-gap,
- * shadow semantics) is pinned byte-for-byte by tests/server-keys.test.ts
- * — that file IS the visible case; this file is the hidden one.
+ * Este fichero es deliberadamente su PROPIO PROCESO bajo node:test: el interruptor
+ * actúa AL ARRANCAR (initAuthEnv borra las variables de entorno gestionadas una vez por
+ * proceso), así que el arranque con el interruptor solo puede fijarse en un proceso que
+ * empiece con el interruptor activado. El comportamiento SIN activar (gana el entorno, relleno de huecos,
+ * semántica de tapado) lo fija byte a byte tests/server-keys.test.ts:
+ * ese fichero ES el caso visible; este es el oculto.
  *
- * The engine path is the critical subtlety this file pins: pi-ai reads
- * provider keys from process.env NATIVELY at every request
- * (auth/context.js's defaultProviderAuthContext reads live env), so the
- * switch works by DELETING the vars from the process — assert the
- * deletion directly, because that is what a fresh user's engines see.
+ * La ruta del motor es la sutileza crítica que fija este fichero: pi-ai lee
+ * las claves del proveedor de process.env DE FORMA NATIVA en cada petición
+ * (defaultProviderAuthContext de auth/context.js lee el entorno vivo), así que el
+ * interruptor funciona BORRANDO las variables del proceso: comprueba el
+ * borrado directamente, porque eso es lo que ven los motores de un usuario nuevo.
  *
- * LH_AUTH_FILE redirects to a fresh tmp dir BEFORE the imports (the
- * seam is module-load bound). All values are throwaway test strings —
- * never real secrets.
+ * LH_AUTH_FILE redirige a un directorio temporal nuevo ANTES de las importaciones (la
+ * frontera está ligada a la carga del módulo). Todos los valores son cadenas de prueba desechables,
+ * nunca secretos reales.
  */
 
 import assert from "node:assert/strict";
@@ -26,9 +26,9 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, describe, it } from "node:test";
 
-// THIS PROCESS'S ENV IS THE TEST SUBJECT — strip any inherited catalog
-// vars (a developer shell may export REAL keys; tests use throwaway
-// values only, never real secrets).
+// EL ENTORNO DE ESTE PROCESO ES EL SUJETO DE LA PRUEBA: quita cualquier variable del catálogo
+// heredada (una shell de desarrollador puede exportar claves REALES; las pruebas solo usan
+// valores desechables, nunca secretos reales).
 for (const varName of [
 	"OPENROUTER_API_KEY",
 	"DEEPGRAM_API_KEY",
@@ -47,20 +47,20 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "lh-fresh-env-keys-"));
 const AUTH = path.join(TMP, "auth.json");
 process.env.LH_AUTH_FILE = AUTH;
 
-// The file BEFORE first boot: one file-only key.
+// El fichero ANTES del primer arranque: una clave que solo está en el fichero.
 fs.writeFileSync(AUTH, JSON.stringify({ OPENAI_API_KEY: "sk-file-fresh-file-fresh" }));
 
-// The env the switch must hide — set BEFORE the module's first import:
-//  - an env-ONLY provider key (the engine-path specimen)
-//  - the SAME var the file holds (the collision specimen: under the
-//    switch the FILE value must win, and the env copy must be deleted)
+// El entorno que el interruptor debe ocultar, fijado ANTES de la primera importación del módulo:
+//  - una clave de proveedor SOLO en el entorno (el espécimen de la ruta del motor)
+//  - la MISMA variable que contiene el fichero (el espécimen de colisión: con el
+//    interruptor debe ganar el valor del FICHERO y debe borrarse la copia del entorno)
 process.env.OPENROUTER_API_KEY = "sk-or-env-env-env";
 process.env.OPENAI_API_KEY = "sk-openai-env-env-env";
 
-// THE SWITCH — set before first import (exactly how the launcher boots).
+// EL INTERRUPTOR: fijado antes de la primera importación (exactamente como arranca el lanzador).
 process.env.LH_IGNORE_ENV_KEYS = "1";
 
-// Import AFTER env setup — module init runs the boot deletion + fill-gap.
+// Importa DESPUÉS de preparar el entorno: la inicialización del módulo ejecuta el borrado de arranque + el relleno de huecos.
 const { deleteKey, envKeysIgnored, initAuthEnv, keyStatuses, keyValue, saveKey } = await import(
 	"../src/server/keys.ts"
 );
@@ -87,8 +87,8 @@ describe("the fresh-user switch (boot under LH_IGNORE_ENV_KEYS=1)", () => {
 	it("keyValue: env keys invisible, file keys visible — and a post-boot env reintroduction stays invisible (belt-and-suspenders)", () => {
 		assert.equal(keyValue("OPENROUTER_API_KEY"), undefined, "env key invisible under the switch");
 		assert.equal(keyValue("OPENAI_API_KEY"), "sk-file-fresh-file-fresh", "file key visible");
-		// A stray consumer re-sets an env key AFTER boot: the seam still
-		// ignores it (the deletion is boot-time; the read guard is live).
+		// Un consumidor descarriado vuelve a fijar una clave del entorno DESPUÉS del arranque: la frontera
+		// sigue ignorándola (el borrado es al arrancar; la guarda de lectura está viva).
 		process.env.OPENROUTER_API_KEY = "sk-or-reintroduced-late";
 		try {
 			assert.equal(keyValue("OPENROUTER_API_KEY"), undefined, "reintroduced env key stays invisible to the seam");
@@ -98,9 +98,9 @@ describe("the fresh-user switch (boot under LH_IGNORE_ENV_KEYS=1)", () => {
 	});
 
 	it("unset switch = today's env-wins behavior (the read seam, live-checked)", () => {
-		// The dynamic half of the seam: WITHOUT the switch, keyValue reads
-		// env first — today's behavior, byte-for-byte (the boot-snapshot
-		// half is pinned in tests/server-keys.test.ts, the visible case).
+		// La mitad dinámica de la frontera: SIN el interruptor, keyValue lee
+		// primero el entorno: el comportamiento actual, byte a byte (la mitad de la
+		// instantánea de arranque se fija en tests/server-keys.test.ts, el caso visible).
 		process.env.LH_IGNORE_ENV_KEYS = undefined;
 		process.env.OPENROUTER_API_KEY = "sk-or-env-wins";
 		try {
@@ -130,7 +130,7 @@ describe("the fresh-user switch (boot under LH_IGNORE_ENV_KEYS=1)", () => {
 		assert.equal(process.env.ZAI_API_KEY, "zai-fresh-sim-key-1234567890", "reflected into env for pi-ai");
 		const row = keyStatuses().find((r) => r.id === "ZAI_API_KEY");
 		assert.equal(row!.source, "file", "the status honestly reports the file as the source");
-		// and DELETE removes both (fill-gap semantics hold under the switch)
+		// y DELETE elimina ambas (la semántica de relleno de huecos se mantiene con el interruptor)
 		deleteKey("ZAI_API_KEY");
 		assert.equal(process.env.ZAI_API_KEY, undefined);
 		assert.equal(authStore.authVars().ZAI_API_KEY, undefined);

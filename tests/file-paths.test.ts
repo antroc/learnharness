@@ -65,7 +65,7 @@ describe("plain-text file path tokens", () => {
 			assert.deepEqual(paths(text), []);
 			assertLossless(text);
 		}
-		// Other-width runs are legal filename characters, not partial closers.
+		// Las secuencias de otro ancho son caracteres legales en un nombre de fichero, no cierres parciales.
 		assert.deepEqual(paths("``/a```/b``"), ["/a```/b"]);
 		assert.deepEqual(paths("`/a``/b`"), ["/a``/b"]);
 		assert.deepEqual(paths("``not code closed? `/a`"), ["/a"]);

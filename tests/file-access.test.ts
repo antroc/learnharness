@@ -257,7 +257,7 @@ describe("live policy and all learner-source surfaces", () => {
 			assert.equal(spawned, 1);
 			assert.deepEqual(jobStore.getJob(id)?.input, input);
 			policy = { restricted: true, folders: [b] };
-			// Repeated call IDs acknowledge the original job, not a new read.
+			// Los IDs de llamada repetidos acusan recibo de la tarea original, no de una lectura nueva.
 			await tools[kind]!.execute!("queued-call", input);
 			assert.equal(spawned, 1);
 			const runner = createJobRunner({ chatStore, jobStore, engineFor: () => engine, deliver: async () => {} });

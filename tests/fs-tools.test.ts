@@ -13,25 +13,25 @@ import { lsTool } from "../src/agent/tools/ls.ts";
 import { readTool } from "../src/agent/tools/read.ts";
 
 /**
- * The learner-filesystem tools (sources v1, 2026-09-19): ls/find/grep as
- * pure-Node pi ports, read re-anchored to the home directory. All calls go
- * through absolute paths, except the tilde integration case which temporarily
- * points home resolution at a throwaway fixture. Never touch the real home.
+ * Las herramientas del sistema de ficheros del alumno (fuentes v1, 2026-09-19): ls/find/grep como
+ * ports de pi en Node puro, y read reanclado al directorio personal. Todas las llamadas usan
+ * rutas absolutas, salvo el caso de integración de la tilde, que apunta temporalmente
+ * la resolución del directorio personal a un fixture desechable. Nunca toques el directorio personal real.
  *
- * Fixture tree (tmpdir):
+ * Árbol del fixture (tmpdir):
  *   notes/calculus.md         "The derivative measures force…"
- *   notes/linear.txt          eigenvector content
+ *   notes/linear.txt          contenido sobre vectores propios
  *   notes/sub/hidden.md
  *   code/main.ts
- *   node_modules/skipme.txt   (excluded from walks)
- *   Library/alsoskip.txt      (excluded from walks)
- *   binary.bin                NUL byte — grep skips
+ *   node_modules/skipme.txt   (excluido de los recorridos)
+ *   Library/alsoskip.txt      (excluido de los recorridos)
+ *   binary.bin                byte NUL: grep lo omite
  */
 
 let FIXTURE: string;
 
-/** Drive one tool's native execute and return the model-facing text
- *  (pi signature: execute(toolCallId, params, signal) → AgentToolResult). */
+/** Ejecuta el execute nativo de una herramienta y devuelve el texto de cara al modelo
+ *  (firma de pi: execute(toolCallId, params, signal) → AgentToolResult). */
 async function runText(tool: AgentTool<any>, params: unknown, signal?: AbortSignal): Promise<string> {
 	const result = await tool.execute!("c", params, signal);
 	const first = result.content[0];
@@ -63,7 +63,7 @@ describe("glob helpers (fs-shared)", () => {
 	});
 
 	it("star does not cross slashes; double-star does", () => {
-		assert.equal(matchGlob("a/b/c.txt", "*.txt"), true); // basename mode
+		assert.equal(matchGlob("a/b/c.txt", "*.txt"), true); // modo basename
 		assert.equal(matchGlob("src/x/a.spec.ts", "src/**/*.spec.ts"), true);
 		assert.equal(matchGlob("other/x/a.spec.ts", "src/**/*.spec.ts"), false);
 		assert.equal(matchGlob("src/a.spec.ts", "src/**/*.spec.ts"), true, "** covers zero dirs");
@@ -189,8 +189,8 @@ describe("learner tools share leading-tilde resolution", () => {
 });
 
 describe("sensitive locations under home are off-limits", () => {
-	/** Synthetic home: an agent's session transcripts, an ssh key, a dotenv
-	 *  file, a symlink into .ssh, and ordinary notes alongside. */
+	/** Directorio personal sintético: las transcripciones de sesión de un agente, una clave ssh, un fichero
+	 *  dotenv, un enlace simbólico dentro de .ssh y notas normales al lado. */
 	async function withSensitiveHome(fn: (home: string) => Promise<void>): Promise<void> {
 		const home = await setup();
 		const transcripts = path.join(home, ".claude", "projects", "p", "subagents");
@@ -281,7 +281,7 @@ describe("ls (pi port)", () => {
 		assert.ok(out.includes("code/"));
 		assert.ok(out.includes("notes/"));
 		assert.ok(out.includes("binary.bin"));
-		// sorted alphabetically, case-insensitive
+		// ordenados alfabéticamente, sin distinguir mayúsculas
 		const lines = out.split("\n").filter((l) => !l.startsWith("["));
 		const sorted = [...lines].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 		assert.deepEqual(lines, sorted);
@@ -335,8 +335,8 @@ describe("find (pi port)", () => {
 
 describe("grep (pi port)", () => {
 	it("formats matches pi-style: rel:line: text", async () => {
-		// case-sensitive: the lowercase "eigenvector" hits main.ts but NOT
-		// linear.txt's capital-E "Eigenvectors" (that case lives below).
+		// distingue mayúsculas: "eigenvector" en minúscula coincide en main.ts pero NO en
+		// "Eigenvectors" con E mayúscula de linear.txt (ese caso está más abajo).
 		const out = await runText(grepTool, { pattern: "eigenvector", path: FIXTURE });
 		assert.equal(out, "code/main.ts:2: const eigenvector = 'here';");
 		assert.ok(!out.includes("node_modules"), "excluded dirs are not searched");
@@ -395,7 +395,7 @@ describe("abort plumbing (the 2026-09-19 cascade fix)", () => {
 			root,
 			() => {
 				visited++;
-				if (visited === 3) ac.abort(); // deterministic: abort from inside the walk
+				if (visited === 3) ac.abort(); // determinista: aborta desde dentro del recorrido
 				return false;
 			},
 			ac.signal,
@@ -421,10 +421,10 @@ describe("abort plumbing (the 2026-09-19 cascade fix)", () => {
 	});
 
 	it("grep aborts mid-run with partial results, not a hang", async () => {
-		// The exact shape of the 2.7-minute lesson: a tree big enough that
-		// the walk+scan outlast an abort mid-flight. Whichever phase the
-		// abort lands in, the tool returns promptly with an abort notice —
-		// never "No matches found", never a hang.
+		// La forma exacta de la lección de los 2,7 minutos: un árbol lo bastante grande para que
+		// el recorrido+escaneo dure más que un aborto en pleno vuelo. Caiga en la fase que caiga
+		// el aborto, la herramienta vuelve enseguida con un aviso de aborto,
+		// nunca "No matches found", nunca un cuelgue.
 		const root = await fs.mkdtemp(path.join(os.tmpdir(), "lh-fs-midabort-"));
 		await fs.mkdir(path.join(root, "deep"), { recursive: true });
 		for (let i = 0; i < 200; i++) {

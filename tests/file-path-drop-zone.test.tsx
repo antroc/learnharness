@@ -12,8 +12,8 @@ import { quoteFilePath } from "../src/core/file-paths.ts";
 let cleanup: (() => Promise<void>) | undefined;
 afterEach(async () => { await cleanup?.(); cleanup = undefined; });
 
-/** No native DataTransfer/Selection in linkedom. These shims exercise React's
- * real bubbling handlers and the editor's logical caret contract, not OS drag. */
+/** Linkedom no tiene DataTransfer/Selection nativos. Estos parches ejercitan los manejadores
+ * de burbujeo reales de React y el contrato lógico del cursor del editor, no el arrastre del sistema operativo. */
 async function fixture({ desktop = true, claimed = true, onContentRoot }: {
 	desktop?: boolean;
 	claimed?: boolean;
