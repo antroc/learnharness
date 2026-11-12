@@ -1,7 +1,7 @@
-/** Execute the installed signing helper with fake security commands and fake
- * certificates. Never touch a real keychain, credential, or certificate file.
- * Regression: electron-builder #10066 used the p12 password to unlock a
- * temporary keychain that had been created with a different random password. */
+/** Ejecuta el auxiliar de firma instalado con comandos security falsos y certificados
+ * falsos. Nunca toques un llavero, una credencial ni un fichero de certificado reales.
+ * Regresión: electron-builder #10066 usaba la contraseña del p12 para desbloquear un
+ * llavero temporal que se había creado con otra contraseña aleatoria. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import fs from "node:fs";
@@ -50,7 +50,7 @@ async function simulate({ installer = false, source: code = source }: Options = 
 	vm.runInNewContext(code, {
 		exports,
 		__dirname: path.dirname(sourcePath),
-		// Skip the unrelated bundled-root-certificate cache in this sandbox.
+		// Omite en este entorno aislado la caché de certificados raíz empaquetados, que no tiene que ver.
 		process: { env: { TRAVIS: "true" }, platform: "darwin" },
 		require: (id: string) => {
 			assert.ok(Object.hasOwn(fakeModules, id), `Unexpected dependency: ${id}`);

@@ -25,8 +25,8 @@ const pages: Page[] = [
 	{ name: "Unavailable plugin view", path: "/plugins/fixture/missing", node: <PluginViewScreen pluginId="fixture" viewId="missing" />, floating: false, content: 'a[href="/"]' },
 ];
 
-/** Real page components and real surface host; only browser geometry/fetch are
- * synthetic. No application directory, model, audio or graph IO is performed. */
+/** Componentes de página reales y host de superficies real; solo la geometría/fetch del navegador son
+ * sintéticos. No se realiza ninguna E/S de directorio de la aplicación, modelo, audio ni grafo. */
 async function withPage(page: Page, run: (f: {
 	document: Document;
 	controller: InteractionLayersController;
@@ -132,8 +132,8 @@ for (const page of pages) it(`${page.name}: covers page content but not native c
 		assert.equal(Number(frame.style.zIndex), 100 + layer!.order);
 		if (page.floating) {
 			assert.equal(Number(header.style.zIndex), Number(frame.style.zIndex));
-			// A later main-pane picker retains the higher shared rank. The
-			// floating chrome must not rise above unrelated foreground views.
+			// Un selector posterior del panel principal conserva el rango compartido más alto. La
+			// interfaz flotante no debe elevarse por encima de vistas de primer plano ajenas.
 			const picker = f.document.createElement("div"); f.document.querySelector("[data-page-main]")!.append(picker);
 			let unregister!: () => void;
 			await act(async () => { unregister = f.controller.register({ id: "later-pane-picker", kind: "view", rootRef: { current: picker } }); });

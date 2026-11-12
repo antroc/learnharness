@@ -235,7 +235,7 @@ for (const split of [false, true]) it(`server refuses actual file bytes over 25 
 		? [{ name: "a.txt", bytes: new Uint8Array(MAX_IMPORT_BYTES / 2 + 1) }, { name: "b.txt", bytes: new Uint8Array(MAX_IMPORT_BYTES / 2) }]
 		: [{ name: "a.txt", bytes: new Uint8Array(MAX_IMPORT_BYTES + 1) }];
 	const req = upload(files);
-	req.headers.set("content-length", "1"); // not a trustworthy bound
+	req.headers.set("content-length", "1"); // no es un límite fiable
 	const response = await POST(req);
 	assert.equal(response.status, 413);
 	assert.deepEqual(await response.json(), { results: [], error: "Too big. Max 25 MB." });

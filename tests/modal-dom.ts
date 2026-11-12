@@ -1,7 +1,7 @@
 import type { parseHTML } from "linkedom";
 
-/** Browser APIs used by the low-level modal primitives, absent in linkedom.
- * Focus is observable without introducing browser Tab navigation. */
+/** API del navegador que usan las primitivas modales de bajo nivel y que no existen en linkedom.
+ * El foco es observable sin introducir la navegación con Tab del navegador. */
 export function installModalDom(dom: ReturnType<typeof parseHTML>) {
 	let active: Element | null = dom.document.body;
 	const activeDescriptor = Object.getOwnPropertyDescriptor(dom.document, "activeElement");
@@ -9,19 +9,19 @@ export function installModalDom(dom: ReturnType<typeof parseHTML>) {
 	const prototype = dom.window.HTMLElement.prototype;
 	const originalFocus = prototype.focus, originalSetAttribute = prototype.setAttribute;
 	const legacyEvents = ["attachEvent", "detachEvent"].map(key => [key, Object.getOwnPropertyDescriptor(prototype, key)] as const);
-	// React is imported before this synthetic DOM exists, so its legacy
-	// input-event fallback is active in these Node tests only.
+	// React se importa antes de que exista este DOM sintético, así que su alternativa
+	// antigua de eventos de entrada solo está activa en estas pruebas de Node.
 	Object.assign(prototype, { attachEvent() {}, detachEvent() {} });
 	prototype.focus = function () {
-		// Native focus refuses inert/hidden/disabled targets. In particular,
-		// a covered parent's still-cleaning-up focus listener cannot steal
-		// focus back from its newly mounted child in the same commit.
+		// El foco nativo rechaza los destinos inertes/ocultos/deshabilitados. En particular,
+		// el listener de foco de un padre cubierto que aún se está limpiando no puede quitarle
+		// el foco a su hijo recién montado en el mismo commit.
 		if (this.closest("[inert], [hidden]") || this.matches(":disabled")) return;
 		active = this;
 		this.dispatchEvent(new dom.window.Event("focusin", { bubbles: true }));
 	};
-	// Chromium normalizes HTML attribute names; linkedom otherwise retains
-	// React's ariaHidden casing and makes visibility checks inaccurate.
+	// Chromium normaliza los nombres de los atributos HTML; si no, linkedom conserva
+	// las mayúsculas ariaHidden de React y vuelve inexactas las comprobaciones de visibilidad.
 	prototype.setAttribute = function (name: string, value: string) { originalSetAttribute.call(this, name.toLowerCase(), value); };
 	const style = (element: HTMLElement) => ({
 		display: element.style.display || "block", visibility: element.style.visibility || "visible",

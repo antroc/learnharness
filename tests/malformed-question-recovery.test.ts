@@ -105,7 +105,7 @@ for (const tool of ["quiz", "probe", "ask_user_question", "explain", "recall"]) 
 			: tool === "explain" || tool === "recall" ? { type: '\"check\"', nodeId: "fixture", question: "Explain parity", correctAnswer: "Even numbers are divisible by two." }
 			: { ...valid, options: JSON.stringify(valid.options) };
 		assert.ok(parseQuestionInput(tool, raw));
-		if (tool !== "ask_user_question" && tool !== "quiz") return; // production registries covered by existing question-tool tests
+		if (tool !== "ask_user_question" && tool !== "quiz") return; // registros de producción cubiertos por las pruebas existentes de las herramientas de pregunta
 		const before = structuredClone(raw);
 		const { engine } = scripted([() => assistant(raw, "toolUse", "raw", "raw-call", tool)]);
 		const id = configured();
@@ -178,8 +178,8 @@ test("malformed siblings share one recovery turn; valid siblings must be answere
 test("interrupted recovery write-ahead stays paused on reopen until explicit input", async () => {
 	const before = [newUserMessage("fixture"), assistant()];
 	const id = configured(before);
-	// The POST durably records these results before starting the replacement.
-	// Model a server stop at exactly that boundary: no replacement output.
+	// El POST registra de forma duradera estos resultados antes de iniciar el reemplazo.
+	// Modela una parada del servidor justo en ese límite: sin salida de reemplazo.
 	const checkpoint = [...before, ...inputAppends({ messages: before }, recover())];
 	chatStore.saveMessages(id, checkpoint);
 	const reopened = chatStore.getChat(id)!.messages;

@@ -149,8 +149,8 @@ test("textbox accessible name falls back to placeholder and preserves explicit a
 let cleanup: (() => Promise<void>) | undefined;
 afterEach(async () => { await cleanup?.(); cleanup = undefined; });
 
-/** linkedom has no Selection/default editing actions. The shim tests our offset
- * contract, NOT browser caret navigation or the native IME implementation. */
+/** linkedom no tiene Selection ni acciones de edición por defecto. El parche prueba nuestro contrato
+ * de desplazamientos, NO la navegación del cursor del navegador ni la implementación nativa del IME. */
 async function fixture(initial: string, singleLine = false) {
 	const { window: win, document: doc } = parseHTML("<html><body><div id='root'></div><button id='elsewhere'></button></body></html>");
 	let active: Element = doc.body;
@@ -281,7 +281,7 @@ test("deleteEntireSoftLine honors the browser extent and never substitutes a chi
 	const f = await fixture(source);
 	const start = source.indexOf("Explain");
 	const end = source.indexOf("\nafter");
-	f.select(source.indexOf("`")); // Adjacent to a chip, but not a chip-only command.
+	f.select(source.indexOf("`")); // Junto a una etiqueta, pero no es un comando solo de etiquetas.
 	for (const getTargetRanges of [undefined, () => []]) {
 		const missing = await f.event("beforeinput", { inputType: "deleteEntireSoftLine", getTargetRanges });
 		assert.equal(missing.defaultPrevented, false);
@@ -341,7 +341,7 @@ test("missing or invalid word/line target ranges defer to native editing and pre
 		assert.equal(beforeInput.defaultPrevented, false);
 		assert.equal(f.value, source);
 	}
-	// With no usable target ranges the browser edits the DOM, then input projects it.
+	// Sin rangos destino utilizables el navegador edita el DOM y luego input lo proyecta.
 	await f.nativeText("", "deleteHardLineBackward");
 	assert.equal(f.value, "");
 	await f.event("keydown", { key: "z", metaKey: true });
@@ -381,7 +381,7 @@ test("immutable SSR fallback never stomps native edits, controlled updates, chip
 	assert.equal(f.root.querySelectorAll(`[${PATH_SOURCE_ATTRIBUTE}]`).length, 1);
 	assert.doesNotMatch(f.root.textContent!, /Restored draft/);
 	await f.external("");
-	await f.external(""); // Re-render again with the same initial fallback child prop.
+	await f.external(""); // Vuelve a renderizar con la misma prop de hijo alternativo inicial.
 	assert.equal(readPathInput(f.root), "");
 	assert.equal(f.root.textContent, "");
 	assert.equal(f.root.dataset.empty, "true");
@@ -519,7 +519,7 @@ test("multiple trailing newlines preserve selection and survive native Backspace
 	f.select(f.value.length);
 	assert.equal(f.selection.focusNode, f.root);
 	assert.equal(f.root.lastElementChild?.hasAttribute(PATH_CARET_ATTRIBUTE), true);
-	// linkedom has no default Backspace action; model the native text deletion.
+	// linkedom no tiene la acción por defecto de Backspace; modela el borrado de texto nativo.
 	await f.nativeText("one\n", "deleteContentBackward");
 	assert.equal(f.value, "one\n");
 	assert.equal(readPathInput(f.root), f.value);

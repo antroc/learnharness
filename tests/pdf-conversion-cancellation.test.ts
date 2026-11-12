@@ -19,7 +19,7 @@ function observed(promise: Promise<unknown>) {
 	return () => settled;
 }
 
-// Flush only promise continuations; tests use explicit gates, never timing races.
+// Vacía solo las continuaciones de promesas; las pruebas usan barreras explícitas, nunca carreras de tiempos.
 async function flush() {
 	for (let i = 0; i < 20; i++) await Promise.resolve();
 }
@@ -47,7 +47,7 @@ describe("PDF conversion cooperative cancellation", () => {
 		assert.equal(opens, 0);
 		assertNoListener(controller.signal);
 
-		// The actual entry point also avoids pdfjs opening/transferring the bytes.
+		// El punto de entrada real también evita que pdfjs abra/transfiera los bytes.
 		const bytes = tinyPdf([{}]);
 		const length = bytes.byteLength;
 		const defaultAbort = new AbortController();
@@ -276,7 +276,7 @@ describe("documentToMarkdown cancellation checkpoints", () => {
 		await flush();
 		assert.equal(settled(), false);
 		page.resolve(new Proxy({} as PDFPageProxy, { get(_target, key) {
-			if (key === "then") return undefined; // Promise resolution probes thenables.
+			if (key === "then") return undefined; // La resolución de promesas sondea los thenables.
 			assert.fail("must not access aborted page");
 		} }));
 		await assert.rejects(result, (error) => error === "stop pages");

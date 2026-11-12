@@ -1,4 +1,4 @@
-/** Run the same fake-input gate used for the traced standalone dependency graph. */
+/** Ejecuta la misma barrera de entrada falsa que se usa para el grafo de dependencias standalone rastreado. */
 import assert from "node:assert/strict";
 import path from "node:path";
 import { test } from "node:test";

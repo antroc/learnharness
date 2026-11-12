@@ -1,6 +1,6 @@
 /**
- * pdf-markdown — the rule-based PDF → Markdown converter, against hand-built PDFs whose layout each
- * test spells out (tests/helpers/tiny-pdf.ts) plus the committed 3-page fixture.
+ * pdf-markdown: el conversor PDF → Markdown basado en reglas, probado con PDF hechos a mano cuya maquetación
+ * detalla cada prueba (tests/helpers/tiny-pdf.ts), más el fixture de 3 páginas incluido en el repositorio.
  */
 import assert from "node:assert/strict";
 import type { PDFDocumentProxy } from "pdfjs-dist/legacy/build/pdf.mjs";
@@ -25,7 +25,7 @@ function markdownOf(page: PdfPage | undefined): string {
 	return page.markdown;
 }
 
-/** Lines stacked down the page at a fixed step, like typeset text. */
+/** Líneas apiladas hacia abajo en la página con un paso fijo, como un texto compuesto. */
 function stack(texts: string[], opts: { x?: number; y: number; size?: number; step?: number }): Run[] {
 	return texts.map((text, i) => ({ text, x: opts.x ?? 72, y: opts.y - i * (opts.step ?? 12), size: opts.size ?? 10 }));
 }
@@ -216,7 +216,7 @@ describe("pdf-markdown — reading order", () => {
 		assert.ok(md.indexOf("Left column second line") < md.indexOf("Right column first line"), md);
 	});
 
-	/** One page row per baseline, the way the datasheet cover writes its two columns. */
+	/** Una fila de página por línea base, como escribe la portada de la hoja de datos sus dos columnas. */
 	const sideBySide = (left: string[], right: string[], rightX = 320) =>
 		left.flatMap((text, i) => [{ text, x: 72, y: 700 - i * 14 }, { text: right[i]!, x: rightX, y: 700 - i * 14 }]);
 

@@ -1,10 +1,10 @@
 /**
- * Wave E stage 1 (owner 2026-10-10): pdf_render is NATIVE — pdfjs paints
- * into @napi-rs/canvas in-process, no browser anywhere. These tests pin
- * the real renderer against the real fixture: valid canonical PNGs, dpi
- * scaling arithmetic (scale = dpi/72), out-of-range page skipping, and the
- * Skia canvas actually being exercised (not a DOM canvas — none exists in
- * this process).
+ * Oleada E etapa 1 (responsable 2026-10-10): pdf_render es NATIVO: pdfjs pinta
+ * en @napi-rs/canvas dentro del proceso, sin navegador en ninguna parte. Estas pruebas fijan
+ * el renderizador real contra el fixture real: PNG canónicos válidos, la aritmética
+ * del escalado por dpi (escala = dpi/72), la omisión de páginas fuera de rango y que el
+ * lienzo de Skia se ejercite de verdad (no un lienzo del DOM: no existe ninguno en
+ * este proceso).
  */
 import assert from "node:assert/strict";
 import * as fs from "node:fs";
@@ -16,7 +16,7 @@ import { standardFontsDir } from "../src/agent/subagents/pdf-ops.ts";
 
 const FIXTURE = path.join(import.meta.dirname, "fixtures", "sample-3page.pdf");
 
-/** Minimal PNG chunk walk — returns IHDR dims and the IDAT chunk count. */
+/** Recorrido mínimo de fragmentos PNG: devuelve las dimensiones del IHDR y el número de fragmentos IDAT. */
 function pngFacts(buf: Buffer): { w: number; h: number; idats: number } {
 	assert.equal(buf.subarray(0, 8).toString("hex"), "89504e470d0a1a0a", "PNG signature");
 	const w = buf.readUInt32BE(16);
@@ -27,12 +27,12 @@ function pngFacts(buf: Buffer): { w: number; h: number; idats: number } {
 		const len = buf.readUInt32BE(off);
 		const type = buf.subarray(off + 4, off + 8).toString("ascii");
 		if (type === "IDAT") idats++;
-		off += 12 + len; // len + type + data + crc
+		off += 12 + len; // longitud + tipo + datos + crc
 	}
 	return { w, h, idats };
 }
 
-/** Synthetic page only — no personal PDF or external fixture generator. */
+/** Solo una página sintética: ningún PDF personal ni generador de fixtures externo. */
 function oversizedPdf(): Buffer {
 	const content = "0 0 1 rg 0 0 20000 10000 re f\n";
 	const objects = [
@@ -77,9 +77,9 @@ describe("PDF pre-allocation canvas geometry", () => {
 			[0.000001, 1e12, 300],
 			[1e308, 1e308, Number.MAX_VALUE],
 			[8192.000001, 10, 72],
-			[6100, 3900, 72], // ceil at the area-limited scale exceeds 16MP
+			[6100, 3900, 72], // el redondeo hacia arriba con la escala limitada por área supera los 16MP
 			[4000.000001, 4000.000001, 72],
-			[4000, 4000, 72], // exactly 16MP stays unchanged
+			[4000, 4000, 72], // exactamente 16MP se queda igual
 		];
 		for (const [width, height, dpi] of cases) {
 			const result = pdfCanvasGeometry(width, height, dpi);
@@ -126,7 +126,7 @@ describe("native pdf_render (pdfjs paints, @napi-rs/canvas hosts)", () => {
 		for (const p of pages) {
 			const facts = pngFacts(p.png);
 			assert.ok(facts.w > 0 && facts.h > 0, "non-empty raster");
-			// providerSafePng canonical form: exactly one IDAT.
+			// forma canónica de providerSafePng: exactamente un IDAT.
 			assert.equal(facts.idats, 1, "single-IDAT canonical PNG");
 		}
 	});
@@ -177,11 +177,11 @@ describe("native pdf_render (pdfjs paints, @napi-rs/canvas hosts)", () => {
 	});
 
 	it("renders with NO browser present (available() may be false)", async () => {
-		// The whole point of stage 1: rendering must not consult any Chrome.
-		// realHeadless.available() reflects system Chrome only; on this
-		// machine it may well be true — the assertion that matters is that
-		// the render path never launches one, pinned by the import graph:
-		// renderPdfPages touches pdfjs + @napi-rs/canvas and nothing else.
+		// Todo el sentido de la etapa 1: el renderizado no debe consultar ningún Chrome.
+		// realHeadless.available() solo refleja el Chrome del sistema; en esta
+		// máquina bien puede ser true; la aserción que importa es que
+		// la ruta de renderizado nunca lanza uno, fijado por el grafo de importaciones:
+		// renderPdfPages toca pdfjs + @napi-rs/canvas y nada más.
 		const pages = await realHeadless.renderPdfPages(FIXTURE, [1], { dpi: 72 });
 		assert.equal(pages.length, 1);
 	});

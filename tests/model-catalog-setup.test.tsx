@@ -135,8 +135,8 @@ test("cold saved disconnected pins still enter the provider stage, without any m
 	const stages: Array<string | undefined> = [];
 	function Probe() {
 		React.useLayoutEffect(() => {
-			// HostDialog creates its portal in a layout effect; observe actual
-			// stages rather than a sibling's pre-portal layout pass.
+			// HostDialog crea su portal en un efecto de layout; observa las etapas
+			// reales en vez de la pasada de layout previa al portal de un hermano.
 			const record = () => {
 				const stage = document.querySelector<HTMLElement>('[data-testid^="setup-stage-"]')?.dataset.testid;
 				if (stage && stage !== stages.at(-1)) stages.push(stage);
@@ -246,8 +246,8 @@ test("blocked session recovery opens its ordinary picker, never changes Strong o
 for (const result of ["override", "legacy", "http-failure", "network-failure"] as const) test(`known catalog never enforces provisional Strong on a pending session; session read ${result}`, async () => {
 	installFetch(); const available = { ...b, provider: "other" }; const body = catalog();
 	body.models = [available]; body.providers = [{ id: "other", envVar: "OTHER_KEY", keyPresent: true }];
-	// Global Strong is unavailable, but this existing session owns a valid
-	// model. Resolve global settings first while keeping its record pending.
+	// La ranura Strong global no está disponible, pero esta sesión existente tiene un
+	// modelo válido. Resuelve primero los ajustes globales manteniendo pendiente su registro.
 	const globals: ModelsSettings = { strong: { model: { provider: a.provider, id: a.id }, thinkingLevel: "xhigh" } };
 	let resolveSession!: (response: Response) => void;
 	let rejectSession!: (reason: Error) => void;

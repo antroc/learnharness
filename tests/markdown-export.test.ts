@@ -1,13 +1,13 @@
 /**
- * THE SESSION MARKDOWN EXPORT ROUTE (owner, release polish 2026-10-06):
- * GET /api/chats/:id/markdown — the user-facing export. The engine
- * itself is pinned by tests/session-markdown.test.ts; this file pins
- * the ROUTE contract: 404 unknown chat, the attachment headers, the
- * slugified filename, the anchorless document with the title header.
+ * LA RUTA DE EXPORTACIÓN A MARKDOWN DE LA SESIÓN (responsable, pulido de la versión 2026-10-06):
+ * GET /api/chats/:id/markdown, la exportación de cara al usuario. El motor
+ * en sí lo fija tests/session-markdown.test.ts; este fichero fija
+ * el contrato de la RUTA: 404 para un chat desconocido, las cabeceras de adjunto, el
+ * nombre de fichero convertido en slug, el documento sin anclas con la cabecera del título.
  *
- * Runs under an isolated LH_DATA_DIR (the chat-birth-stamp discipline:
- * the seam is set before any config-loading import, so every
- * app-module import is dynamic).
+ * Se ejecuta con un LH_DATA_DIR aislado (la disciplina de chat-birth-stamp:
+ * la frontera se fija antes de cualquier importación que cargue la configuración, así que toda
+ * importación de módulos de la aplicación es dinámica).
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -15,11 +15,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, describe, it } from "node:test";
 
-// ── the seam, BEFORE any config-loading import ──────────────────────────────
+// ── la frontera, ANTES de cualquier importación que cargue la configuración ──
 const TMP_DATA = fs.mkdtempSync(path.join(os.tmpdir(), "lh-md-export-"));
 process.env.LH_DATA_DIR = TMP_DATA;
 
-/** The route handler + the store seam, loaded AFTER the env is set. */
+/** El manejador de la ruta + la frontera del almacén, cargados DESPUÉS de fijar el entorno. */
 type Get = (req: Request, ctx: { params: Promise<{ id: string }> }) => Promise<Response>;
 let GET: Get;
 let createChat: (title: string, kind?: "practice") => { id: string; title: string };
@@ -60,7 +60,7 @@ describe("GET /api/chats/:id/markdown", () => {
 	});
 
 	it("an unsalvageable title falls back to 'session'", async () => {
-		const chat = createChat("日本語"); // no ascii alphanumerics survive the slug
+		const chat = createChat("日本語"); // ningún alfanumérico ascii sobrevive al slug
 		saveMessages(chat.id, [{ id: "m1", role: "user", content: "hello" }]);
 		const res = await GET(new Request("http://x/api"), { params: Promise.resolve({ id: chat.id }) });
 		assert.equal(res.status, 200);

@@ -6,8 +6,8 @@ import { after, beforeEach, test } from "node:test";
 import type { ModelsSettings, ModelSlotName } from "../src/core/settings.ts";
 import type { NativeSubscriptionSnapshot } from "../src/core/contracts/subscriptions.ts";
 
-// Every app import follows isolation. No installed credentials, ambient keys,
-// OAuth, or provider requests: subscription state comes from synthetic IPC.
+// Toda importación de la aplicación sigue al aislamiento. Sin credenciales instaladas, claves del entorno,
+// OAuth ni peticiones a proveedores: el estado de la suscripción procede de IPC sintético.
 const directory = fs.mkdtempSync(path.join(os.tmpdir(), "lh-models-repair-"));
 process.env.LH_DATA_DIR = directory;
 process.env.LH_AUTH_FILE = path.join(directory, "auth.json");

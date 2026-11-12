@@ -1,4 +1,4 @@
-/** Narration guard: synthetic fixtures only; no provider calls or captures. */
+/** Guarda de narración: solo fixtures sintéticos; sin llamadas ni capturas de proveedores. */
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { QUESTION_TOOLS } from "../src/core/pending.ts";
@@ -8,8 +8,8 @@ import {
 } from "../src/agent/narration-guard.ts";
 import { sendToUserApplies } from "../src/agent/tools/send-to-user.ts";
 
-// A synthetic signature with the proposed marker in the opaque header.
-// This fixture exercises the heuristic, not a documented provider format.
+// Una firma sintética con el marcador propuesto en la cabecera opaca.
+// Este fixture ejercita la heurística, no un formato documentado del proveedor.
 const sig = (type: string) => Buffer.from(`\x08\x04\x12\x10\n\x11\x08\x13\x18\x028\x01B\t${type}\x12\x0cpayload`).toString("base64");
 const thinking = (type: string) => ({ type: "thinking", thinking: "", thinkingSignature: sig(type) });
 const quiz = { type: "toolCall", id: "t1", name: "quiz", arguments: {} };

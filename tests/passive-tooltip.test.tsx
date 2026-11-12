@@ -10,9 +10,9 @@ import { InteractionLayersProvider, useOptionalInteractionLayers, type Interacti
 import { CommitInput } from "../components/settings/controls.tsx";
 import { installModalDom } from "./modal-dom.ts";
 
-// These established browser primitives choose their isomorphic effect at
-// import time. Load them as a browser would, then remove the bootstrap DOM
-// before the explicit SSR proof and install an isolated DOM for each test.
+// Estas primitivas de navegador ya establecidas eligen su efecto isomórfico al
+// importarse. Cárgalas como lo haría un navegador, quita luego el DOM de arranque
+// antes de la prueba SSR explícita e instala un DOM aislado para cada prueba.
 const bootstrap = parseHTML("<html><body></body></html>");
 const bootstrapGlobals = new Map(["window", "document"].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
 Object.assign(globalThis, { window: bootstrap.window, document: bootstrap.document });
@@ -143,7 +143,7 @@ it("preserves controlled/defaultOpen callbacks, prop updates and single-tooltip 
 	await f.render(tree(true, "new")); assert.ok(content()); assert.deepEqual(calls, ["old:true"]);
 	await f.event(document.body, "scroll"); assert.deepEqual(calls, ["old:true", "new:false"]); assert.ok(content(), "controlled refusal remains visible");
 	await f.render(tree(false, "new")); assert.equal(content(), null);
-	// Remount the uncontrolled root rather than switching control mode.
+	// Vuelve a montar la raíz no controlada en vez de cambiar el modo de control.
 	await f.render(null); await f.render(<TooltipProvider>{hint("one", { defaultOpen: true, onOpenChange: value => calls.push(`default:${value}`) })}{hint("two")}</TooltipProvider>);
 	assert.ok(content()); const before = calls.length;
 	await f.focus(element("[data-testid='trigger-two']")); assert.equal(content(), null); assert.ok(content("two"));

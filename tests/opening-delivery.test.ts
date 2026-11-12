@@ -71,7 +71,7 @@ describe("new-session opening delivery acceptance", () => {
 				return post.promise;
 			} });
 			const sending = m.send({ type: "text", text: "recover this opening" }, () => { notified++; });
-			m.stop(); // StrictMode's cleanup detaches the consume, NOT this POST.
+			m.stop(); // La limpieza de StrictMode desengancha el consumo, NO este POST.
 			if (failure === "network") post.reject(new TypeError("opening connection lost"));
 			else post.resolve(new Response(envelope, { status: 503 }));
 			assert.equal(await sending, false);
