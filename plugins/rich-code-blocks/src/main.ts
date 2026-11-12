@@ -36,8 +36,8 @@ export async function activate(ctx: PluginFrontendContext): Promise<() => void> 
     else registration = ctx.registerSettings({ rows: rows(next) });
   }
   function refresh(): Promise<void> {
-    // A reconnect needs a fresh read after any older in-flight snapshot, not a
-    // join to a read captured before notifications were lost. No standing polling.
+    // Una reconexión necesita una lectura nueva tras cualquier instantánea anterior en curso, no
+    // unirse a una lectura capturada antes de que se perdieran las notificaciones. Sin sondeo permanente.
     const task = resync.catch(() => {}).then(async () => {
       if (!disposed && !ctx.signal.aborted) apply(await ctx.call("get-settings"));
     });

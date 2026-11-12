@@ -2,7 +2,7 @@ import { strokeWidth, visibleStrokes, type Stroke } from "./strokes.ts";
 
 export interface Offset { x: number; y: number }
 export interface Bounds extends Offset { width: number; height: number }
-/** Bound only the export raster, never world geometry or the display camera. */
+/** Acota solo el ráster de exportación, nunca la geometría del mundo ni la cámara de presentación. */
 export function exportRaster(bounds: Bounds, pixelRatio: number, imageScale: number): { width: number; height: number } {
   if (![bounds.x, bounds.y, bounds.width, bounds.height, pixelRatio, imageScale].every(Number.isFinite) ||
     bounds.width <= 0 || bounds.height <= 0 || pixelRatio <= 0 || imageScale <= 0 || imageScale > 100) throw new Error("The drawing bounds cannot be exported. Your drawing has been kept.");
@@ -10,8 +10,9 @@ export function exportRaster(bounds: Bounds, pixelRatio: number, imageScale: num
   return { width: Math.max(1, Math.min(2000, Math.round(bounds.width * scale))),
     height: Math.max(1, Math.min(2000, Math.round(bounds.height * scale))) };
 }
-/** A camera translation, never a scale. References stay bottom-centered with a
- * 24px gap plus the saved pan offset; blank sheets retain their centered origin. */
+/** Una traslación de cámara, nunca una escala. Las referencias se quedan
+ * centradas abajo con un hueco de 24px más el desplazamiento guardado; las
+ * hojas en blanco conservan su origen centrado. */
 export function viewOrigin(width: number, height: number, pan: Offset, referenceHeight = 0): Offset {
   return { x: width / 2 + pan.x,
     y: (referenceHeight > 0 ? height - 24 - referenceHeight / 2 : height / 2) + pan.y };
@@ -19,7 +20,7 @@ export function viewOrigin(width: number, height: number, pan: Offset, reference
 export function referenceBounds(width: number, height: number): Bounds {
   return { x: -width / 2, y: -height / 2, width, height };
 }
-/** Includes round caps and each pressure-dependent segment's full painted extent. */
+/** Incluye los extremos redondeados y toda la extensión pintada de cada segmento dependiente de la presión. */
 export function inkBounds(history: readonly Stroke[]): Bounds | undefined {
   let left = Infinity, top = Infinity, right = -Infinity, bottom = -Infinity;
   for (const stroke of visibleStrokes(history)) {
@@ -32,7 +33,7 @@ export function inkBounds(history: readonly Stroke[]): Bounds | undefined {
   }
   return left === Infinity ? undefined : { x: left, y: top, width: right - left, height: bottom - top };
 }
-/** Independent of camera, viewport, and erased history. Reuse the existing 24px margin. */
+/** Independiente de la cámara, el viewport y el historial borrado. Reutiliza el margen existente de 24px. */
 export function exportBounds(width: number, height: number, history: readonly Stroke[], padding = 24): Bounds | undefined {
   const ink = inkBounds(history);
   if (!ink) return undefined;

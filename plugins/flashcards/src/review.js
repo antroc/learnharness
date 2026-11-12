@@ -1,4 +1,4 @@
-// Page-bound review, using only the public plugin UI and RPC contracts.
+// Repaso ligado a la página, usando solo los contratos públicos de UI y RPC de plugins.
 const ratings = ["Again", "Hard", "Good", "Easy"];
 const ratingOptions = label => {
   const color = `var(--fc-rating-${label.toLowerCase()})`;
@@ -33,7 +33,7 @@ function lifetime(...parents) {
   controller.signal.addEventListener("abort", () => {
     for (const parent of parents.filter(Boolean)) parent.removeEventListener("abort", abort);
   }, { once: true });
-  // Already-aborted parents must not retain listeners on the other parents.
+  // Los padres ya abortados no deben conservar listeners en los otros padres.
   if (controller.signal.aborted) for (const parent of parents.filter(Boolean)) parent.removeEventListener("abort", abort);
   return controller;
 }
@@ -49,7 +49,7 @@ export function createReviewController({ ctx, signal, button, markdown, onRated 
     active?.close();
     if (owner.signal.aborted) return;
     const session = lifetime(owner.signal);
-    // Progress belongs to the logical session, not a replayable presentation.
+    // El progreso pertenece a la sesión lógica, no a una presentación repetible.
     let practiceIndex = 0;
     let handle, closed = false;
     const close = () => {
@@ -61,8 +61,8 @@ export function createReviewController({ ctx, signal, button, markdown, onRated 
     };
     active = { close };
     const mount = (container, hostSignal) => {
-      // A host presentation may remount (including development effect replay).
-      // Its lifetime is narrower than the logical review session.
+      // Una presentación del host puede volver a montarse (incluida la repetición de efectos en desarrollo).
+      // Su vida es más corta que la de la sesión de repaso lógica.
       if (closed || session.signal.aborted || hostSignal.aborted) return;
       const content = lifetime(session.signal, hostSignal);
       const root = el("div", `fc-root fc-review-surface${practice ? " fc-practice-surface" : ""}`);
@@ -87,8 +87,8 @@ export function createReviewController({ ctx, signal, button, markdown, onRated 
       const cleanup = () => { clearWait(); cardScope?.abort(); root.remove(); };
       content.signal.addEventListener("abort", cleanup, { once: true });
       function reset() {
-        // Move focus before removing a currently focused control, never reclaim
-        // focus from outside this surface. The permanent heading survives reset.
+        // Mueve el foco antes de quitar un control con el foco, nunca recuperes
+        // el foco desde fuera de esta superficie. El encabezado permanente sobrevive al reinicio.
         if (card.contains(document.activeElement) || footer.contains(document.activeElement) || title.contains(document.activeElement)) focusOwned();
         clearWait(); cardScope?.abort(); cardScope = lifetime(content.signal);
         revealAction = null; rateAction = null; advanceAction = null; revealed = false;
@@ -114,8 +114,8 @@ export function createReviewController({ ctx, signal, button, markdown, onRated 
       }
       function nextPractice() {
         if (content.signal.aborted) return;
-        // Capture this presentation's cue so an overlapping stale control cannot
-        // reveal consumed material or advance the shared queue a second time.
+        // Captura la pista de esta presentación para que un control obsoleto solapado no pueda
+        // revelar material ya consumido ni hacer avanzar una segunda vez la cola compartida.
         const cs = reset(), index = practiceIndex, cue = practiceCards[index];
         if (!cue) { footer.append(el("p", "fc-review-meta", "Practice complete.")); return; }
         const remaining = practiceCards.length - index - 1;
@@ -186,8 +186,8 @@ export function createReviewController({ ctx, signal, button, markdown, onRated 
                 if (!requests.has(rating)) requests.set(rating, crypto.randomUUID());
                 let accepted = false;
                 try {
-                  // Do not cancel accepted work when the view closes. A transport
-                  // retry of the same rating uses the exact same request identity.
+                  // No canceles el trabajo aceptado cuando se cierra la vista. Un reintento de
+                  // transporte de la misma calificación usa exactamente la misma identidad de petición.
                   await ctx.call("rate-review", { ticketId: ticket.id, rating, requestId: requests.get(rating) });
                   accepted = true;
                 } catch (cause) {
@@ -197,8 +197,8 @@ export function createReviewController({ ctx, signal, button, markdown, onRated 
                   ratingBusy = false;
                   if (!cs.aborted && !accepted) ratingButtons.forEach(handle => handle.update({ disabled: false }));
                 }
-                // Refresh is independent of whether this surface still exists.
-                try { void Promise.resolve(onRated?.()).catch(() => {}); } catch { /* A refresh cannot undo an accepted grade. */ }
+                // El refresco es independiente de que esta superficie siga existiendo.
+                try { void Promise.resolve(onRated?.()).catch(() => {}); } catch { /* Un refresco no puede deshacer una calificación aceptada. */ }
                 if (!cs.aborted) await nextReview();
               };
               ratings.forEach((label, index) => ratingButtons.push(control(actions, `${label} · ${interval(result.intervals[index + 1])}`, () => rateAction?.(index + 1), cs, String(index + 1), ratingOptions(label))));
@@ -222,11 +222,11 @@ export function createReviewController({ ctx, signal, button, markdown, onRated 
         const target = event.target;
         if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || target?.closest?.("input,textarea,select,a,[contenteditable]:not([contenteditable=false])")) return;
         const space = event.code === "Space" || event.key === " ";
-        // No Space chord may activate our scheduled rating controls, including
-        // modified or repeated events. Editors and IME retain their own keys.
+        // Ninguna combinación con Espacio puede activar nuestros controles de calificación programados, incluidos
+        // los eventos modificados o repetidos. Los editores y el IME conservan sus propias teclas.
         if (!practice && revealed && space && target?.closest?.(".fc-rating")) { event.preventDefault(); return; }
         if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
-        // Unmodified scheduled Space reveals only, never rates.
+        // El Espacio programado sin modificadores solo revela, nunca califica.
         if (!practice && revealed && space) { event.preventDefault(); return; }
         if (event.repeat || target?.closest?.("button")) return;
         if (space) {
@@ -243,8 +243,8 @@ export function createReviewController({ ctx, signal, button, markdown, onRated 
       return () => content.abort();
     };
     try {
-      // Capture the active page now, never after awaiting a review RPC. Content
-      // can mount either during this call or later; it owns starting the request.
+      // Captura ahora la página activa, nunca después de esperar una RPC de repaso. El contenido
+      // puede montarse durante esta llamada o más tarde; él se encarga de iniciar la petición.
       handle = ctx.ui.openSurface({ title: practice ? "Flashcard practice" : "Flashcard review", background: "dimmed", content: mount, onClose: close }, { signal: session.signal });
       if (closed) handle.dispose();
     } catch (cause) { close(); throw cause; }

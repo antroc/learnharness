@@ -7,7 +7,7 @@ function unescapeCss(value: string): string {
     return code === 0 || code > 0x10ffff || (code >= 0xd800 && code <= 0xdfff) ? "\ufffd" : String.fromCodePoint(code);
   });
 }
-/** CSS family lists may contain quoted commas and escaped quotes/commas. */
+/** Las listas de familias CSS pueden contener comas entre comillas y comillas/comas escapadas. */
 export function fontFamilies(value: string): string[] {
   const parts: string[] = []; let start = 0, quote = "";
   for (let index = 0; index < value.length; index++) {
@@ -24,7 +24,7 @@ export function fontFamilies(value: string): string[] {
   }).filter(Boolean);
 }
 export interface CssUrl { start: number; end: number; url: string }
-/** Read URL tokens, not lookalikes inside strings such as local("url(name)"). */
+/** Lee tokens URL, no imitaciones dentro de cadenas como local("url(name)"). */
 export function cssUrls(value: string): CssUrl[] {
   const urls: CssUrl[] = [];
   const stringEnd = (start: number) => {
@@ -63,9 +63,11 @@ function readDataUrl(blob: Blob, signal: AbortSignal): Promise<string> {
     signal.addEventListener("abort", abort, { once: true }); reader.readAsDataURL(blob);
   });
 }
-/** Build detached font CSS from browser-parsed, already-loaded stylesheets.
- * Never fetch/parse an imported stylesheet or insert rules into the live page.
- * CSSImportRule.styleSheet has the browser-resolved URL for relative font assets. */
+/** Construye CSS de fuentes independiente a partir de hojas de estilo ya
+ * cargadas y analizadas por el navegador. Nunca pide/analiza una hoja de
+ * estilo importada ni inserta reglas en la página viva.
+ * CSSImportRule.styleSheet tiene la URL resuelta por el navegador para los
+ * recursos de fuente relativos. */
 export async function referenceFontCSS(root: HTMLElement, signal: AbortSignal): Promise<string> {
   signal.throwIfAborted();
   const document = root.ownerDocument, window = document.defaultView!;

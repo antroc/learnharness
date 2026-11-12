@@ -1,7 +1,7 @@
 import type { PluginTreeProps, PluginTreeRow, PluginUi, PluginUiContent, PluginWidgetHandle } from "learnharness-plugin-api";
 import { Scope, button, element, example, note, readout } from "./dom.ts";
 
-/** Synthetic controlled values only; the host owns row presentation and keyboard behavior. */
+/** Solo valores controlados sintéticos; el host es dueño de la presentación de las filas y del comportamiento del teclado. */
 export function mountTreeDemo(ui: PluginUi, body: HTMLElement, life: Scope): void {
   note(body, "A small synthetic directory using the host tree. Shared item appears under both folders with independent occurrence keys. Selection is optional and never cascades from folders to children. Hiding selection preserves it; Reset clears this family's state.");
   note(body, "Click a row, then use the host's arrow-row navigation; Space selects an enabled host checkbox. The editable draft keeps its normal input keys. This example owns its 36rem minimum width and horizontal scrolling, not a responsive tree engine.");
@@ -19,8 +19,8 @@ export function mountTreeDemo(ui: PluginUi, body: HTMLElement, life: Scope): voi
     render();
   } });
 
-  // One factory per family lifetime: controlled updates retain this content's
-  // DOM, while disclosure unmounts it and a later mount restores the local draft.
+  // Una factoría por cada vida de familia: las actualizaciones controladas conservan el DOM de este
+  // contenido, mientras que el despliegue lo desmonta y un montaje posterior restaura el borrador local.
   const draftContent: PluginUiContent = (container, signal) => {
     const content = new Scope(signal);
     if (life.signal.aborted || content.signal.aborted) { content.dispose(); return content.dispose; }

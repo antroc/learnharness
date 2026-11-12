@@ -99,7 +99,7 @@ test("native close clears the toggle; retired targets and stale callbacks cannot
     assert.equal(reopened.disposed, 1, "A stale close must not make the next click open another surface");
     await action.run(context);
     const beforeNavigation = fixture.records.findLast(record => record.method === "openSurface")!;
-    beforeNavigation.handle.dispose(); // Host retires the page without firing user onClose.
+    beforeNavigation.handle.dispose(); // El host retira la página sin disparar el onClose del usuario.
     const returnedContext = sessionContext();
     await action.run(returnedContext);
     const returned = fixture.records.findLast(record => record.method === "openSurface")!;

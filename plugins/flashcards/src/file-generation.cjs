@@ -88,8 +88,8 @@ function prepareFileChunks(options) {
     const maxTokens = Math.min(8192, outputLimit, contextLimit - tokens - 256);
     return { start, end, input, prompt, tokens, maxTokens };
   };
-  // Match core extraction's source-only chars/4 budget. Filename, JSON
-  // escaping, instructions and schema remain in the full-request estimate.
+  // Igual que el presupuesto chars/4 solo de fuente de la extracción del núcleo. El nombre de fichero,
+  // el escapado JSON, las instrucciones y el esquema siguen en la estimación de la petición completa.
   const characterAllowance = chunkBudget * 4;
   const chunks = [];
   for (const span of spans) {

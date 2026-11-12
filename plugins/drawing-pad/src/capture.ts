@@ -11,8 +11,9 @@ export function hasVisibleInk(canvas: HTMLCanvasElement): boolean {
   const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
   return pixels.some((value, index) => index % 4 === 3 && value > 0);
 }
-/** Observe only the plugin-owned reference and generic browser/ARIA readiness.
- * No native dock selectors, private Markdown classes, timer polling or timeouts. */
+/** Observa solo la referencia propia del plugin y la disponibilidad genérica
+ * del navegador/ARIA. Sin selectores del dock nativo, clases privadas de
+ * Markdown, sondeos con temporizador ni plazos. */
 async function waitForReference(root: HTMLElement, slots: readonly HTMLElement[], signal: AbortSignal): Promise<void> {
   signal.throwIfAborted();
   await new Promise<void>((resolve, reject) => {
@@ -75,7 +76,7 @@ export async function captureBackground(root: HTMLElement | undefined, slots: re
     } finally { observer.disconnect(); }
     const image = new Image(); image.src = svg!;
     await abortable(image.decode(), signal);
-    // Freeze the reference at its rendered CSS-pixel size. Never fit it to a viewport.
+    // Congela la referencia a su tamaño renderizado en píxeles CSS. Nunca la ajustes a un viewport.
     width = frozenSize?.width ?? root.clientWidth; height = frozenSize?.height ?? root.scrollHeight;
     canvas.width = Math.max(1, Math.round(width * pixelRatio));
     canvas.height = Math.max(1, Math.round(height * pixelRatio));
@@ -87,7 +88,7 @@ export async function captureBackground(root: HTMLElement | undefined, slots: re
   if (!raster.startsWith("data:image/png;base64,")) throw new Error("Could not capture the complete question reference.");
   return { background: raster, backgroundColor: background, width, height, pixelRatio };
 }
-/** Freeze both layers from one immutable attempt snapshot. No toolbar/chrome. */
+/** Congela ambas capas a partir de una única instantánea inmutable del intento. Sin barra de herramientas ni adornos. */
 export async function exportSheet(captured: Capture, signal: AbortSignal): Promise<{ type: "image"; mimeType: "image/png"; data: string }> {
   signal.throwIfAborted();
   const draft = captured.draft;

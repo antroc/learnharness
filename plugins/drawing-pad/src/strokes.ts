@@ -1,5 +1,6 @@
-/** Adapted from hrdkj/learnharness, codex/handwriting-contribution (48dd022).
- * See THIRD-PARTY.md. Coordinates and pressure remain in unrestricted world space. */
+/** Adaptado de hrdkj/learnharness, codex/handwriting-contribution (48dd022).
+ * Ver THIRD-PARTY.md. Las coordenadas y la presión se quedan en un espacio
+ * del mundo sin restricciones. */
 export interface Point { x: number; y: number; pressure: number }
 export interface Stroke { tool: "pen" | "eraser"; points: Point[] }
 export type Tool = Stroke["tool"] | "hand";
@@ -35,7 +36,7 @@ function touchesStroke(stroke: Stroke, eraser: Stroke): boolean {
   }
   return false;
 }
-/** Keep eraser gestures in history so undo restores complete removed strokes. */
+/** Mantén los gestos de borrador en el historial para que deshacer restaure los trazos eliminados completos. */
 export function visibleStrokes(history: readonly Stroke[]): Stroke[] {
   let visible: Stroke[] = [];
   for (const stroke of history) {
@@ -44,7 +45,7 @@ export function visibleStrokes(history: readonly Stroke[]): Stroke[] {
   }
   return visible;
 }
-/** History-only edits (or Undo back to the sent drawing) are not new image content. */
+/** Las ediciones solo de historial (o deshacer hasta el dibujo enviado) no son contenido de imagen nuevo. */
 export function inkSignature(history: readonly Stroke[], color: string): string {
   const visible = visibleStrokes(history);
   return visible.length ? JSON.stringify([color, visible.map(stroke => stroke.points)]) : "";

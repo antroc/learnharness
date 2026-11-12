@@ -3,7 +3,7 @@ import { captureBackground } from "./capture.ts";
 import { mountReference } from "./reference.ts";
 import type { Draft } from "./state.ts";
 
-// Read the selected app palette, not the operating system's color preference.
+// Lee la paleta seleccionada de la app, no la preferencia de color del sistema operativo.
 const colors = ["--background", "--foreground", "--muted-foreground", "--border", "--lh-ink-strong", "--lh-ink-italic",
   "--lh-ink-code", "--lh-accent", "--card", "--lh-error", "--lh-success", "--lh-warning"];
 export function appPalette(): { key: string; mode: "dark" | "light" } {
@@ -13,8 +13,9 @@ export function appPalette(): { key: string; mode: "dark" | "light" } {
   return { mode, key: JSON.stringify([mode, ...colors.map(name => style?.getPropertyValue(name).trim() ?? "")]) };
 }
 
-/** Repaint only the saved original reference, never the current session input.
- * Offscreen mounts are temporary; the sheet's dimensions and camera stay fixed. */
+/** Repinta solo la referencia original guardada, nunca la entrada actual de
+ * la sesión. Los montajes fuera de pantalla son temporales; las dimensiones
+ * y la cámara de la hoja se mantienen fijas. */
 export async function recolorReference(draft: Draft, ctx: PluginFrontendContext, signal: AbortSignal): Promise<Pick<Draft, "background" | "backgroundColor">> {
   const root = document.createElement("div"); root.className = "drawing-pad-root";
   root.style.cssText = "position:fixed;inset:auto;left:-100000px;top:0;pointer-events:none";

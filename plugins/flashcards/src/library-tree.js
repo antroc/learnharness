@@ -1,4 +1,4 @@
-// Plugin-owned data/actions inside the shared native tree. No host implementation imports.
+// Datos/acciones propios del plugin dentro del árbol nativo compartido. Sin imports de la implementación del host.
 const el = (tag, className, text) => {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -53,7 +53,7 @@ export function mountLibraryTree({ ctx, container, signal, button, onReview, onP
     return { label: `Toggle ${label}`, expanded: expanded.has(key) || !!query, onChange(value) {
       if (!live()) return;
       if (value) expanded.add(key); else expanded.delete(key);
-      // Explicit folds during search should not instantly reopen themselves.
+      // Los plegados explícitos durante una búsqueda no deberían volver a abrirse solos al instante.
       if (query) searchFolds[value ? 'delete' : 'add'](key);
       render();
     } };
@@ -199,7 +199,7 @@ export function mountLibraryTree({ ctx, container, signal, button, onReview, onP
       query = ''; searchFolds.clear(); expanded.add(`deck:${id}`);
       if (propositionId && deck.propositionIds.includes(propositionId)) expanded.add(`deck:${id}:p:${propositionId}`);
       render();
-      // Only scroll plugin-owned content while focus remains in this library.
+      // Desplaza solo contenido propio del plugin mientras el foco siga en esta biblioteca.
       if (container.closest('.fc-root')?.contains(document.activeElement)) {
         const node = [...inner.querySelectorAll('[data-fc-occurrence]')].find(node => node.dataset.fcOccurrence === `deck:${id}`);
         node?.scrollIntoView?.({ block: 'nearest' });

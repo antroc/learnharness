@@ -8,7 +8,7 @@ export interface Reference {
   multiple: boolean;
   extra?: string;
 }
-/** Only the host-selected, learner-facing projection is consumed here. */
+/** Aquí solo se consume la proyección elegida por el host y dirigida al alumno. */
 export function referenceFor(input: PluginSessionViewInput): Reference | undefined {
   if (input.type === "thinking") return { label: "Problem", question: input.problem.statement, options: [], multiple: false };
   if (input.type !== "answer" || !input.revealed || !input.available) return undefined;

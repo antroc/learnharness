@@ -1,7 +1,7 @@
 import type { PluginUi, PluginSurfaceTarget, PluginSurfaceProps, PluginWidgetHandle } from "learnharness-plugin-api";
 import { Scope, button, element, example, family, note, readout, row } from "./dom.ts";
 
-/** Shared ordinary overlays, always using the real host stack and keyboard policy. */
+/** Superposiciones normales compartidas, siempre con la pila real del host y su política de teclado. */
 export function mountOverlayExamples(ui: PluginUi, body: HTMLElement, life: Scope, kind: "menus" | "dialogs"): void {
   let selection: string | null = null;
   let lastCallback = "none";
@@ -91,12 +91,12 @@ function knowledgeExample(ui: PluginUi, root: HTMLElement, life: Scope, id: stri
   show({ value });
 }
 
-/** The target is passed through unchanged from the native action context. */
+/** El destino se pasa sin cambios desde el contexto de la acción nativa. */
 export function openSurfaceDemo(ui: PluginUi, target: PluginSurfaceTarget, signal: AbortSignal, onClose?: () => void): PluginWidgetHandle<PluginSurfaceProps> {
   return openDemo(ui, signal, target, onClose);
 }
 
-/** Direct opening captures the current page body through the public host API. */
+/** La apertura directa captura el cuerpo de la página actual mediante la API pública del host. */
 export function openPageSurfaceDemo(ui: PluginUi, signal: AbortSignal, onClose: () => void): PluginWidgetHandle<PluginSurfaceProps> {
   return openDemo(ui, signal, undefined, onClose);
 }

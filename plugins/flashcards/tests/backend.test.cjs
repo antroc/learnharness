@@ -13,8 +13,8 @@ const graph = (...ids) => ({ propositions: ids.map(id => node(id)), chains: [], 
 const cards = (id, ...questions) => ({ propositionId: id, cards: questions.map(question => ({ question, answer: `Answer: ${question}` })) });
 const result = (...rows) => ({ propositions: rows });
 
-// In-memory durable worker service: activation-local registrations/observers,
-// persistent tasks, explicit accepted-result validation, and no model execution.
+// Servicio de workers duradero en memoria: registros/observadores locales a la activación,
+// tareas persistentes, validación explícita de resultados aceptados y ninguna ejecución de modelos.
 function workerService() {
   const tasks = new Map(), subscriptions = new Map(), waiters = new Map();
   const definitions = new Map(); let starts = 0;
@@ -53,7 +53,7 @@ function workerService() {
         if (signal.aborted) abort();
       });
     },
-    // Cancellation is a request, not proof a provider stopped: allow a late result.
+    // La cancelación es una petición, no la prueba de que un proveedor se detuvo: admite un resultado tardío.
     cancel(id) { tasks.get(id).cancelRequested = true; },
   };
   return {
@@ -850,7 +850,7 @@ test('cue-filtered new review intersects deck/proposition scope and chooses only
   await h.call('create-deck', { name: 'Empty' });
   const empty = h.state().decks.find(d => d.name === 'Empty');
   assert.equal((await h.call('next-review', { ...scope, deckIds: [empty.id] })).ticket, null);
-  // Tickets retain the original selection, rather than the caller's mutable arrays.
+  // Los tickets conservan la selección original, no los arrays mutables del llamante.
   scope.cueIds.splice(0, scope.cueIds.length, p1.cues[0].id);
   scope.propositionIds.length = 0; scope.deckIds.length = 0;
   assert.equal((await h.call('reveal-review', { ticketId: ticket.id })).answer, 'Answer: Selected two');
@@ -871,7 +871,7 @@ test('normal due review retains weighted choice within the selected cue pool and
   const before = h.state().propositions[0].schedule;
   const random = t.mock.method(Math, 'random', () => .2);
   const scope = { cueIds: [easy.id, untried.id] };
-  // Easy has weight 1, untried weight 3: the boundary is 1/4, not 1/7.
+  // Easy tiene peso 1 y sin probar peso 3: el límite es 1/4, no 1/7.
   assert.equal((await h.call('next-review', scope)).ticket.cueId, easy.id);
   random.mock.mockImplementation(() => .3);
   assert.equal((await h.call('next-review', scope)).ticket.cueId, untried.id);
@@ -1176,7 +1176,7 @@ test('restart reconciles accepted durable results exactly once and never replays
   assert.equal(h.workers.starts, 2);
   assert.match(h.state().batch.error, /worker record could not be read/);
   assert.equal(h.state().propositions[0].cues.length, 1);
-  // A transiently unreadable accepted record is recoverable, not auto-replayed.
+  // Un registro aceptado ilegible de forma transitoria es recuperable, no se repite automáticamente.
   h.workers.tasks.set(missing.id, durableTask);
   h.workers.complete(missing.id, result(cards('p1', 'Recovered later')));
   await h.call('resume-results');

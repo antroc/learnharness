@@ -1,12 +1,12 @@
-/** Test-only frontend package, installed solely inside the disposable native proof. */
+/** Paquete de frontend solo para pruebas, instalado únicamente dentro de la prueba nativa desechable. */
 const manifest = {
   id: "surface-proof", name: "Surface proof fixture", version: "0.0.0",
   apiVersion: 1, minAppVersion: "0.4.1", main: "main.js",
   description: "Disposable public-API Surface verification; not a product package.",
 };
 
-// This function is serialized as the fixture's entire frontend module. It has
-// no imports, host internals, test globals, network access or generated actions.
+// Esta función se serializa como todo el módulo de frontend de la fixture. No tiene
+// imports, internos del host, globales de prueba, acceso a red ni acciones generadas.
 function activate(ctx) {
   const registrations = [], surfaces = [], watchers = new Set();
   let latest;
@@ -37,8 +37,8 @@ function activate(ctx) {
         signal.addEventListener("abort", () => { record.aborts++; publish(); }, { once: true });
         const cleanup = () => { record.cleanups++; button.dispose(); root.remove(); publish(); };
         publish();
-        // An intentionally late cleanup must run once after its owner expires,
-        // never recreate the old page surface or activate its expired callbacks.
+        // Una limpieza intencionadamente tardía debe ejecutarse una vez cuando su dueño caduca,
+        // nunca volver a crear la antigua superficie de página ni activar sus callbacks caducados.
         return pending ? new Promise(resolve => { record.finish = () => { record.pending = false; resolve(cleanup); publish(); }; }) : cleanup;
       },
       onClose() { record.closes++; publish(); },
@@ -68,8 +68,8 @@ function activate(ctx) {
   registrations.push(ctx.registerSettings((container, signal) => {
     const slot = document.createElement("div"); slot.dataset.surfaceProof = "settings-open";
     container.append(slot);
-    // Button lifetime belongs to Settings. The opened Surface lifetime instead
-    // belongs to the plugin/page and must survive closing the Settings mount.
+    // La vida del botón pertenece a Settings. La vida de la Surface abierta, en cambio,
+    // pertenece al plugin/página y debe sobrevivir al cierre del montaje de Settings.
     const button = ctx.ui.mountButton(slot, { label: "Open page surface behind Settings", onClick() { open(); } }, { signal });
     return () => { button.dispose(); slot.remove(); };
   }));

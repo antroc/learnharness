@@ -1,6 +1,6 @@
-// Narrow boundaries for pinned vendor packages: smiles-drawer's published SVG
-// declarations reference an unimported Vertex type; TikZ's default declarations
-// describe its Node entry rather than the browser Worker entry used by this build.
+// Límites acotados para los paquetes de terceros fijados: las declaraciones SVG publicadas de smiles-drawer
+// referencian un tipo Vertex no importado; las declaraciones por defecto de TikZ
+// describen su entrada de Node en vez de la entrada de Worker del navegador que usa esta compilación.
 declare module "rich-code-blocks-smiles" {
   const SmilesDrawer: {
     parse(source: string, success: (tree: unknown) => void, failure: (error: Error) => void): void;

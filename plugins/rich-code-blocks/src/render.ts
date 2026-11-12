@@ -29,15 +29,15 @@ export class RenderCache {
 async function smiles(source: string, signal: AbortSignal): Promise<string> {
   const { default: SmilesDrawer } = await import("rich-code-blocks-smiles");
   signal.throwIfAborted();
-  // One molecule, not a reaction, disconnected fragment list, or multiline prose.
+  // Una molécula, no una reacción, una lista de fragmentos desconectados ni prosa de varias líneas.
   const molecule = source.trim();
   if (/[\s.>]/.test(molecule)) throw new Error("Use one SMILES molecule per block, without prose or reaction notation.");
   return new Promise((resolve, reject) => SmilesDrawer.parse(molecule, tree => {
     try {
       const drawer = new SmilesDrawer.SvgDrawer({ scale: 1 });
       const svg = drawer.draw(tree, null, "light");
-      // Replace the library's .element/.sub stylesheet with static attributes;
-      // generated CSS rules never enter the page or leak into the host.
+      // Sustituye la hoja de estilo .element/.sub de la biblioteca por atributos estáticos;
+      // las reglas CSS generadas nunca entran en la página ni se filtran al host.
       const options = drawer.opts as { fontSizeLarge: number; fontSizeSmall: number; fontFamily: string };
       for (const node of svg.querySelectorAll(".element, .sub")) {
         node.setAttribute("font-size", `${node.classList.contains("sub") ? options.fontSizeSmall : options.fontSizeLarge}pt`);
@@ -49,8 +49,8 @@ async function smiles(source: string, signal: AbortSignal): Promise<string> {
 }
 
 async function abc(source: string, signal: AbortSignal): Promise<string> {
-  // Import only the visual rendering entry, not synth/MIDI/editor APIs. The build
-  // omits its unused viewport resize listeners (documented in THIRD-PARTY.md).
+  // Importa solo la entrada de render visual, no las API de síntesis/MIDI/editor. La compilación
+  // omite sus listeners de redimensionado del viewport sin usar (documentado en THIRD-PARTY.md).
   const { default: renderAbc } = await import("abcjs/src/api/abc_tunebook_svg.js");
   signal.throwIfAborted();
   for (const header of ["X", "M", "L", "K"]) if (!new RegExp(`^${header}:[\\t ]*\\S`, "m").test(source)) {
@@ -116,7 +116,7 @@ export class RenderService {
       const wasAborted = controller.signal.aborted;
       dispose();
       if (wasAborted || this.disposed) return dispose;
-      throw error; // The public host renderer boundary supplies error + readable raw source.
+      throw error; // El límite público del renderer del host aporta el error + la fuente en bruto legible.
     }
   }
 

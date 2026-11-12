@@ -22,8 +22,8 @@ export async function activate(ctx: PluginFrontendContext): Promise<() => void> 
   const cleanups: (() => void)[] = [];
   const paletteController = new AbortController();
   let appliedPalette = appPalette().key, paletteTask: Promise<void> | undefined;
-  // Opaque public path strings are associated ONLY on an actual contextual click.
-  // No route parsing or global-current-session inference is used for targeting.
+  // Las cadenas de ruta públicas opacas se asocian SOLO con un clic contextual real.
+  // No se usa ningún análisis de rutas ni deducción global de la sesión actual para elegir el destino.
   const pageSessions = new Map<string, string>();
   const sheets = new Sheets(() => {
     if (!disposed && !ctx.signal.aborted) {
@@ -48,8 +48,8 @@ export async function activate(ctx: PluginFrontendContext): Promise<() => void> 
     sheets.observePoses(state, acceptedPoseKeys(context.view.messages), !hadState);
     if (wasOpen) { if (open?.session === state) close(open); return; }
     if (open) close(open);
-    // Acceptance can empty a sheet while it is closed. Apply the same empty-
-    // sheet policy as close before deciding whether this mount needs a reference.
+    // La aceptación puede vaciar una hoja mientras está cerrada. Aplica la misma política de hoja
+    // vacía que al cerrar antes de decidir si este montaje necesita una referencia.
     sheets.dropUntouched(state);
     const pad: OpenPad = { session: state, controller: new AbortController(), closed: false };
     open = pad;
@@ -62,8 +62,8 @@ export async function activate(ctx: PluginFrontendContext): Promise<() => void> 
           pad.mounted = mounted;
           return () => {
             mounted.dispose();
-            // Content mounts can be replayed by the host (e.g. development
-            // StrictMode). Only the latest, genuinely departed mount owns close.
+            // El host puede repetir los montajes de contenido (p. ej. el StrictMode
+            // de desarrollo). Solo el último montaje que se ha ido de verdad es dueño del cierre.
             queueMicrotask(() => {
               if (pad.mounted !== mounted) return;
               pad.mounted = undefined;
@@ -79,8 +79,8 @@ export async function activate(ctx: PluginFrontendContext): Promise<() => void> 
   const action: PluginAction = {
     id: "draw", icon: PEN,
     shortcut: { scope: { sessions: ["teaching", "practice"] }, defaultBinding: "mod+shift+d" },
-    // A readonly string accessor uses public pathname + our click-time mapping;
-    // no state capture occurs in disabled/render-time predicates.
+    // Un accesor de cadena de solo lectura usa el pathname público + nuestro mapeo del momento del clic;
+    // no se captura estado en los predicados de desactivación/de tiempo de render.
     get name() {
       const id = pageSessions.get(ctx.app.pathname());
       const state = id ? sheets.sessions.get(id) : undefined;
@@ -225,8 +225,8 @@ export async function activate(ctx: PluginFrontendContext): Promise<() => void> 
           sheets.observePoses(state, acceptedPoseKeys(context.messages));
           await refreshPoses(state, context.signal);
         }
-        // Pose reads and palette rendering are asynchronous. Recheck the live
-        // palette after the last await, immediately before freezing the attempt.
+        // La lectura de planteamientos y el render de la paleta son asíncronos. Vuelve a comprobar la paleta
+        // viva tras el último await, justo antes de congelar el intento.
         do {
           await abortable(refreshPalette(), context.signal);
           paletteController.signal.throwIfAborted();

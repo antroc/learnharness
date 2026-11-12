@@ -210,7 +210,7 @@ test("menu/dialog calls retain lifetime ownership; explicit native surfaces pres
     await f.find("dialog-nested-child").props.onClick();
     assert.equal(retained.props.rows[0].value, "parent retained");
     assert.equal(f.records.filter(entry => entry.method === "openDialog").length, 2);
-    // Opaque unit sentinel is passed unchanged; it is NOT valid for a real host.
+    // El centinela unitario opaco se pasa sin cambios; NO es válido para un host real.
     const sentinel = Object.freeze({});
     openSurfaceDemo(f.ui, sentinel as Parameters<typeof openSurfaceDemo>[1], f.controller.signal);
     const surface = f.records.findLast(entry => entry.method === "openSurface")!;

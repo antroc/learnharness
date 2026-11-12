@@ -1,6 +1,6 @@
 import type { PluginButtonProps, PluginUi, PluginWidgetHandle } from "learnharness-plugin-api";
 
-/** A mount-local lifetime, including promises awaiting manual completion. */
+/** Una vida local al montaje, incluidas las promesas que esperan una finalización manual. */
 export class Scope {
   readonly controller = new AbortController();
   readonly signal = this.controller.signal;

@@ -5,7 +5,7 @@ function statistics(state, live, now) {
   const dayStart = state.settings.dayStart;
   const today = studyDay(now, dayStart), { start } = dayBounds(now, dayStart);
   const dayAt = offset => {
-    // Advance civil dates, not fixed 24-hour intervals across DST boundaries.
+    // Avanza fechas civiles, no intervalos fijos de 24 horas a través de los cambios de horario de verano.
     const date = new Date(start);
     date.setHours(12, 0, 0, 0); date.setDate(date.getDate() + offset);
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -25,7 +25,7 @@ function statistics(state, live, now) {
     const bucket = day < today ? due[0] : dueDays.get(day);
     if (bucket) bucket.count++;
   }
-  // Past activity is evidence of actual reviews, even if its cards are now archived/deleted.
+  // La actividad pasada es prueba de repasos reales, aunque sus tarjetas estén ahora archivadas/borradas.
   for (const review of state.reviews) {
     const bucket = activityDays.get(studyDay(review.at, dayStart));
     if (bucket) bucket.count++;

@@ -190,7 +190,7 @@ for (const termination of ['host close', 'view abort', 'plugin abort']) test(`${
     surface.unmountContent(); surface.mount(); await flush();
     assert.ok(h.root);
     assert.equal(surface.disposed, false);
-    // Even an overlapping host presentation belongs to this same session.
+    // Incluso una presentación del host solapada pertenece a esta misma sesión.
     const extra = h.document.createElement('div'); h.document.body.append(extra);
     const extraHost = new AbortController(), extraCleanup = surface.props.content(extra, extraHost.signal);
     await flush(); assert.equal(extra.children.length, 1);
@@ -250,7 +250,7 @@ test('host surface opens synchronously; question and answer use scoped host Mark
     assert.equal(h.card.textContent, '', 'loading status is outside the QA-only card');
     assert.ok(h.footer.textContent.includes('Loading next card…'));
     assert.equal(h.document.activeElement, h.document.body, 'plugin mount does not take focus');
-    h.stage.focus(); // The host enters its visible marked target, not a heading.
+    h.stage.focus(); // El host entra en su destino marcado visible, no en un encabezado.
     assert.equal(h.key(h.stage, ' ').defaultPrevented, true, 'local keys reach the marked stage while loading');
     assert.equal(h.calls.some(([operation]) => operation === 'reveal-review'), false);
     await flush();
@@ -444,8 +444,8 @@ test('scheduled revealed Space suppresses root and focused rating-button activat
       for (const repeat of [false, true]) {
         const event = h.key(target, ' ', { repeat });
         assert.equal(event.defaultPrevented, true, 'cancel native Space activation before the button/repeat filters');
-        // linkedom has no native keyboard default actions; emulate the browser's
-        // button default only when the plugin has not prevented it.
+        // linkedom no tiene acciones de teclado nativas por defecto; emula la acción por defecto
+        // del botón del navegador solo cuando el plugin no la ha impedido.
         if (target.tagName === 'BUTTON' && !event.defaultPrevented) target.click();
       }
     }
@@ -537,7 +537,7 @@ test('actions move currently owned focus before disabling controls and never rec
     h.controller.open({}); await flush();
     const second = deferred(); h.overrides['reveal-review'] = () => second.promise;
     h.document.querySelector('button').focus(); h.click('Reveal answer');
-    h.document.body.focus(); // Leaving owned focus must never be undone by a late result.
+    h.document.body.focus(); // Abandonar el foco propio nunca debe deshacerlo un resultado tardío.
     second.resolve({ answer: 'Answer', intervals }); await flush();
     assert.equal(h.document.activeElement, h.document.body);
   } finally { h.dispose(); }
@@ -736,16 +736,16 @@ test('overlapping practice presentations cannot reveal consumed cues or advance 
     h.controller.openPractice(practiceCards());
     const surface = h.surface, extra = h.document.createElement('div'); h.document.body.append(extra);
     const firstHost = new AbortController(), firstCleanup = surface.props.content(extra, firstHost.signal);
-    extra.querySelector('button').click(); // Both presentations reveal cue 1.
+    extra.querySelector('button').click(); // Ambas presentaciones revelan la pista 1.
     h.click('Reveal answer'); h.click('Next');
     assert.equal(h.card.textContent, 'PRACTICE Q2');
-    extra.querySelector('button').click(); // Stale Next from cue 1 must not skip cue 2.
+    extra.querySelector('button').click(); // Un Next obsoleto de la pista 1 no debe saltarse la pista 2.
     firstCleanup?.(); surface.unmountContent(); surface.mount();
     assert.equal(h.card.textContent, 'PRACTICE Q2');
     const secondHost = new AbortController(), secondCleanup = surface.props.content(extra, secondHost.signal);
     h.click('Reveal answer'); h.click('Next');
     assert.equal(h.card.textContent, 'PRACTICE Q3');
-    extra.querySelector('button').click(); // Unrevealed stale cue 2 must stay unrevealed.
+    extra.querySelector('button').click(); // La pista 2 obsoleta sin revelar debe seguir sin revelar.
     assert.equal(extra.querySelector('.fc-answer').textContent, '');
     hiddenTitle(extra.querySelector('.fc-review-title'));
     secondCleanup?.(); firstCleanup?.(); surface.unmountContent(); surface.mount();

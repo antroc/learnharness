@@ -1,4 +1,4 @@
-// Real shared widgets in an exact, copied standalone host. Never uses a real profile.
+// Widgets compartidos reales en un host standalone exacto y copiado. Nunca usa un perfil real.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';

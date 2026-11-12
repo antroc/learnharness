@@ -1,4 +1,4 @@
-// Practice is a read-only snapshot, ordered by the saved deck/proposition/cue order.
+// La práctica es una instantánea de solo lectura, ordenada según el orden guardado de mazo/proposición/pista.
 export function buildPracticeCards(state, scope = {}) {
   if (!state) return [];
   const decks = scope.deckIds === undefined ? null : new Set(scope.deckIds);

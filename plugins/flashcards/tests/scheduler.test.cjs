@@ -9,9 +9,9 @@ const local = (day, hour = 12, minute = 0) => +new Date(2026, 0, day, hour, minu
 const numeric = (s) => [s.stability, s.difficulty, s.elapsed_days, s.scheduled_days,
   s.reps, s.lapses, s.learning_steps, s.state];
 
-// Fixed FSRS-6 fixtures, independently evaluated with ts-fsrs@5.2.3's published
-// parameters and logical review dates normalized to UTC noon. Dates deliberately
-// remain outside the fixtures: this plugin uses local study days, not UTC dates.
+// Fixtures fijas de FSRS-6, evaluadas de forma independiente con los parámetros publicados de
+// ts-fsrs@5.2.3 y fechas lógicas de repaso normalizadas al mediodía UTC. Las fechas se dejan
+// fuera de las fixtures a propósito: este plugin usa días de estudio locales, no fechas UTC.
 const FIXTURES = {
   new: [
     [0.212, 6.4133, 0, 0, 1, 0, 0, 1],
@@ -93,7 +93,7 @@ test('reference learning/relearning steps, resets, and graduation', () => {
   assert.equal(good.learning_steps, 1);
   assert.equal(rate(good, 1, good.due).learning_steps, 0);
   assert.equal(rate(good, 3, good.due).state, 2);
-  // BasicScheduler advances its learning step before asking for Good's next step.
+  // BasicScheduler avanza su paso de aprendizaje antes de pedir el siguiente paso de Good.
   assert.equal(rate(first[1], 3, first[1].due).state, 2);
   const lapse = rate(first[4], 1, local(9));
   assert.equal(lapse.state, 3);
@@ -182,7 +182,7 @@ test('stability, difficulty, retention and interval clamps retain reference orde
   const outcomes = preview(review, local(30));
   assert.equal(outcomes[4].stability, 36500);
   assert.equal(outcomes[4].difficulty, 1);
-  // Reference applies passing-interval ordering after its 36500-day clamp.
+  // La referencia aplica el orden de los intervalos de aprobado tras su acotado a 36500 días.
   assert.deepEqual([2, 3, 4].map(r => outcomes[r].scheduled_days), [36500, 36501, 36502]);
   const tiny = { ...review, stability: 0.001, difficulty: 10 };
   assert.equal(rate(tiny, 1, now).stability, 0.001);
@@ -213,7 +213,7 @@ test('elapsed days follow study dates, are nonnegative, and reviews use local ro
 
 test('weighted cue choice uses latest rating, includes every cue, and returns originals', () => {
   const cues = [1, 2, 3, 4, null].map((latestRating, id) => Object.freeze({ id, latestRating }));
-  // Total 13; intervals: [0,4), [4,7), [7,9), [9,10), [10,13).
+  // Total 13; intervalos: [0,4), [4,7), [7,9), [9,10), [10,13).
   for (const [index, sample] of [[0, 0], [0, 3.9], [1, 4], [2, 7], [3, 9], [4, 10], [4, 12.99]]) {
     assert.equal(chooseCue(cues, () => sample / 13), cues[index]);
   }

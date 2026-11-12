@@ -1,6 +1,6 @@
 const { parseHTML } = require('linkedom');
 
-// Public controlled UI contract only; no native widget implementation imports.
+// Solo el contrato público de UI controlada; sin imports de la implementación de widgets nativos.
 function fixture(document) {
   const app = document.createElement('main'); document.body.append(app);
   const settings = document.createElement('aside'); document.body.append(settings);

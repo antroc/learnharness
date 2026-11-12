@@ -30,9 +30,10 @@ function viewBox(value: string): string | undefined {
   return numbers.length === 4 && numbers.every(Number.isFinite) && numbers[2]! > 0 && numbers[3]! > 0 ? numbers.join(" ") : undefined;
 }
 
-/** Rebuild a static SVG from an inert XML document. Never insert the parsed tree.
- * No HTML, CSS rules, event handlers, animations, external references or arbitrary
- * attribute names survive. This is deliberately stricter than a generic SVG sanitizer.
+/** Reconstruye un SVG estático a partir de un documento XML inerte. Nunca
+ * inserta el árbol analizado. No sobreviven HTML, reglas CSS, manejadores de
+ * eventos, animaciones, referencias externas ni nombres de atributo
+ * arbitrarios. Es a propósito más estricto que un saneador SVG genérico.
  */
 export function sanitizeSvg(source: string, label: string, language?: Language): SVGSVGElement {
   checkSvgSize(source);
@@ -92,7 +93,7 @@ export function sanitizeSvg(source: string, label: string, language?: Language):
     if (element.namespaceURI !== NS || !ELEMENTS.has(element.localName)) return undefined;
     const output = document.createElementNS(NS, element.localName);
     for (const attribute of element.attributes) {
-      // Normalize xlink:href; all other foreign namespaces are discarded.
+      // Normaliza xlink:href; todos los demás espacios de nombres ajenos se descartan.
       const name = attribute.localName;
       if (attribute.namespaceURI && !(attribute.namespaceURI === "http://www.w3.org/1999/xlink" && name === "href")) continue;
       const value = safeValue(name, attribute.value);
@@ -101,22 +102,22 @@ export function sanitizeSvg(source: string, label: string, language?: Language):
         output.setAttribute(name, value);
       }
     }
-    // Parse declaration syntax with the browser, then admit only specific values.
-    // Never copy a stylesheet or an arbitrary CSS declaration into the live tree.
+    // Analiza la sintaxis de las declaraciones con el navegador y después admite solo valores concretos.
+    // Nunca copies una hoja de estilo ni una declaración CSS arbitraria al árbol vivo.
     const declarations = (element as SVGElement).style;
     if (declarations) for (const property of STYLE_ATTRIBUTES) {
       const value = safeValue(property, declarations.getPropertyValue(property));
       if (value !== undefined) output.setAttribute(property, value);
     }
-    // SMILES labels use CSS translateX/translateY. Admit only finite 2D
-    // transforms and turn them into static SVG matrix attributes, not live CSS.
+    // Las etiquetas de SMILES usan translateX/translateY de CSS. Admite solo transformaciones
+    // 2D finitas y conviértelas en atributos matrix SVG estáticos, no en CSS vivo.
     const cssTransform = declarations?.getPropertyValue("transform").trim();
     if (cssTransform && CSS_TRANSFORM.test(cssTransform)) {
       try {
         const matrix = new DOMMatrixReadOnly(cssTransform);
         const values = [matrix.a, matrix.b, matrix.c, matrix.d, matrix.e, matrix.f];
         if (matrix.is2D && values.every(Number.isFinite)) output.setAttribute("transform", `matrix(${values.join(",")})`);
-      } catch { /* Unsupported transform syntax is discarded, never evaluated. */ }
+      } catch { /* La sintaxis de transformación no admitida se descarta, nunca se evalúa. */ }
     }
     for (const child of element.childNodes) {
       if (child.nodeType === Node.TEXT_NODE && ["text", "tspan", "title", "desc"].includes(element.localName)) output.append(document.createTextNode(child.textContent ?? ""));
@@ -131,31 +132,33 @@ export function sanitizeSvg(source: string, label: string, language?: Language):
     if (!(Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0)) throw new Error("SVG dimensions are missing or invalid.");
     svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
   }
-  // Keep only a natural width; CSS derives height from viewBox when fitting.
-  // Some renderers specify their natural size in style rather than attributes.
+  // Conserva solo una anchura natural; al ajustar, el CSS deriva la altura del viewBox.
+  // Algunos renderers indican su tamaño natural en style en vez de en atributos.
   const naturalWidth = (parsed.documentElement as unknown as SVGElement).style?.width || parsed.documentElement.getAttribute("width");
   if (naturalWidth && LENGTH.test(naturalWidth) && Number.isFinite(parseFloat(naturalWidth)) && parseFloat(naturalWidth) > 0) svg.setAttribute("width", naturalWidth);
   else svg.setAttribute("width", svg.viewBox.baseVal.width.toString());
   if (language === "tikz") {
-    // The pinned TeX engine's normal font is 10 viewBox units. Chat KaTeX uses
-    // 1.21em, so scale the entire diagram to that same text-relative font size.
-    // em units track surrounding text changes without JS observers or TeX work;
-    // authored relative font sizes, geometry and the tight viewBox stay intact.
+    // La fuente normal del motor TeX fijado mide 10 unidades de viewBox. El KaTeX del chat usa
+    // 1.21em, así que se escala todo el diagrama a ese mismo tamaño de fuente relativo al texto.
+    // Las unidades em siguen los cambios del texto circundante sin observadores JS ni trabajo de TeX;
+    // los tamaños de fuente relativos escritos, la geometría y el viewBox ajustado quedan intactos.
     svg.setAttribute("width", `${svg.viewBox.baseVal.width * (1.21 / 10)}em`);
   }
   svg.removeAttribute("height");
   svg.setAttribute("role", "img"); svg.setAttribute("aria-label", label);
   svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
-  // Only plugin-owned appearance declarations are added, after rebuilding the
-  // untrusted tree and before the final use-expanded resource admission check.
+  // Solo se añaden declaraciones de apariencia propias del plugin, tras reconstruir el
+  // árbol no fiable y antes de la comprobación final de admisión de recursos con use expandidos.
   if (language) prepareInk(svg, language);
   checkReferenceBudget(svg);
   return svg;
 }
 
-/** Apply the same 2 MiB output budget to use-expanded content, without expanding
- * it. Memoization plus a visiting set rejects cycles and acyclic reference bombs
- * in linear graph work; saturating arithmetic stops at the existing output cap.
+/** Aplica el mismo presupuesto de salida de 2 MiB al contenido con use
+ * expandidos, sin expandirlo. La memoización más un conjunto de visitados
+ * rechazan ciclos y bombas de referencias acíclicas con un trabajo lineal
+ * sobre el grafo; la aritmética saturada se detiene en el tope de salida
+ * existente.
  */
 function checkReferenceBudget(svg: SVGSVGElement): void {
   const targets = new Map<string, Element>();

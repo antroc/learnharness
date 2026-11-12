@@ -15,7 +15,7 @@ function atomicWrite(file, content) {
     try { fs.unlinkSync(temporary); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   }
 }
-// Keep retry receipts separate from card text so deletion can be physical.
+// Mantén los recibos de reintento separados del texto de las tarjetas para que el borrado pueda ser físico.
 function migrate(state) {
   let changed = false;
   for (const p of Object.values(state.propositions)) {
@@ -36,15 +36,15 @@ function migrate(state) {
       }
     }
   }
-  // Older deck-only deletion could leave an upload record that recreated the
-  // deleted deck. Source assets now belong strictly to an existing deck.
+  // El antiguo borrado solo de mazos podía dejar un registro de subida que volvía a crear el
+  // mazo borrado. Ahora los recursos de fuente pertenecen estrictamente a un mazo existente.
   for (const source of Object.values(state.fileSources ?? {})) if (!state.decks.some(d => d.id === source.deckId)) {
     delete state.fileSources[source.id];
     state.pendingSourceRemovals ??= [];
     if (!state.pendingSourceRemovals.includes(source.id)) state.pendingSourceRemovals.push(source.id);
     changed = true;
   }
-  // Ratings/timing/schedule snapshots suffice for statistics and retry receipts.
+  // Las instantáneas de calificaciones/tiempos/calendario bastan para las estadísticas y los recibos de reintento.
   for (const r of state.reviews) for (const key of ['question', 'answer']) if (Object.hasOwn(r, key)) { delete r[key]; changed = true; }
   return changed;
 }

@@ -11,7 +11,7 @@ interface Job {
 export type WorkerLike = Pick<Worker, "postMessage" | "terminate" | "onmessage" | "onerror" | "onmessageerror">;
 const cancelled = () => new DOMException("Rendering cancelled.", "AbortError");
 
-/** One lazy, serial, forcibly terminable TeX engine per plugin/window activation. */
+/** Un motor TeX perezoso, en serie y terminable a la fuerza por cada activación de plugin/ventana. */
 export class TexRunner {
   private worker?: WorkerLike;
   private queue: Job[] = [];

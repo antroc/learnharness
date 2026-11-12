@@ -5,7 +5,7 @@ import type { PluginBackendContext } from "learnharness-plugin-api";
 import { DEFAULT_SETTINGS, parseColorChange, parseImageScaleChange, parseSettings, type Settings } from "./settings.ts";
 import { acceptedPoseKeys } from "./poses.ts";
 
-/** The backend stores preferences only. Editable drawings never leave window memory. */
+/** El backend solo guarda preferencias. Los dibujos editables nunca salen de la memoria de la ventana. */
 export function activate(ctx: PluginBackendContext): () => void {
   const file = path.join(ctx.dataDirectory, "settings.json");
   let settings: Settings;

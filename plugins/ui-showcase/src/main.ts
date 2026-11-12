@@ -17,7 +17,7 @@ export function activate(ctx: PluginFrontendContext): () => void {
   if (missing.length) missingCapabilities(missing.map(method => `ui.${method}`).join(", "));
   const scope = new Scope(ctx.signal);
   if (scope.signal.aborted) return scope.dispose;
-  // Targets identify mounted page lifetimes. Retired pages must not be retained.
+  // Los destinos identifican vidas de página montadas. Las páginas retiradas no deben conservarse.
   const surfaces = new WeakMap<PluginSurfaceTarget, ReturnType<typeof openSurfaceDemo>>();
   scope.own(ctx.registerView({ id: "gallery", name: "UI Showcase", mount: (root, signal) => mountGallery(root, ctx, signal) }));
   scope.own(ctx.registerAction({ id: "open-gallery", name: "UI Showcase", run: () => ctx.app.openView("gallery") }));
@@ -38,8 +38,8 @@ export function activate(ctx: PluginFrontendContext): () => void {
       const handle = openSurfaceDemo(ctx.ui, target, scope.signal, () => {
         if (surfaces.get(target) === handle) surfaces.delete(target);
       });
-      // The host owns disposal on target retirement and scope abort; no strong
-      // activation-wide handle list is needed for these page-owned surfaces.
+      // El host se encarga de liberar al retirar el destino y al abortar el ámbito; no hace falta
+      // ninguna lista fuerte de identificadores para toda la activación en estas superficies propias de la página.
       surfaces.set(target, handle);
     },
   }));

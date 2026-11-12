@@ -1,4 +1,4 @@
-/** Disposable packaged-host runner. No host source/runtime modules are imported. */
+/** Ejecutor desechable del host empaquetado. No se importa ningún módulo fuente/de tiempo de ejecución del host. */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
@@ -44,8 +44,8 @@ async function freePort() { const s = http.createServer(); const p = await liste
 function seed(data) {
   const write = (relative, value) => { const file = path.join(data, relative); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, value, { flag: "wx" }); };
   const createdAt = "2026-11-01T00:00:00.000Z", provenance = [{ chatId: fixture.sourceId, messageId: "" }];
-  // Explicit reversible rendering state plus a settled positions ledger allow
-  // both Home variants without weakening the original graph/settings hashes.
+  // Un estado de renderizado reversible explícito más un registro de posiciones asentado permiten
+  // ambas variantes de Home sin debilitar los hashes originales del grafo/ajustes.
   write("settings.json", JSON.stringify({ version: 1, graph: { rendering: true } }) + "\n");
   write("graph/positions.json", JSON.stringify({ positions: {
     [fixture.premiseId]: { x: -30, y: 0 }, [fixture.conclusionId]: { x: 30, y: 0 },
@@ -102,7 +102,7 @@ export async function runPackagedProof(verify) {
   evidence.mode = "approved-polish";
   evidence.sourceDigest = sourceDigest;
   evidence.builtMainBytes = fs.statSync(path.join(built, "main.js")).size;
-  // Catalog only: a request to generate a single token is an immediate failure.
+  // Solo catálogo: una petición para generar un solo token es un fallo inmediato.
   const catalog = http.createServer((req, res) => {
     evidence.catalogRequests.push({ method: req.method, url: req.url });
     if (![undefined, "Bearer not-needed"].includes(req.headers.authorization)) {
@@ -120,8 +120,8 @@ export async function runPackagedProof(verify) {
     fs.cpSync(built, path.join(data, "plugins", manifest.id, "dist"), { recursive: true, dereference: true });
     evidence.installedDigest = digestTree(path.join(data, "plugins", manifest.id, "dist"));
     assert.equal(evidence.installedDigest, evidence.builtDigest, "Install exact handed-off plugin bytes");
-    // The second package is an explicit, separately fingerprinted TEST fixture,
-    // never a replacement for or addition to the frozen product distribution.
+    // El segundo paquete es una fixture de PRUEBA explícita con huella aparte,
+    // nunca un sustituto ni un añadido de la distribución congelada del producto.
     const fixtureDirectory = path.join(data, "plugins", surfaceProofFixture.id, "dist");
     fs.mkdirSync(fixtureDirectory, { recursive: true });
     const fixtureHash = crypto.createHash("sha256");
@@ -162,8 +162,8 @@ export async function runPackagedProof(verify) {
     browser = await puppeteer.launch({ executablePath: chrome, headless: true, userDataDir: path.join(scratch, "chrome-profile"), env: cleanEnv, args: ["--disable-background-networking", "--disable-sync", "--no-first-run", "--no-default-browser-check"] });
     const page = await browser.newPage(); page.setDefaultTimeout(30_000);
     await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
-    // Passive safety tripwire: no test starts dictation. An unexpected request
-    // is counted and rejected before the OS can open a microphone.
+    // Cable trampa de seguridad pasivo: ninguna prueba inicia el dictado. Una petición inesperada
+    // se cuenta y se rechaza antes de que el SO pueda abrir un micrófono.
     await page.exposeFunction("__showcaseMicTripwire", () => evidence.microphoneRequests.push({ stage: evidence.stage }));
     await page.evaluateOnNewDocument(() => {
       if (!navigator.mediaDevices) return;
@@ -203,13 +203,13 @@ export async function runPackagedProof(verify) {
     assert.deepEqual(evidence.webSockets, [], "No dictation/provider websocket may open");
     assert.equal(evidence.requests.filter(request => new URL(request.url).pathname === "/api/chat" && request.method === "POST").length, 0, "No real or fixture generation");
     assert.deepEqual(evidence.pageErrors, []);
-    // Closing the real picker aborts its outstanding, read-only source fetch.
-    // Do not suppress arbitrary network failures or unexpected HTTP errors.
+    // Cerrar el selector real aborta su petición de fuente pendiente de solo lectura.
+    // No suprimas fallos de red arbitrarios ni errores HTTP inesperados.
     evidence.expectedCanceledReads = evidence.failedRequests.filter(request => ["real pickers", "knowledge origin scopes", "native session surface", "disable cleanup"].includes(request.stage) && request.failure?.errorText === "net::ERR_ABORTED" && new URL(request.url).pathname === "/api/graph/sources");
-    // Navigation can cancel a completed, read-only Next router prefetch. Require
-    // positive prefetch headers and its matching successful response. Stages are
-    // limited to the original cases and the two observed native-page matrix cases;
-    // API reads, page loads, provider requests and all other failures remain strict.
+    // La navegación puede cancelar una precarga completada y de solo lectura del router de Next. Exige
+    // cabeceras positivas de precarga y su respuesta correcta correspondiente. Las etapas se
+    // limitan a los casos originales y a los dos casos observados de la matriz de páginas nativas;
+    // las lecturas de la API, las cargas de página, las peticiones a proveedores y todos los demás fallos siguen siendo estrictos.
     const expectedCanceledPrefetchRequests = evidence.failedRequests.filter(request =>
       request.method === "GET" && request.type === "fetch" && new URL(request.url).origin === base &&
       !/^\/api(?:\/|$)/.test(new URL(request.url).pathname) && new URL(request.url).searchParams.has("_rsc") &&

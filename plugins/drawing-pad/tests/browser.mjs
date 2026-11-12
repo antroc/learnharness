@@ -19,8 +19,8 @@ try {
     define: { "process.env.NODE_ENV": '"production"' }, logLevel: "warning",
     banner: { js: 'globalThis.process ??= { env: { NODE_ENV: "production" } };' },
     plugins: [{ name: "discard-unused-node-only-barrel-import", setup(builder) {
-      // Inject only the React hook's manager context; keep the actual host
-      // dispatcher, shortcut resolver and Keyboard settings component intact.
+      // Inyecta solo el contexto del gestor del hook de React; mantén intactos el despachador
+      // real del host, el resolvedor de atajos y el componente de ajustes Keyboard.
       builder.onResolve({ filter: /^\.\/plugins$/ }, args => args.importer === path.join(repo, "components/plugin-shortcuts.tsx")
         ? { path: path.join(root, "tests/keyboard-context.mjs") } : undefined);
       if (process.argv.includes("--built")) builder.onResolve({ filter: /^\.\.\/src\/main\.ts$/ }, args =>
@@ -597,8 +597,8 @@ try {
     await page.focus("#shortcut-editor"); await page.keyboard.type("native typing");
     const textBefore = await run(() => document.querySelector("#shortcut-editor").value ?? document.querySelector("#shortcut-editor").textContent);
     await chord("h", true); await chord("e", true); assert.equal(await selectedTool(), "Pen");
-    // Headless Chrome has no OS Edit menu accelerator: attach Blink's native
-    // Undo command to the real key event. preventDefault would still block it.
+    // Chrome headless no tiene el acelerador del menú Editar del SO: engancha el comando nativo
+    // Undo de Blink al evento de tecla real. preventDefault lo seguiría bloqueando.
     await chord("z", false, "Meta", ["Undo"]);
     assert.notEqual(await run(() => document.querySelector("#shortcut-editor").value ?? document.querySelector("#shortcut-editor").textContent), textBefore);
     assert.equal(await ink(), shortcutInk); assert.equal(await run(() => window.fixture.keyEvents.filter(event => event.binding === "mod+z").at(-1).invoked), false);
@@ -645,8 +645,8 @@ try {
   assert.deepEqual(await pageStyles(), stylesBefore);
   group("closing during font embedding aborts font fetches and reopening recovers without stylesheet mutation");
 
-  // Keep the theme checks scoped to one saved reference rather than re-capturing
-  // every retained sheet from the independent lifecycle groups above.
+  // Limita las comprobaciones de tema a una referencia guardada en vez de volver a capturar
+  // cada hoja conservada de los grupos de ciclo de vida independientes de arriba.
   await page.reload({ waitUntil: "networkidle0" }); await page.waitForFunction(() => window.fixtureReady);
   await setScale(100);
   const inkGeometry = () => run(() => {
@@ -725,8 +725,8 @@ try {
   assert.equal(images(await call("submit", { accept: false }))[0].data, themedPNG);
   await button("Undo"); assert.equal(await ink(), 0);
   group("live mode/palette re-rasterization retains original Markdown, stroke geometry/Undo, pan, dimensions and coherent PNG colors");
-  // DP-IR-1: change mode inside the backend pose await, then hold the new
-  // reference render. The actual built exporter must not bypass that raster.
+  // DP-IR-1: cambia de modo dentro del await del planteamiento del backend y luego retiene el
+  // render de la nueva referencia. El exportador real compilado no debe saltarse ese ráster.
   await page.reload({ waitUntil: "networkidle0" }); await page.waitForFunction(() => window.fixtureReady); await setScale(100);
   const raceProblem = { ...problem, problem: { ...problem.problem, occurrence: occurrence("palette-pose") } };
   await call("setHistory", "palette-pose", pose("palette-pose"));
@@ -744,8 +744,8 @@ try {
   await assertPalettePNG(images(racedSubmission)[0].data, [239, 241, 245], [0, 0, 0], [76, 79, 105]);
   group("DP-IR-1: theme changes during asynchronous practice pose reads wait for the matching raster before built PNG export");
 
-  // DP-IR-2: keep the old problem's repaint pending while a replacement sheet
-  // completes its own light capture. That new paper must immediately draw black.
+  // DP-IR-2: mantén pendiente el repintado del problema antiguo mientras una hoja de sustitución
+  // completa su propia captura en claro. Ese papel nuevo debe dibujar en negro de inmediato.
   await page.reload({ waitUntil: "networkidle0" }); await page.waitForFunction(() => window.fixtureReady); await setScale(100);
   await call("setHistory", "palette-reset", pose("palette-old"));
   await call("navigate", "palette-reset", "practice", { ...problem, problem: { ...problem.problem, occurrence: occurrence("palette-old") } });

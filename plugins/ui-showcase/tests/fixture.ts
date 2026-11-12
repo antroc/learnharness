@@ -1,10 +1,11 @@
-/** Unit-only public widget recorder, deliberately not a native widget substitute.
- * Real controls, focus, validation and overlay geometry are proved by native.mjs. */
+/** Grabador de widgets públicos solo para pruebas unitarias, a propósito no
+ * es un sustituto de los widgets nativos. Los controles reales, el foco, la
+ * validación y la geometría de las superposiciones los demuestra native.mjs. */
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
-// Linkedom's declarations implement an older DOM lib and conflict with modern
-// lib.dom. Keep this test double behind a narrow typed runtime boundary rather
-// than weakening the product's skipLibCheck:false policy.
+// Las declaraciones de Linkedom implementan una lib DOM más antigua y chocan con la lib.dom
+// moderna. Mantén este doble de pruebas tras un límite estrecho tipado en tiempo de ejecución en vez
+// de debilitar la política skipLibCheck:false del producto.
 const { parseHTML } = createRequire(import.meta.url)("linkedom") as { parseHTML(html: string): { document: Document } };
 import type { PluginFrontendContext, PluginTreeRow, PluginUi, PluginUiContent } from "learnharness-plugin-api";
 
@@ -29,8 +30,9 @@ export interface MountRecord {
   dictation: { toggle: number; finish: number; cancel: number };
   handle: { update(props: AnyProps): void; dispose(): void };
 }
-/** Only plugin-owned primary content lifetimes are simulated. No native tree
- * rows, controls, layout or keyboard behavior are implemented by this recorder. */
+/** Solo se simulan las vidas del contenido principal propio del plugin.
+ * Este grabador no implementa filas nativas del árbol, controles, layout ni
+ * comportamiento de teclado. */
 function renderTreeContent(record: MountRecord): void {
   const visible = new Map<string, PluginUiContent>();
   const visit = (rows: readonly PluginTreeRow[]) => {

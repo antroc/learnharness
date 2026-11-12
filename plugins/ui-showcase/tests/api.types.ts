@@ -1,5 +1,6 @@
-/** Compile-only public SDK contract checks; included by strict typecheck.
- * No host implementation imports and no runtime test or provider calls. */
+/** Comprobaciones del contrato público del SDK solo en compilación; las
+ * incluye la comprobación estricta de tipos. Sin imports de la implementación
+ * del host ni pruebas en tiempo de ejecución ni llamadas a proveedores. */
 import type {
   PluginBackendContext, PluginBadgeProps, PluginButtonColors, PluginButtonColorState, PluginButtonProps, PluginFrontendContext, PluginKnowledgePickerProps, PluginSettingsRow,
   PluginStandardComposerProps, PluginSurfaceProps, PluginSurfaceTarget, PluginTreeProps, PluginUi, PluginWidgetHandle, PluginWidgetOptions,
@@ -45,7 +46,7 @@ export type DocumentConversionHasExactAsyncShape = Assert<Equal<PluginFrontendCo
   (file: File, options?: { signal?: AbortSignal }) => Promise<{ name: string; markdown: string; notices: string[] }>>>;
 export type DocumentsAreFrontendOnly = Assert<Equal<"documents" extends keyof PluginBackendContext ? true : false, false>>;
 
-// File and optional caller cancellation only; no host implementation imports.
+// Solo el fichero y la cancelación opcional del llamante; sin imports de la implementación del host.
 export function publicDocumentExamples(frontend: PluginFrontendContext, backend: PluginBackendContext, file: File, signal: AbortSignal): void {
   void frontend.documents.toMarkdown(file);
   void frontend.documents.toMarkdown(file, {});
@@ -70,7 +71,7 @@ export function publicDocumentExamples(frontend: PluginFrontendContext, backend:
   void backend.documents;
 }
 
-// No host implementation imports: icon markup is data, never a renderer or DOM node.
+// Sin imports de la implementación del host: el marcado del icono son datos, nunca un renderer ni un nodo DOM.
 export function publicButtonExamples(ui: PluginUi, container: HTMLElement, signal: AbortSignal): void {
   const icon = '<svg viewBox="0 0 16 16"><path d="M4 8h8" /></svg>';
   ui.mountButton(container, { label: "Settings", icon, onClick() {} }, { signal });
@@ -81,9 +82,9 @@ export function publicButtonExamples(ui: PluginUi, container: HTMLElement, signa
     focusVisible: { border: "currentColor", ring: "var(--plugin-ring)" }, disabled: { text: "gray" } };
   const custom = ui.mountButton(container, { label: "Custom", variant: "custom", colors, onClick() {} }, { signal });
   custom.update({ colors: { hover: { text: "white" } } });
-  custom.update({ variant: "outline" }); // Valid palette is retained, but ignored.
-  custom.update({ variant: "custom", colors: undefined }); // Native custom defaults.
-  // Current Flashcards consumer palette, expressed entirely through public props.
+  custom.update({ variant: "outline" }); // Una paleta válida se conserva, pero se ignora.
+  custom.update({ variant: "custom", colors: undefined }); // Valores por defecto personalizados nativos.
+  // Paleta del consumidor Flashcards actual, expresada por completo mediante props públicas.
   for (const label of ["Again", "Hard", "Good", "Easy"]) {
     const color = `var(--fc-rating-${label.toLowerCase()})`;
     const tint = (percent: number) => `color-mix(in srgb, ${color} ${percent}%, transparent)`;
@@ -112,7 +113,7 @@ export function publicButtonExamples(ui: PluginUi, container: HTMLElement, signa
   gear.update({ iconOnly: "icon" });
 }
 
-// Generic display only: no status enum, grading result, event or background override.
+// Solo presentación genérica: sin enum de estado, resultado de calificación, evento ni sustitución del fondo.
 export function publicBadgeExamples(ui: PluginUi, container: HTMLElement, signal: AbortSignal): void {
   const badge = ui.mountBadge(container, { text: "Tests passed", color: "var(--plugin-accent)" }, { signal });
   badge.update({ text: "Any outcome", color: "#123456" });
@@ -131,8 +132,8 @@ export function publicBadgeExamples(ui: PluginUi, container: HTMLElement, signal
   ui.mountBadge(container, { text: "Missing lifetime" });
 }
 
-// Positive SDK-only fixture: strings, rich content, hierarchy, metadata and
-// independent controlled callbacks must compile without implementation imports.
+// Fixture positiva solo con el SDK: cadenas, contenido enriquecido, jerarquía, metadatos y
+// callbacks controlados independientes deben compilar sin imports de la implementación.
 export const publicTreeExample: PluginTreeProps = {
   label: "Compile-only tree", header: "Name",
   columns: [{ key: "kind", header: "Kind", width: "5rem" }, { key: "count", header: "Count", width: 56, align: "right" }],

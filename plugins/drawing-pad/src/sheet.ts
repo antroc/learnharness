@@ -77,8 +77,8 @@ export function mountSheet(container: HTMLElement, ctx: PluginFrontendContext, s
     status.textContent = failure ?? (preparing ? "Preparing drawing sheet…" : "");
     paper.hidden = !draft || preparing || !!failure;
     if (draft) {
-      // Keep the previous raster and its ink readable until the new palette
-      // is ready to replace them together.
+      // Mantén legibles el ráster anterior y su tinta hasta que la nueva paleta
+      // esté lista para sustituirlos juntos.
       paper.style.backgroundColor = draft.backgroundColor;
       const width = viewport.clientWidth, height = viewport.clientHeight;
       if (!width || !height) return;
@@ -126,8 +126,8 @@ export function mountSheet(container: HTMLElement, ctx: PluginFrontendContext, s
   const move = (event: PointerEvent) => {
     if (preparing || failure || !state.draft || pointerId !== event.pointerId) return;
     if (panDrag) {
-      // Releasing Right while another mouse button is held emits pointermove,
-      // not pointerup. End this gesture before any unheld movement can pan.
+      // Soltar el botón derecho mientras se mantiene pulsado otro botón del ratón emite pointermove,
+      // no pointerup. Termina este gesto antes de que cualquier movimiento sin botón pueda desplazar.
       if (panDrag.rightButton && (event.buttons & 2) === 0) { finish(event); return; }
       if (event.pointerType !== "pen" || event.pressure > 0) sheets.setPan(state,
         { x: panDrag.pan.x + event.clientX - panDrag.x, y: panDrag.pan.y + event.clientY - panDrag.y });
@@ -181,8 +181,8 @@ export function mountSheet(container: HTMLElement, ctx: PluginFrontendContext, s
       let slots: HTMLElement[] = [];
       if (content) {
         reference = document.createElement("div"); reference.className = "drawing-pad-reference";
-        // CSS mirrors the native composer's normal question-content width,
-        // independent of the viewport. Freeze that wrapping once for this sheet.
+        // El CSS refleja la anchura normal del contenido de pregunta del compositor nativo,
+        // independiente del viewport. Congela ese ajuste de líneas una vez para esta hoja.
         reference.setAttribute("aria-hidden", "true");
         root.append(reference);
         referenceMount = mountReference(reference, ctx, content, signal); slots = referenceMount.slots;

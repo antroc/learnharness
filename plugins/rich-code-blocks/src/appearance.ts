@@ -1,17 +1,19 @@
 import type { Language } from "./contract.ts";
 
-// Distinct variables retain the original paint when a definition is used by a
-// mask, while ordinary visible ink inherits the host's theme Text color.
+// Las variables distintas conservan la pintura original cuando una máscara usa una definición,
+// mientras que la tinta visible normal hereda el color Text del tema del host.
 const NEUTRALS = [
   { color: "rgb(0, 0, 0)", original: "#000000", variable: "--rich-code-blocks-black" },
   { color: "rgb(34, 34, 34)", original: "#222222", variable: "--rich-code-blocks-carbon" },
   { color: "rgb(102, 102, 102)", original: "#666666", variable: "--rich-code-blocks-hydrogen" },
 ] as const;
 
-/** Theme only a freshly sanitized tree. No model-authored CSS is admitted.
- * Colored paint, white fills, opacity and structural masking remain intact.
- * TikZ gradients/patterns are intentional artwork, not ordinary neutral ink;
- * SMILES gradients instead carry the bond/atom palette and must follow its ink.
+/** Aplica el tema solo a un árbol recién saneado. No se admite CSS escrito
+ * por el modelo. La pintura con color, los rellenos blancos, la opacidad y
+ * el enmascarado estructural quedan intactos. Los degradados/patrones de
+ * TikZ son ilustración intencionada, no tinta neutra normal; los degradados
+ * de SMILES, en cambio, llevan la paleta de enlaces/átomos y deben seguir su
+ * tinta.
  */
 export function prepareInk(svg: SVGSVGElement, language: Language): void {
   const elements = [svg, ...svg.querySelectorAll<SVGElement>("*")];
@@ -28,9 +30,9 @@ export function prepareInk(svg: SVGSVGElement, language: Language): void {
     }
     return fallback;
   }
-  // Capture all original inherited paints BEFORE modifying any ancestor. Mask
-  // luminance must not change when visible ink follows theme Text. Freezing
-  // paint-server inheritance also preserves authored gradients and patterns.
+  // Captura todas las pinturas heredadas originales ANTES de modificar ningún ancestro. La
+  // luminancia de la máscara no debe cambiar cuando la tinta visible sigue al Text del tema. Congelar
+  // la herencia de los servidores de pintura conserva también los degradados y patrones escritos.
   const protectedRoots = elements.filter(element => element.localName === "mask" ||
     (language !== "smiles" && ["linearGradient", "radialGradient", "pattern"].includes(element.localName)))
     .map(element => ({ element, color: inherited(element, "color", "#000000"), fill: inherited(element, "fill", "#000000"), stroke: inherited(element, "stroke", "none") }));
@@ -38,7 +40,7 @@ export function prepareInk(svg: SVGSVGElement, language: Language): void {
     protectedElements.add(element);
     for (const child of element.querySelectorAll("*")) protectedElements.add(child);
     element.setAttribute("color", color);
-    // currentColor needs the frozen original color, not the transcript ink.
+    // currentColor necesita el color original congelado, no la tinta de la transcripción.
     if (!element.hasAttribute("fill")) element.setAttribute("fill", fill);
     if (!element.hasAttribute("stroke")) element.setAttribute("stroke", stroke);
     for (const neutral of NEUTRALS) element.style.setProperty(neutral.variable, neutral.original);
@@ -56,6 +58,6 @@ export function prepareInk(svg: SVGSVGElement, language: Language): void {
       if (neutral) element.setAttribute(attribute, `var(${neutral.variable})`);
     }
   }
-  // SVG's implicit fill is black, regardless of inherited CSS color.
+  // El relleno implícito de SVG es negro, sea cual sea el color CSS heredado.
   if (!svg.hasAttribute("fill")) svg.setAttribute("fill", "var(--rich-code-blocks-black)");
 }

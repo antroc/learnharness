@@ -7,8 +7,8 @@ import type { PluginAction, PluginFrontendContext, PluginNotification, PluginSet
 import type { Capture, Draft, SessionSheet, Sheets } from "../src/state.ts";
 
 const project = fileURLToPath(new URL("../", import.meta.url));
-// Original frontend/state/pose/submission code; only browser mounting, palette
-// reads, raster I/O and export I/O are controlled. No production test hooks.
+// Código original de frontend/estado/planteamiento/envío; solo se controlan el montaje en el navegador,
+// las lecturas de la paleta y la E/S del ráster y de la exportación. Sin hooks de prueba en producción.
 const bundle = await build({ stdin: { contents: `export {activate} from ${JSON.stringify(path.join(project, "src/main.ts"))};`,
   resolveDir: project, loader: "ts" }, bundle: true, write: false, platform: "node", format: "esm",
   plugins: [{ name: "controlled-theme-io", setup(builder) {
@@ -112,7 +112,7 @@ it("the first open after a closed teaching drawing is accepted discards its empt
   const f = await fixture("teaching");
   try {
     const original = f.state.draft!;
-    await f.toggle(); // Close with unfinished ink; closing must retain it.
+    await f.toggle(); // Cierra con tinta sin terminar; el cierre debe conservarla.
     assert.equal(f.state.draft, original);
     await f.submit(true);
     assert.equal(f.state.draft!.id, original.id); assert.equal(f.state.draft!.strokes.length, 0);

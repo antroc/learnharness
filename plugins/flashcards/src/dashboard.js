@@ -1,4 +1,4 @@
-// Library-wide scheduling summaries, rendered only from the backend snapshot.
+// Resúmenes de programación de toda la biblioteca, renderizados solo a partir de la instantánea del backend.
 const states = [['new', 'New'], ['learning', 'Learning'], ['review', 'Review'], ['relearning', 'Relearning']];
 const svgNamespace = 'http://www.w3.org/2000/svg';
 const count = value => Number.isFinite(value) && value > 0 ? value : 0;
@@ -17,7 +17,7 @@ function svgElement(tag, attributes = {}, text) {
 function dateLabels(day) {
   const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day || '');
   if (!parts) return { weekday: '', date: day || '', full: day || '' };
-  // Day keys are civil dates, not UTC timestamps. Local noon also avoids DST gaps.
+  // Las claves de día son fechas civiles, no marcas de tiempo UTC. El mediodía local también evita los huecos del horario de verano.
   const date = new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]), 12);
   return {
     weekday: date.toLocaleDateString(undefined, { weekday: 'short' }),
@@ -69,7 +69,7 @@ export function mountDashboard({ container, signal }) {
       const group = svgElement('g', { 'data-day': row.day ?? 'overdue' });
       const x = step * (index + .5), height = Math.max(1, value / maximum * 104);
       const bucket = kind === 'activity' ? 'activity' : special === 'Overdue' ? 'overdue' : special === 'Today' ? 'today' : 'future';
-      // Palette hooks belong to bars, never their groups or foreground labels.
+      // Los hooks de paleta pertenecen a las barras, nunca a sus grupos ni a las etiquetas de primer plano.
       group.append(svgElement('rect', { class: 'fc-chart-bar', 'data-bucket': bucket, x: x - step * .3, y: baseline - height, width: step * .6, height, fill: 'currentColor', opacity: '.6', rx: 2 }));
       group.append(svgElement('text', { class: 'fc-chart-count', x, y: baseline - height - 6, 'text-anchor': 'middle', 'font-size': 12, fill: 'currentColor' }, String(value)));
       const dateText = svgElement('text', { class: 'fc-chart-label', x, y: 151, 'text-anchor': 'middle', 'font-size': 10, fill: 'currentColor' });
@@ -89,7 +89,7 @@ export function mountDashboard({ container, signal }) {
       node.value.textContent = String(value); node.segment.style.width = `${total ? value / total * 100 : 0}%`;
       node.segment.title = `${node.label}: ${value}`;
     }
-    // Equal-width cards must share SVG proportions so baselines and captions align.
+    // Las tarjetas de igual anchura deben compartir proporciones SVG para que las líneas base y los pies se alineen.
     const width = Math.max(320, Array.isArray(statistics?.due) ? statistics.due.length * 64 : 0, Array.isArray(statistics?.activity) ? statistics.activity.length * 48 : 0);
     renderChart(due, statistics?.due, 'due', width); renderChart(activity, statistics?.activity, 'activity', width);
   }

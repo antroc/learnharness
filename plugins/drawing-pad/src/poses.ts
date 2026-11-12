@@ -1,7 +1,7 @@
 import type { PluginSubmissionOccurrence } from "learnharness-plugin-api";
 
-// Read only the small acknowledgment vocabulary; do not instantiate arbitrary
-// recursively immutable custom payload/solution types while inspecting identity.
+// Lee solo el pequeño vocabulario de acuses; no instancies tipos arbitrarios de carga/solución
+// personalizados e inmutables de forma recursiva al inspeccionar la identidad.
 type History = readonly unknown[];
 function object(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : undefined;
@@ -9,9 +9,11 @@ function object(value: unknown): Record<string, unknown> | undefined {
 export function occurrenceKey(occurrence: PluginSubmissionOccurrence): string {
   return JSON.stringify([occurrence.messageId, occurrence.contentIndex, occurrence.toolCallId, occurrence.toolName]);
 }
-/** Observe pose ACKNOWLEDGMENTS only, never infer active input, shuffle options,
- * read solutions, or interpret conclude/dismissal/model prose. Custom identities
- * come from host-persisted details.pluginProblem, not arbitrary custom tool names. */
+/** Observa solo los ACUSES de planteamiento; nunca deduce la entrada activa,
+ * baraja opciones, lee soluciones ni interpreta la prosa de conclusión/
+ * descarte/modelo. Las identidades personalizadas vienen de
+ * details.pluginProblem persistido por el host, no de nombres arbitrarios de
+ * herramientas personalizadas. */
 export function acceptedPoseKeys(messages: History): string[] {
   const results = new Map<string, { index: number; native: boolean; custom: boolean }>();
   messages.forEach((value, index) => {

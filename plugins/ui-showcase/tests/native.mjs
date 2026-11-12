@@ -1,8 +1,8 @@
-/** Product-only native Chrome proof; run after the parent hands off its build:
+/** Prueba en Chrome nativo solo con el producto; ejecútala cuando el padre entregue su compilación:
  * LH_POLISH_BUILD_READY=1 LH_APPROVED_HOST_DIGEST=<approved-tree-sha256>
  * LH_STANDALONE=/newly-verified/.next/standalone npm run test:native
- * This imports only test helpers/browser automation, never checkout host runtime.
- * Microphone recording and OS IME testing are explicitly OUT OF SCOPE.
+ * Esto importa solo auxiliares de prueba/automatización del navegador, nunca el runtime del host del checkout.
+ * La grabación con micrófono y las pruebas del IME del SO quedan explícitamente FUERA DE ALCANCE.
  */
 import assert from "node:assert/strict";
 import { runPackagedProof } from "./isolated.mjs";
@@ -110,12 +110,12 @@ await runPackagedProof(async ({ page, api, base, fixture, evidence, screenshot }
   assert.ok(Math.abs(parseFloat(typography.note.leading) - tokenPx(typography.note.configuredLeading, parseFloat(typography.note.size))) < .1);
   evidence.typography = typography;
 
-  // Run before any clicks or scrollIntoView calls can mask an outer-document
-  // overflow. Worker sr-only status text must use its own header's containing
-  // block, not the page-level main outside this intentionally tall scroller.
+  // Se ejecuta antes de que cualquier clic o llamada a scrollIntoView pueda ocultar un desbordamiento
+  // del documento exterior. El texto de estado sr-only del worker debe usar el bloque contenedor de su propia cabecera,
+  // no el main a nivel de página fuera de este contenedor desplazable intencionadamente alto.
   await page.waitForFunction(selector => document.querySelector(selector)?.querySelectorAll('[data-testid="plugin-worker-header"]').length === 12, {}, gallery);
-  // The existing static Mermaid fixture mounts asynchronously. Wait without
-  // scrolling so it cannot change the inner-bottom target during this proof.
+  // La fixture estática de Mermaid existente se monta de forma asíncrona. Espera sin
+  // desplazar para que no pueda cambiar el destino inferior interior durante esta prueba.
   await page.waitForFunction(selector => !!document.querySelector(selector)?.querySelector('svg[id^="lh-mermaid"], [data-testid="mermaid-render"] svg, .mermaid svg'), {}, example('markdown'));
   await page.evaluate(() => document.fonts.ready.then(() => undefined));
   await page.waitForFunction(selector => {
@@ -212,8 +212,8 @@ await runPackagedProof(async ({ page, api, base, fixture, evidence, screenshot }
       assert.equal(cell.fontSize, '11px');
     }
   };
-  // Detached controls cannot receive trusted browser input. Dispatch solely to
-  // prove their expired content/family callbacks cannot mutate the live family.
+  // Los controles desenganchados no pueden recibir entrada de confianza del navegador. Despacha solo para
+  // demostrar que sus callbacks caducados de contenido/familia no pueden mutar la familia viva.
   const mutateDetachedDraft = handle => handle.evaluate(node => {
     node.value = 'Forbidden expired Directory draft';
     node.dispatchEvent(new Event('input', { bubbles: true }));
@@ -403,7 +403,7 @@ await runPackagedProof(async ({ page, api, base, fixture, evidence, screenshot }
     assert.equal(geometry.modal, mode === 'modal', `${label}: origin controls interaction semantics`);
     assert.equal(geometry.sidebarToggles, 0, 'No sidebar toggle inside the picker');
     assert.equal(geometry.doneIcons, 0, 'Knowledge Done has no icon');
-    if (geometry.doneText !== undefined) assert.match(geometry.doneText, /Done/i); // Native selection footer exists only for a nonempty selection.
+    if (geometry.doneText !== undefined) assert.match(geometry.doneText, /Done/i); // El pie de selección nativo solo existe con una selección no vacía.
     assert.equal(await page.$('[data-plugin-knowledge-picker-pane]') !== null, mode === 'main', 'Only page/session origins use the local main-pane picker root');
     if (geometry.sidebar.width > 1) { assert.equal(geometry.sidebarInert, mode === 'modal'); assert.equal(geometry.sidebarHit, mode === 'main'); }
     assert.equal(await paintedTop(knowledge), true, `${label}: the newest picker must actually paint above older views`);
@@ -414,8 +414,8 @@ await runPackagedProof(async ({ page, api, base, fixture, evidence, screenshot }
     await page.locator(`${knowledge} [data-testid="${selected ? 'chain-practice-done' : 'chain-table-close'}"]`).click();
     await page.waitForSelector(knowledge, { hidden: true });
   };
-  // Shared verbatim with the temporary DEV StrictMode driver: two bounded
-  // controlled-acknowledgment cycles, using only actual native pointer controls.
+  // Compartido tal cual con el driver temporal de StrictMode de DEV: dos ciclos acotados
+  // de acuse controlado, usando solo controles de puntero nativos reales.
   const exerciseKnowledgeLifetime = async ({ label, root = gallery, exampleId = 'knowledge-picker', stateId = 'pickers', stateKey = 'knowledge', alreadyOpen = false }) => {
     const trigger = `${example(exampleId, root)} [data-testid="practice-props-chip"]`, triggerClear = `${example(exampleId, root)} [data-testid="practice-props-clear"]`;
     const searchSelector = `${knowledge} [data-testid="chain-table-search"]`, checkboxSelector = `${knowledge} [data-testid="chain-checkbox-${fixture.chainId}"]`;
@@ -538,8 +538,8 @@ await runPackagedProof(async ({ page, api, base, fixture, evidence, screenshot }
     const field = `${example(id)} [contenteditable="true"]`;
     await fill(field, `Local ${id} draft`); await waitState(id, { draft: `Local ${id} draft` });
     await page.locator(`${example(id)} button[aria-label="Send"]`).click(); await waitState(id, { busy: true, sends: 1 });
-    // Native Composer intentionally retains Send while a busy draft is nonempty
-    // (steering semantics). Clear via trusted input to expose its actual Stop.
+    // El Composer nativo conserva a propósito Send mientras un borrador ocupado no esté vacío
+    // (semántica de reorientación). Borra mediante entrada de confianza para exponer su Stop real.
     await fill(field, ""); await waitState(id, { draft: "" });
     await page.locator(`${example(id)} button[aria-label="Stop"]`).click(); await waitState(id, { busy: false });
     await fill(field, `Second local ${id} draft`);
@@ -621,8 +621,8 @@ await runPackagedProof(async ({ page, api, base, fixture, evidence, screenshot }
   await closeKnowledge();
   assert.equal(await page.$eval('[data-showcase="dialog-ordinary"]', node => !node.closest('[inert]')), true, 'Closing full-viewport picker resumes its exact dialog owner');
   assert.equal(await parentInput.evaluate(node => node.isConnected && node.value === "Retained dialog draft" && !!node.closest("[inert]")), true);
-  // CommitInput deliberately claims Escape to blur/commit. Focus a native
-  // non-editor control when testing the layer's top-only Escape contract.
+  // CommitInput reclama Escape a propósito para perder el foco/confirmar. Enfoca un control nativo
+  // que no sea un editor al probar el contrato de Escape solo en la capa superior.
   await page.focus('[role="dialog"][aria-label="Ordinary dialog example"] button[aria-label="Close dialog"]');
   await page.keyboard.press("Escape"); await page.waitForSelector('[data-showcase="dialog-ordinary"]', { hidden: true });
   assert.equal(await parentInput.evaluate(node => node.isConnected && node.value === "Retained dialog draft" && !node.closest("[inert]")), true);
@@ -684,8 +684,8 @@ await runPackagedProof(async ({ page, api, base, fixture, evidence, screenshot }
   await page.locator(`${example('surface-knowledge-picker', surface)} [data-testid="practice-props-chip"]`).click();
   await page.waitForSelector(knowledge, { visible: true }); await knowledgeGeometry('main', 'knowledge launched from native surface');
   const pickerNode = await page.$(knowledge);
-  // A cross-region main-pane VIEW is not a new session surface or a modal:
-  // do not impose either one's DOM-inert attribute policy on its source.
+  // Una VISTA del panel principal entre regiones no es una superficie de sesión nueva ni un modal:
+  // no impongas a su fuente la política de atributos inertes del DOM de ninguno de los dos.
   const coveredSource = await retained.evaluate((node, { selector, owner }) => {
     const b = node.getBoundingClientRect(), picker = document.querySelector(selector);
     return { sameNode: node === document.querySelector('[data-example="surface-parent-retained-field"] input'), connected: node.isConnected, draft: node.value,
@@ -770,8 +770,8 @@ await runPackagedProof(async ({ page, api, base, fixture, evidence, screenshot }
   await screenshot('gallery-direct-surface-stack', { fullPage: false });
   await page.locator('[data-testid="settings-close"]').click(); await page.waitForSelector('[data-testid="settings-dialog"]', { hidden: true });
   assert.equal(await page.$$eval('[data-plugin-session-surface]', nodes => nodes.length), 2);
-  // The parent is inert under the nested Surface; close the active frame's X
-  // rather than attempting to focus a covered control.
+  // El padre está inerte bajo la Surface anidada; cierra la X del marco activo
+  // en vez de intentar enfocar un control tapado.
   await page.locator(`[data-plugin-session-surface-frame]:has(${nested}) button[aria-label="Close"]`).click();
   await page.waitForSelector(nested, { hidden: true });
   assert.equal(await directDraft.evaluate(node => node.isConnected && node.value === 'Retained direct gallery Surface draft' && !node.closest('[inert]')), true);
@@ -871,8 +871,8 @@ await runPackagedProof(async ({ page, api, base, fixture, evidence, screenshot }
       const bodyRegion = await page.$('[data-session-surface-region]');
       const heldGraphResponses = [];
       if (entry.draftPicker) {
-        // Hold genuine, successful local graph response(s), without changing
-        // their bytes, until after the public sidebar Surface has mounted.
+        // Retén las respuestas locales auténticas y correctas del grafo, sin cambiar
+        // sus bytes, hasta después de que se haya montado la Surface pública de la barra lateral.
         const gate = await page.createCDPSession(); let released = false, releaseTimeout;
         const continuations = [], gateErrors = [];
         let firstResponse;
@@ -981,8 +981,8 @@ await runPackagedProof(async ({ page, api, base, fixture, evidence, screenshot }
       });
     }, modal);
     assert.deepEqual(modalCover, [{ control: 'INPUT', modalOrBackdropHit: true, surfaceHit: false }, { control: 'BUTTON', modalOrBackdropHit: true, surfaceHit: false }]);
-    // captureKeyDown deliberately prevents native Tab for every page/modal;
-    // test trusted host routing and containment, not native Tab traversal.
+    // captureKeyDown impide a propósito el Tab nativo en todas las páginas/modales;
+    // prueba el enrutado y la contención de confianza del host, no el recorrido nativo con Tab.
     await page.$eval(modal, node => {
       window.__showcaseSurfaceModalTabs = [];
       node.addEventListener('keydown', event => { if (event.key === 'Tab') queueMicrotask(() => window.__showcaseSurfaceModalTabs.push({ shift: event.shiftKey, defaultPrevented: event.defaultPrevented })); });
@@ -1016,8 +1016,8 @@ await runPackagedProof(async ({ page, api, base, fixture, evidence, screenshot }
   await page.waitForSelector('[data-showcase]', { hidden: true });
   await page.waitForSelector('[data-testid="plugin-menu"]', { hidden: true });
   assert.equal((await api("/api/plugins")).payload.plugins.find(value => value.id === "ui-showcase").status, "disabled");
-  // Disabled view renders a Back-to-home Link; it does not redirect.
-  // Assert that native fallback before moving to the re-enabled session proof.
+  // La vista desactivada renderiza un Link de vuelta al inicio; no redirige.
+  // Comprueba esa alternativa nativa antes de pasar a la prueba de la sesión reactivada.
   await page.waitForFunction(() => document.querySelector('main')?.textContent.includes('This plugin is disabled.'));
   await api("/api/plugins/ui-showcase", "PUT", { enabled: true });
   await page.goto(base + `/chat/${fixture.chatId}`, { waitUntil: "domcontentloaded" });

@@ -1,7 +1,7 @@
 'use strict';
 
-// Selectively adapted from ts-fsrs 5.2.3 (FSRS-6), MIT, Open Spaced Repetition.
-// See ../FSRS-LICENSE.txt. No Date prototype extensions or runtime dependencies.
+// Adaptado de forma selectiva de ts-fsrs 5.2.3 (FSRS-6), MIT, Open Spaced Repetition.
+// Ver ../FSRS-LICENSE.txt. Sin extensiones del prototipo de Date ni dependencias en tiempo de ejecución.
 const W = Object.freeze([
   0.212, 1.2931, 2.3065, 8.2956, 6.4133, 0.8334, 3.0194,
   0.001, 1.8722, 0.1666, 0.796, 1.4835, 0.0614, 0.2629,
@@ -51,7 +51,7 @@ function ordinal(now, startHour) {
 function reviewDue(now, days, dayStart) {
   const date = new Date(dayBounds(now, dayStart).start);
   date.setDate(date.getDate() + days);
-  // Restore the requested rollover even if the starting date crossed a DST gap.
+  // Restaura el cambio de día pedido aunque la fecha de inicio cruzara un hueco del horario de verano.
   date.setHours(dayStart, 0, 0, 0);
   return +date;
 }
@@ -116,7 +116,7 @@ function interval(stability, settings) {
   return clamp(Math.round(stability * settings.modifier), 1, 36500);
 }
 
-// Reference BasicLearningStepsStrategy, using numeric minutes rather than strings.
+// Referencia: BasicLearningStepsStrategy, usando minutos numéricos en vez de cadenas.
 function learningInfo(schedule, rating, settings) {
   const steps = schedule.state === 2 || schedule.state === 3
     ? settings.relearningSteps : settings.learningSteps;
@@ -157,7 +157,7 @@ function rate(schedule, rating, now = Date.now(), settings = {}) {
   const steps = schedule.state === 2 || schedule.state === 3
     ? options.relearningSteps : options.learningSteps;
   if (steps.length && schedule.learning_steps >= steps.length) {
-    // Settings edits take effect when graded, never by moving an outstanding due.
+    // Las ediciones de ajustes surten efecto al calificar, nunca moviendo un vencimiento pendiente.
     schedule = { ...schedule, learning_steps: steps.length - 1 };
   }
   const elapsed = schedule.state === 0 || schedule.last_review == null ? 0 :
@@ -175,7 +175,7 @@ function rate(schedule, rating, now = Date.now(), settings = {}) {
     if (schedule.state === 2) next.lapses += 1;
     applySteps(next, schedule, rating, now, options);
   } else {
-    // Compute all passing intervals together to preserve the reference ordering.
+    // Calcula juntos todos los intervalos de aprobado para conservar el orden de referencia.
     const hard = Math.min(interval(reviewStability(schedule, 2, elapsed), options),
       interval(reviewStability(schedule, 3, elapsed), options));
     const good = Math.max(interval(reviewStability(schedule, 3, elapsed), options), hard + 1);
@@ -208,8 +208,8 @@ function chooseCue(cues, random = Math.random) {
 
 function isDue(schedule, now = Date.now(), startHour = 4) {
   const today = studyDay(now, startHour);
-  // Logical review dates survive timezone and rollover-setting changes. Older
-  // schedules without dueDay retain their original epoch cutoff until graded.
+  // Las fechas lógicas de repaso sobreviven a los cambios de zona horaria y del ajuste de cambio de día. Los
+  // calendarios antiguos sin dueDay conservan su corte de época original hasta que se califican.
   if (schedule.state === 2 && schedule.dueDay) return today >= schedule.dueDay;
   return schedule.due <= now;
 }

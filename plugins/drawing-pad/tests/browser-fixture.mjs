@@ -158,8 +158,8 @@ const ctx = {
           if (cleaned) return; cleaned = true; owner.abort(); teardown?.(); host.remove();
         } };
         window.fixture.contentMounts++;
-        // Match PluginContent: cleanup may arrive after this mount was already
-        // aborted/replaced, because the public mount callback may be async.
+        // Igual que PluginContent: la limpieza puede llegar después de que este montaje ya
+        // se haya abortado/sustituido, porque el callback público de montaje puede ser asíncrono.
         Promise.resolve(props.content(host, owner.signal)).then(result => {
           if (cleaned) result?.(); else teardown = result;
         }).catch(error => errors.push(String(error)));
@@ -173,7 +173,7 @@ const ctx = {
       surface = { section, dispose, close() { props.onClose?.(); dispose(); }, replay() { contentMount.dispose(); if (!disposed) mountContent(); } };
       mountContent();
       if (window.fixture.replayOnOpen) surface?.replay();
-      // Match the public synchronous initial-focus marker contract in this fixture.
+      // En esta fixture, igual que el contrato público síncrono del marcador de foco inicial.
       section.querySelector("[data-plugin-initial-focus]")?.focus();
       return { update() {}, dispose };
     },

@@ -10,8 +10,8 @@ import katex from "katex";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const built = path.join(root, "dist");
-// Test-only reference: the same pinned KaTeX version used by the app. None of
-// these reference assets are included in the plugin's distributable build.
+// Referencia solo para pruebas: la misma versión fijada de KaTeX que usa la app. Ninguno de
+// estos recursos de referencia se incluye en la compilación distribuible del plugin.
 const katexAssets = path.dirname(fileURLToPath(import.meta.resolve("katex")));
 assert.ok(fs.readFileSync(path.join(built, 'licenses/GPL-3.0.txt'), 'utf8').split('\n').length > 600, 'Ship the complete GPL text, not just an upstream MIT file.');
 assert.ok(fs.readFileSync(path.join(built, 'licenses/Apache-2.0.txt'), 'utf8').split('\n').length > 190, 'Ship the complete Apache text for ColorBrewer.');
@@ -213,13 +213,13 @@ try {
   for (const label of wideProof.labels) assert.ok(Math.abs(label.fontPx - wideProof.mathFontPx * label.texSize / 10) < 0.05, 'Wide-diagram labels and relative script sizes do not shrink.');
   await page.screenshot({ path: path.join(evidence, 'wide-diagram-scroll.png'), fullPage: true });
   const paletteProof = await page.evaluate(async () => {
-    // Rasterize a small, sanitized vector fixture to verify actual mask alpha,
-    // including a definition shared between visible ink and a mask, rather than
-    // merely checking that the mask's XML still contains black/white attributes.
+    // Rasteriza una pequeña fixture vectorial saneada para verificar el alfa real de la máscara,
+    // incluida una definición compartida entre la tinta visible y una máscara, en vez de
+    // comprobar solo que el XML de la máscara sigue conteniendo atributos black/white.
     const source = '<svg xmlns="http://www.w3.org/2000/svg" width="60" height="20" viewBox="0 0 60 20"><defs><path id="box" d="M0 0H10V10H0Z" fill="black"/><linearGradient id="fade"><stop offset="0" stop-color="black"/><stop offset="1" stop-color="white"/></linearGradient><mask id="cut"><rect width="20" height="10" fill="white"/><use href="#box" x="10"/></mask><mask id="gradient"><rect y="10" width="20" height="10" fill="url(#fade)"/></mask></defs><rect width="20" height="10" fill="black" mask="url(#cut)"/><use href="#box" x="20"/><rect x="30" width="10" height="10" fill="red"/><rect x="40" width="10" height="10" fill="white"/><rect x="50" width="10" height="10" fill="blue"/><rect y="10" width="20" height="10" fill="black" mask="url(#gradient)"/></svg>';
     const svg = sanitizeSvg(source, 'Ink and mask fixture', 'tikz');
-    // This paint/alpha test deliberately rasterizes at fixed pixel dimensions,
-    // independently of the renderer's new text-relative TikZ display sizing.
+    // Esta prueba de pintura/alfa rasteriza a propósito con dimensiones fijas en píxeles,
+    // con independencia del nuevo tamaño de presentación de TikZ relativo al texto del renderer.
     svg.setAttribute('width','60'); svg.setAttribute('height','20');
     const wrapper = document.createElement('div'); wrapper.className = 'rich-code-blocks rich-code-blocks--rendered';
     wrapper.append(svg); document.body.append(wrapper);
@@ -227,9 +227,9 @@ try {
     const context = canvas.getContext('2d');
     async function sample(color) {
       host.setTextColor(color);
-      // A data-URI image cannot inherit document CSS. Snapshot only the live
-      // root's resolved ink for this raster assertion; keep nested mask/gradient
-      // overrides intact. Production SVGs remain inline and need no snapshots.
+      // Una imagen con URI de datos no puede heredar el CSS del documento. Toma una instantánea solo de la tinta
+      // resuelta de la raíz viva para esta aserción del ráster; mantén intactas las sustituciones
+      // anidadas de máscara/degradado. Los SVG de producción siguen en línea y no necesitan instantáneas.
       const clone = svg.cloneNode(true), computed = getComputedStyle(svg);
       for (const name of ['black','carbon','hydrogen']) {
         const variable = '--rich-code-blocks-' + name;
@@ -268,8 +268,8 @@ try {
   assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('cached').querySelector('.rich-code-blocks--rendered')).color), 'rgb(18, 52, 86)', 'New cache mounts use the current theme Text color.');
   assert.equal(await page.evaluate(() => window.texPosts), postsBeforeColors, 'Ink-only changes retain the compiled SVG cache.');
   assert.equal(await page.evaluate(() => new Set([...document.querySelectorAll('svg [id]')].map(node => node.id)).size === document.querySelectorAll('svg [id]').length), true, "Repeated cached SVG must have mount-unique IDs.");
-  // Observed authoring failure patterns: each corrected block must pass the
-  // real worker and SVG sanitizer; its unsupported variant stays readable.
+  // Patrones de fallo de escritura observados: cada bloque corregido debe pasar el
+  // worker real y el saneador SVG; su variante no admitida sigue siendo legible.
   const authoringCases = [
     { id: 'commutative-authoring', source: String.raw`\usepackage{tikz-cd}
 \begin{document}
@@ -348,7 +348,7 @@ C \arrow[r,"k"'] & D
   const blankAbcHeader = await render('blank-abc-header', 'abc', 'X:\nM:4/4\nL:1/4\nK:C\nC D E F|');
   assert.ok(blankAbcHeader.error, 'An empty header cannot consume the next line as its value.');
   const capped = await render("oversize", "tikz", "x".repeat(32 * 1024 + 1)); assert.match(capped.error, /32 KiB/);
-  // A genuinely nonterminating TeX macro must not block the page event loop.
+  // Una macro TeX que de verdad no termina no debe bloquear el bucle de eventos de la página.
   const endless = String.raw`\begin{document}\def\spin{\spin}\spin\end{document}`;
   await page.evaluate(source => { window.pending=host.render('cancelled','tikz',source); }, endless);
   await page.waitForFunction(() => document.querySelector('#cancelled pre'));

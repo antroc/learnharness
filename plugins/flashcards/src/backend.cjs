@@ -79,16 +79,16 @@ function pack(graph, ids, state) {
     });
     return { targets: selected, propositions, chains: chains.map(({ id, premises, conclusion }) => ({ id, premises, conclusion })), cards, sources };
   }
-  // Like core extraction, the chunk budget covers source material only.
-  // Instructions, schema, chains and existing cards still count in estimate()
-  // for full-request cost and model-context checks, but not for chunk grouping.
+  // Como en la extracción del núcleo, el presupuesto de fragmento cubre solo el material fuente.
+  // Las instrucciones, el esquema, las cadenas y las tarjetas existentes siguen contando en estimate()
+  // para el coste de la petición completa y las comprobaciones del contexto del modelo, pero no para agrupar fragmentos.
   const chunks = []; let current = [], currentTokens = 0;
   for (const id of targets) {
     const node = nodes.get(id), tokens = Math.ceil(`${node.name}\n${node.statement}`.length / 4);
     if (current.length && currentTokens + tokens > state.settings.chunkBudget) {
       chunks.push(assemble(current)); current = []; currentTokens = 0;
     }
-    // An indivisible over-budget target rides alone, as a core message does.
+    // Un objetivo indivisible que supera el presupuesto va solo, como un mensaje del núcleo.
     current.push(id); currentTokens += tokens;
   }
   if (current.length) chunks.push(assemble(current));
@@ -103,8 +103,8 @@ function activate(ctx) {
   const alive = () => { if (disposed || ctx.signal.aborted) fail('Flashcards is disabled.'); };
   const notify = (topic = 'changed') => { if (!disposed && !ctx.signal.aborted) ctx.events.emit(topic); };
   function change(update, topic) { alive(); const result = store.change(update); notify(topic); return result; }
-  // Commit metadata removal first; a durable queue makes file cleanup retryable
-  // after unlink/save failures without resurrecting decks or source records.
+  // Confirma primero la eliminación de los metadatos; una cola duradera hace reintentable la limpieza de ficheros
+  // tras fallos de unlink/guardado sin resucitar mazos ni registros de fuentes.
   function finishSourceCleanup() {
     const pending = store.get().pendingSourceRemovals ?? [];
     if (!pending.length) { sourceCleanupError = null; return; }
@@ -117,7 +117,7 @@ function activate(ctx) {
       throw new Error(sourceCleanupError);
     }
   }
-  try { finishSourceCleanup(); } catch { /* expose pending cleanup in the view; retry on deletion or next activation */ }
+  try { finishSourceCleanup(); } catch { /* muestra la limpieza pendiente en la vista; reintenta al borrar o en la siguiente activación */ }
   function graphNow() { const g = ctx.learning.graph(); if (!Array.isArray(g.propositions) || !Array.isArray(g.chains)) fail('Could not read the knowledge graph.'); return g; }
   const prop = (s, id) => Object.hasOwn(s.propositions, id) ? s.propositions[id] : fail('Proposition not found.');
   const deck = (s, id) => s.decks.find(d => d.id === id) ?? fail('Deck not found.');
@@ -137,7 +137,7 @@ function activate(ctx) {
     const b = s.batches.at(-1);
     const batch = b ? { ...b, kind: b.kind ?? 'graph', chunks: b.chunks.map(c => {
       if (applicationErrors.has(c.id)) return { ...c, error: applicationErrors.get(c.id) };
-      if (['queued', 'running'].includes(c.status) && c.taskId) { try { const t = ctx.workers.get(c.taskId); return { ...c, status: t.status === 'succeeded' ? 'saving' : t.status }; } catch { /* keep durable application status */ } }
+      if (['queued', 'running'].includes(c.status) && c.taskId) { try { const t = ctx.workers.get(c.taskId); return { ...c, status: t.status === 'succeeded' ? 'saving' : t.status }; } catch { /* conserva el estado duradero de la aplicación */ } }
       return c;
     }), added: b.chunks.reduce((n, c) => n + (c.added || 0), 0), completed: b.chunks.filter(c => ['applied', 'failed', 'cancelled', 'interrupted'].includes(c.status)).length, total: b.chunks.length,
       failedTargetIds: b.chunks.filter(c => ['failed', 'cancelled', 'interrupted'].includes(c.status)).flatMap(c => c.targetIds ?? []),
@@ -317,7 +317,7 @@ function activate(ctx) {
       }
       if (scope.deleteEmptyDecks) s.decks = s.decks.filter(d => !affectedDecks.has(d.id) || d.propositionIds.length);
       for (const source of Object.values(s.fileSources ?? {})) if (!s.decks.some(d => d.id === source.deckId)) {
-        // Only decks removed by this action own the sources being cleaned up.
+        // Solo los mazos eliminados por esta acción son dueños de las fuentes que se limpian.
         if (!affectedDecks.has(source.deckId) || !scope.deleteEmptyDecks) continue;
         delete s.fileSources[source.id];
         s.pendingSourceRemovals ??= [];
@@ -407,7 +407,7 @@ function activate(ctx) {
     if (!batch || batch.kind !== 'file') fail('File generation batch not found.');
     if (activeBatch(state)) fail('A generation batch is already active.');
     let ranges = batch.chunks.filter(c => ['failed', 'cancelled', 'interrupted'].includes(c.status)).map(({ start, end }) => ({ start, end }));
-    // Old batch IDs cannot replay portions already accepted by a later retry.
+    // Los ids de lote antiguos no pueden repetir porciones ya aceptadas por un reintento posterior.
     for (const b of state.batches.filter(b => b.sourceId === batch.sourceId)) for (const c of b.chunks.filter(c => c.status === 'applied')) {
       ranges = ranges.flatMap(r => c.end <= r.start || c.start >= r.end ? [r] : [r.start < c.start ? { start: r.start, end: c.start } : null, c.end < r.end ? { start: c.end, end: r.end } : null].filter(Boolean));
     }
@@ -453,7 +453,7 @@ function activate(ctx) {
       }, 'batch-changed');
     } catch (error) { if (newSource && !Object.hasOwn(store.get().fileSources ?? {}, plan.sourceId)) store.removeSource(plan.sourceId); throw error; }
     preflights.delete(preflightId);
-    // Dispatch is backend-owned; navigation cannot stop accepted work.
+    // El despacho es del backend; la navegación no puede detener el trabajo aceptado.
     queueMicrotask(() => {
       const chunks = store.get().batches.find(b => b.id === batchId).chunks;
       chunks.forEach((chunk, index) => {
@@ -465,7 +465,7 @@ function activate(ctx) {
           change(s => { const c = s.batches.find(b => b.id === batchId).chunks.find(c => c.id === chunk.id); c.taskId = task.id; c.status = 'queued'; }, 'batch-changed');
           watch(batchId, chunk.id, task.id);
         } catch (error) {
-          // If acceptance happened, the durable request ID is enough to recover it.
+          // Si hubo aceptación, el id de petición duradero basta para recuperarla.
           const accepted = ctx.workers.list().find(t => t.requestId === chunk.requestId);
           if (accepted) { watch(batchId, chunk.id, accepted.id); applicationErrors.set(chunk.id, error.message); }
           else { try { change(s => { const b = s.batches.find(b => b.id === batchId), c = b.chunks.find(c => c.id === chunk.id); c.status = 'failed'; c.error = error.message; finishBatch(s, b); }, 'batch-changed'); } catch (failure) { applicationErrors.set(chunk.id, failure.message); } }
@@ -495,7 +495,7 @@ function activate(ctx) {
     const active = p.cues.filter(c => !c.deleted);
     if (scope.cueIds === undefined) return active;
     const pinned = [1, 3].includes(p.schedule.state) && active.find(c => c.id === p.learningCueId);
-    // Do not switch away from an active learning cue just because it is unselected.
+    // No cambies de una pista de aprendizaje activa solo porque no esté seleccionada.
     if (pinned && !scope.cueIds.includes(pinned.id)) return [];
     return active.filter(c => scope.cueIds.includes(c.id));
   }
@@ -530,8 +530,8 @@ function activate(ctx) {
       const future = candidates.filter(p => [1, 3].includes(p.schedule.state) && p.schedule.due > now).map(p => p.schedule.due);
       return { ticket: null, ...(future.length ? { nextDue: Math.min(...future) } : {}), remaining: 0 };
     }
-    // Count introductions in the same deterministic admission order without
-    // consuming allowances, changing schedules, or making additional cue choices.
+    // Cuenta las introducciones en el mismo orden de admisión determinista sin
+    // consumir asignaciones, cambiar calendarios ni hacer elecciones de pistas adicionales.
     let remaining = ready.length;
     const simulated = { ...used }, introduced = new Set();
     for (const d of selection.decks) for (const candidate of candidates) {

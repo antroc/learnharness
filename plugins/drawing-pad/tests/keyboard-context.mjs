@@ -1,5 +1,5 @@
-// The disposable fixture supplies the real host manager to the real Keyboard
-// section without mounting Next's router/SSE providers. No plugin code uses it.
+// La fixture desechable aporta el gestor real del host a la sección real de Keyboard
+// sin montar el router ni los providers de SSE de Next. Ningún código del plugin lo usa.
 import { useSyncExternalStore } from "react";
 
 export function usePlugins() {

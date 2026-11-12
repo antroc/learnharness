@@ -44,8 +44,8 @@ export function parseSettings(value: unknown): Settings {
   if (!Number.isSafeInteger(record.revision) || (record.revision as number) < 0 || FAMILIES.some(key => typeof record[key] !== "boolean")) {
     throw new Error("Invalid Rich code blocks settings.");
   }
-  // Legacy v1 inkColor is accepted above but deliberately omitted: theme Text
-  // now owns neutral ink. Reads never rewrite disk; normal saves drop the key.
+  // El inkColor heredado de v1 se acepta arriba pero se omite a propósito: ahora el Text del tema
+  // es dueño de la tinta neutra. Las lecturas nunca reescriben el disco; los guardados normales quitan la clave.
   return { version: 1, revision: record.revision as number, chemicalStructures: record.chemicalStructures as boolean,
     musicalNotation: record.musicalNotation as boolean, technicalDiagrams: record.technicalDiagrams as boolean };
 }

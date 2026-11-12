@@ -10,17 +10,17 @@ let resourceUrl: string | undefined;
 worker.onmessage = async ({ data }) => {
   try {
     checkSource("tikz", data.source);
-    // Always use the plugin's explicit local resource root, never the package CDN default.
+    // Usa siempre la raíz de recursos local explícita del plugin, nunca el CDN por defecto del paquete.
     const url = new URL(data.resourcesUrl);
     if (url.origin !== new URL(import.meta.url).origin) throw new Error("TeX resources must be local plugin assets.");
     if (!loader || resourceUrl !== url.href) { resourceUrl = url.href; loader = new BrowserResourceLoader(url.href); }
     const dvi = await tex(data.source, { showConsole: false }, loader);
-    // The library's DOM parse is NOT a sanitizer. Our main-thread static SVG
-    // rebuilder is the only admission path to the page. No DOM/SVGO runs here.
+    // El análisis DOM de la biblioteca NO es un saneador. Nuestro reconstructor de SVG estático
+    // del hilo principal es la única vía de admisión a la página. Aquí no se ejecuta DOM/SVGO.
     const raw = await dvi2svg(dvi, { disableSanitize: true, embedFontCss: false });
-    // This pinned DVI writer omits the single outer closing SVG tag (its usual
-    // HTML parser repairs it). Close only that known fragment shape, then use
-    // strict inert XML parsing in our sanitizer; never parse generated HTML.
+    // Este escritor DVI fijado omite la única etiqueta SVG exterior de cierre (su analizador
+    // HTML habitual la repara). Cierra solo esa forma de fragmento conocida y después usa
+    // el análisis XML inerte estricto en nuestro saneador; nunca analices el HTML generado.
     const svg = /^<svg\b/.test(raw) && (raw.match(/<svg\b/g) ?? []).length === 1 && !/<\/svg\s*>/.test(raw) ? raw + "</svg>" : raw;
     checkSvgSize(svg);
     worker.postMessage({ id: data.id, svg });

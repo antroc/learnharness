@@ -5,12 +5,12 @@ import { inkSignature, visibleStrokes, type Stroke, type Tool } from "./strokes.
 export interface Draft {
   id: number;
   revision: number;
-  /** Raster of the reference alone; empty on blank sheets. No viewport baked in. */
+  /** Ráster de la referencia sola; vacío en las hojas en blanco. Sin viewport incorporado. */
   background: string;
   backgroundColor: string;
-  /** Ink paired with this raster, independent of other pending sheet repaints. */
+  /** Tinta emparejada con este ráster, independiente de otros repintados pendientes de la hoja. */
   color: string;
-  /** Original learner-visible content and the palette used for this raster. */
+  /** El contenido original visible para el alumno y la paleta usada para este ráster. */
   reference?: Reference;
   palette?: string;
   width: number;
@@ -31,7 +31,7 @@ export interface SessionSheet {
 }
 export interface Capture { session: SessionSheet; draft: Draft; signature: string; color: string; imageScale: number; sendImage: boolean }
 
-/** Window-owned only. No storage, navigation parsing, or host input reconstruction. */
+/** Solo de la ventana. Sin almacenamiento, análisis de navegación ni reconstrucción de la entrada del host. */
 export class Sheets {
   readonly sessions = new Map<string, SessionSheet>();
   color = DEFAULT_DARK_INK_COLOR;
@@ -59,8 +59,9 @@ export class Sheets {
       state.draft = { ...state.draft, color, revision: state.draft.revision + 1 };
     this.publish();
   }
-  /** Accepted preferences can recolor already-current sheets without waiting
-   * for unrelated reference work. Older rasters retain their own paired ink. */
+  /** Las preferencias aceptadas pueden volver a colorear hojas ya al día sin
+   * esperar a trabajo ajeno de referencias. Los rásteres más antiguos
+   * conservan su propia tinta emparejada. */
   setInkForPalette(color: string, palette: string): void {
     let changed = false;
     for (const state of this.sessions.values()) if (state.draft?.palette === palette && state.draft.color !== color) {
@@ -68,8 +69,9 @@ export class Sheets {
     }
     if (changed) this.publish();
   }
-  /** Atomically pair re-rendered reference backgrounds with their matching ink.
-   * Merge into the latest draft so work drawn during rasterization is retained. */
+  /** Empareja de forma atómica los fondos de referencia vueltos a renderizar
+   * con su tinta correspondiente. Se fusiona en el último borrador para
+   * conservar lo dibujado durante la rasterización. */
   setPalette(color: string, palette: string, backgrounds: ReadonlyMap<SessionSheet, { id: number; background: string; backgroundColor: string }>): void {
     const recolor = this.color !== color;
     let changed = recolor;
@@ -86,7 +88,7 @@ export class Sheets {
     }
     if (changed) this.publish();
   }
-  /** Delivery resolution is not a drawing edit and does not trigger practice resends. */
+  /** Resolver la entrega no es una edición del dibujo y no provoca reenvíos de práctica. */
   setImageScale(imageScale: number): void { this.imageScale = imageScale; }
   create(state: SessionSheet, sheet: Omit<Draft, "id" | "revision" | "strokes" | "hasInk" | "color">): Draft {
     const draft = { ...sheet, color: this.currentColor(), id: ++this.nextId, revision: 0, strokes: [], hasInk: false };
@@ -101,7 +103,7 @@ export class Sheets {
     this.publish();
   }
   setTool(state: SessionSheet, tool: Tool): void { state.tool = tool; this.publish(); }
-  /** Camera movement is not a content edit and cannot invalidate an acceptance. */
+  /** Mover la cámara no es una edición del contenido y no puede invalidar una aceptación. */
   setPan(state: SessionSheet, pan: SessionSheet["pan"]): void { state.pan = pan; this.publish(); }
   undo(state: SessionSheet): void { if (state.draft?.strokes.length) this.update(state, state.draft.strokes.slice(0, -1)); }
   clear(state: SessionSheet): void { if (state.draft?.strokes.length) this.update(state, []); }
@@ -131,14 +133,14 @@ export class Sheets {
   }
   accepted(captured: Capture): void {
     const state = captured.session;
-    if (state.draft?.id !== captured.draft.id) return; // A new problem/sheet supersedes this acceptance.
+    if (state.draft?.id !== captured.draft.id) return; // Un nuevo problema/hoja sustituye a esta aceptación.
     if (state.kind === "practice") {
       if (captured.sendImage) { state.sentSignature = captured.signature; this.publish(); }
       return;
     }
     if (state.draft.revision === captured.draft.revision) this.update(state, []);
   }
-  /** Only accepted pose identities count. Conclusion/dismissal never reach this reset. */
+  /** Solo cuentan las identidades de planteamiento aceptadas. La conclusión/descarte nunca llegan a este reinicio. */
   observePoses(state: SessionSheet, poses: readonly string[], baseline = false): boolean {
     if (state.kind !== "practice") return false;
     const latest = poses.at(-1);

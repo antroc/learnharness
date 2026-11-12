@@ -88,14 +88,14 @@ test('palette hooks target only bars and state segments; only future due dates e
     h.dashboard.update(statistics());
     const figures = [...h.root.querySelectorAll('.fc-chart')];
     assert.deepEqual(figures.map(figure => figure.dataset.chart), ['due', 'activity']);
-    // Parent CSS maps new/learning/review/relearning to blue/amber/green/red.
+    // El CSS del padre asigna new/learning/review/relearning a azul/ámbar/verde/rojo.
     const stateKeys = ['new', 'learning', 'review', 'relearning'];
     assert.deepEqual([...h.root.querySelectorAll('.fc-state-segment')].map(node => node.dataset.state), stateKeys);
     assert.deepEqual([...h.root.querySelectorAll('.fc-state-legend li')].map(node => node.dataset.state), stateKeys);
     const [due, activity] = charts(h);
     assert.deepEqual([...due.querySelectorAll('.fc-chart-bar')].map(bar => bar.getAttribute('data-bucket')), ['overdue', 'today', ...Array(7).fill('future')]);
     assert.deepEqual([...activity.querySelectorAll('.fc-chart-bar')].map(bar => bar.getAttribute('data-bucket')), Array(14).fill('activity'));
-    // Parent CSS maps overdue/today/future/activity to red/amber/blue/green.
+    // El CSS del padre asigna overdue/today/future/activity a rojo/ámbar/azul/verde.
     for (const svg of [due, activity]) {
       assert.equal(svg.querySelectorAll('[data-bucket]').length, groups(svg).length);
       assert.ok([...svg.querySelectorAll('[data-bucket]')].every(node => node.localName === 'rect'));

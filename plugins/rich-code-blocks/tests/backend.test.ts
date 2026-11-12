@@ -47,7 +47,7 @@ test("all-off startup is nonwriting; only accepted toggles contribute exact prob
     dispose(); dispose(); assert.equal(host.instructions.size, 0); assert.equal(host.handlers.size, 0);
     const second = fixture(directory); const disposeSecond = second.activate();
     assert.equal(second.instructions.size, 3);
-    // Independent windows update only one key; the backend serializes whole-file writes.
+    // Las ventanas independientes actualizan solo una clave; el backend serializa las escrituras de fichero completo.
     second.call("set-family", { family: "chemicalStructures", enabled: false });
     const next = parseSettings(second.call("set-family", { family: "musicalNotation", enabled: false }));
     assert.equal(next.technicalDiagrams, true); assert.equal(next.chemicalStructures, false); assert.equal(next.revision, 5);
@@ -97,7 +97,7 @@ test("malformed/newer settings are refused without overwriting; failed atomic sa
     }
     fs.rmSync(file);
     const host = fixture(directory); const dispose = host.activate();
-    fs.mkdirSync(file); // rename cannot replace a directory
+    fs.mkdirSync(file); // rename no puede sustituir un directorio
     assert.throws(() => host.call("set-family", { family: "technicalDiagrams", enabled: true }));
     assert.deepEqual(host.call("get-settings"), DEFAULT_SETTINGS);
     assert.equal(host.instructions.size, 0); assert.equal(host.events.length, 0);
