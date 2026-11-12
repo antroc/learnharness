@@ -1,7 +1,7 @@
 "use strict";
 
-// LearnHarness-owned public-client OAuth. Never import pi's bundled login.
-// This module is main-process-only; dependencies are injectable for scratch tests.
+// OAuth de cliente público propio de LearnHarness. Nunca importes el login empaquetado de pi.
+// Este módulo es solo del proceso principal; las dependencias son inyectables para pruebas sueltas.
 const crypto = require("node:crypto");
 const http = require("node:http");
 const fs = require("node:fs/promises");
@@ -33,7 +33,7 @@ const publicError = (err) => ({
 
 const nonempty = (v) => typeof v === "string" && v.length > 0 && !/[\x00-\x20\x7f]/.test(v);
 const planScopes = (tokens) => !!tokens?.accessToken && SCOPES.every((scope) => tokens.scopes.includes(scope));
-/** Reject the entire credential record when its schema is invalid. */
+/** Rechaza el registro de credenciales entero cuando su esquema no es válido. */
 function validateState(state) {
 	if (!state || state.version !== 1 || !nonempty(state.hostId) || !Array.isArray(state.registrations) || !(state.activeId === null || nonempty(state.activeId))) throw fail("storage");
 	if (Object.hasOwn(state, "allowBackgroundUse") && typeof state.allowBackgroundUse !== "boolean") throw fail("storage");
@@ -50,7 +50,7 @@ function validateState(state) {
 	return state;
 }
 
-/** Private, unencrypted JSON outside learning data. No OS credential-store access. */
+/** JSON privado y sin cifrar fuera de los datos de aprendizaje. Sin acceso al almacén de credenciales del SO. */
 function fileStore(file) {
 	return {
 		async read() {
@@ -73,7 +73,7 @@ function fileStore(file) {
 				await handle.close();
 				handle = null;
 				await fs.rename(temp, file);
-				// Directory fsync is supported on Unix; the file fsync above is mandatory.
+				// El fsync de directorios se admite en Unix; el fsync del fichero de arriba es obligatorio.
 				if (process.platform !== "win32") {
 					const dir = await fs.open(path.dirname(file), "r");
 					try { await dir.sync(); } finally { await dir.close(); }
@@ -122,7 +122,7 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 		return next;
 	};
 	const active = () => !storageDenied && !suspended && !closed && !paused ? state?.registrations.find((r) => r.id === state.activeId && r.tokens && !r.reconnectRequired) : undefined;
-	// These fields are validated/verified before storage. Email is never identity.
+	// Estos campos se validan/verifican antes de guardarse. El correo nunca es la identidad.
 	const sameAccount = (a, b) => a.issuer === b.issuer && a.subject === b.subject;
 	function accountGroups() {
 		const groups = [];
@@ -169,7 +169,7 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 	}
 	async function save(next) {
 		try { validateState(next); await store.write(next); } catch (err) {
-			// A rotated token may already have invalidated its predecessor. Fail closed.
+			// Puede que un token rotado ya haya invalidado a su predecesor. Falla en cerrado.
 			denyStorage(err);
 			lastError = publicError(err);
 			notify();
@@ -184,9 +184,9 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 			allowBackgroundUse: backgroundAllowed(),
 			activeId: state?.activeId ?? null,
 			accounts: accountGroups().map((members) => {
-				// Preserve the actual active registration ID at the private transport
-				// boundary; inactive groups prefer a usable registration, then a
-				// remembered one. No credential/client records are merged or deleted.
+				// Conserva el id de registro activo real en el límite del transporte
+				// privado; los grupos inactivos prefieren un registro utilizable y, si no, uno
+				// recordado. No se fusionan ni se borran registros de credenciales/clientes.
 				const r = members.find((r) => r.id === state.activeId) ?? members.find((r) => !r.reconnectRequired && planScopes(r.tokens)) ?? members[0];
 				return {
 					id: r.id,
@@ -194,8 +194,8 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 					registration: r.clientId,
 					connected: !storageDenied && !closed && !paused && !suspended && !r.reconnectRequired && planScopes(r.tokens),
 					planEnabled: !storageDenied && !r.reconnectRequired && planScopes(r.tokens),
-					// Recovery is authorization-only, not a response to storage failure
-					// or temporary transport suspension. Never infer it from error copy.
+					// La recuperación es solo de autorización, no una respuesta a un fallo de almacenamiento
+					// ni a una suspensión temporal del transporte. Nunca la deduzcas del texto del error.
 					canSignInAgain: !storageDenied && !closed && !paused && (r.reconnectRequired === true || !planScopes(r.tokens)),
 				};
 			}),
@@ -221,7 +221,7 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 	async function identity(idToken, clientId, nonce, expectedSubject) {
 		try {
 			const { jwtVerify, createLocalJWKSet } = await import("jose");
-			// Fixed, documented JWKS origin; never follow a discovery-supplied URL.
+			// Origen JWKS fijo y documentado; nunca sigas una URL aportada por el descubrimiento.
 			const keys = await json(JWKS);
 			const { payload } = await jwtVerify(idToken, createLocalJWKSet(keys), {
 				issuer: ISSUER, audience: clientId, algorithms: ["RS256"],
@@ -235,7 +235,7 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 	function tokenSet(body, previous) {
 		const scopes = typeof body.scope === "string" ? body.scope.split(/\s+/) : previous?.scopes;
 		if (!scopes || SCOPES.some((scope) => !scopes.includes(scope))) {
-			// Lack of entitlement is not lack of revocable material.
+			// La falta de derecho de uso no es falta de material revocable.
 			return { idToken: body.id_token ?? previous?.idToken, scopes: scopes ?? [], expiresAt: 0,
 				...(nonempty(body.refresh_token) ? { refreshToken: body.refresh_token } : previous?.refreshToken ? { refreshToken: previous.refreshToken } : {}) };
 		}
@@ -291,7 +291,7 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 				res.setHeader("Referrer-Policy", "no-referrer");
 				if (req.method !== "GET" || callback.origin !== new URL(redirectUri).origin || callback.pathname !== "/auth/callback" || req.headers.host !== new URL(redirectUri).host || consumed) { res.writeHead(404).end(); return; }
 				const params = callback.searchParams;
-				// Reject duplicate parameters and unsolicited callbacks without consuming a valid pending attempt.
+				// Rechaza parámetros duplicados y callbacks no solicitados sin consumir un intento pendiente válido.
 				if (["state", "code", "client_id", "error"].some((key) => params.getAll(key).length > 1) || params.get("state") !== expectedState) { res.writeHead(400).end("Sign-in could not be verified."); return; }
 				consumed = true;
 				res.writeHead(200, { "content-type": "text/plain; charset=utf-8" }).end("Return to LearnHarness to view the sign-in result. You may close this tab.");
@@ -318,7 +318,7 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 						next.registrations = next.registrations.filter((r) => r.id !== record.id).concat(record);
 						next.activeId = record.id;
 						const previous = structuredClone(state);
-						await save(next); // Active identity changes only AFTER validation and durable persistence.
+						await save(next); // La identidad activa solo cambia DESPUÉS de la validación y de la persistencia duradera.
 						if (closed || abort.signal.aborted || epoch !== attemptEpoch) {
 							await save(previous);
 							throw fail("cancelled");
@@ -344,7 +344,7 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 				state: expectedState, nonce, code_challenge_method: "S256",
 				code_challenge: crypto.createHash("sha256").update(verifier).digest("base64url"),
 			}).toString();
-			await openExternal(url.toString()); // Trusted main only. Never return this URL to the renderer.
+			await openExternal(url.toString()); // Solo el proceso principal de confianza. Nunca devuelvas esta URL al renderer.
 		} catch (err) { cancel(err.code || "network"); }
 		void completion;
 		return snapshot();
@@ -385,8 +385,8 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 					if (body.id_token !== undefined) await identity(body.id_token, account.clientId, undefined, account.subject);
 					tokens = tokenSet(body, account.tokens);
 				} catch (err) {
-					// The fixed token endpoint may have rotated already. Preserve only
-					// verified identity and a single likely-latest revocation handle.
+					// Puede que el endpoint fijo de tokens ya haya rotado. Conserva solo
+					// la identidad verificada y un único identificador de revocación probablemente el más reciente.
 					stop();
 					const restricted = structuredClone(state);
 					const record = restricted.registrations.find((r) => r.id === account.id);
@@ -396,9 +396,9 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 					lastError = publicError(fail("identity")); notify();
 					throw err;
 				}
-				// A successful remote rotation must be durably retained even when
-				// logout, account selection, consent revocation, or pause denies use.
-				// Those serialized operations will revoke/clear the LATEST token.
+				// Una rotación remota con éxito debe conservarse de forma duradera aunque
+				// el cierre de sesión, la selección de cuenta, la revocación del consentimiento o la pausa impidan su uso.
+				// Esas operaciones serializadas revocarán/borrarán el token MÁS RECIENTE.
 				const next = structuredClone(state);
 				next.registrations.find((r) => r.id === account.id).tokens = tokens;
 				await save(next);
@@ -418,7 +418,7 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 		try {
 			await ready();
 			if (!active()) return modelValue();
-			// Discovery is identity/scope authorization, not an invented model lease.
+			// El descubrimiento es autorización de identidad/alcance, no un préstamo de modelo inventado.
 			const token = await credential(false);
 			const body = await json(`${RESOURCE}/models`, { headers: { Authorization: `Bearer ${token.accessToken}` }, signal: AbortSignal.any([transportAbort.signal, AbortSignal.timeout(15000)]) });
 			authorized(false, undefined, token.epoch);
@@ -456,10 +456,10 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 	}
 	async function consent(enabled) {
 		if (typeof enabled !== "boolean") throw fail("identity");
-		// One app-owned intent, independent of account/registration lifetime.
+		// Una única intención propia de la app, independiente de la vida de la cuenta/registro.
 		const intent = { enabled: false };
-		backgroundIntent = intent; // ON cannot grant until its durable save.
-		if (!enabled) stop(true); // Revoke all ChatGPT background streams only.
+		backgroundIntent = intent; // ON no puede conceder hasta su guardado duradero.
+		if (!enabled) stop(true); // Revoca solo los streams en segundo plano de ChatGPT.
 		await ready();
 		return serial(async () => {
 			await save({ ...structuredClone(state), allowBackgroundUse: enabled });
@@ -480,15 +480,15 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 						const response = await request(config.revocation_endpoint, { method: "POST", redirect: "error", signal: AbortSignal.timeout(5000), headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ token: account.tokens.refreshToken, token_type_hint: "refresh_token", client_id: account.clientId }) });
 						revoked = response.status === 200;
 						if (revoked || response.status < 500) break;
-					} catch { /* retry only while the refresh token is still in memory */ }
+					} catch { /* reintenta solo mientras el token de refresco siga en memoria */ }
 				}
 			}
-		} catch { /* local action is mandatory even when revocation is unavailable */ }
+		} catch { /* la acción local es obligatoria aunque la revocación no esté disponible */ }
 		return revoked;
 	}
 	async function disconnect(id) {
-		// Explicit local forgetting: a visible account represents every retained
-		// registration with this exact verified issuer/subject, never its email.
+		// Olvido local explícito: una cuenta visible representa todos los registros conservados
+		// con este emisor/sujeto verificado exacto, nunca su correo.
 		pending?.cancel();
 		const initial = state?.registrations.find((r) => r.id === id);
 		let stopped = !!initial && state.registrations.some((r) => r.id === state.activeId && sameAccount(r, initial));
@@ -505,7 +505,7 @@ function createChatGPT({ store, openExternal, fetch: request = globalThis.fetch,
 			for (const member of members) { const confirmed = await revoke(member); revoked = confirmed && revoked; }
 			const next = structuredClone(state);
 			next.registrations = next.registrations.filter((r) => !sameAccount(r, target));
-			if (activeGroup) next.activeId = null; // Never silently select another account.
+			if (activeGroup) next.activeId = null; // Nunca selecciones otra cuenta en silencio.
 			await save(next);
 			if (members.some((r) => r.clientId === retryRegistration?.clientId)) retryRegistration = undefined;
 			if (stopped && !closed && epoch === disconnectEpoch) suspended = false;

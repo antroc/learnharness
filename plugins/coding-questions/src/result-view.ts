@@ -2,7 +2,7 @@ import type { PluginFrontendContext } from "learnharness-plugin-api";
 import { mountDisclosure } from "./disclosure.ts";
 import type { CodingTestResult } from "./test-result.ts";
 
-/** The badge uses the host heading; output stays in the provided footer/body slot. */
+/** La insignia usa el encabezado del host; la salida se queda en la ranura de pie/cuerpo proporcionada. */
 export function mountTestResult(container: HTMLElement, ui: Pick<PluginFrontendContext["ui"], "mountBadge">, result: CodingTestResult, signal: AbortSignal, headerContainer?: HTMLElement): () => void {
   if (signal.aborted) return () => {};
   const document = container.ownerDocument;

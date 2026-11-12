@@ -39,7 +39,7 @@ test("public registered grader executes the supplied recipe after submission, re
     registerInstructions() { return () => { disposed++; }; },
   } as unknown as PluginBackendContext);
   const controller = new AbortController();
-  // Existing pending snapshots without a model solution must still grade.
+  // Las instantáneas pendientes existentes sin solución modelo deben seguir calificándose.
   const payload: SavedPayload = { language: "JavaScript", tests: { program: process.execPath, args: ["-"], code: testCode } };
   const context: PluginQuestionGradingContext<SavedPayload, string> = {
     chatId: "fixture", questionId: "question-backend", variant: "teach", contractVersion: 1,

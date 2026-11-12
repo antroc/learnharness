@@ -1,11 +1,11 @@
-/** The teacher supplies a complete test process recipe, not a language profile. */
+/** El profesor aporta una receta completa de proceso de prueba, no un perfil de lenguaje. */
 export type CodingTests = {
   program: string;
   args: string[];
   code: string;
 };
 
-/** A test-process observation, never a claim that the learner's code is correct. */
+/** Una observación del proceso de prueba, nunca una afirmación de que el código del alumno sea correcto. */
 export type CodingTestResult = {
   status: "passed" | "failed" | "error";
   exitCode: number | null;
@@ -16,7 +16,7 @@ export type CodingTestResult = {
   message?: string;
 };
 
-/** Defensive reading of saved plugin data; never coerce or infer a missing result. */
+/** Lectura defensiva de los datos guardados del plugin; nunca convierte ni deduce un resultado ausente. */
 export function readTestResult(value: unknown): CodingTestResult | null {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
   const result = value as Record<string, unknown>;

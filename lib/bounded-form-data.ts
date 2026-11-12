@@ -1,8 +1,9 @@
-/** Actual-body bound, independent of absent or untrustworthy Content-Length. */
+/** Límite sobre el cuerpo real, independiente de un Content-Length ausente o poco fiable. */
 export class FormBodyLimitError extends Error {}
 
-/** Buffer before multipart parsing: malformed/truncated uploads never yield a
- * partial form. Optional cancellation interrupts even a blocked reader.read(). */
+/** Se almacena en búfer antes del análisis multipart: las subidas mal
+ * formadas/truncadas nunca producen un formulario parcial. La cancelación
+ * opcional interrumpe incluso un reader.read() bloqueado. */
 export async function readBoundedFormData(request: Request, maxBytes: number, signal?: AbortSignal): Promise<FormData> {
 	signal?.throwIfAborted();
 	if (Number(request.headers.get("content-length")) > maxBytes) {
@@ -36,7 +37,7 @@ export async function readBoundedFormData(request: Request, maxBytes: number, si
 		return form;
 	} finally {
 		signal?.removeEventListener("abort", cancel);
-		// Do not wait for a tee's other consumer to finish before refusing an upload.
+		// No esperes a que termine el otro consumidor de un tee antes de rechazar una subida.
 		cancel();
 		reader.releaseLock();
 	}

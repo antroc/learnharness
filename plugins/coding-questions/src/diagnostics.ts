@@ -6,15 +6,15 @@ const supportedLanguages = new Set([
   "Python", "JavaScript", "TypeScript", "C", "C++", "Java", "Rust", "Go", "JSON",
 ]);
 
-/** Uses the catalog's canonical name so aliases inherit exactly the same policy. */
+/** Usa el nombre canónico del catálogo para que los alias hereden exactamente la misma política. */
 export function supportsSyntaxDiagnostics(languageName: string): boolean {
   return supportedLanguages.has(languageName);
 }
 
-/** Parser feedback only: never execute code, infer types, or reject an answer. */
+/** Solo información del analizador: nunca ejecuta código, deduce tipos ni rechaza una respuesta. */
 export function syntaxDiagnostics(state: EditorState): Diagnostic[] {
-  // Large documents may never be parsed in full while the viewport stays at
-  // the top. Use the available tree, excluding recovery at its unfinished edge.
+  // Puede que los documentos grandes nunca se analicen enteros mientras el viewport sigue
+  // arriba. Usa el árbol disponible, excluyendo la recuperación en su borde sin terminar.
   const tree = syntaxTree(state);
   const complete = syntaxTreeAvailable(state);
   const diagnostics: Diagnostic[] = [];

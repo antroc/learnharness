@@ -1,37 +1,45 @@
 /*
- * Preload (2026-09-17, narrow-window wave): the ONLY bridge between the
- * sandboxed renderer and the main process. contextIsolation + sandbox are
- * on (electron/main.cjs), so this file is the renderer's entire access to
- * Electron — keep it a minimal, explicit API surface.
+ * Preload (2026-09-17, oleada de la ventana estrecha): el ÚNICO puente entre
+ * el renderer aislado y el proceso principal. contextIsolation + sandbox
+ * están activados (electron/main.cjs), así que este fichero es todo el
+ * acceso del renderer a Electron: mantenlo como una superficie de API mínima
+ * y explícita.
  *
- *   window.lh.platform — read-only OS identity for native window-control
- *   gutters (darwin: left traffic lights; win32/linux: right overlay).
+ *   window.lh.platform — identidad del SO de solo lectura para los márgenes
+ *   de los controles nativos de ventana (darwin: semáforos a la izquierda;
+ *   win32/linux: superposición a la derecha).
  *
- *   window.lh.expandWindow() — widen the window to the sidebar auto-close
- *   threshold (928px) when the sidebar is opened below it. The main
- *   process clamps: no-op if the window is already wide enough.
+ *   window.lh.expandWindow() — ensancha la ventana hasta el umbral de cierre
+ *   automático de la barra lateral (928px) cuando la barra se abre por debajo
+ *   de él. El proceso principal acota: no hace nada si la ventana ya es lo
+ *   bastante ancha.
  *
- *   window.lh.onZoom(cb) / window.lh.getZoom() — the zoom truth (owner
- *   round 7, 2026-10-05): every ⌘±/⌘0 change arrives as "lh:zoom" with
- *   the new factor; getZoom covers the first-paint race. The renderer
- *   publishes it as --lh-zoom so physical-constant lengths (the traffic-
- *   light gutter) can divide by it.
+ *   window.lh.onZoom(cb) / window.lh.getZoom() — la verdad del zoom (ronda 7
+ *   del responsable, 2026-10-05): cada cambio con ⌘±/⌘0 llega como "lh:zoom"
+ *   con el nuevo factor; getZoom cubre la carrera del primer pintado. El
+ *   renderer lo publica como --lh-zoom para que las longitudes de tamaño
+ *   físico constante (el margen de los semáforos) puedan dividirse por él.
  *
- *   window.lh.onUpdateStatus(cb) / window.lh.installUpdate() — the
- *   auto-update channel (Wave C, 2026-10-10): "lh:update-status" pushes
- *   {status, version, revision} on updater events; installUpdate asks main
- *   to kill the server and quit-and-install. getUpdateState retrieves the
- *   snapshot for a late subscriber; checkForUpdates requests a manual
- *   check (including download/install-on-quit, even with automatic checks OFF).
+ *   window.lh.onUpdateStatus(cb) / window.lh.installUpdate() — el canal de
+ *   actualización automática (Oleada C, 2026-10-10): "lh:update-status" envía
+ *   {status, version, revision} con los eventos del actualizador;
+ *   installUpdate pide al proceso principal que mate el servidor y haga
+ *   quit-and-install. getUpdateState recupera la instantánea para un
+ *   suscriptor tardío; checkForUpdates pide una comprobación manual (incluida
+ *   la descarga/instalación al salir, aunque las comprobaciones automáticas
+ *   estén DESACTIVADAS).
  *
- *   window.lh.onOpenSettings(cb) — menu navigation, buffered until React
- *   subscribes after a window is reopened. Browser builds have no bridge.
+ *   window.lh.onOpenSettings(cb) — navegación desde el menú, guardada hasta
+ *   que React se suscribe tras reabrir una ventana. Las compilaciones para
+ *   navegador no tienen puente.
  *
- *   window.lh.setAppearance(a) — the active theme's { mode, background }
- *   (theme wave, 2026-11-04): main sets nativeTheme.themeSource and
- *   repaints the native window background / control overlay to match.
+ *   window.lh.setAppearance(a) — el { mode, background } del tema activo
+ *   (oleada de temas, 2026-11-04): el proceso principal fija
+ *   nativeTheme.themeSource y vuelve a pintar el fondo nativo de la ventana /
+ *   la superposición de controles a juego.
  *
- * Channel names are mirrored in electron/main.cjs — keep them in sync.
+ * Los nombres de los canales se reflejan en electron/main.cjs; mantenlos
+ * sincronizados.
  */
 const { contextBridge, ipcRenderer, webUtils } = require("electron");
 
@@ -44,8 +52,8 @@ ipcRenderer.on("lh:open-settings", (_event, section) => {
 
 contextBridge.exposeInMainWorld("lh", {
 	platform: process.platform,
-	// Resolve only a renderer-supplied, OS-backed File. No filesystem API,
-	// uploads, copies, or DOM File IPC to main; sandbox/isolation stay on.
+	// Resuelve solo un File respaldado por el SO y aportado por el renderer. Sin API del sistema de ficheros,
+	// subidas, copias ni IPC de File del DOM hacia el proceso principal; sandbox/aislamiento siguen activos.
 	getPathForFile: (file) => webUtils.getPathForFile(file),
 	chooseAttachmentFolder: () => ipcRenderer.invoke("lh:attachment:pick", "folder"),
 	...(process.argv?.includes("--lh-web-subscriptions") ? {

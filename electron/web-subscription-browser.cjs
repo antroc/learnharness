@@ -1,8 +1,9 @@
 "use strict";
 
-/** Desktop-dev has no tabs. Resolve only an opaque action on its own Next
- * server, then open the owner-validated provider page outside the renderer.
- * The caller must authenticate its trusted app main frame first. */
+/** El escritorio en desarrollo no tiene pestañas. Resuelve solo una acción
+ * opaca sobre su propio servidor de Next y después abre fuera del renderer la
+ * página del proveedor validada por el responsable. El llamante debe
+ * autenticar antes el marco principal de confianza de su app. */
 async function openWebSubscriptionBrowser(action, origin, { fetch: request = globalThis.fetch, openExternal }) {
 	if (typeof action !== "string" || !/^\/api\/subscriptions\/browser\?id=[0-9a-f-]{36}$/.test(action)) throw new Error("Invalid sign-in action.");
 	const response = await request(new URL(action, origin), {

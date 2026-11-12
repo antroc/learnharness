@@ -2,8 +2,9 @@
 
 const HEADER = "x-learnharness-desktop";
 
-/** Called for EVERY outgoing request, so redirects cannot carry the secret
- * to another origin. Never expose this function or its secret to preload. */
+/** Se llama para CADA petición saliente, así que las redirecciones no pueden
+ * llevar el secreto a otro origen. Nunca expongas esta función ni su secreto
+ * a preload. */
 function desktopAPIHeaders(details, origin, secret, windows) {
 	const headers = { ...details.requestHeaders };
 	for (const name of Object.keys(headers)) if (name.toLowerCase() === HEADER) delete headers[name];
@@ -19,7 +20,7 @@ function desktopAPIHeaders(details, origin, secret, windows) {
 		if (new URL(contents.mainFrame.url).origin !== origin) return headers;
 		if (details.initiatorOrigin !== undefined && details.initiatorOrigin !== origin) return headers;
 		headers[HEADER] = secret;
-	} catch { /* Missing/destroyed/navigated frames fail closed. */ }
+	} catch { /* Los marcos ausentes/destruidos/que han navegado fallan en cerrado. */ }
 	return headers;
 }
 module.exports = { desktopAPIHeaders, HEADER };

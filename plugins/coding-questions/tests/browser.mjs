@@ -432,7 +432,7 @@ try {
     assert.deepEqual(await state(), {status:'ready',value:valid});
   }
 
-  // Measure the scheduled update in browser time rather than relying on Node sleeps.
+  // Mide la actualización programada en tiempo del navegador en vez de depender de esperas de Node.
   await page.evaluate(()=>window.host.mount({language:'js',starterCode:'const value = 1;'}));
   await page.waitForFunction(()=>document.querySelector('#editor [role="status"]').textContent==='');
   await page.evaluate(()=> {
@@ -483,8 +483,8 @@ try {
   });
   await new Promise(resolve=>setTimeout(resolve,450));
   assert.equal(await page.$eval('#editor',node=>node.textContent),'diagnostics-unmounted','Pending lint timers cannot resurrect an unmounted editor');
-  // Exercise the practice adapter with genuine public problem props (no question
-  // identity/answer), retained edits, independent saved attempts and observations.
+  // Ejercita el adaptador de práctica con props de problema públicas auténticas (sin identidad
+  // de pregunta ni respuesta), ediciones conservadas, intentos guardados independientes y observaciones.
   const privateSolution='PRIVATE_COMMITTED_PRACTICE_SOLUTION';
   const wrongCode='  function square(x) { return x; }  \n\n';
   const revisedCode='  function square(x) { return x * x; }  \n\n';

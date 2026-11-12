@@ -18,8 +18,8 @@ await build({ ...common, entryPoints: ["src/backend.ts"], outfile: path.join(out
 for (const [from, to] of [["manifest.json", "manifest.json"], ["src/styles.css", "styles.css"], ["README.md", "README.md"], ["LICENSE", "LICENSE"]]) {
   fs.copyFileSync(path.join(root, from), path.join(output, to));
 }
-// Keep dependency attribution and the full licenses of every JS package actually
-// included in the browser bundle. No node_modules or source tree ships at runtime.
+// Conserva la atribución de dependencias y las licencias completas de cada paquete JS realmente
+// incluido en el paquete del navegador. En tiempo de ejecución no se distribuyen node_modules ni el árbol fuente.
 const packages = new Map();
 for (const input of Object.keys(frontend.metafile.inputs)) {
   if (!input.includes("node_modules/")) continue;

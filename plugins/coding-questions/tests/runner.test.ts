@@ -29,7 +29,7 @@ function assertDead(pid: number) {
   if (process.platform === "win32") return;
   try { process.kill(pid, 0); }
   catch (error) { assert.equal((error as NodeJS.ErrnoException).code, "ESRCH"); return; }
-  // Linux may retain a killed process as a zombie until its init reaps it.
+  // Linux puede retener un proceso matado como zombi hasta que su init lo recoja.
   if (process.platform === "linux") {
     const observation = spawnSync("ps", ["-o", "stat=", "-p", String(pid)], { encoding: "utf8" });
     if (observation.stdout.trim().startsWith("Z")) return;
@@ -81,8 +81,8 @@ escaped.once('spawn', () => process.exit(0));
 `;
 
 async function cleanupEscaped(pid: number) {
-  try { process.kill(-pid, "SIGKILL"); } catch { /* Already gone. */ }
-  try { process.kill(pid, "SIGKILL"); } catch { /* Already gone. */ }
+  try { process.kill(-pid, "SIGKILL"); } catch { /* Ya no existe. */ }
+  try { process.kill(pid, "SIGKILL"); } catch { /* Ya no existe. */ }
   await delay(20);
   assertDead(pid);
 }
@@ -276,7 +276,7 @@ test("abort rejects only after driver/descendant and workspace cleanup; sibling 
   const marker = path.join(f.root, "pids.json");
   const controller = new AbortController();
   const running = runTests({ ...f, tests: nodeTests(descendantSource, [marker]), signal: controller.signal });
-  // Install rejection handling immediately, before requesting cancellation.
+  // Instala el manejo del rechazo de inmediato, antes de pedir la cancelación.
   const rejected = assert.rejects(running, { name: "AbortError" });
   const pids: number[] = JSON.parse(await waitForFile(marker));
   controller.abort();
@@ -298,8 +298,8 @@ test("abort settles and cleans its workspace even after an exited driver leaves 
     await within(rejected, 2000);
     assertDead(rootPid!);
     await assertEmptyWorkspace(f.dataDirectory, f.questionId);
-    // The fixture deliberately escaped the runner's process group. Confirm
-    // settlement was not contingent on killing it, then clean it ourselves.
+    // La fixture escapó a propósito del grupo de procesos del runner. Confirma que
+    // el asentamiento no dependía de matarla y después límpiala nosotros.
     process.kill(escapedPid!, 0);
   } finally { await cleanupEscaped(escapedPid!); }
 });
@@ -328,7 +328,7 @@ test("fixed 30 second timeout settles with ordinary and escaped inherited-pipe d
         const result = await running;
         assert.ok(Date.now() - started >= 29_900);
         assert.equal(result.status, "error");
-        assert.equal(result.exitCode, 0); // Driver exit observed before deadline.
+        assert.equal(result.exitCode, 0); // Salida del driver observada antes del plazo.
         assert.match(result.message!, /30 second timeout/);
         assertDead(rootPid!);
         await assertEmptyWorkspace(f.dataDirectory, f.questionId);

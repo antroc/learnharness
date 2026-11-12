@@ -1,11 +1,12 @@
-// The dev server is externally launched and may still be building core packages
-// or compiling its first route. Do not navigate Electron to a refused connection.
+// El servidor de desarrollo se lanza desde fuera y puede que aún esté compilando los paquetes del núcleo
+// o su primera ruta. No lleves Electron a una conexión rechazada.
 const http = require("node:http");
 const https = require("node:https");
 
 /**
- * Any HTTP response is ready: a Next development error page must remain visible.
- * A single total deadline also bounds connected servers that never send headers.
+ * Cualquier respuesta HTTP significa disponible: una página de error de
+ * desarrollo de Next debe seguir visible. Un único plazo total acota también
+ * a los servidores conectados que nunca envían cabeceras.
  * @param {string} url
  * @param {{signal?: AbortSignal, timeoutMs?: number, retryMs?: number}} [options]
  * @returns {Promise<void>}
@@ -36,7 +37,7 @@ async function waitForDevServer(url, { signal, timeoutMs = 30000, retryMs = 200 
 		const attempt = () => {
 			if (settled) return;
 			const request = transport.get(target, { agent: false }, response => {
-				response.on("error", () => {}); // Closing an unneeded response is intentional.
+				response.on("error", () => {}); // Cerrar una respuesta innecesaria es intencionado.
 				response.resume();
 				finish();
 			});

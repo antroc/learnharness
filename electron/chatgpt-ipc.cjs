@@ -1,7 +1,7 @@
 "use strict";
 const { publicError } = require("./chatgpt.cjs");
 
-/** Inherited Node child IPC, not a listening HTTP/socket token service. */
+/** IPC heredado de proceso hijo de Node, no un servicio de tokens HTTP/socket que escucha. */
 function attachChatGPTChild(child, connection) {
 	const send = (value) => {
 		if (child.connected) child.send({ channel: "lh:chatgpt", ...value }, () => {});
@@ -21,7 +21,7 @@ function attachChatGPTChild(child, connection) {
 	return { send, dispose: () => child.removeListener("message", listener) };
 }
 
-/** Sender must be the trusted window's main frame at its exact app origin. */
+/** El emisor debe ser el marco principal de la ventana de confianza en su origen exacto de la app. */
 function trustedSender(event, origin, BrowserWindow) {
 	const win = BrowserWindow.fromWebContents(event.sender);
 	try {

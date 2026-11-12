@@ -1,9 +1,9 @@
-/** Product-only packaged-host proof. Never builds or imports host implementation.
- * Run: LH_STANDALONE=/absolute/verified/.next/standalone node plugins/coding-questions/tests/native.mjs
- * All runtime writes are confined to a disposable /tmp copy; evidence is retained.
- * Requires an existing matching host payload with grading, answered header/footer slots,
- * public mountBadge/mountMarkdown, and question Escape/confirmation support.
- * Syntax checking this file does not launch the host, browser, or test programs.
+/** Prueba del host empaquetado solo con el producto. Nunca compila ni importa la implementación del host.
+ * Ejecución: LH_STANDALONE=/absolute/verified/.next/standalone node plugins/coding-questions/tests/native.mjs
+ * Todas las escrituras en tiempo de ejecución se limitan a una copia desechable en /tmp; las evidencias se conservan.
+ * Requiere una carga existente del host que coincida, con calificación, ranuras de cabecera/pie de respondida,
+ * mountBadge/mountMarkdown públicos y soporte de Escape/confirmación en las preguntas.
+ * Comprobar la sintaxis de este fichero no lanza el host, el navegador ni los programas de prueba.
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -54,8 +54,8 @@ const cleanEnv = {
   XDG_CONFIG_HOME: path.join(home, "config"), XDG_CACHE_HOME: path.join(home, "cache"),
   LH_DATA_DIR: data, LH_AUTH_FILE: auth, LH_IGNORE_ENV_KEYS: "1", NODE_ENV: "production",
 };
-// Real installed Node reads teacher-authored driver code from stdin and the
-// learner submission from answer.txt. No runner implementation is imported.
+// El Node instalado de verdad lee de stdin el código del driver escrito por el profesor y la
+// respuesta del alumno de answer.txt. No se importa ninguna implementación del runner.
 function semanticTests(expectedAnswer) {
   return {
     program: testNode,
@@ -109,8 +109,8 @@ async function chord(key) { await page.keyboard.down(mod); try { await page.keyb
 const snapshots = record => record.messages.flatMap(message => Object.values(message.lhQuestions ?? {})).filter(entry => entry.questionId);
 const streamSnapshots = () => [...streams.values()].map(({ buffered, chunks, ...entry }) => ({ ...entry, text: Buffer.concat([buffered ?? Buffer.alloc(0), ...chunks]).toString("utf8") }));
 
-// Loopback OpenAI protocol fixture, not a replacement plugin or host module.
-// Responses stay held until the real app has subscribed to its native stream.
+// Fixture del protocolo de OpenAI en loopback, no un plugin ni un módulo del host de sustitución.
+// Las respuestas se retienen hasta que la app real se ha suscrito a su stream nativo.
 const mock = http.createServer((req, res) => {
   const fail = error => { fixtureError = error; res.writeHead(400, { "content-type": "application/json" }); res.end(JSON.stringify({ error: { message: String(error) } })); };
   try {
@@ -162,7 +162,7 @@ try {
   console.log(`Native coding smoke evidence: ${scratch}`);
   sourceDigest = digestTree(source);
   if (process.env.LH_STANDALONE_SHA256) assert.equal(sourceDigest, process.env.LH_STANDALONE_SHA256, "Use the exact newly approved question-UI payload");
-  // cpSync preserves relative package links without rewriting them to source.
+  // cpSync conserva los enlaces relativos de paquetes sin reescribirlos hacia la fuente.
   assert.ok(!standalone.startsWith(source + path.sep));
   fs.cpSync(source, standalone, { recursive: true, verbatimSymlinks: true });
   verifyCopyLinks(standalone);
@@ -190,7 +190,7 @@ try {
   const mockBase = `http://127.0.0.1:${await listen(mock)}/v1`;
   const port = await freePort(), base = `http://127.0.0.1:${port}`;
   evidence.origin = base; evidence.mockBase = mockBase;
-  // Runtime imports must stay inside the copied payload or installed product.
+  // Los imports en tiempo de ejecución deben quedarse dentro de la carga copiada o del producto instalado.
   const guard = path.join(scratch, "imports.mjs");
   fs.writeFileSync(guard, `import {registerHooks} from 'node:module';import {realpathSync} from 'node:fs';import {fileURLToPath} from 'node:url';import path from 'node:path';\nconst roots=${JSON.stringify([standalone, path.join(data, "plugins")])};registerHooks({resolve(specifier,context,next){const result=next(specifier,context);if(result.url.startsWith('file:')){const file=realpathSync(fileURLToPath(result.url));if(!roots.some(root=>file===root||file.startsWith(root+path.sep)))throw Error('Import escaped disposable payload: '+file)}return result}});\n`);
   const serverLog = fs.openSync(path.join(scratch, "server.log"), "w");
@@ -222,7 +222,7 @@ try {
   browser = await puppeteer.launch({ executablePath: chrome, headless: true, userDataDir: path.join(scratch, "chrome-profile"), env: cleanEnv, args: ["--disable-background-networking", "--disable-sync", "--no-first-run", "--no-default-browser-check"] });
   page = await browser.newPage(); page.setDefaultTimeout(30_000);
   await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
-  // Passive tripwire only: never click a microphone, acquire media, or exercise IME.
+  // Solo un cable trampa pasivo: nunca pulses un micrófono, adquieras medios ni ejercites el IME.
   await page.evaluateOnNewDocument(() => {
     const attempts = []; Object.defineProperty(window, "__nativeMicAttempts", { value: attempts });
     const deny = name => function () { attempts.push(name); throw new Error(`Native proof forbids recording: ${name}`); };
@@ -270,7 +270,7 @@ try {
     (evidence.micTripwire ??= []).push({ stage: evidence.stage, attempts });
   };
   async function assertCompositionGuard(selector, phase) {
-    // Synthetic guard probes only, not an OS IME or trusted composition session.
+    // Solo sondeos sintéticos de las protecciones, no un IME del SO ni una sesión de composición de confianza.
     const posts = () => evidence.requests.filter(request => new URL(request.url).pathname === "/api/chat" && request.method === "POST").length;
     const beforePosts = posts(), beforeProvider = evidence.providerRequests.length;
     const result = await page.$eval(selector, field => {
@@ -308,7 +308,7 @@ try {
     };
     await page.focus(editor); await page.keyboard.press("Escape");
     await focusIs(thinking); await assertNoDialog();
-    // Test only the existing local field cycle, never browser-wide button Tab reachability.
+    // Prueba solo el ciclo de campos local existente, nunca la alcanzabilidad con Tab de los botones en todo el navegador.
     await page.keyboard.press("Tab");
     if (readingText !== undefined) { await focusIs(readingField); await page.keyboard.press("Tab"); }
     await focusIs(editor);
@@ -334,9 +334,9 @@ try {
   }
   async function assertHealthyFrame(phase) {
     await page.evaluate(() => document.activeElement?.blur());
-    await delay(250); // Let the native focus-within border transition settle.
+    await delay(250); // Deja que se asiente la transición del borde nativo de focus-within.
     const result = await page.$eval(`${dock} [data-testid="thinking-field"]`, frame => {
-      // Canonical native QuestionDock classes, not an imported host implementation.
+      // Clases canónicas del QuestionDock nativo, no una implementación del host importada.
       const canonical = "rounded-[10px] border border-border/70 bg-background/60 transition-colors focus-within:border-primary/50";
       const probe = document.createElement("div"); probe.className = canonical; frame.parentElement.append(probe);
       const keys = ["backgroundColor", "borderTopColor", "borderTopWidth", "borderTopStyle", "borderRadius", "transitionProperty"];
@@ -386,7 +386,7 @@ try {
       assert.equal(await reading.evaluate(node => node.classList.contains("bg-card")), true);
     }
     await screenshot(`${index === 0 ? "predict" : index === 1 ? "check" : "run-error"}-thinking-defaults`);
-    await trigger.click(); // Trusted Puppeteer click, not a synthetic DOM event.
+    await trigger.click(); // Clic de confianza de Puppeteer, no un evento sintético del DOM.
     assert.equal(await trigger.evaluate(node => node.getAttribute("aria-expanded")), "true");
     assert.equal(await block.$eval(".lh-prose", node => node.textContent), text);
     const quoteStyle = await block.$eval(".lh-prose", node => ({ fontStyle: getComputedStyle(node).fontStyle, color: getComputedStyle(node).color }));
@@ -465,7 +465,7 @@ try {
       return { color: getComputedStyle(node).color, background: getComputedStyle(node).backgroundColor, expectedColor };
     });
     assert.equal(hover.color, hover.expectedColor); assert.equal(hover.background, "rgba(0, 0, 0, 0)");
-    // Focus-style probe, not a claim of app-wide Tab access to buttons.
+    // Sondeo del estilo de foco, no una afirmación de acceso con Tab a los botones en toda la app.
     await page.keyboard.press("Shift"); await toggle.focus(); await delay(200);
     const focus = await toggle.evaluate(node => ({ visible: node.matches(":focus-visible"), outlineWidth: getComputedStyle(node).outlineWidth, outlineStyle: getComputedStyle(node).outlineStyle, outlineOffset: getComputedStyle(node).outlineOffset }));
     assert.deepEqual(focus, { visible: true, outlineWidth: "2px", outlineStyle: "solid", outlineOffset: "2px" });
@@ -523,8 +523,8 @@ try {
   assert.equal(predictRecord.messages.some(message => message.role === "toolResult" && message.toolCallId === predict.occurrence.toolCallId), false, "No fake execution result or temporary pose acknowledgment");
   assert.equal(await code(dock), starter, "Built CodeMirror editor receives starterCode");
   assert.equal(await page.$eval(editor, node => !!node.closest("form")), false);
-  // Editing and submission use trusted browser input, not imported editor handles.
-  // Only composition-suppression guard probes below dispatch synthetic key events.
+  // La edición y el envío usan entrada de confianza del navegador, no manejadores del editor importados.
+  // Solo los sondeos de la protección de supresión de composición de más abajo despachan eventos de teclado sintéticos.
   await fillCode("x"); await page.keyboard.press("Home"); await page.keyboard.press("Tab");
   assert.equal(await code(dock), "    x", "Host routes Tab to product handle exactly once");
   assert.equal(await page.$eval(editor, node => node.contains(document.activeElement)), true);
@@ -547,7 +547,7 @@ try {
   await page.keyboard.up("Shift");
   const selectionBefore = await page.evaluate(() => getSelection().toString());
   assert.equal(selectionBefore.length, 3, "Retain a meaningful real keyboard selection across natural folding");
-  // Natural transcript blank-margin wheel; the ordinary prose wrapper can own wheels.
+  // Rueda natural en el margen en blanco de la transcripción; el envoltorio de prosa normal puede ser dueño de las ruedas.
   await delay(2250);
   const point = await page.$eval('[role="log"]', node => { const rect = node.getBoundingClientRect(); return { x: rect.x + 12, y: Math.max(80, Math.max(0, rect.y) + 100) }; });
   await page.mouse.click(point.x, point.y);
@@ -562,8 +562,8 @@ try {
   assert.equal(await editorElement.evaluate(node => node === document.querySelector('[data-testid="plugin-question-dock"] .cm-editor')), true);
   assert.equal(await code(dock), exactAnswer);
   await page.focus(editor);
-  // CodeMirror restores the DOM selection during its focus/update cycle. Wait
-  // for that observable state rather than sampling before the focus work settles.
+  // CodeMirror restaura la selección del DOM durante su ciclo de foco/actualización. Espera
+  // a ese estado observable en vez de muestrear antes de que se asiente el trabajo del foco.
   await page.waitForFunction(selection => getSelection()?.toString() === selection, {}, selectionBefore);
   const selectionAfter = await page.evaluate(() => getSelection().toString());
   assert.equal(selectionAfter, selectionBefore, "Natural fold/reopen retains the CodeMirror selection");
@@ -787,7 +787,7 @@ try {
   assert.equal(requestCount, 8);
   await api(`/api/plugins/${manifest.id}`, "PUT", { enabled: false });
   await assertNoMic();
-  // Public navigation reloads registrations; no private runtime hook/notification.
+  // La navegación pública recarga los registros; sin hook/notificación privados del tiempo de ejecución.
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.waitForSelector(dock, { visible: true });
   const reveal = await page.$('[data-testid="teach-check-reveal"]');
@@ -805,7 +805,7 @@ try {
   const postsBefore = evidence.requests.filter(request => new URL(request.url).pathname === "/api/chat" && request.method === "POST").length;
   await screenshot("disabled-fallback");
   const dismissed = page.waitForResponse(response => new URL(response.url()).pathname === route + "/dismiss" && response.request().method() === "POST");
-  // Use the visible recovery button through the browser's trusted input path.
+  // Usa el botón de recuperación visible a través de la vía de entrada de confianza del navegador.
   await page.locator(`${dock} button::-p-text(Dismiss question)`).click();
   assert.equal((await dismissed).status(), 200);
   await page.waitForSelector(dock, { hidden: true }); await delay(350);

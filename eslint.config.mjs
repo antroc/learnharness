@@ -4,24 +4,24 @@ import tsParser from "@typescript-eslint/parser";
 import importPlugin from "eslint-plugin-import";
 
 /**
- * ESLint with one job here: ENFORCE THE IMPORT LAW (the shell/core
- * architecture, docs/architecture.md). Everything else stays out of the
- * way — this is not a style linter.
+ * ESLint con una sola tarea aquí: HACER CUMPLIR LA LEY DE IMPORTS (la
+ * arquitectura armazón/núcleo, docs/architecture.md). Todo lo demás se
+ * aparta: esto no es un linter de estilo.
  *
- *   components/**  →  "@/src/core"  (the pure core barrel) — ONLY
- *   app/**         →  "@/src/core" + "@/src/server" (the server barrel) — ONLY
- *   src/core/**    →  never imports src/agent, src/server, src/store (pure
- *                    core: adapters implement core/ports.ts, never the reverse)
- *   src/agent/**   →  never imports src/server, src/store (dependencies —
- *                    the storage ports, the composition — arrive via
- *                    factories/closures from the chat-handler)
+ *   components/**  →  "@/src/core"  (el barril del núcleo puro) — SOLO
+ *   app/**         →  "@/src/core" + "@/src/server" (el barril del servidor) — SOLO
+ *   src/core/**    →  nunca importa src/agent, src/server, src/store (núcleo
+ *                    puro: los adaptadores implementan core/ports.ts, nunca al revés)
+ *   src/agent/**   →  nunca importa src/server, src/store (las dependencias
+ *                    —los puertos de almacenamiento, la composición— llegan
+ *                    mediante factorías/closures desde el chat-handler)
  *
- * tests/ and scripts/ are internal — unrestricted.
+ * tests/ y scripts/ son internos: sin restricciones.
  */
 
 export default defineConfig([
-	// electron/** — the desktop shell: plain Node, no framework, outside the
-// import law (same rationale as scripts/).
+	// electron/** — el armazón de escritorio: Node simple, sin framework, fuera de la
+// ley de imports (el mismo motivo que scripts/).
 	globalIgnores([".next/**", "node_modules/**", "data/**", "next-env.d.ts", "scripts/**", "electron/**", "dist/**"]),
 	{
 		files: ["**/*.{js,mjs,ts,tsx}"],
@@ -42,7 +42,7 @@ export default defineConfig([
 						{
 							target: "./components",
 							from: "./src",
-							// NOTE: the plugin resolves `except` relative to the zone's `from` path.
+							// NOTA: el plugin resuelve `except` relativo a la ruta `from` de la zona.
 							except: ["./core/index.ts"],
 							message:
 								"Browser shell imports ONLY the pure core barrel: `from \"@/src/core\"` (architecture: docs/architecture.md).",

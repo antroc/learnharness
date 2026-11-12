@@ -14,7 +14,7 @@ function fixture(t) {
 	const previous = globalThis.document;
 	globalThis.document = document;
 	t.after(() => { globalThis.document = previous; });
-	// Linkedom has no writable select.value; only native plugin conversation DOM uses it.
+	// Linkedom no tiene un select.value escribible; solo lo usa el DOM nativo de conversación de plugins.
 	const createElement = document.createElement.bind(document);
 	document.createElement = (tag) => {
 		const node = createElement(tag);

@@ -18,7 +18,7 @@ function codeFromAnswer(answer: PluginQuestionAnswerState): string {
   return normalizeLineEndings(answer.value);
 }
 
-/** Every editor is owned by one host mount; no global editor or plugin draft store. */
+/** Cada editor pertenece a un montaje del host; no hay editor global ni almacén de borradores del plugin. */
 function createCodeView(container: HTMLElement, language: string, code: string, active: boolean, onChange?: (code: string) => void) {
   const document = container.ownerDocument;
   const frame = document.createElement("div");
@@ -67,8 +67,8 @@ function createCodeView(container: HTMLElement, language: string, code: string, 
     status.textContent = "Loading highlighting…";
     void languageDescription.load().then(support => {
       if (disposed) return;
-      // Catalog support may include tag insertion, completion keymaps or other
-      // editing helpers. Install only its language/parser, never those extras.
+      // El soporte del catálogo puede incluir inserción de etiquetas, mapas de teclas de autocompletado u otros
+      // auxiliares de edición. Instala solo su lenguaje/analizador, nunca esos extras.
       view.dispatch({ effects: languageSupport.reconfigure([
         support.language,
         ...(onChange && supportsSyntaxDiagnostics(languageDescription.name) ? [syntaxDiagnosticsExtension()] : []),
@@ -151,7 +151,7 @@ export function mountAnswerEditor(container: HTMLElement, props: PluginQuestionE
   return mountCodeEditor(container, props);
 }
 
-/** Adapt only the public controlled-state vocabulary; no fabricated question identity. */
+/** Adapta solo el vocabulario público de estado controlado; sin identidad de pregunta inventada. */
 export function mountSubmissionEditor(container: HTMLElement, props: PluginProblemEditorProps<CodingPayload>): PluginProblemEditorHandle {
   const handle = mountCodeEditor(container, {
     input: props.input, signal: props.signal, active: props.active,

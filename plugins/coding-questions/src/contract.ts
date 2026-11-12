@@ -81,7 +81,7 @@ export const problemDefinition = {
   submissionSchema: definition.answerSchema,
 } satisfies PluginProblemTypeDefinition;
 
-/** Narrow the public plain-schema payload without relying on a TypeBox-only static brand. */
+/** Acota la carga del esquema simple público sin depender de una marca estática exclusiva de TypeBox. */
 export function readTests(payload: unknown): CodingTests {
   if (payload === null || typeof payload !== "object" || Array.isArray(payload)) throw new Error("Coding question payload is unavailable.");
   const tests = (payload as Record<string, unknown>).tests;
@@ -91,7 +91,7 @@ export function readTests(payload: unknown): CodingTests {
   return { program: recipe.program, args: recipe.args, code: recipe.code };
 }
 
-/** Readiness is not correctness, and must never trim the actual answer. */
+/** Estar lista no es ser correcta, y nunca debe recortar la respuesta real. */
 export function isReady(code: string): boolean {
   return /\S/.test(code);
 }

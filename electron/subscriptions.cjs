@@ -19,13 +19,13 @@ const MESSAGES = {
 	interaction: "This sign-in action is no longer available.",
 };
 function publicError(error) { return MESSAGES[error?.code] ?? MESSAGES.unavailable; }
-/** Resolve the SAME SDK installation as the standalone server, through public exports. */
+/** Resuelve la MISMA instalación del SDK que el servidor standalone, mediante las exportaciones públicas. */
 async function loadSubscriptionSDK(baseDirectory) {
 	const resolve = createRequire(path.join(baseDirectory, "package.json"));
 	const load = (id) => {
-		// Pi exports are import-only. Resolve the public export with ESM
-		// conditions, then remove this synchronous, exact-specifier hook
-		// BEFORE evaluation; no private package path or global hook remains.
+		// Las exportaciones de Pi son solo import. Resuelve la exportación pública con las condiciones
+		// de ESM y quita este hook síncrono de especificador exacto
+		// ANTES de la evaluación; no queda ninguna ruta privada de paquete ni hook global.
 		const hook = registerHooks({ resolve(specifier, context, next) {
 			return next(specifier, specifier === id ? { ...context, conditions: [...context.conditions, "import"] } : context);
 		} });
@@ -45,7 +45,7 @@ function validEndpoint(providerId, auth, credential) {
 	const domain = credential?.enterpriseUrl;
 	return !url.search && !url.hash && url.pathname === "/" && (!url.port || url.port === "443") && (url.hostname.endsWith(".githubcopilot.com") || (domain && (url.hostname === domain || url.hostname.endsWith(`.${domain}`))));
 }
-/** Main owns durable credentials and refresh. Everything returned by status/snapshot is explicitly projected. */
+/** El proceso principal es dueño de las credenciales duraderas y del refresco. Todo lo que devuelven status/snapshot se proyecta explícitamente. */
 function createSubscriptions(options) {
 	let sdk;
 	let closed = false, paused = false;
@@ -69,7 +69,7 @@ function createSubscriptions(options) {
 	function snapshotNow() {
 		return { statuses: [...entries.values()].map(statusOf), models: Object.fromEntries([...entries.values()].map((entry) => [entry.providerId, statusOf(entry).connected ? clone(entry.catalog) : []])) };
 	}
-	function changed(entry) { entry.revision++; try { options.onChange?.(snapshotNow()); } catch { /* observer cannot break credential writes */ } }
+	function changed(entry) { entry.revision++; try { options.onChange?.(snapshotNow()); } catch { /* el observador no puede romper las escrituras de credenciales */ } }
 	function catalog(entry) {
 		let models = entry.provider?.getModels().filter((model) => APIS.has(model.api)) ?? [];
 		if (!entry.state.credential) models = [];
@@ -100,7 +100,7 @@ function createSubscriptions(options) {
 			try {
 				entry.state = clone(await entry.disk.read());
 				const native = entry.providerId === "github-copilot" ? sdk.githubCopilotProvider() : sdk.xaiProvider();
-				// No API-key auth method exists in this collection: ambient keys cannot become a fallback.
+				// En esta colección no existe ningún método de autenticación por clave de API: las claves del entorno no pueden convertirse en alternativa.
 				entry.provider = { ...native, auth: { oauth: native.auth.oauth } };
 				const store = {
 					read: async (id) => id === entry.providerId ? clone(entry.state.credential) : undefined,
@@ -108,9 +108,9 @@ function createSubscriptions(options) {
 					modify: (id, fn, operation) => serialized(entry, async () => {
 						if (id !== entry.providerId || entry.fatal || closed || paused || operation?.signal?.aborted) throw failure("unavailable");
 						const next = await fn(clone(entry.state.credential));
-						// A returned rotation must be saved even if the app paused while
-						// refresh was in flight. Admission is rechecked after resolution;
-						// queued logout deletes only after this serialized durable write.
+						// Una rotación devuelta debe guardarse aunque la app se pausara mientras
+						// el refresco estaba en curso. La admisión se vuelve a comprobar tras la resolución;
+						// un cierre de sesión en cola solo borra después de esta escritura duradera serializada.
 						if (next !== undefined && JSON.stringify(next) !== JSON.stringify(entry.state.credential)) {
 							try { validateCredential(id, next); } catch { storageFailed(entry); throw failure("storage"); }
 							await save(entry, { ...entry.state, credential: next });
@@ -156,7 +156,7 @@ function createSubscriptions(options) {
 					if (!active()) return;
 					if (event.type === "auth_url") addBrowser(event.url);
 					if (event.type === "device_code") { addBrowser(event.verificationUri); attempt.public.userCode = event.userCode; }
-					// Native provider diagnostics are never forwarded. Public prompt wording comes from SDK-owned prompts.
+					// Los diagnósticos nativos del proveedor nunca se reenvían. La redacción pública de los prompts viene de los prompts propios del SDK.
 					attempt.public.progress = event.type === "device_code" || event.type === "auth_url" ? "Complete sign-in in your browser." : "Waiting for the provider…";
 					changed(entry);
 				},

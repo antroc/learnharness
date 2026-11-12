@@ -1,15 +1,18 @@
 /**
- * Preloaded only into the packaged macOS backend, before Next starts.
+ * Se precarga solo en el backend empaquetado de macOS, antes de que arranque
+ * Next.
  *
- * Next assigns process.title. In Electron's Node mode on macOS, the native
- * setter checks in with Launch Services using the main app bundle, creating
- * an unwanted foreground application registration. Keep title writes in JS
- * instead: the native process name stays unchanged while JS can read back
- * its assigned title. This deliberately does not emulate native truncation
- * or every coercion detail; assignments use String(value).
+ * Next asigna process.title. En el modo Node de Electron en macOS, el
+ * establecedor nativo se registra en Launch Services usando el paquete de la
+ * app principal, lo que crea un registro no deseado de aplicación en primer
+ * plano. Por eso las escrituras del título se quedan en JS: el nombre nativo
+ * del proceso no cambia, mientras que JS puede volver a leer el título
+ * asignado. A propósito, no emula el truncado nativo ni todos los detalles
+ * de conversión; las asignaciones usan String(value).
  *
- * Explicit launch arguments (not NODE_OPTIONS) keep the full-Electron browser
- * helper untouched. Node-mode fork descendants can inherit this preload.
+ * Los argumentos de lanzamiento explícitos (no NODE_OPTIONS) dejan intacto
+ * el auxiliar de navegador del Electron completo. Los descendientes de fork
+ * en modo Node pueden heredar esta precarga.
  */
 if (process.platform === "darwin" && process.env.ELECTRON_RUN_AS_NODE === "1" && process.env.LH_DESKTOP_SERVER === "1") {
 	let title = process.title;

@@ -25,8 +25,8 @@ function capture() {
     text() {
       let end = length;
       if (truncated && end > 0) {
-        // A byte cap can split a valid UTF-8 character. Do not turn its
-        // incomplete prefix into a replacement character (which adds bytes).
+        // Un tope de bytes puede partir un carácter UTF-8 válido. No conviertas su
+        // prefijo incompleto en un carácter de sustitución (que añade bytes).
         let start = end - 1;
         while (start > 0 && (bytes[start]! & 0xc0) === 0x80) start--;
         const lead = bytes[start]!;
@@ -64,8 +64,8 @@ async function observeProcess(
     child = spawn(tests.program, tests.args, {
       cwd,
       shell: false,
-      // A separate POSIX process group lets us kill descendants even when the
-      // driver exits first and its descendants still hold our output pipes.
+      // Un grupo de procesos POSIX aparte nos permite matar a los descendientes aunque
+      // el driver termine antes y sus descendientes sigan teniendo nuestras tuberías de salida.
       detached: process.platform !== "win32",
       stdio: ["pipe", "pipe", "pipe"],
     });
@@ -88,12 +88,12 @@ async function observeProcess(
       if (child.pid === undefined) return Promise.resolve();
       if (process.platform !== "win32") {
         try { process.kill(-child.pid, "SIGKILL"); }
-        catch { /* The group may already be gone or have escaped. */ }
+        catch { /* Puede que el grupo ya no exista o se haya escapado. */ }
         if (!rootExited) child.kill("SIGKILL");
         termination = Promise.resolve();
       } else {
-        // Best effort on Windows: taskkill cannot recover a process tree after
-        // its root has already exited. POSIX group cleanup is stronger.
+        // Con el mejor esfuerzo en Windows: taskkill no puede recuperar un árbol de procesos después de
+        // que su raíz haya terminado. La limpieza por grupo de POSIX es más sólida.
         termination = new Promise<void>((done) => {
           const killer = spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true, shell: false });
           killer.on("error", () => { child.kill("SIGKILL"); });
@@ -103,8 +103,8 @@ async function observeProcess(
       return termination;
     };
     const finalize = () => {
-      // On deadline/cancellation, pipe EOF is not an authority to wait on:
-      // an escaped descendant can retain inherited descriptors indefinitely.
+      // Con plazo vencido/cancelación, el EOF de la tubería no es una autoridad que haya que esperar:
+      // un descendiente escapado puede retener indefinidamente los descriptores heredados.
       if (finishing || !rootExited || (!pipesClosed && !timedOut && !signal?.aborted)) return;
       finishing = true;
       clearTimeout(timer);
@@ -123,8 +123,8 @@ async function observeProcess(
     };
     const stop = () => {
       void terminate();
-      // We can only kill our group/tree best-effort, not processes that create
-      // another session. Release our handles even if those processes survive.
+      // Solo podemos matar nuestro grupo/árbol con el mejor esfuerzo, no los procesos que crean
+      // otra sesión. Libera nuestros identificadores aunque esos procesos sobrevivan.
       child.stdin.destroy();
       child.stdout.destroy();
       child.stderr.destroy();
@@ -135,8 +135,8 @@ async function observeProcess(
     signal?.addEventListener("abort", onAbort, { once: true });
     child.stdout.on("data", (chunk: Buffer) => { stdout.append(chunk); });
     child.stderr.on("data", (chunk: Buffer) => { stderr.append(chunk); });
-    // A driver is allowed to stop reading stdin (and still return a valid exit
-    // status). In particular, EPIPE must not become an unhandled stream error.
+    // Un driver puede dejar de leer stdin (y aun así devolver un estado de salida
+    // válido). En concreto, EPIPE no debe convertirse en un error de stream sin gestionar.
     child.stdin.on("error", () => {});
     child.on("error", (error) => {
       launchError = error;
@@ -161,12 +161,12 @@ async function observeProcess(
       finalize();
     });
     child.stdin.end(tests.code, "utf8");
-    // Account for a signal that became aborted before listener registration.
+    // Tiene en cuenta una señal que quedó abortada antes de registrar el listener.
     if (signal?.aborted) onAbort();
   });
 }
 
-/** Run the teacher's process recipe verbatim, without interpreting its language. */
+/** Ejecuta la receta de proceso del profesor tal cual, sin interpretar su lenguaje. */
 export async function runTests({ dataDirectory, questionId, answer, tests, signal }: {
   dataDirectory: string;
   questionId: string;

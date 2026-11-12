@@ -1,6 +1,6 @@
 import type { PluginFrontendContext } from "learnharness-plugin-api";
 
-/** Render the saved prompt through the same host Markdown pipeline as the pending card. */
+/** Renderiza el enunciado guardado con el mismo proceso Markdown del host que la tarjeta pendiente. */
 export function mountSavedQuestion(container: HTMLElement, ui: Pick<PluginFrontendContext["ui"], "mountMarkdown">, question: string, signal: AbortSignal): () => void {
   if (signal.aborted) return () => {};
   const root = container.ownerDocument.createElement("div");

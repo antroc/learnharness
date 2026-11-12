@@ -1,7 +1,8 @@
 "use strict";
-/** Native appearance must be ready before creating a window, independently
- * of the renderer's first report. Keep the small preset boot projection
- * pinned to core's full catalog in appearance-chrome.test.ts. */
+/** La apariencia nativa debe estar lista antes de crear una ventana, con
+ * independencia del primer informe del renderer. Mantén la pequeña
+ * proyección de arranque de los predefinidos fijada al catálogo completo del
+ * núcleo en appearance-chrome.test.ts. */
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -28,14 +29,16 @@ function normalizeAppearance(a) {
 	};
 }
 
-/** Preserve Electron's pre-theme OS-following menus/dialogs for dark.
- * The app/window palette itself remains pinned to the selected theme. */
+/** Conserva para el modo oscuro los menús/diálogos de Electron anteriores a
+ * los temas, que siguen al SO. La paleta de la app/ventana en sí sigue fijada
+ * al tema seleccionado. */
 function themeSourceFor(mode) {
 	return mode === "light" ? "light" : "system";
 }
 
-/** Mirror the server's data path in external-dev mode, not the shell's
- * separate -dev userData. Packaged uses the path given to its child. */
+/** Refleja la ruta de datos del servidor en el modo de desarrollo externo,
+ * no el userData -dev aparte del armazón. El empaquetado usa la ruta que se
+ * pasa a su hijo. */
 function serverDataDir({ devUrl, env, packagedDataDir, repoRoot }) {
 	if (!devUrl) return packagedDataDir;
 	return env.LH_DATA_DIR ? path.resolve(env.LH_DATA_DIR) : path.join(repoRoot, "data");
@@ -44,20 +47,20 @@ function serverDataDir({ devUrl, env, packagedDataDir, repoRoot }) {
 function readAppearance(dataDir) {
 	let a;
 	try { a = JSON.parse(fs.readFileSync(path.join(dataDir, "settings.json"), "utf8"))?.appearance; }
-	catch { /* absent/corrupt record = factory */ }
+	catch { /* registro ausente/corrupto = de fábrica */ }
 	const id = typeof a?.theme === "string" ? a.theme : undefined;
 	let theme = Object.hasOwn(PRESET_APPEARANCE, id) ? PRESET_APPEARANCE[id] : PRESET_APPEARANCE.default;
 	if (typeof id === "string" && id.length <= 64 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) && !Object.hasOwn(PRESET_APPEARANCE, id)) {
 		try {
 			const custom = JSON.parse(fs.readFileSync(path.join(dataDir, "themes", `${id}.json`), "utf8"));
-			// Match the data-only core parser: malformed files render Default,
-			// including files with a valid background but an invalid other ink.
+			// Coincide con el analizador del núcleo solo de datos: los ficheros mal formados se renderizan como Default,
+			// incluidos los que tienen un fondo válido pero otra tinta no válida.
 			if (typeof custom?.name === "string" && custom.name.trim() && /[a-z0-9]/i.test(custom.name.normalize("NFD")) &&
 				(custom.mode === "dark" || custom.mode === "light") && custom.colors && !Array.isArray(custom.colors) &&
 				COLOR_KEYS.every(key => typeof custom.colors[key] === "string" && HEX.test(custom.colors[key]))) {
 				theme = { mode: custom.mode, background: custom.colors.background };
 			}
-		} catch { /* missing/invalid selected file = Default */ }
+		} catch { /* fichero seleccionado ausente/no válido = Default */ }
 	}
 	return { mode: theme.mode, background: normalizeAppearance(a).background ?? theme.background };
 }
@@ -70,8 +73,9 @@ function luminance(hex) {
 	}, 0);
 }
 
-/** Title-bar glyph contrast follows the actual final background, including
- * overrides that do not match the selected theme's dark/light label. */
+/** El contraste de los glifos de la barra de título sigue al fondo final
+ * real, incluidas las sustituciones que no coinciden con la etiqueta
+ * oscuro/claro del tema seleccionado. */
 function chromeColors(appearance) {
 	const color = appearance.background ?? (appearance.mode === "light" ? "#f5f5f3" : "#141414");
 	const bg = luminance(color);

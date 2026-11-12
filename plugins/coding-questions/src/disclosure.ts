@@ -1,4 +1,4 @@
-/** A tucked text-only control, matching the native quiz's Why button. */
+/** Un control solo de texto recogido, a juego con el botón Why del quiz nativo. */
 export function mountDisclosure(container: HTMLElement, kind: "test-output" | "model-solution", label: string, signal: AbortSignal, render: (body: HTMLElement) => void | (() => void)): () => void {
   const document = container.ownerDocument;
   const root = document.createElement("div");
@@ -33,7 +33,7 @@ export function mountDisclosure(container: HTMLElement, kind: "test-output" | "m
     root.append(body);
     try {
       const cleanup = render(body);
-      // A widget can synchronously abort its owning mount while rendering.
+      // Un widget puede abortar de forma síncrona el montaje que lo posee mientras renderiza.
       if (disposed || !open) cleanup?.();
       else contentCleanup = cleanup;
     } catch (error) { close(); throw error; }

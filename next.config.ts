@@ -5,50 +5,50 @@ import { MAX_IMPORT_BODY_BYTES } from "./lib/notes-import-limits.ts";
 const pkg = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8")) as { version: string; homepage: string };
 
 const nextConfig: NextConfig = {
-	// Public build metadata only; no new runtime Electron version API.
+	// Solo metadatos públicos de compilación; ninguna API nueva de versión de Electron en tiempo de ejecución.
 	env: { LH_VERSION: pkg.version, LH_HOMEPAGE: pkg.homepage },
-	// Leave multipart headroom above the 25 MiB file allowance. This is a
-	// proxy buffer, not a rejection gate: the import route also bounds reads,
-	// validates actual file bytes and handles incomplete multipart bodies.
+	// Deja margen para multipart por encima de la asignación de 25 MiB por fichero. Esto es un
+	// búfer del proxy, no una barrera de rechazo: la ruta de importación también acota las lecturas,
+	// valida los bytes reales de los ficheros y gestiona los cuerpos multipart incompletos.
 	experimental: { proxyClientMaxBodySize: MAX_IMPORT_BODY_BYTES },
-	// Desktop target (Electron wrapper, 2026-09-17): standalone output = a
-	// self-contained .next/standalone/server.js the Electron shell spawns
-	// on 127.0.0.1. Harmless for plain web deploys (extra build output).
-	// The manual copies the docs require — public/ and .next/static — are
-	// done by scripts/build-server.mjs.
+	// Destino de escritorio (envoltorio de Electron, 2026-09-17): salida standalone = un
+	// .next/standalone/server.js autocontenido que el armazón de Electron lanza
+	// en 127.0.0.1. Inofensivo para despliegues web normales (salida de compilación adicional).
+	// Las copias manuales que exige la documentación —public/ y .next/static— las
+	// hace scripts/build-server.mjs.
 	output: "standalone",
-	// SAFETY (empirically verified 2026-09-17): without this, output file
-	// tracing sweeps the repo's real data/ — chat records, graph ledgers —
-	// INTO the standalone bundle. A shipped desktop app would carry the
-	// developer's session data inside it.
+	// SEGURIDAD (verificado empíricamente el 2026-09-17): sin esto, el rastreo de ficheros
+	// de salida barre el data/ real del repo —registros de chat, registros del grafo—
+	// HACIA DENTRO del paquete standalone. Una app de escritorio distribuida llevaría
+	// dentro los datos de sesión del desarrollador.
 	//
-	// SECRETS (2026-10-08, caught in the payload audit): the same sweep
-	// ships the repo-root auth.json — the DEV BYOK key store — byte-identical
-	// into the DMG (the packaged app never reads it: the shell passes
-	// LH_AUTH_FILE → userData). Excluded here; build-server.mjs also REFUSES
-	// to package any standalone still containing it. .env* belt-and-braces
-	// the same class. Next also copies loaded bare .env after tracing;
-	// the build-server refusal remains required even with these excludes.
+	// SECRETOS (2026-10-08, detectado en la auditoría de la carga): el mismo barrido
+	// mete el auth.json de la raíz del repo —el almacén de claves BYOK de DESARROLLO—, idéntico byte a byte,
+	// en el DMG (la app empaquetada nunca lo lee: el armazón pasa
+	// LH_AUTH_FILE → userData). Se excluye aquí; build-server.mjs además SE NIEGA
+	// a empaquetar cualquier standalone que aún lo contenga. .env* es cinturón y tirantes para
+	// la misma clase. Next también copia el .env suelto cargado después del rastreo;
+	// la negativa de build-server sigue siendo necesaria incluso con estas exclusiones.
 	//
-	// ⚠ EXCLUDE PATTERNS ARE LOAD-BEARING IN WAYS THE DOCS DON'T DESCRIBE
-	// (empirically established 2026-10-08): adding dir excludes like
-	// "dist/**/*" / "./dist/**/*" for repo-root output dirs STRIPPED THE
-	// server-external packages (pi-ai / pi-agent-core lost everything
-	// under their dist/ — the traced copy collapsed to a bare package.json
-	// and the packaged server died on ERR_MODULE_NOT_FOUND; openai/
-	// @anthropic-ai — pi-ai's deps — vanished from the trace entirely).
-	// Anchored "./"-prefixed forms behave the same. **/data/**/* fixes
-	// suffix matching in Next's JavaScript collector, but NOT its native
-	// Turbopack tracer: that still prunes gcp-metadata and its private deps.
-	// Keep the narrow closure workaround below AND the native runtime gate.
-	// Real SDK data/ directories still need their explicit includes too.
-	// The recursive-DMG payload (repo dist/ swept into the bundle, shipping
-	// the previous build inside the next) is instead prevented by the
-	// desktop:dist clean step AND targeted post-trace curation in
-	// scripts/build-server.mjs (2026-10-11): remove standalone-root dist/
-	// and node_modules/electron/ (the demo helper's DEV runtime; packaged
-	// helpers use the app's own binary). Runtime dependencies' dist/ dirs
-	// stay intact, and the script guards against leaked data/keys.
+	// ⚠ LOS PATRONES DE EXCLUSIÓN SOSTIENEN COSAS DE FORMAS QUE LA DOCUMENTACIÓN NO DESCRIBE
+	// (establecido empíricamente el 2026-10-08): añadir exclusiones de directorio como
+	// "dist/**/*" / "./dist/**/*" para directorios de salida de la raíz del repo ELIMINÓ los
+	// paquetes externos del servidor (pi-ai / pi-agent-core perdieron todo
+	// lo que había bajo su dist/: la copia rastreada se quedó en un package.json pelado
+	// y el servidor empaquetado murió con ERR_MODULE_NOT_FOUND; openai/
+	// @anthropic-ai —las dependencias de pi-ai— desaparecieron por completo del rastreo).
+	// Las formas ancladas con prefijo "./" se comportan igual. **/data/**/* arregla
+	// la coincidencia por sufijo del recolector JavaScript de Next, pero NO su rastreador nativo
+	// de Turbopack: ese sigue podando gcp-metadata y sus dependencias privadas.
+	// Mantén el apaño acotado del cierre de más abajo Y la barrera nativa en tiempo de ejecución.
+	// Los directorios data/ reales de los SDK siguen necesitando también sus inclusiones explícitas.
+	// La carga del DMG recursivo (el dist/ del repo barrido hacia el paquete, que metía
+	// la compilación anterior dentro de la siguiente) se evita en cambio con el paso de limpieza
+	// de desktop:dist Y una curación dirigida posterior al rastreo en
+	// scripts/build-server.mjs (2026-10-11): se quitan el dist/ de la raíz del standalone
+	// y node_modules/electron/ (el runtime de DESARROLLO del auxiliar de demos; los auxiliares
+	// empaquetados usan el propio binario de la app). Los dist/ de las dependencias de tiempo de ejecución
+	// quedan intactos, y el script vigila que no se filtren datos/claves.
 	outputFileTracingExcludes: {
 		"*": [
 			"**/data/**/*",
@@ -59,68 +59,68 @@ const nextConfig: NextConfig = {
 			".env*",
 		],
 	},
-	// Empirically verified gaps (2026-09-17 standalone smoke): the tracer
-	// misses JSON loaded via `import ... with { type: "json" }` attributes —
-	// pi-ai's provider catalog (39 JSON files) vanished from the trace and
-	// the server 500s on module load. Include the whole data dirs of the
-	// runtime-loaded engine packages.
-	// pdfjs-dist (sources v0 live smoke, 2026-09-19): its legacy build loads
-	// the node fake worker (pdf.worker.mjs) and our standard_fonts dir via
-	// runtime-resolved paths — invisible to the tracer. Bundling (without
-	// serverExternalPackages below) additionally breaks the worker's
-	// import.meta.url resolution inside .next/dev chunks — the live smoke
-	// caught it; unit tests run unbundled and never see it.
+	// Huecos verificados empíricamente (prueba de humo del standalone del 2026-09-17): el rastreador
+	// no ve el JSON cargado mediante atributos `import ... with { type: "json" }`:
+	// el catálogo de proveedores de pi-ai (39 ficheros JSON) desapareció del rastreo y
+	// el servidor devuelve 500 al cargar el módulo. Se incluyen los directorios data completos de los
+	// paquetes del motor que se cargan en tiempo de ejecución.
+	// pdfjs-dist (prueba de humo en vivo de fuentes v0, 2026-09-19): su compilación heredada carga
+	// el worker falso de node (pdf.worker.mjs) y nuestro directorio standard_fonts mediante
+	// rutas resueltas en tiempo de ejecución, invisibles para el rastreador. Empaquetarlo (sin
+	// serverExternalPackages, más abajo) rompe además la resolución de import.meta.url
+	// del worker dentro de los fragmentos de .next/dev; la prueba de humo en vivo
+	// lo detectó; las pruebas unitarias se ejecutan sin empaquetar y nunca lo ven.
 	outputFileTracingIncludes: {
 		"*": [
-			// The standalone trace omitted this entire runtime-imported directory
-			// in 0.3.0, so importing puppeteer-core failed before browser startup.
+			// El rastreo del standalone omitía todo este directorio importado en tiempo de ejecución
+			// en la 0.3.0, así que importar puppeteer-core fallaba antes de arrancar el navegador.
 			"node_modules/@puppeteer/browsers/lib/browser-data/**/*.js",
 			"node_modules/pdfjs-dist/legacy/**/*",
 			"node_modules/pdfjs-dist/standard_fonts/**/*",
-			// Wave E (2026-10-10): pdf_render paints via @napi-rs/canvas — its
-			// platform binary (@napi-rs/canvas-<platform>-<arch>) is a dynamic
-			// optional-dep require the tracer cannot see. Builds run per-OS and
-			// npm installs only the current platform's binary, so this glob
-			// resolves to exactly one Skia binary per build.
+			// Oleada E (2026-10-10): pdf_render pinta mediante @napi-rs/canvas; su
+			// binario de plataforma (@napi-rs/canvas-<platform>-<arch>) es un require
+			// dinámico de dependencia opcional que el rastreador no ve. Las compilaciones se hacen por SO y
+			// npm instala solo el binario de la plataforma actual, así que este glob
+			// se resuelve exactamente a un binario de Skia por compilación.
 			"node_modules/@napi-rs/canvas-*/**/*",
-			// Pi-compatible image resizing runs in an unbundled worker. Photon
-			// loads its colocated WASM through Node, also in packaged Electron.
-			// Side questions (2026-11-02): the side model's base prompt is read
-			// from disk per ask — a directory no agent-composition read names.
+			// El redimensionado de imágenes compatible con Pi se ejecuta en un worker sin empaquetar. Photon
+			// carga su WASM contiguo a través de Node, también en el Electron empaquetado.
+			// Preguntas laterales (2026-11-02): el prompt base del modelo lateral se lee
+			// del disco en cada pregunta: un directorio que no nombra ninguna lectura de composición de agentes.
 			"src/agent/prompts/side-chat/*.md",
 			"src/agent/image-processing/*.mjs",
 			"src/agent/image-processing/LICENSE",
 			"node_modules/@silvia-odwyer/photon-node/**/*",
-			// Wave E stage 2: resvg rasterizes visual-maker SVGs natively; same
-			// per-platform-binary story as the canvas above (one per build).
+			// Oleada E etapa 2: resvg rasteriza de forma nativa los SVG de visual-maker; la misma
+			// historia de binario por plataforma que el canvas de arriba (uno por compilación).
 			"node_modules/@resvg/resvg-js-*/**/*",
 			"node_modules/@earendil-works/pi-ai/dist/providers/data/**/*",
-			// Public native OAuth factories load these flows through variable imports.
-			// Electron main uses the same standalone SDK; the offline runtime gate
-			// evaluates their real toAuth paths without login or provider requests.
+			// Las factorías públicas de OAuth nativo cargan estos flujos mediante imports con variables.
+			// El proceso principal de Electron usa el mismo SDK standalone; la barrera en tiempo de ejecución sin conexión
+			// evalúa sus rutas toAuth reales sin login ni peticiones al proveedor.
 			"node_modules/@earendil-works/pi-ai/dist/auth/oauth/{load,github-copilot,xai,device-code}.js",
 			"node_modules/@earendil-works/pi-ai/dist/utils/sleep.js",
 			"node_modules/@earendil-works/pi-agent-core/dist/**/*.json",
-			// Next 16.3.2 native Turbopack applies unanchored excludes while
-			// traversing modules; **/data/**/* still prunes gcp-metadata and
-			// its private runtime chain. Includes are applied after traversal.
-			// This is the verified GoogleAuth closure, not a general dep copy;
-			// the offline native Pi gate must catch future SDK closure changes.
+			// El Turbopack nativo de Next 16.3.2 aplica las exclusiones no ancladas mientras
+			// recorre los módulos; **/data/**/* sigue podando gcp-metadata y
+			// su cadena privada de tiempo de ejecución. Las inclusiones se aplican tras el recorrido.
+			// Este es el cierre verificado de GoogleAuth, no una copia general de dependencias;
+			// la barrera nativa de Pi sin conexión debe detectar futuros cambios en el cierre del SDK.
 			"node_modules/gcp-metadata/**/*",
 			"node_modules/json-bigint/**/*",
 			"node_modules/bignumber.js/**/*",
 		],
 	},
-	// Framework-free core lives in src/ (plain TS, imported by routes and CLI alike).
-	// The pi engine must stay external: its providers are runtime-loaded Node
-	// code (undici streams, catalog data) that breaks when bundled into routes.
+	// El núcleo sin framework vive en src/ (TS simple, importado igual por rutas y por la CLI).
+	// El motor pi debe seguir siendo externo: sus proveedores son código Node cargado en tiempo de
+	// ejecución (streams de undici, datos del catálogo) que se rompe al empaquetarlo en las rutas.
 	serverExternalPackages: [
 		"@earendil-works/pi-ai",
 		"@earendil-works/pi-agent-core",
-		"pdfjs-dist", // sources v0: bundling breaks its node fake-worker path
-		"@napi-rs/canvas", // native binding — bundling breaks the .node require
-		"@silvia-odwyer/photon-node", // CJS loads its adjacent WASM from disk
-		"@resvg/resvg-js", // native binding — same
+		"pdfjs-dist", // fuentes v0: empaquetarlo rompe su ruta del worker falso de node
+		"@napi-rs/canvas", // binding nativo: empaquetarlo rompe el require del .node
+		"@silvia-odwyer/photon-node", // el CJS carga su WASM contiguo desde el disco
+		"@resvg/resvg-js", // binding nativo: igual
 	],
 };
 
