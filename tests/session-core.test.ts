@@ -1,23 +1,27 @@
 /**
- * SESSION MODEL tests (components/session-core.ts — Wave D): the pure state
- * machine that replaced useChat + the AI-SDK transport. Everything the old
- * transport/merge suites pinned survives here on the native wire:
+ * Pruebas del MODELO DE SESIÓN (components/session-core.ts, oleada D): la
+ * máquina de estados pura que sustituyó a useChat + el transporte del AI-SDK.
+ * Todo lo que fijaban las antiguas baterías de transporte/fusión sobrevive aquí
+ * sobre el cable nativo:
  *
- * - the 409 IDENTITY-RETRY (postInputEvent): the event was never persisted
- *   pre-acceptance, so the retry waits out the racing turn and re-POSTs
- *   the SAME body — no merge, no record read;
- * - the reattach path (resumeStream): record refetch, then the SAME
- *   verbatim-AgentEvent consume as a POST; turn-settled is the terminal;
- *   byte-split SSE frames never corrupt (the framing pin);
- * - append-only ADOPTION (adoptRecord/absorbed): server-added steers show
- *   mid-turn, the record rewrite bails to the idle full sync, and the
- *   optimistic entries the write-ahead absorbed never double their
- *   bubbles;
- * - the view application (applyWireEvent → projectView): full-partial
- *   replaces, the fork-2 question-placeholder ignore, execution states,
- *   raw error display (owner ruling);
- * - the continuation fold (needsContinuation): the mount/sync seam's
- *   native replacement for lastAssistantMessageIsCompleteWithToolCalls.
+ * - el REINTENTO DE IDENTIDAD del 409 (postInputEvent): el evento nunca se
+ *   persistió antes de aceptarse, así que el reintento espera a que termine el
+ *   turno que compite y vuelve a hacer POST del MISMO cuerpo: sin fusión ni
+ *   lectura del registro;
+ * - el camino de reenganche (resumeStream): nueva petición del registro y luego
+ *   el MISMO consumo de AgentEvent tal cual que un POST; turn-settled es el
+ *   terminal; las tramas SSE partidas por bytes nunca se corrompen (la fijación
+ *   del enmarcado);
+ * - la ADOPCIÓN solo por anexado (adoptRecord/absorbed): las reorientaciones que
+ *   añade el servidor se muestran a mitad de turno, la reescritura del registro
+ *   se retira a la sincronización completa en reposo, y las entradas optimistas
+ *   que absorbió la persistencia anticipada nunca duplican sus burbujas;
+ * - la aplicación a la vista (applyWireEvent → projectView): los parciales
+ *   completos sustituyen, se ignora el provisional de pregunta de la
+ *   bifurcación 2, los estados de ejecución, se muestra el error en bruto
+ *   (decisión del responsable);
+ * - el plegado de continuación (needsContinuation): el sustituto nativo de la
+ *   frontera de montaje/sincronización para lastAssistantMessageIsCompleteWithToolCalls.
  */
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
@@ -35,12 +39,12 @@ afterEach(() => {
 	globalThis.fetch = realFetch;
 });
 
-/** SSE-frame each object the way the server's subscriber stream does. */
+/** Enmarca en SSE cada objeto igual que lo hace el stream de suscriptor del servidor. */
 function sse(...events: unknown[]): string {
 	return events.map((e) => (e === "[DONE]" ? "data: [DONE]\n\n" : `data: ${JSON.stringify(e)}\n\n`)).join("");
 }
 
-/** A Response whose body drips `text` in `slice`-byte reads (the framing pin). */
+/** Una Response cuyo cuerpo suelta `text` en lecturas de `slice` bytes (la fijación del enmarcado). */
 function dripped(text: string, slice: number, status = 200): Response {
 	const bytes = new TextEncoder().encode(text);
 	const body = new ReadableStream<Uint8Array>({
@@ -54,23 +58,24 @@ function dripped(text: string, slice: number, status = 200): Response {
 	return new Response(body, { status });
 }
 
-/** A plain single-read 200 body. */
+/** Un cuerpo 200 simple de una sola lectura. */
 function sseResponse(...events: unknown[]): Response {
 	return new Response(sse(...events), { status: 200 });
 }
 
-/** CONNECTION DIET B mock (owner, 2026-10-10 — parallel-session freeze
- *  postmortem): send() no longer consumes the POST response — it acks,
- *  closes, and reattaches. The wire sequence a send drives: POST /api/chat
- *  (tiny JSON ack) → GET /api/chats/chat_x (record refetch — the
- *  write-ahead absorbs the optimistic bubble) → GET .../stream (the SSE
- *  wire). `userText` seeds the record's write-ahead user message; `post`
- *  overrides the ack (409/error-path tests keep their own scripts);
- *  `onPost` observes the POST body. */
+/** Mock de la DIETA DE CONEXIÓN B (responsable, 2026-10-10: autopsia de la
+ *  congelación con sesiones en paralelo): send() ya no consume la respuesta del
+ *  POST: acusa recibo, cierra y se reengancha. La secuencia del cable que provoca
+ *  un envío: POST /api/chat (acuse JSON diminuto) → GET /api/chats/chat_x (nueva
+ *  petición del registro: la persistencia anticipada absorbe la burbuja
+ *  optimista) → GET .../stream (el cable SSE). `userText` siembra el mensaje de
+ *  usuario de la persistencia anticipada del registro; `post` sustituye el acuse
+ *  (las pruebas del 409/caminos de error conservan sus propios guiones);
+ *  `onPost` observa el cuerpo del POST. */
 function dietFetch(opts: {
 	stream: () => Response;
 	userText?: string;
-	/** Canonical truth returned by the explicit post-terminal GET. */
+	/** La verdad canónica que devuelve el GET explícito tras el terminal. */
 	settledMessages?: LhMessage[];
 	post?: () => Response;
 	onPost?: (body: string) => void;
@@ -105,9 +110,9 @@ function assistantMsg(id: string, text: string): LhMessage {
 	} as unknown as LhMessage;
 }
 
-/** A streaming assistant partial (pi events carry the FULL partial — and
- * NO message.id: the id exists only once the server's persistTurn stamps
- * the record; the client tracks the in-flight message by slot). */
+/** Un parcial del asistente en streaming (los eventos de pi llevan el parcial
+ * COMPLETO y NINGÚN message.id: el id solo existe cuando el persistTurn del
+ * servidor sella el registro; el cliente sigue el mensaje en curso por ranura). */
 function partial(blocks: unknown[], stopReason?: string): Record<string, unknown> {
 	return {
 		type: "message_update",
@@ -127,7 +132,7 @@ function model(opts: Partial<ConstructorParameters<typeof SessionModel>[0]> = {}
 	return new SessionModel({ chatId: "chat_x", initialMessages: [], ...opts });
 }
 
-// ─── the 409 identity-retry ────────────────────────────────────────────────
+// ─── el reintento de identidad del 409 ─────────────────────────────────────
 
 interface Call {
 	url: string;
@@ -154,18 +159,18 @@ function installFetch(routes: {
 
 describe("postInputEvent (the 409 identity-retry)", { skip: process.env.NO_SLOW ? true : undefined }, () => {
 	it("the model's default fetch is RECEIVER-SAFE (the browser 'Illegal invocation' pin)", async () => {
-		// The live empty-session bug (2026-09-26): storing globalThis.fetch
-		// UNBOUND and calling it as this.fetch(...) throws "Illegal
-		// invocation" in the browser (native fetch requires this === Window;
-		// Node's undici doesn't care, so every test passed while the app was
-		// dead). Pin the browser's receiver discipline with a strict stub.
+		// El fallo real de la sesión vacía (2026-09-26): guardar globalThis.fetch
+		// SIN ENLAZAR y llamarlo como this.fetch(...) lanza "Illegal
+		// invocation" en el navegador (el fetch nativo exige this === Window;
+		// a undici de Node le da igual, así que todas las pruebas pasaban con la app
+		// muerta). Fija la disciplina del receptor del navegador con un sustituto estricto.
 		let receiverWasGlobal = false;
 		globalThis.fetch = (function (this: unknown, ...args: Parameters<typeof fetch>) {
 			if (this !== globalThis) throw new TypeError("Failed to execute 'fetch' on 'Window': Illegal invocation");
 			receiverWasGlobal = true;
 			return Promise.resolve(sseResponse("[DONE]"));
 		}) as typeof fetch;
-		const m = model(); // NO injected fetch — exercises the default wrapper
+		const m = model(); // SIN fetch inyectado: ejercita el envoltorio por defecto
 		const res = await m.postInputEvent({ type: "text", text: "hi" });
 		assert.equal(res.status, 200);
 		assert.ok(receiverWasGlobal, "the default wrapper calls fetch with the global receiver");
@@ -193,7 +198,7 @@ describe("postInputEvent (the 409 identity-retry)", { skip: process.env.NO_SLOW 
 		const event: ChatInput = { type: "text", text: "my question while the wake turn ran" };
 		const calls = installFetch({
 			chatPOST: (_c, n) => (n === 1 ? new Response("busy", { status: 409 }) : new Response("stream", { status: 200 })),
-			jobsGET: (poll) => poll <= 1, // first poll: still running; second: done
+			jobsGET: (poll) => poll <= 1, // primer sondeo: aún en marcha; segundo: terminado
 		});
 		const m = model({ pollMs: 10, waitMaxMs: 100 });
 		const res = await m.postInputEvent(event);
@@ -241,14 +246,14 @@ describe("postInputEvent (the 409 identity-retry)", { skip: process.env.NO_SLOW 
 	});
 });
 
-// ─── send: optimistic appends + wire consumption ────────────────────────────
+// ─── send: anexados optimistas + consumo del cable ──────────────────────────
 
 describe("send (one input event, verbatim consumption)", () => {
 	it("optimistically appends the text, POSTs {chatId, input}, consumes to [DONE]", async () => {
 		const posts: string[] = [];
 		globalThis.fetch = dietFetch({
 			onPost: (b) => posts.push(b),
-			userText: "my topic", // the write-ahead the record refetch absorbs
+			userText: "my topic", // la persistencia anticipada que absorbe la nueva petición del registro
 			settledMessages: [assistantMsg("saved-reply", "hello there")],
 			stream: () =>
 				sseResponse(
@@ -263,27 +268,27 @@ describe("send (one input event, verbatim consumption)", () => {
 
 		const m = model();
 		const pending = m.send({ type: "text", text: "my topic" });
-		// The optimistic bubble is INSTANT (the instant-answer UX seam):
+		// La burbuja optimista es INSTANTÁNEA (la frontera de UX de respuesta instantánea):
 		assert.equal(m.getState().status, "submitted");
 		assert.match((m.getState().nativeMessages.at(-1) as { id?: string }).id ?? "", /^c_/);
 		assert.equal(m.getState().messages.at(-1)!.parts[0]!.text, "my topic");
 		await pending;
 		assert.deepEqual(JSON.parse(posts[0]!), { chatId: "chat_x", input: { type: "text", text: "my topic" } });
 		assert.equal(m.getState().status, "ready");
-		// The streamed assistant REPLACED through full partials (never deltas):
+		// El asistente en streaming SE SUSTITUYE mediante parciales completos (nunca deltas):
 		const view = m.getState().messages;
 		assert.equal(view.at(-1)!.role, "assistant");
 		assert.equal(view.at(-1)!.parts.at(-1)!.text, "hello there");
 	});
 
 	it("N id-less updates replace the SAME tail slot (the per-chunk divider bug pin)", async () => {
-		// pi's wire (captured live, 2026-09-26): message_start/update/end carry
-		// AssistantMessages with NO id. The bug: minting a fresh id per event
-		// made every message_update APPEND a full copy — the tail grew one
-		// message per chunk, and projectView's step separators + thinking
-		// blocks made the transcript fill with dividers mid-stream (cleaned up
-		// only by the settle sync). The fix: the in-flight message is tracked
-		// by slot; updates REPLACE it.
+		// El cable de pi (capturado en vivo, 2026-09-26): message_start/update/end llevan
+		// AssistantMessages SIN id. El fallo: acuñar un id nuevo por evento
+		// hacía que cada message_update AÑADIERA una copia completa: la cola crecía un
+		// mensaje por fragmento, y los separadores de paso + los bloques de razonamiento de
+		// projectView llenaban la transcripción de divisores a mitad del stream (que solo
+		// limpiaba la sincronización al asentarse). El arreglo: el mensaje en curso se sigue
+		// por ranura; las actualizaciones lo SUSTITUYEN.
 		let push: (e: unknown) => void = () => {};
 		const enc = new TextEncoder();
 		const body = new ReadableStream<Uint8Array>({
@@ -301,14 +306,14 @@ describe("send (one input event, verbatim consumption)", () => {
 			push(partial([{ type: "thinking", thinking: "hmm" }, { type: "text", text }]));
 			await settle();
 		}
-		// MID-STREAM: exactly ONE assistant message in the tail — never one
-		// per chunk — carrying the LATEST partial (full snapshot, not deltas).
+		// A MITAD DEL STREAM: exactamente UN mensaje del asistente en la cola (nunca uno
+		// por fragmento) con el ÚLTIMO parcial (instantánea completa, no deltas).
 		const assistants = m.getState().nativeMessages.filter((x) => (x as { role?: string }).role === "assistant");
 		assert.equal(assistants.length, 1, "one streaming message, replaced in place");
 		assert.equal(m.getState().messages.at(-1)!.parts.filter((p) => p.type === "text").length, 1);
 		assert.equal(m.getState().messages.at(-1)!.parts.at(-1)!.text, "Hello world");
-		// Stable id across updates → stable view-part keys (no per-chunk
-		// remount of the whole transcript, mermaid included).
+		// Id estable entre actualizaciones → claves estables de las partes de la vista (sin
+		// volver a montar toda la transcripción por fragmento, mermaid incluido).
 		const idMid = (assistants[0] as { id?: string }).id;
 		assert.match(idMid ?? "", /^c_/, "client-minted slot id");
 
@@ -363,7 +368,7 @@ describe("send (one input event, verbatim consumption)", () => {
 		}) as typeof globalThis.fetch;
 		const m = model({ initialMessages: [newUserMessage("hi"), quizCall] });
 		const pending = m.submitAnswer("quiz", "call-1", { correct: true } as never);
-		// The dock's AnsweredCard state — before any server round-trip:
+		// El estado AnsweredCard del dock, antes de cualquier ida y vuelta al servidor:
 		const state = m.getState();
 		const quizPart = state.messages
 			.flatMap((v) => v.parts)
@@ -378,11 +383,11 @@ describe("send (one input event, verbatim consumption)", () => {
 	});
 
 	it("ignores the question placeholder's clean execution end (fork 2) and keeps errors", async () => {
-		// The dock's mount gate keys on the part STATE the live execution
-		// layer drives MID-STREAM: a clean question execution stays
-		// input-available (the in-memory "Question posed" placeholder
-		// never shows); an INVALID call is output-error and NEVER mounts
-		// (the modal-realism crash pin).
+		// La barrera de montaje del dock depende del ESTADO de la parte que maneja la capa
+		// de ejecución en vivo A MITAD DEL STREAM: una ejecución limpia de pregunta sigue en
+		// input-available (el provisional en memoria "Question posed"
+		// nunca se muestra); una llamada INVÁLIDA es output-error y NUNCA se monta
+		// (la fijación del fallo del realismo modal).
 		const enc = new TextEncoder();
 		let push: (e: unknown) => void = () => {};
 		const body = new ReadableStream<Uint8Array>({
@@ -413,10 +418,10 @@ describe("send (one input event, verbatim consumption)", () => {
 		assert.equal(parts[0]!.state, "input-available", "the clean placeholder is IGNORED — the dock mounts on it");
 		assert.equal(parts[1]!.state, "output-error");
 		assert.equal(parts[1]!.errorText, "correctAnswer does not match any option value");
-		// turn_end carries the placeholder as a toolResult MESSAGE (details:
-		// null — tool-execute questionResult): it must not flip the part to
-		// output-available either — the AnsweredCard would read .dismissed off
-		// null and crash the whole render (the live crash, 2026-09-26).
+		// turn_end lleva el provisional como MENSAJE toolResult (details:
+		// null: questionResult de tool-execute): tampoco debe pasar la parte a
+		// output-available: el AnsweredCard leería .dismissed de
+		// null y haría fallar todo el render (el fallo real, 2026-09-26).
 		push({
 			type: "turn_end",
 			message: { role: "assistant", content: [{ type: "text", text: "" }], stopReason: "toolUse" },
@@ -442,17 +447,17 @@ describe("send (one input event, verbatim consumption)", () => {
 	});
 
 it("Wave C: markers injected mid-run (custom role, follow-up delivery) append to the tail by id", () => {
-	// A never-settling fetch: the send only needs to flip the model into its
-	// streaming status synchronously — its POST floats (never rejects) while
-	// the injected wire events are asserted.
+	// Un fetch que nunca se asienta: el envío solo tiene que pasar el modelo a su
+	// estado de streaming de forma síncrona; su POST queda flotando (nunca rechaza)
+	// mientras se comprueban los eventos del cable inyectados.
 	const m = model({ fetch: () => new Promise<Response>(() => {}) });
 	m.adoptRecord([
 		{ id: "u1", role: "user", content: "hello", timestamp: 1 } as never,
 	] as never);
 	void m.send({ type: "text", text: "hello" });
 
-	// pi emits message_start + message_end for an injected follow-up marker
-	// (no streaming partials) — both must UPSERT the same tail slot by id.
+	// pi emite message_start + message_end para un marcador de seguimiento inyectado
+	// (sin parciales de streaming): los dos deben hacer UPSERT de la misma ranura de la cola por id.
 	const marker = {
 		id: "steer_job_x_1",
 		role: "custom",
@@ -475,7 +480,7 @@ it("Wave C: markers injected mid-run (custom role, follow-up delivery) append to
 		"the marker renders its artifact part (SubagentSteerCard)",
 	);
 
-	// A re-delivery of the same id (message_end replay) must NOT duplicate.
+	// Una reentrega del mismo id (repetición de message_end) NO debe duplicar.
 	m.applyWireEvent({ type: "message_end", message: marker } as never);
 	const again = m.getState();
 	assert.equal(again.messages.length, state.messages.length, "same id upserts, never appends a second copy");
@@ -500,7 +505,7 @@ it("Wave C: markers injected mid-run (custom role, follow-up delivery) append to
 	});
 });
 
-// ─── provider failures: one marker-aware rule for live and saved records ────
+// ─── fallos del proveedor: una regla con marcadores para registros en vivo y guardados ─
 
 describe("provider-error banner (live and saved)", () => {
 	function failed(id = "failed", errorMessage: string | undefined = "Google 500: fixture failure"): LhMessage {
@@ -898,7 +903,7 @@ describe("automatic continuation after recovery failure", () => {
 	});
 });
 
-// ─── failed answer submissions (no replay without canonical reconciliation) ──
+// ─── envíos de respuestas fallidos (sin repetición sin conciliación canónica) ─
 
 describe("answer submission recovery", () => {
 	const question = {
@@ -922,7 +927,7 @@ describe("answer submission recovery", () => {
 		await m.submitAnswer("quiz", "q1", answer);
 		assert.equal(m.getState().messages[0]!.parts.find(p => p.toolCallId === "q1")!.state, "input-available");
 		assert.equal(m.status, "error");
-		m.clearError(); // dismissing the banner must not disable recovery
+		m.clearError(); // descartar el aviso no debe desactivar la recuperación
 		await m.submitAnswer("quiz", "q1", answer);
 		assert.equal(posts, 2, "error must not permanently close the send gate");
 		assert.deepEqual(calls.slice(0, 3), ["/api/chat", "/api/chats/chat_x", "/api/chat"]);
@@ -1156,7 +1161,7 @@ describe("answer submission recovery", () => {
 	});
 });
 
-// ─── reattach (resumeStream) ────────────────────────────────────────────────
+// ─── reenganche (resumeStream) ──────────────────────────────────────────────
 
 describe("resumeStream (the reattach path)", () => {
 	it("refetches the record, then GETs the stream endpoint", async () => {
@@ -1192,12 +1197,12 @@ describe("resumeStream (the reattach path)", () => {
 		}) as typeof globalThis.fetch;
 		const m = model();
 		await m.resumeStream(false);
-		// Still attach FIRST: no blocking canonical GET before replay. The
-		// newly required GET occurs only after the explicit terminal marker.
+		// Aun así, engancharse PRIMERO: sin GET canónico bloqueante antes de la repetición. El
+		// GET que ahora se exige ocurre solo tras el marcador terminal explícito.
 		assert.deepEqual(urls, ["/api/chats/chat_x/stream", "/api/chats/chat_x"]);
 		assert.equal(m.getState().status, "ready");
-		// the mid-session caller (handoff watch) keeps the default refetch
-		// (the earlier test in this block pins that order).
+		// quien llama a mitad de sesión (vigilancia del traspaso) conserva la nueva petición
+		// por defecto (la prueba anterior de este bloque fija ese orden).
 	});
 
 	it("OPTIMISTIC SUBMIT (owner, optimistic round 2026-10-02): send flips status synchronously — the placeholder is live before the server answers anything", async () => {
@@ -1205,13 +1210,13 @@ describe("resumeStream (the reattach path)", () => {
 		const gate = new Promise<Response>((res) => (release = res));
 		globalThis.fetch = (async (input: RequestInfo | URL) => {
 			const url = String(input);
-			if (url === "/api/chats/chat_x") return gate; // the POST hangs
+			if (url === "/api/chats/chat_x") return gate; // el POST se queda colgado
 			throw new Error(`unexpected fetch: ${url}`);
 		}) as typeof globalThis.fetch;
 		const m = model();
-		// send() runs synchronously to its first await — status is already
-		// "submitted" (and the optimistic user bubble is appended) before
-		// the server has answered ANYTHING.
+		// send() se ejecuta de forma síncrona hasta su primer await: el estado ya es
+		// "submitted" (y la burbuja optimista del usuario ya está añadida) antes de
+		// que el servidor haya respondido NADA.
 		const p = m.send({ type: "text", text: "q" });
 		assert.equal(m.getState().status, "submitted", "the placeholder is live pre-first-chunk");
 		assert.equal(m.getState().messages.at(-1)!.role, "user", "the optimistic bubble is up");
