@@ -1145,8 +1145,8 @@ describe("message anchors (session propositions carry their passage's id)", () =
 			graphStore: ledgers,
 			getChunkTokens: () => 4096,
 			extractor,
-			// One review per batch job (the retry lives in the extractor's
-			// own turn budget, not the auditor's).
+			// Una revisión por cada tarea de lote (el reintento vive en el presupuesto de turnos
+			// propio del extractor, no en el del auditor).
 			auditor: fauxEngine([passThroughAuditStep(), passThroughAuditStep()]),
 		});
 		assert.deepEqual(await pipeline.runExtraction(chatId), { nodes: 2, chains: 0 });
@@ -1174,13 +1174,13 @@ describe("message anchors (session propositions carry their passage's id)", () =
 			auditor: submitModel("submit_review", { links: [{ id: "p1", linkTo: existingId }] }),
 		});
 		await pipeline.runExtraction(chatId);
-		// The link-append line — the re-encounter — carries the passage id.
+		// La línea de anexado por enlace (el reencuentro) lleva el id del pasaje.
 		const appended = ledgers
 			.readNodes()
 			.filter((n) => n.id === existingId)
 			.find((line) => line.provenance.some((pt) => pt.chatId === chatId))!;
 		assert.deepEqual(appended.provenance, [{ chatId, messageId: "a2" }]);
-		// And the derived graph unions it under the same point identity.
+		// Y el grafo derivado lo une bajo la misma identidad de punto.
 		const merged = getGraph(ledgers).nodes.find((n) => n.id === existingId)!;
 		assert.ok(merged.provenance.some((pt) => pt.chatId === chatId && pt.messageId === "a2"));
 	});
@@ -1190,8 +1190,8 @@ describe("message anchors (session propositions carry their passage's id)", () =
 		const pipeline = createExtractionPipeline({
 			chatStore,
 			graphStore: ledgers,
-			// NOTES_FINDINGS carries no messageId (the notes schema never
-			// asks for one) — the submit validates exactly as before.
+			// NOTES_FINDINGS no lleva messageId (el esquema de notas nunca
+			// lo pide): el envío se valida exactamente igual que antes.
 			extractor: submitModel("submit_findings", NOTES_FINDINGS),
 			auditor: submitModel("submit_review", { links: [] }),
 		});
@@ -1202,8 +1202,8 @@ describe("message anchors (session propositions carry their passage's id)", () =
 			"notes provenance stays chat-level — the file is the anchor",
 		);
 
-		// The boundary: even a hallucinated messageId (extra properties pass
-		// schema validation) is stripped at the notes fill seam.
+		// El límite: incluso un messageId alucinado (las propiedades extra pasan la
+		// validación del esquema) se elimina en la frontera de relleno de las notas.
 		const stray = {
 			propositions: [{ ...NOTES_FINDINGS.propositions[0], messageId: "made_up" }],
 			chains: [],
@@ -1231,8 +1231,8 @@ describe("message anchors (session propositions carry their passage's id)", () =
 			auditor: fauxEngine([passThroughAuditStep(), passThroughAuditStep()]),
 		});
 		await pipeline.runExtraction(chatId);
-		// The labeled view reuses messageViewLines; the fingerprint seam is
-		// the same lines it always was — same hashes, same coverage.
+		// La vista etiquetada reutiliza messageViewLines; la frontera de las huellas son
+		// las mismas líneas de siempre: los mismos hashes, la misma cobertura.
 		assert.deepEqual(
 			ledgers.readCoverage().map((c) => c.fp).sort(),
 			coverageSlots(record.messages).map((slot) => slot.fp).sort(),
@@ -1241,18 +1241,18 @@ describe("message anchors (session propositions carry their passage's id)", () =
 	});
 });
 
-// ── the notes front door (format-agnostic import) ────────────────────────────
+// ── la puerta de entrada de las notas (importación independiente del formato) ─────
 
-/** Raw personal notes — arbitrary format, no session, no message ids. */
+/** Notas personales en bruto: formato arbitrario, sin sesión, sin ids de mensaje. */
 const NOTES_TEXT = `> [!quote] YOU
 > teach me vim
 
 > [!abstract] PI
 > Vim always starts in Normal mode — keys are commands, not text.`;
 
-/** What the notes-mode extractor submits: same wire shape as session
- *  findings (propositions + chains), messages always empty (the file is
- *  the provenance). */
+/** Lo que envía el extractor en modo notas: la misma forma por el cable que los hallazgos
+ *  de una sesión (proposiciones + cadenas), con los mensajes siempre vacíos (el fichero es
+ *  la procedencia). */
 const NOTES_FINDINGS = {
 	propositions: [
 		{
@@ -1270,12 +1270,12 @@ const NOTES_VERDICT = {
 	edges: [],
 } as const;
 
-// ─── the extractor redesign (owner, 2026-09-30) ─────────────────────────────
+// ─── el rediseño del extractor (responsable, 2026-09-30) ────────────────────
 
 describe("the extractor redesign (owner, 2026-09-30): chains are the deliverable", () => {
-	/** A retry engine: step 1 submits the BAD payload (schema-valid, law-
-	 *  violating — so the pin proves the VALIDATE channel fired, not the
-	 *  schema), step 2 submits the clean one. */
+	/** Un motor de reintento: el paso 1 envía la carga MALA (válida para el esquema, pero que
+	 *  infringe la ley, así que la fijación demuestra que se disparó el canal VALIDATE y no el
+	 *  esquema), el paso 2 envía la limpia. */
 	function retryEngine(bad: unknown, good: unknown): PiEngine {
 		return fauxEngine([
 			() =>
@@ -1307,9 +1307,9 @@ describe("the extractor redesign (owner, 2026-09-30): chains are the deliverable
 			auditor: submitModel("submit_review", { links: [] }),
 		});
 		assert.deepEqual(await pipeline.runExtraction(chatId), { nodes: 3, chains: 1 });
-		// The stored chain's premises are exactly the two premises; the
-		// conclusion is C's resolved node (ids are random — assert
-		// set-wise, never by ledger order).
+		// Las premisas de la cadena almacenada son exactamente las dos premisas; la
+		// conclusión es el nodo resuelto de C (los ids son aleatorios: compara
+		// como conjuntos, nunca por el orden del registro).
 		const byName = new Map(ledgers.readNodes().map((n) => [n.name, n.id]));
 		const conclusion = byName.get("C")!;
 		const chains = ledgers.readChains();
@@ -1341,8 +1341,8 @@ describe("the extractor redesign (owner, 2026-09-30): chains are the deliverable
 			extractor,
 			auditor: submitModel("submit_review", { links: [] }),
 		});
-		// Independent arguments for the same conclusion are separate chains;
-		// the bare p4 rides the propositions list alone.
+		// Los argumentos independientes para la misma conclusión son cadenas separadas;
+		// el p4 suelto viaja solo en la lista de proposiciones.
 		assert.deepEqual(await pipeline.runExtraction(chatId), { nodes: 4, chains: 2 });
 		const lonely = ledgers.readNodes().find((n) => n.name === "Lonely")!;
 		assert.ok(ledgers.readChains().every((c) => !c.premises.includes(lonely.id) && c.conclusion !== lonely.id));
@@ -1405,8 +1405,8 @@ describe("the extractor redesign (owner, 2026-09-30): chains are the deliverable
 			extractor: retryEngine(bad, FINDINGS),
 			auditor: submitModel("submit_review", { links: [] }),
 		});
-		// The first submit was schema-VALID — only the chain law caught it;
-		// the retry merges in full.
+		// El primer envío era VÁLIDO para el esquema: solo la ley de cadenas lo pilló;
+		// el reintento se fusiona completo.
 		assert.deepEqual(await pipeline.runExtraction(chatId), { nodes: 2, chains: 1 });
 	});
 
@@ -1454,8 +1454,8 @@ describe("the extractor redesign (owner, 2026-09-30): chains are the deliverable
 		assert.match(sharedRules, /build\s+on it\./);
 		assert.doesNotMatch(sharedRules, /THE GOAL:|source teaches by arguing|Extract the load-bearing ideas/);
 
-		// Both front doors still receive every shared contract, but own their
-		// goal/selection wording independently of those contracts.
+		// Ambas puertas de entrada siguen recibiendo todos los contratos compartidos, pero redactan
+		// su objetivo/selección con independencia de esos contratos.
 		assert.ok(EXTRACTOR_INSTRUCTIONS.startsWith(SESSION_PREAMBLE));
 		assert.ok(NOTES_EXTRACTOR_INSTRUCTIONS.startsWith(NOTES_PREAMBLE));
 		for (const prompt of [EXTRACTOR_INSTRUCTIONS, NOTES_EXTRACTOR_INSTRUCTIONS]) {
@@ -1465,9 +1465,9 @@ describe("the extractor redesign (owner, 2026-09-30): chains are the deliverable
 		assert.match(EXTRACTOR_INSTRUCTIONS, /everything derives from the foundations/);
 		assert.match(EXTRACTOR_INSTRUCTIONS, /what a reference on it would teach/);
 
-		// THE ANCHOR RULE (owner, 2026-10-13) is SESSION-ONLY: the exact
-		// sentence rides the session instructions; the notes
-		// contextualization never mentions message ids at all.
+		// LA REGLA DEL ANCLA (responsable, 2026-10-13) es SOLO DE SESIÓN: la frase
+		// exacta viaja en las instrucciones de la sesión; la contextualización de las
+		// notas nunca menciona ids de mensaje.
 		assert.equal(
 			SESSION_MESSAGE_ID_RULE,
 			"For each new proposition, copy the message ID of the passage that most directly states or explains it into messageId.",
@@ -1475,13 +1475,13 @@ describe("the extractor redesign (owner, 2026-09-30): chains are the deliverable
 		assert.ok(EXTRACTOR_INSTRUCTIONS.includes(SESSION_MESSAGE_ID_RULE), "the session instructions carry the rule");
 		assert.ok(!NOTES_EXTRACTOR_INSTRUCTIONS.includes("messageId"), "the notes prompt never mentions message ids");
 
-		// The preambles differ in exactly their source description.
+		// Los preámbulos difieren exactamente en la descripción de su fuente.
 		assert.notEqual(SESSION_PREAMBLE, NOTES_PREAMBLE);
 		assert.match(SESSION_PREAMBLE, /a teaching\s+session, rendered as the teacher's prose in reading order/);
 		assert.match(NOTES_PREAMBLE, /the\s+author's personal notes, rendered in reading order/);
 
-		// NO RULE ARMOR (owner, 2026-09-30): the defensive lists are CUT
-		// from both contextualizations.
+		// SIN BLINDAJE DE REGLAS (responsable, 2026-09-30): las listas defensivas se ELIMINAN
+		// de ambas contextualizaciones.
 		for (const prompt of [EXTRACTOR_INSTRUCTIONS, NOTES_EXTRACTOR_INSTRUCTIONS]) {
 			assert.doesNotMatch(prompt, /DROP:/);
 			assert.doesNotMatch(prompt, /MERGE YOUR OWN OUTPUT/);
@@ -1492,8 +1492,8 @@ describe("the extractor redesign (owner, 2026-09-30): chains are the deliverable
 	});
 
 	it("preserves the complete teaching-session prompt byte-for-byte", () => {
-		// Original UTF-8 snapshot, including every newline, preamble and the
-		// session-only anchor rule. Notes-only changes must not alter it.
+		// Instantánea UTF-8 original, con cada salto de línea, preámbulo y la
+		// regla del ancla solo de sesión. Los cambios que solo afectan a las notas no deben alterarla.
 		assert.equal(
 			createHash("sha256").update(EXTRACTOR_INSTRUCTIONS, "utf8").digest("hex"),
 			"a8bddd7d47130ed5e39ffe7d8d0ed6efdd6b30407d52cd9838e7be2e465089a6",
@@ -1531,8 +1531,8 @@ describe("the extractor redesign (owner, 2026-09-30): chains are the deliverable
 });
 
 describe("the notes front door (importNotes — format-agnostic)", () => {
-	// These faux responses verify prompt routing and the unchanged wire/merge
-	// contracts, not whether a real model follows the new instructions.
+	// Estas respuestas simuladas verifican el enrutado de prompts y los contratos de cable/fusión
+	// sin cambios, no si un modelo real sigue las nuevas instrucciones.
 	for (const example of [
 		{
 			label: "standalone definitions",
@@ -1581,7 +1581,7 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 			chatStore,
 			graphStore: ledgers,
 			extractor: submitModel("submit_findings", NOTES_FINDINGS),
-			// During the auditor's call the registry must show the notes run.
+			// Durante la llamada del auditor el registro debe mostrar la ejecución de notas.
 			auditor: submitModel("submit_review", NOTES_VERDICT, () => {
 				const run = extractionStatuses().find((r) => r.chatId.startsWith("src_"));
 				seen.push({ kind: run?.kind, label: run?.label });
@@ -1590,11 +1590,11 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 		const stats = await pipeline.importNotes({ filePath: "/vault/learn vim.md", text: NOTES_TEXT });
 
 		assert.deepEqual(stats, { nodes: 1, chains: 0 });
-		// The run surfaced as a NOTES run labeled with the file path.
+		// La ejecución apareció como ejecución de NOTAS etiquetada con la ruta del fichero.
 		assert.deepEqual(seen, [{ kind: "notes", label: "/vault/learn vim.md" }]);
 		assert.equal(extractionStatuses().length, 0, "the registry clears when the run ends");
 
-		// The source record: deterministic src id, the file path, the usage log.
+		// El registro de la fuente: id src determinista, la ruta del fichero, el registro de uso.
 		const source = ledgers.readSources()[0]!;
 		assert.match(source.id, /^src_/);
 		assert.equal(source.filePath, "/vault/learn vim.md");
@@ -1603,13 +1603,13 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 		assert.equal(source.extractions![0]!.stats?.nodes, 1);
 		assert.ok(source.extractions![0]!.stages.extractor.steps.length > 0, "faux usage captured");
 
-		// File-scoped provenance (submit-schema slim, 2026-09-28): the
-		// node carries ONE chat-level point — the source key itself, no
-		// message anchors.
+		// Procedencia a nivel de fichero (adelgazamiento del esquema de envío, 2026-09-28): el
+		// nodo lleva UN punto a nivel de chat (la propia clave de la fuente), sin
+		// anclas de mensaje.
 		const node = ledgers.readNodes()[0]!;
 		assert.equal(node.statement, "Vim starts in Normal mode, where keys are commands.");
 		assert.deepEqual(node.provenance, [{ chatId: source.id, messageId: "" }]);
-		// The checkpoint stamps the import.
+		// El registro de control sella la importación.
 		assert.equal(ledgers.readCheckpoints()[0]!.chatId, source.id);
 	});
 
@@ -1617,8 +1617,8 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 		const ledgers = memoryLedgers();
 		const views: string[] = [];
 		let calls = 0;
-		// Fresh engine PER CHUNK via the engineFor factory — same seam
-		// production uses (one scripted response per model call).
+		// Motor nuevo POR FRAGMENTO mediante la fábrica engineFor: la misma frontera
+		// que usa producción (una respuesta guionizada por llamada al modelo).
 		const extractorStep = () =>
 			fauxEngine([
 				(context) => {
@@ -1642,17 +1642,17 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 				role === "extractor"
 					? extractorStep()
 						: submitModel("submit_review", { links: [] }),
-			getChunkTokens: () => 20, // 80 chars/line-groups → several chunks
+			getChunkTokens: () => 20, // 80 caracteres/grupos de líneas → varios fragmentos
 		});
 		const stats = await pipeline.importNotes({ filePath: "/vault/big.md", text });
 
 		assert.ok(calls >= 2, `expected ≥2 extractor calls, got ${calls}`);
 		assert.match(views[0]!, new RegExp(`part 1/${calls}`));
 		assert.match(views.at(-1)!, new RegExp(`part ${calls}/${calls}`));
-		// Same findings in every chunk → one node PER CHUNK: jobs merge
-		// independently (owner, 2026-09-29 — the mappings ledger is gone);
-		// cross-chunk identity is the auditor's linkTo verdict, and these
-		// fixtures submit none.
+		// Los mismos hallazgos en cada fragmento → un nodo POR FRAGMENTO: las tareas se fusionan
+		// de forma independiente (responsable, 2026-09-29: el registro de correspondencias ya no existe);
+		// la identidad entre fragmentos es el veredicto linkTo del auditor, y estos
+		// fixtures no envían ninguno.
 		assert.deepEqual(stats, { nodes: calls, chains: 0 });
 		assert.equal(ledgers.readNodes().length, calls);
 	});
@@ -1660,11 +1660,11 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 	it("required top-level fields (owner, 2026-09-28; chains since 2026-09-30): a findings submit MISSING chains fails validation — no silent structure-less merge", async () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
-		// The degraded-retry shape from the OpenRouter log: propositions
-		// only, edges omitted. Required schema → validation fails on every
-		// turn → the run rejects instead of merging a pile of structureless
-		// nodes. Four queued attempts exhaust the extractor's turn budget.
-		// Four queued attempts — one per turn of the extractor's budget.
+		// La forma de reintento degradado del log de OpenRouter: solo
+		// proposiciones, sin aristas. Esquema obligatorio → la validación falla en cada
+		// turno → la ejecución rechaza en vez de fusionar un montón de nodos
+		// sin estructura. Cuatro intentos en cola agotan el presupuesto de turnos del extractor.
+		// Cuatro intentos en cola: uno por turno del presupuesto del extractor.
 		const noEdges = () =>
 			fauxEngine(
 				Array.from({ length: 4 }, () => (context) => {
@@ -1680,8 +1680,8 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 			graphStore: ledgers,
 			engineFor: (role) => (role === "extractor" ? noEdges() : submitModel("submit_review", { links: [] })),
 		});
-		// Isolated job failure (per-chunk jobs, owner 2026-09-28): the run
-		// resolves zeros — no throw — and still nothing merged.
+		// Fallo de tarea aislado (tareas por fragmento, responsable 2026-09-28): la ejecución
+		// se resuelve con ceros (sin throw) y sigue sin fusionarse nada.
 		assert.deepEqual(await pipeline.runExtraction(chatId), { nodes: 0, chains: 0 });
 		assert.equal(ledgers.readNodes().length, 0);
 		assert.equal(ledgers.readCoverage().length, 0, "nothing checkpointed — the messages stay re-runnable");
@@ -1699,7 +1699,7 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 		const first = await mk().importNotes({ filePath: "/vault/learn vim.md", text: NOTES_TEXT });
 		assert.deepEqual(first, { nodes: 1, chains: 0 });
 
-		// A legacy stamp must never suppress an explicit import.
+		// Un sello antiguo nunca debe suprimir una importación explícita.
 		ledgers.upsertSource({ ...ledgers.readSources()[0]!, contentFp: createHash("sha256").update(NOTES_TEXT).digest("hex").slice(0, 16) });
 		const second = await mk().importNotes({ filePath: "/vault/learn vim.md", text: NOTES_TEXT });
 		assert.deepEqual(second, { nodes: 1, chains: 0 }, "identical content re-extracts");
@@ -1709,7 +1709,7 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 		assert.equal(ledgers.readSources()[0]!.extractions?.length, 2, "both runs bill usage");
 		assert.equal(ledgers.readNodes().length, 2, "the auditor, not a content skip, owns identity");
 
-		// Changed text also re-runs the whole file.
+		// El texto cambiado también vuelve a ejecutar todo el fichero.
 		const third = await mk().importNotes({ filePath: "/vault/learn vim.md", text: `${NOTES_TEXT}\nA new closing line.` });
 		assert.deepEqual(third, { nodes: 1, chains: 0 }, "changed content re-extracts");
 		assert.equal(ledgers.readSources()[0]!.extractions?.length, 3, "the re-run bills its usage");
@@ -1736,22 +1736,22 @@ describe("the notes front door (importNotes — format-agnostic)", () => {
 	});
 });
 
-// ── the chunked pipeline (extraction coverage — vision-extraction-coverage.md) ──
+// ── el proceso por fragmentos (cobertura de extracción; vision-extraction-coverage.md) ──
 
-/** Pull the pipeline's prompt view out of a model call: the pipeline sends
- *  the session's markdown document itself as the user turn, so the LAST
- *  user message's text IS what the extractor saw. */
+/** Saca la vista del prompt del proceso de una llamada al modelo: el proceso envía
+ *  el propio documento markdown de la sesión como turno del usuario, así que el texto del
+ *  ÚLTIMO mensaje de usuario ES lo que vio el extractor. */
 function capturedView(context: unknown): string {
 	const messages = (context as { messages?: { role: string; content: string }[] }).messages ?? [];
 	const last = [...messages].reverse().find((m) => m.role === "user");
 	return typeof last?.content === "string" ? last.content : "";
 }
 
-/** An extractor step that submits FINDINGS, optionally capturing its view.
- *  The step plays by the anchor law it runs under (2026-10-13): every
- *  proposition's messageId is copied from a TEACHER [id] label of the
- *  CURRENT stretch, so multi-batch fixtures reuse this step across batches
- *  without ever naming a passage their batch does not hold. */
+/** Un paso del extractor que envía HALLAZGOS y, opcionalmente, captura su vista.
+ *  El paso respeta la ley de anclas bajo la que se ejecuta (2026-10-13): el messageId
+ *  de cada proposición se copia de una etiqueta [id] del PROFESOR del tramo
+ *  ACTUAL, así que los fixtures de varios lotes reutilizan este paso entre lotes
+ *  sin nombrar nunca un pasaje que su lote no contenga. */
 function findingsStep(capture?: (view: string) => void): FauxResponseStep {
 	return (context) => {
 		const view = capturedView(context);
@@ -1768,7 +1768,7 @@ function findingsStep(capture?: (view: string) => void): FauxResponseStep {
 	};
 }
 
-/** An auditor step that passes p1 through (no linkTo — a fresh node), drops p2. */
+/** Un paso del auditor que deja pasar p1 (sin linkTo: un nodo nuevo) y descarta p2. */
 function passThroughAuditStep(): FauxResponseStep {
 	return () =>
 		fauxAssistantMessage(
@@ -1786,16 +1786,16 @@ function passThroughAuditStep(): FauxResponseStep {
 		);
 }
 
-/** A session with UNCOVERED-multiple-batch mass: five long distinct messages
- *  (~1200 tok each — 3600+1200 > the factory chunk budget 4096 → batches of
- *  [m1,m2,m3] and [m4,m5]). */
+/** Una sesión con masa SIN CUBRIR de varios lotes: cinco mensajes largos y distintos
+ *  (~1200 tokens cada uno; 3600+1200 > el presupuesto de fragmento de fábrica de 4096 → lotes
+ *  [m1,m2,m3] y [m4,m5]). */
 function chunkyChat() {
 	const chat = chatStore.createChat("Chunky coverage fixture");
 	createdChats.push(chat.id);
-	// ~1230 tok per TEACHER message (chars/4): three fill the 4096 budget,
-	// the fourth would overflow — deterministic batches [m1,m2,m3] + [m4,m5].
-	// Teacher prose only (owner, 2026-09-28): learner messages are
-	// invisible to coverage, so the fixture is all-teacher.
+	// ~1230 tokens por mensaje del PROFESOR (caracteres/4): tres llenan el presupuesto de 4096
+	// y el cuarto lo desbordaría: lotes deterministas [m1,m2,m3] + [m4,m5].
+	// Solo prosa del profesor (responsable, 2026-09-28): los mensajes del alumno son
+	// invisibles para la cobertura, así que el fixture es todo del profesor.
 	chatStore.saveMessages(
 		chat.id,
 		[1, 2, 3, 4, 5].flatMap((n) => assistant(`a${n}`, [{ type: "text", text: `topic ${n}: ${"detail ".repeat(700)}${n}` }])),
@@ -1812,8 +1812,8 @@ describe("the chunked pipeline (extraction coverage)", () => {
 		const pipeline = createExtractionPipeline({
 			chatStore,
 			graphStore: ledgers,
-			// 4096 budget: the fixture is sized to split in two (the factory
-			// default again — halved back from the digest-era 8192, owner
+			// Presupuesto de 4096: el fixture tiene el tamaño justo para partirse en dos (otra vez el valor
+			// de fábrica, reducido a la mitad desde los 8192 de la época del resumen, responsable
 			// 2026-10-13).
 			getChunkTokens: () => 4096,
 			extractor: fauxEngine([findingsStep((v) => views.push(v)), findingsStep((v) => views.push(v))]),
@@ -1821,46 +1821,46 @@ describe("the chunked pipeline (extraction coverage)", () => {
 		});
 		const stats = await pipeline.runExtraction(chatId);
 
-		// Two batches: the first held messages 1-3, the second 4-5 — a
-		// message is never split, batches are consecutive oldest-first.
+		// Dos lotes: el primero contenía los mensajes 1-3 y el segundo los 4-5; un
+		// mensaje nunca se parte y los lotes son consecutivos, del más antiguo al más reciente.
 		assert.equal(views.length, 2, "one extractor call per batch");
 		assert.ok(views[0]!.includes("topic 1:") && views[0]!.includes("topic 3:"), "teacher prose only, first three");
 		assert.ok(!views[0]!.includes("topic 4:"), "the batch stops at the token budget");
 		assert.ok(views[1]!.includes("topic 4:") && views[1]!.includes("topic 5:"));
 		assert.ok(!views[1]!.includes("topic 3:"));
 		assert.doesNotMatch(views[0]!, /### /, "no speaker headers — passages are TEACHER [id] lines");
-		// The document header is the session title.
+		// La cabecera del documento es el título de la sesión.
 		assert.ok(views[0]!.startsWith("# Chunky coverage fixture"));
-		// MESSAGE-ID LABELS (2026-10-13): every passage carries its REAL
-		// message id — batch 1 holds a1-a3, batch 2 a4-a5, and the labels
-		// follow the split exactly.
+		// ETIQUETAS CON ID DE MENSAJE (2026-10-13): cada pasaje lleva su id de mensaje
+		// REAL: el lote 1 contiene a1-a3, el lote 2 a4-a5, y las etiquetas
+		// siguen la partición exactamente.
 		assert.match(views[0]!, /^TEACHER \[a1\] topic 1:/m);
 		assert.match(views[0]!, /^TEACHER \[a3\] topic 3:/m);
 		assert.doesNotMatch(views[0]!, /TEACHER \[a4\]/);
 		assert.match(views[1]!, /^TEACHER \[a4\] topic 4:/m);
 		assert.match(views[1]!, /^TEACHER \[a5\] topic 5:/m);
 
-		// Batch 1 merged the full findings (verdicts-only: the extractor's
-		// output always fully merges); batch 2's identical ids are a
-		// SEPARATE job's namespace (owner, 2026-09-29 — no mapping table)
-		// — its propositions merge again as fresh nodes. Cross-batch
-		// identity is the auditor's linkTo verdict, never the merger's.
+		// El lote 1 fusionó los hallazgos completos (solo veredictos: la salida del
+		// extractor siempre se fusiona completa); los ids idénticos del lote 2 son el
+		// espacio de nombres de OTRA tarea (responsable, 2026-09-29: sin tabla de correspondencias),
+		// así que sus proposiciones se vuelven a fusionar como nodos nuevos. La identidad
+		// entre lotes es el veredicto linkTo del auditor, nunca del fusionador.
 		assert.deepEqual(stats, { nodes: 4, chains: 2 });
 
-		// Per-batch coverage: every message checkpointed, nothing legacy.
+		// Cobertura por lote: todos los mensajes registrados, nada antiguo.
 		const coverage = ledgers.readCoverage();
 		assert.equal(coverage.length, record.messages.length);
 		assert.equal(ledgers.readCheckpoints().length, 0);
 		assert.equal(coverageOf(record.messages, coverage, chatId).uncoveredCount, 0);
 
-		// A second run is a NO-OP: nothing uncovered → no model calls, no
-		// new usage entry (no money spent on covered ground).
+		// Una segunda ejecución NO HACE NADA: nada sin cubrir → sin llamadas al modelo, sin
+		// nueva entrada de uso (no se gasta dinero en terreno cubierto).
 		const before = views.length;
 		const again = await pipeline.runExtraction(chatId);
 		assert.deepEqual(again, { nodes: 0, chains: 0 });
 		assert.equal(views.length, before);
-		// PER-CHUNK JOBS (owner 2026-09-28): one usage record per batch job
-		// (two), and the no-op run adds none.
+		// TAREAS POR FRAGMENTO (responsable 2026-09-28): un registro de uso por tarea de lote
+		// (dos), y la ejecución sin efecto no añade ninguno.
 		assert.equal(chatStore.getChat(chatId)!.extractions?.length, 2, "one usage record per batch job; the no-op run persists none");
 	});
 
@@ -1872,12 +1872,12 @@ describe("the chunked pipeline (extraction coverage)", () => {
 		const pipeline = createExtractionPipeline({
 			chatStore,
 			graphStore: ledgers,
-			// 4096 budget: the fixture is sized to split in two (the factory
-			// default again — halved back from the digest-era 8192, owner
+			// Presupuesto de 4096: el fixture tiene el tamaño justo para partirse en dos (otra vez el valor
+			// de fábrica, reducido a la mitad desde los 8192 de la época del resumen, responsable
 			// 2026-10-13).
 			getChunkTokens: () => 4096,
-			// Batch 1 submits and merges; batch 2's extractor call HANGS
-			// until the abort fires — the dock's abort button, mid-run.
+			// El lote 1 envía y se fusiona; la llamada al extractor del lote 2 SE CUELGA
+			// hasta que se dispara el aborto: el botón de abortar del dock, a mitad de ejecución.
 			extractor: fauxEngine([
 				findingsStep((v) => views.push(v)),
 				(_context, options) =>
@@ -1893,9 +1893,9 @@ describe("the chunked pipeline (extraction coverage)", () => {
 			auditor: fauxEngine([passThroughAuditStep()]),
 		});
 		const runPromise = pipeline.runExtraction(chatId);
-		// The abort must land while batch 2's extractor hangs. The faux
-		// stream only resolves on abort, so wait for the batch-1 merge to
-		// show in coverage, then abort.
+		// El aborto debe llegar mientras el extractor del lote 2 está colgado. El stream
+		// simulado solo se resuelve al abortar, así que espera a que la fusión del lote 1
+		// aparezca en la cobertura y luego aborta.
 		await new Promise<void>((resolve) => {
 			const check = setInterval(() => {
 				if (ledgers.readCoverage().length > 0) {
@@ -1907,14 +1907,14 @@ describe("the chunked pipeline (extraction coverage)", () => {
 		assert.equal(abortExtraction(chatId), true);
 		const stats = await runPromise;
 
-		// Batch 1's emissions are kept and its messages stay covered.
+		// Las emisiones del lote 1 se conservan y sus mensajes siguen cubiertos.
 		assert.deepEqual(stats, { nodes: 2, chains: 1 });
 		assert.equal(ledgers.readCoverage().length, 3, "batch 1 checkpointed its three messages");
 		const cov = coverageOf(record.messages, ledgers.readCoverage(), chatId);
 		assert.equal(cov.uncoveredCount, 2, "the in-flight batch's messages stay uncovered");
 
-		// The re-run — the manual extract button — picks up ONLY the
-		// remainder: one batch, messages 4-5 alone in the prompt.
+		// La reejecución (el botón de extracción manual) recoge SOLO el
+		// resto: un lote, con los mensajes 4-5 solos en el prompt.
 		const reRunViews: string[] = [];
 		const finisher = createExtractionPipeline({
 			chatStore,
@@ -1930,8 +1930,8 @@ describe("the chunked pipeline (extraction coverage)", () => {
 	});
 
 	it("a re-opened message re-extracts alone; a data-part attach never re-opens it", async () => {
-		// A small session: one batch covers everything, so re-openings are
-		// the ONLY thing later runs can see.
+		// Una sesión pequeña: un lote lo cubre todo, así que las reaperturas son
+		// lo ÚNICO que pueden ver las ejecuciones posteriores.
 		const chat = chatStore.createChat("Re-open fixture");
 		createdChats.push(chat.id);
 		chatStore.saveMessages(chat.id, [
@@ -1947,14 +1947,14 @@ describe("the chunked pipeline (extraction coverage)", () => {
 			auditor: fauxEngine([passThroughAuditStep()]),
 		});
 		await pipeline.runExtraction(chatId);
-		// Wave D: the record IS native history — coverage reads it directly.
+		// Oleada D: el registro ES historial nativo; la cobertura lo lee directamente.
 		const record = () => chatStore.getChat(chatId)!.messages;
 		const messages = () => record();
 		assert.equal(coverageOf(messages(), ledgers.readCoverage(), chatId).uncoveredCount, 0);
 
-		// Data parts are invisible to the extraction view — a plan-block
-		// marker append (whose data part splices into the projected view)
-		// does NOT re-open a covered message.
+		// Las partes de datos son invisibles para la vista de extracción: anexar un marcador
+		// de bloque de plan (cuya parte de datos se inserta en la vista proyectada)
+		// NO reabre un mensaje cubierto.
 		chatStore.saveMessages(chatId, [
 			...record(),
 			newPlanBlockMessage("call_s2", { kind: "full", at: "2026-09-26T00:00:00.000Z", current: null, nodes: [], edges: [] }),
@@ -1962,9 +1962,9 @@ describe("the chunked pipeline (extraction coverage)", () => {
 		const afterAttach = coverageOf(messages(), ledgers.readCoverage(), chatId);
 		assert.equal(afterAttach.uncoveredCount, 0, "data parts don't change the fingerprint");
 
-		// A teacher-prose edit changes the message's view → exactly that
-		// message re-opens, and the next run extracts it alone. (Under the
-		// 2026-09-28 ruling only TEACHER prose can re-open anything.)
+		// Una edición de la prosa del profesor cambia la vista del mensaje → se reabre exactamente ese
+		// mensaje y la siguiente ejecución lo extrae solo a él. (Con la
+		// decisión del 2026-09-28, solo la prosa del PROFESOR puede reabrir algo).
 		const mutated = record().map((m) =>
 			(m as { id?: string }).id === "s1"
 				? ({ ...m, content: [...(m as { content: unknown[] }).content, { type: "text", text: "the answer merged in late" }] } as never)
@@ -1989,23 +1989,23 @@ describe("the chunked pipeline (extraction coverage)", () => {
 	});
 });
 
-// ─── session deletion mid-run (wave 6) ─────────────────────────────────────
+// ─── borrado de la sesión a mitad de ejecución (oleada 6) ──────────────────
 
-// ─── per-chunk parallel jobs (owner, 2026-09-28) ─────────────────────────────
+// ─── tareas paralelas por fragmento (responsable, 2026-09-28) ────────────────
 
 describe("per-chunk parallel jobs (owner, 2026-09-28)", () => {
 	const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-	/** 8 single-line chunks: one line per chunk under a tiny budget — enough
-	 *  to pin source-local ordering independently of request admission. */
+	/** 8 fragmentos de una línea: una línea por fragmento con un presupuesto diminuto; suficiente
+	 *  para fijar el orden local de la fuente con independencia de la admisión de peticiones. */
 	const wideText = () =>
 		Array.from({ length: 8 }, (_, i) => `note ${i}: ${"x".repeat(90)}`).join("\n");
 
 	it("one job per chunk, SERIALIZED per source: the registry shows one live row at a time, and a source-wide abort ends the run", async () => {
 		const ledgers = memoryLedgers();
-		// The extractor call hangs until its ABORT — the observation window:
-		// the parked chunk-1 job must be the ONLY live row (later chunks
-		// mint only when their turn comes, digest order, owner 2026-09-30).
+		// La llamada del extractor se cuelga hasta su ABORTO: la ventana de observación:
+		// la tarea aparcada del fragmento 1 debe ser la ÚNICA fila viva (los fragmentos posteriores
+		// solo se acuñan cuando les toca, en orden del resumen, responsable 2026-09-30).
 		const abortingStep: FauxResponseStep = (_context, options) =>
 			new Promise((_resolve, reject) => {
 				const sig = options?.signal;
@@ -2033,13 +2033,13 @@ describe("per-chunk parallel jobs (owner, 2026-09-28)", () => {
 		assert.equal(rows[0]!.phase, "extracting");
 		assert.deepEqual(rows[0]!.part, { i: 1, n: 8 }, "the row carries its part");
 
-		// SOURCE-WIDE abort: the parked job dies and the run ENDS — no
-		// later chunk ever mints (fresh rows would hang un-aborted).
+		// Aborto de TODA LA FUENTE: la tarea aparcada muere y la ejecución TERMINA; nunca
+		// se acuña ningún fragmento posterior (las filas nuevas se colgarían sin abortar).
 		assert.equal(abortExtraction(srcId), true);
 		await assert.rejects(runPromise, (error) => error instanceof NotesImportError && error.outcome === "aborted");
 		assert.equal(extractionStatuses().filter((r) => r.chatId === srcId).length, 0, "all rows leave the registry");
 		assert.equal(ledgers.readNodes().length, 0, "nothing merged");
-		// Per-job usage: the ONE minted job persisted its (failed) spend.
+		// Uso por tarea: la ÚNICA tarea acuñada persistió su gasto (fallido).
 		const source = ledgers.readSources().find((src) => src.id === srcId)!;
 		assert.equal(source.extractions?.length, 1, "only the aborted job bills — later chunks never ran");
 		assert.ok(source.extractions!.every((entry) => entry.stats === undefined), "no job merged — no stats");
@@ -2051,8 +2051,8 @@ describe("per-chunk parallel jobs (owner, 2026-09-28)", () => {
 		let extractPeak = 0;
 		let auditInFlight = 0;
 		let auditPeak = 0;
-		// Hand-built submit messages (findingsStep()/passThroughAuditStep()
-		// are step FACTORIES — the slow wrapper must return messages).
+		// Mensajes de envío construidos a mano (findingsStep()/passThroughAuditStep()
+		// son FÁBRICAS de pasos; el envoltorio lento debe devolver mensajes).
 		const findingsMessage = fauxAssistantMessage(
 			[fauxToolCall("submit_findings", FINDINGS as unknown as ToolCall["arguments"], { id: "findings-call" })],
 			{ stopReason: "toolUse" },
@@ -2084,16 +2084,16 @@ describe("per-chunk parallel jobs (owner, 2026-09-28)", () => {
 		});
 		const stats = await pipeline.importNotes({ filePath: "/vault/parallel-2.md", text: wideText() });
 
-		// SERIALIZED PER SOURCE (owner, 2026-09-30 evening): one source's
-		// chunks run strictly in order — each extractor continues the
-		// digest of every earlier merge, so the peak within one source is
-		// ONE concurrent extract. Cross-source runs still parallelize;
-		// their model requests share the configured worker admission pool.
+		// SERIALIZADO POR FUENTE (responsable, tarde del 2026-09-30): los fragmentos de una
+		// fuente se ejecutan estrictamente en orden: cada extractor continúa el
+		// resumen de todas las fusiones anteriores, así que el pico dentro de una fuente es
+		// UNA extracción concurrente. Las ejecuciones de fuentes distintas siguen en paralelo;
+		// sus peticiones al modelo comparten el grupo de admisión de workers configurado.
 		assert.equal(extractPeak, 1, "one source, one extract at a time — strict order");
 		assert.equal(auditPeak, 1, "audits serialize behind the gate — never two at once");
-		// Identical findings in every chunk, one merge PER chunk (jobs are
-		// independent — owner, 2026-09-29): 8 chunks × 2 propositions,
-		// 8 × 1 chain. The auditor's links, not the merger, dedupe identity.
+		// Hallazgos idénticos en cada fragmento, una fusión POR fragmento (las tareas son
+		// independientes; responsable, 2026-09-29): 8 fragmentos × 2 proposiciones,
+		// 8 × 1 cadena. Los enlaces del auditor, no el fusionador, eliminan las identidades duplicadas.
 		assert.deepEqual(stats, { nodes: 16, chains: 8 });
 		assert.equal(ledgers.readNodes().length, 16);
 	});
@@ -2104,8 +2104,8 @@ describe("the session-deletion guard (chat deleted mid-run)", () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
 
-		// The chat record is deleted DURING the audit model call — the worst
-		// window: findings already spent, the merge next.
+		// El registro del chat se borra DURANTE la llamada al modelo de auditoría: la peor
+		// ventana: los hallazgos ya se pagaron y la fusión es lo siguiente.
 		const pipeline = createExtractionPipeline({
 			chatStore,
 			graphStore: ledgers,
@@ -2114,27 +2114,27 @@ describe("the session-deletion guard (chat deleted mid-run)", () => {
 		});
 		const stats = await pipeline.runExtraction(chatId);
 
-		// The abort rides the existing abort path: info, not error; zero
-		// emissions (stats present but empty — nothing merged).
+		// El aborto viaja por la ruta de aborto existente: info, no error; cero
+		// emisiones (estadísticas presentes pero vacías: no se fusionó nada).
 		assert.ok(stats);
 		assert.equal(stats.nodes, 0);
 		assert.equal(stats.chains, 0);
 
-		// Nothing merged, nothing checkpointed — the deleted chat leaves no
-		// trace for a later snapshot to resurrect.
+		// No se fusionó ni se registró nada: el chat borrado no deja ningún
+		// rastro que una instantánea posterior pueda resucitar.
 		assert.equal(ledgers.readNodes().length, 0);
 		assert.equal(ledgers.readChains().length, 0);
 		assert.equal(ledgers.readCoverage().length, 0);
 		assert.equal(ledgers.readCheckpoints().length, 0);
 
-		// The run is off the registry (the finally always cleans up).
+		// La ejecución ya no está en el registro (el finally siempre limpia).
 		assert.equal(extractionStatuses().some((run) => run.chatId === chatId), false);
-		// And its partial spend died with the chat — no usage row on a ghost.
+		// Y su gasto parcial murió con el chat: ninguna fila de uso para un fantasma.
 		assert.equal(chatStore.getChat(chatId), null);
 	});
 });
 
-// ─── digest-aware serialized extraction + chain simplification (owner, 2026-09-30 evening) ────
+// ─── extracción serializada consciente del resumen + simplificación de cadenas (responsable, tarde del 2026-09-30) ────
 
 describe("digest-aware serialized extraction (the extractor is the assembler)", () => {
 	it("both source prompts retain their goal and the shared build-on-the-digest doctrine", () => {
@@ -2169,7 +2169,7 @@ describe("digest-aware serialized extraction (the extractor is the assembler)", 
 		});
 		const graph = {
 			nodes: [seed("n_a", "Self-ownership", "src_1"), seed("n_x", "Foreign key", "src_2")],
-			chains: [chain("arg_1", ["n_a"], "n_x", "src_2")], // same NAME, other source — excluded
+			chains: [chain("arg_1", ["n_a"], "n_x", "src_2")], // mismo NOMBRE, otra fuente: excluido
 			sessions: {},
 			sources: {},
 		} as unknown as Parameters<typeof sourceDigest>[0];
@@ -2267,7 +2267,7 @@ describe("digest-aware serialized extraction (the extractor is the assembler)", 
 		ledgers.appendNode(seed("n_a", "Self-ownership"));
 		const FINDINGS_B: SessionFindings = {
 			propositions: [{ id: "p1", name: "Appropriation axiom", statement: "c", aliases: [], messageId: "a1" }],
-			chains: [{ premises: ["n_a", "p1"], conclusion: "p1", }].slice(0, 0), // chains live in the engine below
+			chains: [{ premises: ["n_a", "p1"], conclusion: "p1", }].slice(0, 0), // las cadenas viven en el motor de abajo
 		};
 		const views: string[] = [];
 		const extractor = fauxEngine([
@@ -2277,7 +2277,7 @@ describe("digest-aware serialized extraction (the extractor is the assembler)", 
 					propositions: FINDINGS_B.propositions,
 					chains: [{ premises: ["n_a", "p1"], conclusion: "p1b" }],
 				};
-				// conclusion p1b must exist — real submit:
+				// la conclusión p1b debe existir; envío real:
 				submit.propositions.push({ id: "p1b", name: "Property rights", statement: "d", aliases: [], messageId: "a2" });
 				return fauxAssistantMessage([fauxToolCall("submit_findings", submit as unknown as ToolCall["arguments"], { id: "f1" })], { stopReason: "toolUse" });
 			},
@@ -2290,12 +2290,12 @@ describe("digest-aware serialized extraction (the extractor is the assembler)", 
 		});
 		const stats = await pipeline.runExtraction(chatId);
 
-		// The extractor's view LED with the digest (existing id verbatim).
+		// La vista del extractor EMPEZABA con el resumen (id existente literal).
 		assert.match(views[0]!, /THE GRAPH SO FAR/);
 		assert.match(views[0]!, /n_a \| Self-ownership/);
 
-		// Mixed namespace resolved: n_a passes through verbatim; p1/p1b
-		// resolve through the job-local map.
+		// Espacio de nombres mixto resuelto: n_a pasa literal; p1/p1b
+		// se resuelven a través del mapa local de la tarea.
 		assert.deepEqual(stats, { nodes: 2, chains: 1 });
 		const stored = ledgers.readChains();
 		assert.equal(stored.length, 1);
@@ -2345,17 +2345,17 @@ describe("digest-aware serialized extraction (the extractor is the assembler)", 
 	});
 
 	it("batches serialize: chunk 2's extractor starts only after chunk 1's audit ran (digest order, owner 2026-09-30 evening)", async () => {
-		const { chatId } = chunkyChat(); // 2 deterministic batches at the 4096 override
+		const { chatId } = chunkyChat(); // 2 lotes deterministas con la sustitución de 4096
 		const ledgers = memoryLedgers();
 		const events: string[] = [];
 		let extractCalls = 0;
 		let auditCalls = 0;
-		// One step per engine call (faux engines consume steps): two batches.
+		// Un paso por llamada al motor (los motores simulados consumen pasos): dos lotes.
 		const extractStep = (): FauxResponseStep => (context) => {
 			extractCalls++;
 			events.push(`extract${extractCalls}`);
-			// The anchor is copied from the CURRENT stretch's first TEACHER
-			// label (a1 in batch 1, a4 in batch 2) — batch-local by construction.
+			// El ancla se copia de la primera etiqueta del PROFESOR del tramo ACTUAL
+			// (a1 en el lote 1, a4 en el lote 2): local al lote por construcción.
 			const anchor = /TEACHER \[([^\]]+)\]/.exec(capturedView(context))?.[1] ?? "a1";
 			const submit = {
 				...FINDINGS,
@@ -2381,7 +2381,7 @@ describe("digest-aware serialized extraction (the extractor is the assembler)", 
 			graphStore: ledgers,
 			extractor,
 			auditor,
-			getChunkTokens: () => 4096, // two batches over the chunky fixture (the factory default, 4096 — halved back 2026-10-13)
+			getChunkTokens: () => 4096, // dos lotes sobre el fixture troceado (el valor de fábrica, 4096; reducido a la mitad otra vez el 2026-10-13)
 		});
 		const stats = await pipeline.runExtraction(chatId);
 		assert.deepEqual(events, ["extract1", "audit1", "extract2", "audit2"], "strict per-source order: extract → audit → merge → NEXT extract");
@@ -2422,9 +2422,9 @@ describe("chain simplification (the merger's maintenance pass, owner 2026-09-30 
 			chain("arg_3", ["n_c", "n_d"], "n_y", "2026-09-30T03:00:00.000Z"),
 			chain("arg_4", ["n_a", "n_c"], "n_y", "2026-09-30T04:00:00.000Z"),
 		]);
-		// arg_3's premises are covered by NO kept chain — an independent
-		// route, it stands. arg_4 is a strict premise-superset of arg_1's
-		// route (n_a already suffices) — the lean derivation wins.
+		// Las premisas de arg_3 no las cubre NINGUNA cadena conservada: es una ruta
+		// independiente y se mantiene. arg_4 es un superconjunto estricto de premisas de la ruta
+		// de arg_1 (n_a ya basta): gana la derivación más escueta.
 		assert.deepEqual(kept.map((c) => c.id).sort(), ["arg_1", "arg_2", "arg_3"]);
 	});
 
@@ -2451,7 +2451,7 @@ describe("chain simplification (the merger's maintenance pass, owner 2026-09-30 
 	it("the merge applies it live: a redundant arrival is skipped silently, stats count appends and drops", async () => {
 		const { chatId } = fixtureChat();
 		const ledgers = memoryLedgers();
-		// Seed [A,B]⇒X and [X,C]⇒Y as an earlier source's chains.
+		// Siembra [A,B]⇒X y [X,C]⇒Y como cadenas de una fuente anterior.
 		const seedNode = (id: string, name: string): GraphNode => ({
 			id,
 			name,
@@ -2471,8 +2471,8 @@ describe("chain simplification (the merger's maintenance pass, owner 2026-09-30 
 		ledgers.appendChain(chain("arg_1", ["n_a", "n_b"], "n_x", "2026-09-30T01:00:00.000Z"));
 		ledgers.appendChain(chain("arg_2", ["n_x", "n_c"], "n_y", "2026-09-30T02:00:00.000Z"));
 
-		// The chat re-asserts the full derivation [A,B,C]⇒Y (all-existing
-		// ids, digest references) — redundant given what stands.
+		// El chat vuelve a afirmar la derivación completa [A,B,C]⇒Y (todos ids
+		// existentes, referencias del resumen): redundante dado lo que ya hay.
 		const redundant: SessionFindings = {
 			propositions: [],
 			chains: [{ premises: ["n_a", "n_b", "n_c"], conclusion: "n_y" }],
